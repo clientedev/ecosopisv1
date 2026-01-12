@@ -1,0 +1,94 @@
+.chatButton {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: var(--primary-green);
+    color: white;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+.chatButton:hover {
+    transform: scale(1.1);
+}
+
+.chatWindow {
+    position: fixed;
+    bottom: 100px;
+    right: 30px;
+    width: 350px;
+    height: 500px;
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+}
+
+.chatHeader {
+    background-color: var(--primary-green);
+    color: white;
+    padding: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.chatHeader button {
+    background: none;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.chatMessages {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.message {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    max-width: 80%;
+}
+
+.userMessage {
+    background-color: var(--primary-green);
+    color: white;
+    align-self: flex-end;
+}
+
+.assistantMessage {
+    background-color: var(--neutral-gray-100);
+    align-self: flex-start;
+}
+
+.chatInput {
+    display: flex;
+    border-top: 1px solid var(--neutral-gray-200);
+    padding: var(--spacing-sm);
+}
+
+.chatInput input {
+    flex: 1;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--neutral-gray-300);
+    border-radius: var(--border-radius);
+}
+
+.chatInput button {
+    margin-left: var(--spacing-sm);
+    background-color: var(--primary-green);
+    color: white;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+}

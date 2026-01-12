@@ -1,0 +1,107 @@
+.contaContainer {
+    padding: var(--spacing-xl) 0;
+    min-height: 60vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.formBox {
+    max-width: 500px;
+    width: 100%;
+    background-color: var(--secondary-white);
+    border: 1px solid var(--neutral-gray-200);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-xl);
+}
+
+.tabs {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+    border-bottom: 2px solid var(--neutral-gray-200);
+}
+
+.tabs button {
+    flex: 1;
+    padding: var(--spacing-md);
+    background: none;
+    font-weight: 700;
+    font-family: var(--font-header);
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+}
+
+.activeTab {
+    color: var(--primary-green) !important;
+    border-bottom-color: var(--primary-green) !important;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.field label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.field input {
+    padding: var(--spacing-md);
+    border: 1px solid var(--neutral-gray-300);
+    border-radius: var(--border-radius);
+    font-family: var(--font-body);
+    font-size: 1rem;
+}
+
+.field input:focus {
+    outline: none;
+    border-color: var(--primary-green);
+}
+
+.links {
+    text-align: center;
+    margin-top: var(--spacing-md);
+}
+
+.links a {
+    color: var(--primary-green);
+    font-size: 0.9rem;
+    text-decoration: underline;
+}
+
+.benefits {
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-xl);
+    border-top: 1px solid var(--neutral-gray-200);
+}
+
+.benefits h3 {
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    margin-bottom: var(--spacing-md);
+    color: var(--text-secondary);
+}
+
+.benefits ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.benefits li {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}

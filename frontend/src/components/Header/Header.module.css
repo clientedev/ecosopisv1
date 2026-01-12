@@ -1,0 +1,45 @@
+.header {
+    border-bottom: 1px solid var(--neutral-gray-200);
+    padding: var(--spacing-md) 0;
+    background-color: var(--secondary-white);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.headerContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav {
+    display: flex;
+    gap: var(--spacing-lg);
+    font-family: var(--font-header);
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+
+.nav a:hover {
+    color: var(--primary-green);
+}
+
+.actions {
+    display: flex;
+    gap: var(--spacing-md);
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.actionIcon {
+    text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+    .nav {
+        display: none;
+        /* Add hamburger menu later */
+    }
+}

@@ -1,0 +1,94 @@
+.adminContainer {
+  display: flex;
+  min-height: calc(100vh - 80px);
+}
+
+.sidebar {
+  width: 250px;
+  background-color: var(--neutral-gray-100);
+  border-right: 1px solid var(--neutral-gray-200);
+  padding: var(--spacing-lg);
+}
+
+.sidebarTitle {
+  font-size: 1.2rem;
+  margin-bottom: var(--spacing-xl);
+  letter-spacing: 2px;
+}
+
+.navBtn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
+  font-weight: 500;
+  border-radius: var(--border-radius);
+}
+
+.navBtn:hover {
+  background-color: var(--neutral-gray-200);
+}
+
+.navBtn.active {
+  background-color: var(--primary-green);
+  color: white;
+}
+
+.content {
+  flex: 1;
+  padding: var(--spacing-xl);
+}
+
+.contentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.title {
+  font-size: 1.5rem;
+  letter-spacing: 1px;
+}
+
+.tableWrapper {
+  background-color: var(--secondary-white);
+  border: 1px solid var(--neutral-gray-200);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  padding: var(--spacing-sm);
+  border-bottom: 2px solid var(--neutral-gray-100);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.table td {
+  padding: var(--spacing-md) var(--spacing-sm);
+  border-bottom: 1px solid var(--neutral-gray-100);
+  font-size: 0.9rem;
+}
+
+.editBtn {
+  background: none;
+  color: var(--primary-green);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+
+.emptyState {
+  padding: 100px;
+  text-align: center;
+  color: var(--text-secondary);
+}

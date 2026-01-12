@@ -1,0 +1,100 @@
+:root {
+  /* Brand Colors */
+  --primary-green: #4B8411;
+  --primary-green-dark: #3a660d;
+  --secondary-white: #ffffff;
+  --neutral-gray-100: #f9f9f9;
+  --neutral-gray-200: #eeeeee;
+  --neutral-gray-300: #cccccc;
+  --text-primary: #1a1a1a;
+  --text-secondary: #4a4a4a;
+  
+  /* Typography */
+  --font-header: 'Raleway', sans-serif;
+  --font-body: 'Karla', sans-serif;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 32px;
+  --spacing-xl: 64px;
+  
+  /* UI Elements */
+  --border-radius: 4px;
+  --box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  --transition: all 0.3s ease;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  background-color: var(--secondary-white);
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-header);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: var(--transition);
+}
+
+/* Base Utility Classes */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+.btn-primary {
+  background-color: var(--primary-green);
+  color: white;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-green-dark);
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 2px solid var(--primary-green);
+  color: var(--primary-green);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius);
+  font-weight: 600;
+}
+
+.scientific-badge {
+  display: inline-block;
+  background-color: var(--neutral-gray-200);
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: var(--spacing-sm);
+}
