@@ -92,6 +92,13 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
         }
     };
 
+    const getImageUrl = (url: string) => {
+        if (!url) return "";
+        if (url.startsWith("http")) return url;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+        return `${apiUrl}${url}`;
+    };
+
     return (
         <div className={styles.modalOverlay}>
             <div className={styles.modalContent} style={{ maxWidth: '600px' }}>
@@ -135,7 +142,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                         <div className={styles.imagePreviewGrid}>
                             {(formData as any).images?.map((url: string, index: number) => (
                                 <div key={index} className={`${styles.imagePreviewItem} ${formData.image_url === url ? styles.mainImage : ''}`}>
-                                    <img src={url} alt={`Preview ${index}`} />
+                                    <img src={getImageUrl(url)} alt={`Preview ${index}`} />
                                     <div className={styles.imageActions}>
                                         <button type="button" onClick={() => setFormData({ ...formData, image_url: url })}>Padrão</button>
                                         <button type="button" onClick={() => {

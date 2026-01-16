@@ -33,6 +33,13 @@ export default function ProductDetailPage() {
 
     const allImages = product.images && product.images.length > 0 ? product.images : [product.image_url];
 
+    const getImageUrl = (url: string) => {
+        if (!url) return "";
+        if (url.startsWith("http")) return url;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+        return `${apiUrl}${url}`;
+    };
+
     return (
         <main>
             <Header />
@@ -40,13 +47,16 @@ export default function ProductDetailPage() {
                 <div className={styles.productLayout}>
                     <div className={styles.imageSection}>
                         <div className={styles.mainImageContainer}>
-                            <Image
-                                src={activeImage || product.image_url}
-                                alt={product.name}
-                                width={500}
-                                height={500}
-                                className={styles.productImage}
-                            />
+                            { (activeImage || product.image_url) && (
+                                <Image
+                                    src={getImageUrl(activeImage || product.image_url)}
+                                    alt={product.name}
+                                    width={500}
+                                    height={500}
+                                    className={styles.productImage}
+                                    unoptimized={true}
+                                />
+                            )}
                         </div>
                         {allImages.length > 1 && (
                             <div className={styles.thumbnailGrid}>
@@ -56,7 +66,13 @@ export default function ProductDetailPage() {
                                         className={`${styles.thumbnailItem} ${activeImage === img ? styles.activeThumbnail : ''}`}
                                         onClick={() => setActiveImage(img)}
                                     >
-                                        <Image src={img} alt={`Thumb ${idx}`} width={80} height={80} />
+                                        <Image 
+                                            src={getImageUrl(img)} 
+                                            alt={`Thumb ${idx}`} 
+                                            width={80} 
+                                            height={80} 
+                                            unoptimized={true}
+                                        />
                                     </div>
                                 ))}
                             </div>

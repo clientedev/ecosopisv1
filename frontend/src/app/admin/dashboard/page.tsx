@@ -38,6 +38,13 @@ export default function AdminDashboard() {
         router.push("/admin");
     };
 
+    const getImageUrl = (url: string) => {
+        if (!url) return "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
+        if (url.startsWith("http")) return url;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+        return `${apiUrl}${url}`;
+    };
+
     return (
         <div className={styles.dashboard}>
             <aside className={styles.sidebar}>
@@ -75,7 +82,7 @@ export default function AdminDashboard() {
                         <tbody>
                             {products.map((p: any) => (
                                 <tr key={p.id}>
-                                    <td><img src={p.image_url} alt={p.name} width="40" /></td>
+                                    <td><img src={getImageUrl(p.image_url)} alt={p.name} width="40" /></td>
                                     <td>{p.name}</td>
                                     <td>{p.price ? `R$ ${p.price.toFixed(2)}` : 'R$ 0,00'}</td>
                                     <td>{p.stock ?? 0}</td>

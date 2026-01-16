@@ -17,15 +17,23 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+    const getImageUrl = (url: string) => {
+        if (!url) return "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
+        if (url.startsWith("http")) return url;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8000` : '');
+        return `${apiUrl}${url}`;
+    };
+
     return (
         <div className={styles.card}>
             <Link href={`/produtos/${product.slug}`}>
                 <div className={styles.imageWrapper}>
                     <Image
-                        src={product.image_url || "/placeholder-product.jpg"}
+                        src={getImageUrl(product.image_url)}
                         alt={product.name}
                         fill
                         className={styles.image}
+                        unoptimized={true}
                     />
                 </div>
             </Link>

@@ -13,7 +13,7 @@ export default function Home() {
     useEffect(() => {
         const fetchRecent = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8000` : '');
                 const res = await fetch(`${apiUrl}/products/`);
                 const data = await res.json();
                 setRecentProducts(data.slice(0, 4));
