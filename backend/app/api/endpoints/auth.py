@@ -58,6 +58,17 @@ async def get_current_admin(current_user: models.User = Depends(get_current_user
 def get_users(db: Session = Depends(get_db), current_admin: models.User = Depends(get_current_admin)):
     return db.query(models.User).all()
 
+@router.get("/users/{user_id}", response_model=schemas.UserProfileResponse)
+def get_user_profile(user_id: int, db: Session = Depends(get_db), current_admin: models.User = Depends(get_current_admin)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@router.get("/me", response_model=schemas.UserProfileResponse)
+def get_my_profile(current_user: models.User = Depends(get_current_user)):
+    return current_user
+
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_id: int, db: Session = Depends(get_db), current_admin: models.User = Depends(get_current_admin)):
     user = db.query(models.User).filter(models.User.id == user_id).first()

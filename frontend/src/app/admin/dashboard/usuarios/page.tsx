@@ -117,6 +117,12 @@ export default function UserManagement() {
                                     <td>{new Date(user.created_at).toLocaleDateString('pt-BR')}</td>
                                     <td>
                                         <div className={styles.actions}>
+                                            <Link 
+                                                href={`/admin/dashboard/usuarios/${user.id}`}
+                                                className={styles.editBtn}
+                                            >
+                                                Ver Perfil
+                                            </Link>
                                             <button 
                                                 className={styles.deleteBtn}
                                                 onClick={() => handleDeleteUser(user.id)}

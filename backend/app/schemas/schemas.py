@@ -18,6 +18,25 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
+class OrderItem(BaseModel):
+    product_id: int
+    product_name: str
+    quantity: int
+    price: float
+
+class OrderResponse(BaseModel):
+    id: int
+    status: str
+    total: float
+    items: List[OrderItem]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class UserProfileResponse(UserResponse):
+    orders: List[OrderResponse] = []
+
 class Token(BaseModel):
     access_token: str
     token_type: str
