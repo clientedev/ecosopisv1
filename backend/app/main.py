@@ -6,7 +6,14 @@ from app.api.endpoints import auth, products
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+from fastapi.staticfiles import StaticFiles
+import os
+
 app = FastAPI(title="ECOSOPIS API", version="1.0.0")
+
+# Ensure static directory exists
+os.makedirs("static/uploads", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # CORS Configuration
 app.add_middleware(

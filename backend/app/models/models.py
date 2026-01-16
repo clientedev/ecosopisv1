@@ -27,6 +27,7 @@ class Product(Base):
     price = Column(Float)
     stock = Column(Integer, default=0)
     image_url = Column(String)
+    images = Column(JSON, default=list) # List of image URLs
     tags = Column(JSON) # e.g. ["skin:oily", "acne", "vegan"]
     
     # Buy channels

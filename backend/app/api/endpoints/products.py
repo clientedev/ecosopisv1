@@ -8,6 +8,27 @@ from app.api.endpoints.auth import get_current_admin
 
 router = APIRouter()
 
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+import shutil
+import os
+import uuid
+
+@router.post("/upload")
+async def upload_image(
+    file: UploadFile = File(...),
+    admin: models.User = Depends(get_current_admin)
+):
+    file_extension = os.path.splitext(file.filename)[1]
+    file_name = f"{uuid.uuid4()}{file_extension}"
+    file_path = os.path.join("static/uploads", file_name)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    # Return the full URL for the frontend
+    # In a real scenario, this would depend on the base URL
+    return {"url": f"/static/uploads/{file_name}"}
+
 @router.get("/", response_model=List[schemas.ProductResponse])
 def list_products(db: Session = Depends(get_db)):
     return db.query(models.Product).filter(models.Product.is_active == True).all()

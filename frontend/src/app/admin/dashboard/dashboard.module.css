@@ -186,3 +186,52 @@
 .formActions button[type="submit"] {
     flex: 2;
 }
+
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.imagePreviewGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 1rem;
+}
+
+.imagePreviewItem {
+    position: relative;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.imagePreviewItem.mainImage {
+    border-color: var(--primary-color);
+}
+
+.imagePreviewItem img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+}
+
+.imageActions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: space-around;
+    padding: 5px;
+}
+
+.imageActions button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 0.7rem;
+    cursor: pointer;
+}

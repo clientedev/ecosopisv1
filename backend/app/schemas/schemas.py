@@ -33,6 +33,7 @@ class ProductBase(BaseModel):
     price: Optional[float] = None
     stock: int = 0
     image_url: Optional[str] = None
+    images: List[str] = []
     tags: List[str] = []
     buy_on_site: bool = True
     mercadolivre_url: Optional[str] = None

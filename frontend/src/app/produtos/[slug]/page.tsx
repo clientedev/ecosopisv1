@@ -10,24 +10,28 @@ export default function ProductDetailPage() {
     const params = useParams();
     const [product, setProduct] = useState<any>(null);
 
+    const [activeImage, setActiveImage] = useState("");
+
     useEffect(() => {
-        // Mock product data - will connect to API later
-        setProduct({
-            name: "Sérum Facial Antioxidante",
-            slug: params.slug,
-            description: "Sérum leve e potente com vitamina C e ativos naturais para uma pele radiante e protegida.",
-            ingredients: "Extrato de semente de uva, Vitamina C estabilizada, Ácido Hialurônico vegetal, Niacinamida.",
-            benefits: "Antioxidação profunda, hidratação intensa, uniformização do tom da pele, proteção contra radicais livres.",
-            price: 89.90,
-            image_url: "https://acdn-us.mitiendanube.com/stores/003/178/794/products/serum-placeholder.webp",
-            tags: ["antioxidante", "vitamina-c", "todos-os-tipos"],
-            buy_on_site: true,
-            mercadolivre_url: "https://mercadolivre.com.br",
-            shopee_url: "https://shopee.com.br"
-        });
+        const fetchProduct = async () => {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+                const res = await fetch(`${apiUrl}/products/${params.slug}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setProduct(data);
+                    setActiveImage(data.image_url || (data.images && data.images[0]) || "");
+                }
+            } catch (error) {
+                console.error("Error fetching product:", error);
+            }
+        };
+        fetchProduct();
     }, [params.slug]);
 
     if (!product) return <div>Carregando...</div>;
+
+    const allImages = product.images && product.images.length > 0 ? product.images : [product.image_url];
 
     return (
         <main>
@@ -35,13 +39,28 @@ export default function ProductDetailPage() {
             <div className={`container ${styles.productContainer}`}>
                 <div className={styles.productLayout}>
                     <div className={styles.imageSection}>
-                        <Image
-                            src={product.image_url}
-                            alt={product.name}
-                            width={500}
-                            height={500}
-                            className={styles.productImage}
-                        />
+                        <div className={styles.mainImageContainer}>
+                            <Image
+                                src={activeImage || product.image_url}
+                                alt={product.name}
+                                width={500}
+                                height={500}
+                                className={styles.productImage}
+                            />
+                        </div>
+                        {allImages.length > 1 && (
+                            <div className={styles.thumbnailGrid}>
+                                {allImages.map((img: string, idx: number) => (
+                                    <div 
+                                        key={idx} 
+                                        className={`${styles.thumbnailItem} ${activeImage === img ? styles.activeThumbnail : ''}`}
+                                        onClick={() => setActiveImage(img)}
+                                    >
+                                        <Image src={img} alt={`Thumb ${idx}`} width={80} height={80} />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className={styles.infoSection}>
