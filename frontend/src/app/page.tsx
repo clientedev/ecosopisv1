@@ -10,6 +10,32 @@ import Image from "next/image";
 export default function Home() {
     const [recentProducts, setRecentProducts] = useState([]);
 
+    const [currentSlide, setCurrentSlide] = useState(0);
+
+    const slides = [
+        {
+            badge: "ALTA PERFORMANCE NATURAL",
+            title: "Eficácia comprovada com ativos botânicos purificados.",
+            description: "Desenvolvemos fórmulas minimalistas e potentes para resultados reais, sem componentes sintéticos agressivos.",
+            ctaPrimary: { text: "VER PRODUTOS", link: "/produtos" },
+            ctaSecondary: { text: "FAZER QUIZZ PERSONALIZADO", link: "/quizz" }
+        },
+        {
+            badge: "CIÊNCIA E NATUREZA",
+            title: "O poder das plantas com tecnologia de ponta.",
+            description: "Fórmulas exclusivas que respeitam a sua pele e o planeta.",
+            ctaPrimary: { text: "CONHEÇA A LINHA", link: "/produtos" },
+            ctaSecondary: { text: "SAIBA MAIS", link: "/sobre" }
+        }
+    ];
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % slides.length);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, [slides.length]);
+
     useEffect(() => {
         const fetchRecent = async () => {
             try {
@@ -28,18 +54,33 @@ export default function Home() {
         <main>
             <Header />
 
-            {/* Hero Carousel - Simple Implementation */}
+            {/* Hero Carousel */}
             <section className={styles.heroCarousel}>
-                <div className={styles.carouselSlide}>
-                    <div className={`container ${styles.heroContent}`}>
-                        <span className="scientific-badge">ALTA PERFORMANCE NATURAL</span>
-                        <h1>Eficácia comprovada com ativos botânicos purificados.</h1>
-                        <p>Desenvolvemos fórmulas minimalistas e potentes para resultados reais, sem componentes sintéticos agressivos.</p>
-                        <div className={styles.heroActions}>
-                            <Link href="/produtos" className="btn-primary">VER PRODUTOS</Link>
-                            <Link href="/quizz" className="btn-outline">FAZER QUIZZ PERSONALIZADO</Link>
+                {slides.map((slide, index) => (
+                    <div 
+                        key={index} 
+                        className={`${styles.carouselSlide} ${index === currentSlide ? styles.activeSlide : ''}`}
+                        style={{ display: index === currentSlide ? 'block' : 'none' }}
+                    >
+                        <div className={`container ${styles.heroContent}`}>
+                            <span className="scientific-badge">{slide.badge}</span>
+                            <h1>{slide.title}</h1>
+                            <p>{slide.description}</p>
+                            <div className={styles.heroActions}>
+                                <Link href={slide.ctaPrimary.link} className="btn-primary">{slide.ctaPrimary.text}</Link>
+                                <Link href={slide.ctaSecondary.link} className="btn-outline">{slide.ctaSecondary.text}</Link>
+                            </div>
                         </div>
                     </div>
+                ))}
+                <div className={styles.carouselDots}>
+                    {slides.map((_, index) => (
+                        <button 
+                            key={index} 
+                            className={`${styles.dot} ${index === currentSlide ? styles.activeDot : ''}`}
+                            onClick={() => setCurrentSlide(index)}
+                        />
+                    ))}
                 </div>
             </section>
 
