@@ -16,12 +16,12 @@ export default function AdminLoginPage() {
         setLoading(true);
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}`;
             const formData = new FormData();
             formData.append("username", email);
             formData.append("password", password);
 
-            const res = await fetch(`${apiUrl}/auth/login`, {
+            const res = await fetch(`${apiUrl}/api/auth/login`, {
                 method: "POST",
                 body: formData,
             });

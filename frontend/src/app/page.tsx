@@ -24,8 +24,8 @@ export default function Home() {
     useEffect(() => {
         const fetchCarousel = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8000` : '');
-                const res = await fetch(`${apiUrl}/carousel/`);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}` : '');
+                const res = await fetch(`${apiUrl}/api/carousel/`);
                 if (res.ok) {
                     const data = await res.json();
                     if (data.length > 0) {
@@ -57,8 +57,8 @@ export default function Home() {
     useEffect(() => {
         const fetchRecent = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8000` : '');
-                const res = await fetch(`${apiUrl}/products/`);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}` : '');
+                const res = await fetch(`${apiUrl}/api/products/`);
                 const data = await res.json();
                 setRecentProducts(data.slice(0, 4));
             } catch (error) {
