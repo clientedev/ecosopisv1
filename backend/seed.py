@@ -28,7 +28,7 @@ def seed():
             "price": 89.90,
             "stock": 50,
             "image_url": "https://acdn-us.mitiendanube.com/stores/003/178/794/products/serum-antioxidante-1-7d1f5e88888888888888.webp",
-            "tags": ["antioxidante", "vitamina-c", "todos-os-tipos-de-pele"],
+            "tags": ["antioxidante", "vitamina-c", "skin:oily", "skin:mixed", "acne"],
             "buy_on_site": True,
             "mercadolivre_url": "https://produto.mercadolivre.com.br/placeholder",
             "shopee_url": "https://shopee.com.br/placeholder"
@@ -42,7 +42,7 @@ def seed():
             "price": 65.00,
             "stock": 100,
             "image_url": "https://acdn-us.mitiendanube.com/stores/003/178/794/products/creme-revitalizante-1-7d1f5e99999999999999.webp",
-            "tags": ["hidratante", "pele-seca", "vegano"],
+            "tags": ["hidratante", "skin:dry", "skin:normal", "sensitivity", "vegano"],
             "buy_on_site": True,
             "mercadolivre_url": "https://produto.mercadolivre.com.br/placeholder",
             "shopee_url": None
