@@ -3,10 +3,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./dashboard.module.css";
+import EditProductModal from "./EditProductModal";
 
 export default function AdminDashboard() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [editingProduct, setEditingProduct] = useState<any>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -78,7 +80,12 @@ export default function AdminDashboard() {
                                     <td>{p.price ? `R$ ${p.price.toFixed(2)}` : 'R$ 0,00'}</td>
                                     <td>{p.stock ?? 0}</td>
                                     <td>
-                                        <button className={styles.editBtn}>Editar</button>
+                                        <button 
+                                            className={styles.editBtn}
+                                            onClick={() => setEditingProduct(p)}
+                                        >
+                                            Editar
+                                        </button>
                                         <button className={styles.deleteBtn}>Excluir</button>
                                     </td>
                                 </tr>
@@ -86,6 +93,16 @@ export default function AdminDashboard() {
                         </tbody>
                     </table>
                 </div>
+
+                {editingProduct && (
+                    <EditProductModal 
+                        product={editingProduct} 
+                        onClose={() => setEditingProduct(null)}
+                        onSave={(updated) => {
+                            setProducts(products.map((p: any) => p.id === updated.id ? updated : p));
+                        }}
+                    />
+                )}
             </main>
         </div>
     );
