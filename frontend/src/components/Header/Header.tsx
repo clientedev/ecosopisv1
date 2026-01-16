@@ -10,6 +10,13 @@ export default function Header() {
                 <div className={styles.logo}>
                     <Link href="/">
                         <div className={styles.logoContainer}>
+                            <Image
+                                src="/attached_assets/image_1768566026984.png"
+                                alt="ECOSOPIS Logo"
+                                width={50}
+                                height={50}
+                                style={{ objectFit: 'contain', marginRight: '10px' }}
+                            />
                             <span className={styles.logoText}>ECOSOPIS</span>
                         </div>
                     </Link>
