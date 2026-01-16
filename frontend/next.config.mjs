@@ -12,7 +12,9 @@ const nextConfig = {
       }
     ],
   },
-  allowedDevOrigins: ['*'],
+  experimental: {
+    serverComponentsExternalPackages: ['bcrypt'],
+  },
   async headers() {
     return [
       {
