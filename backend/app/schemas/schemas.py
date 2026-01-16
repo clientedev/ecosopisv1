@@ -42,9 +42,6 @@ class Token(BaseModel):
     token_type: str
     role: str
 
-class GoogleAuthRequest(BaseModel):
-    token: str
-
 # Product Schemas
 class ProductBase(BaseModel):
     name: str

@@ -80,38 +80,6 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_admin: mode
     db.commit()
     return None
 
-from google.oauth2 import id_token
-from google.auth.transport import requests
-
-@router.post("/google", response_model=schemas.Token)
-def google_auth(auth_in: schemas.GoogleAuthRequest, db: Session = Depends(get_db)):
-    try:
-        # Verify Google token
-        client_id = os.getenv("GOOGLE_CLIENT_ID")
-        idinfo = id_token.verify_oauth2_token(auth_in.token, requests.Request(), client_id)
-        
-        email = idinfo['email']
-        full_name = idinfo.get('name', '')
-        
-        # Check if user exists
-        user = db.query(models.User).filter(models.User.email == email).first()
-        if not user:
-            # Create new user
-            user = models.User(
-                email=email,
-                hashed_password="google_auth_no_password", # Dummy password
-                full_name=full_name,
-                role="client"
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-            
-        access_token = security.create_access_token(subject=user.id)
-        return {"access_token": access_token, "token_type": "bearer", "role": user.role}
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid Google token")
-
 @router.post("/login", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
