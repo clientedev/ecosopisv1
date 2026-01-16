@@ -13,3 +13,17 @@ httpx
 openai
 google-auth-httplib2
 google-auth-oauthlib
+alembic
+bcrypt
+email-validator
+fastapi
+httpx
+passlib
+psycopg2-binary
+pydantic
+pydantic-settings
+python-dotenv
+python-jose
+python-multipart
+sqlalchemy
+uvicorn
