@@ -82,18 +82,30 @@ export default function AdminDashboard() {
                         <tbody>
                             {products.map((p: any) => (
                                 <tr key={p.id}>
-                                    <td><img src={getImageUrl(p.image_url)} alt={p.name} width="40" /></td>
-                                    <td>{p.name}</td>
-                                    <td>{p.price ? `R$ ${p.price.toFixed(2)}` : 'R$ 0,00'}</td>
-                                    <td>{p.stock ?? 0}</td>
                                     <td>
-                                        <button 
-                                            className={styles.editBtn}
-                                            onClick={() => setEditingProduct(p)}
-                                        >
-                                            Editar
-                                        </button>
-                                        <button className={styles.deleteBtn}>Excluir</button>
+                                        <img 
+                                            src={getImageUrl(p.image_url)} 
+                                            alt={p.name} 
+                                            className={styles.productThumb}
+                                        />
+                                    </td>
+                                    <td><strong>{p.name}</strong></td>
+                                    <td><span className={styles.priceTag}>{p.price ? `R$ ${p.price.toFixed(2)}` : 'R$ 0,00'}</span></td>
+                                    <td>
+                                        <span className={`${styles.stockBadge} ${p.stock <= 5 ? styles.stockLow : styles.stockOk}`}>
+                                            {p.stock ?? 0} unidades
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div className={styles.actions}>
+                                            <button 
+                                                className={styles.editBtn}
+                                                onClick={() => setEditingProduct(p)}
+                                            >
+                                                Editar
+                                            </button>
+                                            <button className={styles.deleteBtn}>Excluir</button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
