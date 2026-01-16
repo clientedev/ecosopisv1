@@ -26,6 +26,36 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
     });
     const [loading, setLoading] = useState(false);
 
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+            const res = await fetch(`${apiUrl}/products/${product.id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                onSave(data);
+                onClose();
+            } else {
+                alert("Erro ao salvar produto");
+            }
+        } catch (error) {
+            console.error("Error updating product:", error);
+            alert("Erro de conexão");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files).slice(0, 5);
