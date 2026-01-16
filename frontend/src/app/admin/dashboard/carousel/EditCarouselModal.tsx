@@ -33,8 +33,9 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
             
             const data = new FormData();
             Object.keys(formData).forEach(key => {
-                if (formData[key as key_of_typeof_formData] !== null && formData[key as key_of_typeof_formData] !== undefined) {
-                    data.append(key, formData[key as key_of_typeof_formData].toString());
+                const value = formData[key as key_of_typeof_formData];
+                if (value !== null && value !== undefined) {
+                    data.append(key, value.toString());
                 }
             });
             if (selectedFile) {
