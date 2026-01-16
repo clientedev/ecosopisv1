@@ -16,6 +16,7 @@ export default function Header() {
                                 width={50}
                                 height={50}
                                 style={{ objectFit: 'contain', marginRight: '10px' }}
+                                priority
                             />
                             <span className={styles.logoText}>ECOSOPIS</span>
                         </div>
