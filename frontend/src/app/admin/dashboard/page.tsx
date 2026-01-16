@@ -75,8 +75,8 @@ export default function AdminDashboard() {
                                 <tr key={p.id}>
                                     <td><img src={p.image_url} alt={p.name} width="40" /></td>
                                     <td>{p.name}</td>
-                                    <td>R$ {p.price.toFixed(2)}</td>
-                                    <td>{p.stock}</td>
+                                    <td>{p.price ? `R$ ${p.price.toFixed(2)}` : 'R$ 0,00'}</td>
+                                    <td>{p.stock ?? 0}</td>
                                     <td>
                                         <button className={styles.editBtn}>Editar</button>
                                         <button className={styles.deleteBtn}>Excluir</button>
