@@ -31,7 +31,7 @@ export default function Header() {
                 </nav>
 
                 <div className={styles.actions}>
-                    <Link href="/conta" className={styles.actionIcon}>CONTA</Link>
+                    <Link href="/perfil" className={styles.actionIcon}>CONTA</Link>
                     <Link href="/carrinho" className={styles.actionIcon}>CARRINHO</Link>
                 </div>
             </div>
