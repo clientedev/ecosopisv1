@@ -1,5 +1,5 @@
 .carrinhoContainer {
-    padding: var(--spacing-xl) 0;
+    padding: var(--spacing-xl) 1rem;
     min-height: 60vh;
 }
 
@@ -8,6 +8,124 @@
     font-size: 2rem;
     margin-bottom: var(--spacing-xl);
     letter-spacing: 2px;
+    font-family: var(--font-header);
+    color: var(--color-primary-dark);
+}
+
+.cartGrid {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+.itemsList {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.cartItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.cartItem:last-child {
+    border-bottom: none;
+}
+
+.summaryCard {
+    background: #f8fafc;
+    padding: 2rem;
+    border-radius: 1rem;
+    border: 1px solid #e2e8f0;
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.discountRow {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.totalRow {
+    border-top: 2px solid #e2e8f0;
+    padding-top: 1rem;
+    margin-top: 1rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.couponWrapper {
+    margin: 1.5rem 0;
+}
+
+.couponInput {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.couponInput input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    font-family: inherit;
+}
+
+.couponInput button {
+    padding: 0 1rem;
+    background: var(--color-primary-dark);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+
+.error {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+.appliedCoupon {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #d1fae5;
+    color: #065f46;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.appliedCoupon button {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.removeBtn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.removeBtn:hover {
+    color: #ef4444;
 }
 
 .emptyCart {
@@ -24,11 +142,8 @@
     margin-bottom: var(--spacing-md);
 }
 
-.emptyCart h2 {
-    margin-bottom: var(--spacing-sm);
-}
-
-.emptyCart p {
-    color: var(--text-secondary);
-    margin-bottom: var(--spacing-lg);
+@media (max-width: 768px) {
+    .cartGrid {
+        grid-template-columns: 1fr;
+    }
 }
