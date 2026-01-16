@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="pt-BR">
-            <body className={`${raleway.variable} ${karla.variable}`}>
+            <body className={`${raleway.variable} ${karla.variable}`} suppressHydrationWarning={true}>
                 {children}
                 <ChatIA />
             </body>
