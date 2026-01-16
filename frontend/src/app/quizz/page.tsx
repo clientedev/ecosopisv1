@@ -34,6 +34,74 @@ const questionsPele = [
       { text: "Às vezes", type: "skin:exposed" },
       { text: "Quase nunca", type: "skin:vulnerable" },
     ]
+  },
+  {
+    id: 4,
+    question: "Como você descreveria seus poros?",
+    options: [
+      { text: "Dilatados e visíveis", type: "skin:oily" },
+      { text: "Visíveis apenas no nariz", type: "skin:mixed" },
+      { text: "Quase imperceptíveis", type: "skin:normal" },
+      { text: "Pequenos, mas com descamação", type: "skin:dry" },
+    ]
+  },
+  {
+    id: 5,
+    question: "Sua pele costuma ficar irritada com facilidade?",
+    options: [
+      { text: "Sim, muito sensível", type: "sensitivity" },
+      { text: "Às vezes, dependendo do produto", type: "sensitivity" },
+      { text: "Raramente", type: "skin:normal" },
+      { text: "Nunca", type: "skin:normal" },
+    ]
+  },
+  {
+    id: 6,
+    question: "Qual sua faixa etária?",
+    options: [
+      { text: "Menos de 25 anos", type: "acne" },
+      { text: "25 a 40 anos", type: "antioxidante" },
+      { text: "Mais de 40 anos", type: "aging" },
+    ]
+  },
+  {
+    id: 7,
+    question: "Como sua pele reage ao sol?",
+    options: [
+      { text: "Fica vermelha e arde", type: "sensitivity" },
+      { text: "Fica vermelha e depois bronzeia", type: "skin:mixed" },
+      { text: "Bronzeia com facilidade", type: "skin:normal" },
+    ]
+  },
+  {
+    id: 8,
+    question: "Você costuma sentir a pele 'repuxar' após a limpeza?",
+    options: [
+      { text: "Sempre", type: "skin:dry" },
+      { text: "Às vezes", type: "skin:mixed" },
+      { text: "Raramente", type: "skin:normal" },
+      { text: "Pelo contrário, sinto alívio", type: "skin:oily" },
+    ]
+  },
+  {
+    id: 9,
+    question: "Qual o seu principal objetivo com o tratamento?",
+    options: [
+      { text: "Controlar oleosidade e acne", type: "acne" },
+      { text: "Clarear manchas", type: "spots" },
+      { text: "Reduzir rugas e firmeza", type: "aging" },
+      { text: "Hidratação intensa", type: "hidratante" },
+    ]
+  },
+  {
+    id: 10,
+    question: "Você faz uso de maquiagem diariamente?",
+    options: [
+      { text: "Sim, maquiagem pesada", type: "skin:oily" },
+      { text: "Sim, maquiagem leve", type: "skin:normal" },
+      { text: "Apenas ocasionalmente", type: "skin:normal" },
+      { text: "Não uso", type: "skin:normal" },
+    ]
   }
 ];
 
@@ -64,6 +132,72 @@ const questionsCabelo = [
       { text: "Frizz e falta de brilho", concern: "hair:dry" },
       { text: "Oleosidade excessiva", concern: "hair:oily" },
       { text: "Ponta dupla", concern: "hair:split" },
+    ]
+  },
+  {
+    id: 4,
+    question: "Qual o seu tipo de curvatura?",
+    options: [
+      { text: "Liso", type: "hair:straight" },
+      { text: "Ondulado", type: "hair:wavy" },
+      { text: "Cacheado", type: "hair:curly" },
+      { text: "Crespo", type: "hair:coily" },
+    ]
+  },
+  {
+    id: 5,
+    question: "Com que frequência você lava o cabelo?",
+    options: [
+      { text: "Diariamente", type: "hair:oily" },
+      { text: "Dia sim, dia não", type: "hair:normal" },
+      { text: "2 a 3 vezes por semana", type: "hair:dry" },
+    ]
+  },
+  {
+    id: 6,
+    question: "Você usa ferramentas de calor (chapinha/secador)?",
+    options: [
+      { text: "Uso diariamente", type: "hair:damaged" },
+      { text: "Uso frequentemente", type: "hair:dry" },
+      { text: "Uso raramente", type: "hair:normal" },
+      { text: "Não uso", type: "hair:natural" },
+    ]
+  },
+  {
+    id: 7,
+    question: "Como você sente as pontas do seu cabelo?",
+    options: [
+      { text: "Secas e ásperas", type: "hair:dry" },
+      { text: "Espigadas e com pontas duplas", type: "hair:split" },
+      { text: "Macias e saudáveis", type: "hair:normal" },
+    ]
+  },
+  {
+    id: 8,
+    question: "Seu cabelo embaraça com facilidade?",
+    options: [
+      { text: "Sim, muito", type: "hair:dry" },
+      { text: "Apenas após a lavagem", type: "hair:normal" },
+      { text: "Não, quase nunca", type: "hair:normal" },
+    ]
+  },
+  {
+    id: 9,
+    question: "Qual o volume do seu cabelo?",
+    options: [
+      { text: "Pouco volume / Fios finos", type: "hair:fine" },
+      { text: "Volume médio", type: "hair:normal" },
+      { text: "Muito volume / Fios grossos", type: "hair:thick" },
+    ]
+  },
+  {
+    id: 10,
+    question: "Qual o seu objetivo capilar?",
+    options: [
+      { text: "Crescimento e força", type: "hair:damaged" },
+      { text: "Hidratação e brilho", type: "hair:dry" },
+      { text: "Definição", type: "hair:curly" },
+      { text: "Controle de frizz", type: "hair:dry" },
     ]
   }
 ];
