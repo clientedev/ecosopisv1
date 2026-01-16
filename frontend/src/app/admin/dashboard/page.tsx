@@ -51,6 +51,7 @@ export default function AdminDashboard() {
                 <div className={styles.logo}>ECOSOPIS ADMIN</div>
                 <nav>
                     <Link href="/admin/dashboard" className={styles.active}>Produtos</Link>
+                    <Link href="/admin/dashboard/carousel">Carrossel Hero</Link>
                     <Link href="/admin/dashboard/usuarios">Usuários</Link>
                     <Link href="/admin/dashboard/cupons">Cupons</Link>
                     <Link href="/">Ver Site</Link>

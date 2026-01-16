@@ -38,6 +38,22 @@ class Product(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+class CarouselItem(Base):
+    __tablename__ = "carousel_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    badge = Column(String)
+    title = Column(String)
+    description = Column(Text)
+    image_url = Column(String)
+    cta_primary_text = Column(String)
+    cta_primary_link = Column(String)
+    cta_secondary_text = Column(String)
+    cta_secondary_link = Column(String)
+    order = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 class Order(Base):
     __tablename__ = "orders"
 

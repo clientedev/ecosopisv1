@@ -91,6 +91,29 @@ class ProductUpdate(ProductBase):
     name: Optional[str] = None
     slug: Optional[str] = None
 
+# Carousel Schemas
+class CarouselItemBase(BaseModel):
+    badge: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    cta_primary_text: Optional[str] = None
+    cta_primary_link: Optional[str] = None
+    cta_secondary_text: Optional[str] = None
+    cta_secondary_link: Optional[str] = None
+    order: int = 0
+    is_active: bool = True
+
+class CarouselItemCreate(CarouselItemBase):
+    pass
+
+class CarouselItemResponse(CarouselItemBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class ProductResponse(ProductBase):
     id: int
     created_at: datetime

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
-from app.api.endpoints import auth, products, coupons
+from app.api.endpoints import auth, products, coupons, carousel
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -31,3 +31,4 @@ async def root():
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(products.router, prefix="/products", tags=["products"])
 app.include_router(coupons.router, prefix="/coupons", tags=["coupons"])
+app.include_router(carousel.router, prefix="/carousel", tags=["carousel"])

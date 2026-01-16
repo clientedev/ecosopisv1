@@ -9,25 +9,42 @@ import Image from "next/image";
 
 export default function Home() {
     const [recentProducts, setRecentProducts] = useState([]);
-
-    const [currentSlide, setCurrentSlide] = useState(0);
-
-    const slides = [
+    const [slides, setSlides] = useState([
         {
             badge: "ALTA PERFORMANCE NATURAL",
             title: "Eficácia comprovada com ativos botânicos purificados.",
             description: "Desenvolvemos fórmulas minimalistas e potentes para resultados reais, sem componentes sintéticos agressivos.",
             ctaPrimary: { text: "VER PRODUTOS", link: "/produtos" },
             ctaSecondary: { text: "FAZER QUIZZ PERSONALIZADO", link: "/quizz" }
-        },
-        {
-            badge: "CIÊNCIA E NATUREZA",
-            title: "O poder das plantas com tecnologia de ponta.",
-            description: "Fórmulas exclusivas que respeitam a sua pele e o planeta.",
-            ctaPrimary: { text: "CONHEÇA A LINHA", link: "/produtos" },
-            ctaSecondary: { text: "SAIBA MAIS", link: "/sobre" }
         }
-    ];
+    ]);
+    const [currentSlide, setCurrentSlide] = useState(0);
+
+    useEffect(() => {
+        const fetchCarousel = async () => {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8000` : '');
+                const res = await fetch(`${apiUrl}/carousel/`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.length > 0) {
+                        const formattedSlides = data.map((item: any) => ({
+                            badge: item.badge,
+                            title: item.title,
+                            description: item.description,
+                            image_url: item.image_url,
+                            ctaPrimary: { text: item.cta_primary_text || "VER PRODUTOS", link: item.cta_primary_link || "/produtos" },
+                            ctaSecondary: { text: item.cta_secondary_text || "FAZER QUIZZ", link: item.cta_secondary_link || "/quizz" }
+                        }));
+                        setSlides(formattedSlides);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching carousel:", error);
+            }
+        };
+        fetchCarousel();
+    }, []);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -60,7 +77,12 @@ export default function Home() {
                     <div 
                         key={index} 
                         className={`${styles.carouselSlide} ${index === currentSlide ? styles.activeSlide : ''}`}
-                        style={{ display: index === currentSlide ? 'block' : 'none' }}
+                        style={{ 
+                            display: index === currentSlide ? 'block' : 'none',
+                            backgroundImage: slide.image_url ? `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${slide.image_url})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
+                        }}
                     >
                         <div className={`container ${styles.heroContent}`}>
                             <span className="scientific-badge">{slide.badge}</span>
