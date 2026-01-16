@@ -14,8 +14,7 @@ export default function CarouselAdmin() {
 
     const fetchItems = async () => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-            const res = await fetch(`${apiUrl}/carousel/`);
+            const res = await fetch('/api/carousel/');
             const data = await res.json();
             setItems(Array.isArray(data) ? data : []);
         } catch (error) {
@@ -42,8 +41,7 @@ export default function CarouselAdmin() {
     const handleDelete = async (id: number) => {
         if (!confirm("Tem certeza que deseja excluir este slide?")) return;
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-            await fetch(`${apiUrl}/carousel/${id}`, {
+            await fetch(`/api/carousel/${id}`, {
                 method: "DELETE",
                 headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
             });

@@ -27,8 +27,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         e.preventDefault();
         setLoading(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-            const url = item ? `${apiUrl}/carousel/${item.id}` : `${apiUrl}/carousel/`;
+            const url = item ? `/api/carousel/${item.id}` : `/api/carousel/`;
             const method = item ? "PUT" : "POST";
             
             const res = await fetch(url, {
