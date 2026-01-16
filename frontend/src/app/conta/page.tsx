@@ -159,15 +159,17 @@ export default function ContaPage() {
                         </div>
                     )}
 
-                    <div className={styles.benefits}>
-                        <h3>BENEFÍCIOS DA CONTA ECOSOPIS</h3>
-                        <ul>
-                            <li>✓ Histórico de pedidos</li>
-                            <li>✓ Endereços salvos</li>
-                            <li>✓ Recomendações personalizadas</li>
-                            <li>✓ Ofertas exclusivas</li>
-                        </ul>
-                    </div>
+                            <div className={styles.benefits}>
+                                <h3>BENEFÍCIOS DA CONTA ECOSOPIS</h3>
+                                <ul>
+                                    <li>✓ Histórico de pedidos</li>
+                                    <li>✓ Endereços salvos</li>
+                                    <li>✓ Recomendações personalizadas</li>
+                                    <li>✓ Ofertas exclusivas</li>
+                                </ul>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
             <Footer />
