@@ -18,7 +18,7 @@ async def upload_image(
     file: UploadFile = File(...),
     admin: models.User = Depends(get_current_admin)
 ):
-    file_extension = os.path.splitext(file.filename)[1]
+    file_extension = os.path.splitext(file.filename or "")[1]
     file_name = f"{uuid.uuid4()}{file_extension}"
     file_path = os.path.join("static/uploads", file_name)
     

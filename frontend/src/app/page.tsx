@@ -9,11 +9,12 @@ import Image from "next/image";
 
 export default function Home() {
     const [recentProducts, setRecentProducts] = useState([]);
-    const [slides, setSlides] = useState([
+    const [slides, setSlides] = useState<any[]>([
         {
             badge: "ALTA PERFORMANCE NATURAL",
             title: "Eficácia comprovada com ativos botânicos purificados.",
             description: "Desenvolvemos fórmulas minimalistas e potentes para resultados reais, sem componentes sintéticos agressivos.",
+            image_url: "",
             ctaPrimary: { text: "VER PRODUTOS", link: "/produtos" },
             ctaSecondary: { text: "FAZER QUIZZ PERSONALIZADO", link: "/quizz" }
         }

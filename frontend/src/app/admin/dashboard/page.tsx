@@ -6,7 +6,7 @@ import styles from "./dashboard.module.css";
 import EditProductModal from "./EditProductModal";
 
 export default function AdminDashboard() {
-    const [products, setProducts] = useState([]);
+    const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingProduct, setEditingProduct] = useState<any>(null);
     const router = useRouter();

@@ -87,9 +87,20 @@ class ProductBase(BaseModel):
 class ProductCreate(ProductBase):
     pass
 
-class ProductUpdate(ProductBase):
+class ProductUpdate(BaseModel):
     name: Optional[str] = None
     slug: Optional[str] = None
+    description: Optional[str] = None
+    ingredients: Optional[str] = None
+    benefits: Optional[str] = None
+    price: Optional[float] = None
+    stock: Optional[int] = None
+    image_url: Optional[str] = None
+    images: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    buy_on_site: Optional[bool] = None
+    mercadolivre_url: Optional[str] = None
+    shopee_url: Optional[str] = None
 
 # Carousel Schemas
 class CarouselItemBase(BaseModel):
