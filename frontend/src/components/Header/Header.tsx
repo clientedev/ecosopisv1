@@ -27,6 +27,12 @@ export default function Header() {
         }
     }, []);
 
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        setIsAdmin(false);
+        window.location.href = "/";
+    };
+
     return (
         <header className={styles.header}>
             <div className={`container ${styles.headerContent}`}>
@@ -52,6 +58,22 @@ export default function Header() {
                     <Link href="/box">BOX SURPRESA</Link>
                     <Link href="/sobre">SOBRE</Link>
                     {isAdmin && <Link href="/admin/dashboard" style={{ color: 'var(--primary-green)', fontWeight: 'bold' }}>PAINEL ADMIN</Link>}
+                    {(isAdmin || (typeof window !== 'undefined' && localStorage.getItem("token"))) && (
+                        <button 
+                            onClick={handleLogout} 
+                            style={{ 
+                                background: 'none', 
+                                border: 'none', 
+                                color: '#ef4444', 
+                                cursor: 'pointer', 
+                                fontWeight: 'bold',
+                                fontSize: '0.9rem',
+                                marginLeft: '10px'
+                            }}
+                        >
+                            SAIR
+                        </button>
+                    )}
                 </nav>
 
                 <div className={styles.actions}>

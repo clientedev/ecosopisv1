@@ -70,6 +70,12 @@ export default function ContaPage() {
         }
     };
 
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        setIsAdmin(false);
+        router.push("/");
+    };
+
     return (
         <main>
             <Header />
@@ -78,11 +84,22 @@ export default function ContaPage() {
                     {isAdmin && (
                         <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #10b981', textAlign: 'center' }}>
                             <p style={{ color: '#065f46', fontWeight: 'bold', marginBottom: '10px' }}>Você está logado como Administrador</p>
-                            <Link href="/admin/dashboard" className="btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>ACESSAR PAINEL ADMIN</Link>
+                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                                <Link href="/admin/dashboard" className="btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>ACESSAR PAINEL ADMIN</Link>
+                                <button onClick={handleLogout} className={styles.logoutBtn} style={{ padding: '10px 20px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>SAIR</button>
+                            </div>
                         </div>
                     )}
                     
-                    <div className={styles.tabs}>
+                    {!isAdmin && localStorage.getItem("token") && (
+                        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+                            <button onClick={handleLogout} className="btn-primary" style={{ backgroundColor: '#ef4444' }}>SAIR DA CONTA</button>
+                        </div>
+                    )}
+
+                    {!localStorage.getItem("token") && (
+                        <>
+                            <div className={styles.tabs}>
                         <button
                             className={isLogin ? styles.activeTab : ""}
                             onClick={() => setIsLogin(true)}
