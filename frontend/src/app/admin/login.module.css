@@ -1,0 +1,52 @@
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--neutral-gray-100);
+}
+
+.loginBox {
+    background: white;
+    padding: var(--spacing-xl);
+    border-radius: 8px;
+    box-shadow: var(--box-shadow);
+    width: 100%;
+    max-width: 400px;
+}
+
+.loginBox h1 {
+    margin-bottom: var(--spacing-lg);
+    text-align: center;
+    color: var(--primary-green);
+}
+
+.inputGroup {
+    margin-bottom: var(--spacing-md);
+}
+
+.inputGroup label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.inputGroup input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--neutral-gray-300);
+    border-radius: 4px;
+}
+
+.error {
+    color: #d32f2f;
+    font-size: 0.85rem;
+    margin-bottom: var(--spacing-md);
+    text-align: center;
+}
+
+.loginBox button {
+    width: 100%;
+    padding: 12px;
+}

@@ -7,12 +7,12 @@ def seed():
     db = SessionLocal()
     
     # Create Admin
-    admin = db.query(models.User).filter(models.User.email == "admin@ecosopis.com.br").first()
+    admin = db.query(models.User).filter(models.User.email == "admin@admin.com").first()
     if not admin:
         admin = models.User(
-            email="admin@ecosopis.com.br",
+            email="admin@admin.com",
             hashed_password=get_password_hash("admin123"),
-            full_name="Admin Ecosopis",
+            full_name="Admin Principal",
             role="admin"
         )
         db.add(admin)

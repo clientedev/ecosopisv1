@@ -1,0 +1,122 @@
+.dashboard {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--neutral-gray-100);
+}
+
+.sidebar {
+    width: 250px;
+    background-color: #1a1a1a;
+    color: white;
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+}
+
+.logo {
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-bottom: var(--spacing-xl);
+    color: var(--primary-green);
+}
+
+.sidebar nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar nav a {
+    padding: 10px;
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.sidebar nav a:hover, .active {
+    background-color: #333;
+}
+
+.logoutBtn {
+    margin-top: auto;
+    background: none;
+    color: #ff5252;
+    text-align: left;
+    padding: 10px;
+    font-weight: 600;
+}
+
+.mainContent {
+    flex: 1;
+    padding: var(--spacing-xl);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.statCard {
+    background: white;
+    padding: var(--spacing-lg);
+    border-radius: 8px;
+    box-shadow: var(--box-shadow);
+}
+
+.statCard h3 {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.statCard p {
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.productTable {
+    background: white;
+    border-radius: 8px;
+    box-shadow: var(--box-shadow);
+    overflow: hidden;
+}
+
+.productTable table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.productTable th, .productTable td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--neutral-gray-200);
+}
+
+.productTable th {
+    background-color: var(--neutral-gray-100);
+    font-weight: 600;
+}
+
+.editBtn, .deleteBtn {
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-right: 5px;
+    font-size: 0.8rem;
+}
+
+.editBtn {
+    background-color: var(--neutral-gray-200);
+}
+
+.deleteBtn {
+    background-color: #ff5252;
+    color: white;
+}

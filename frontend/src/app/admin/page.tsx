@@ -1,84 +1,76 @@
 "use client";
-import { useState, useEffect } from "react";
-import styles from "./Admin.module.css";
-import Header from "@/components/Header/Header";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import styles from "./login.module.css";
 
-export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("produtos");
+export default function AdminLoginPage() {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
-  return (
-    <main>
-      <Header />
-      <div className={styles.adminContainer}>
-        <aside className={styles.sidebar}>
-          <h2 className={styles.sidebarTitle}>ADMIN</h2>
-          <button 
-            className={`${styles.navBtn} ${activeTab === 'dashboard' ? styles.active : ''}`}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            Dashboard
-          </button>
-          <button 
-            className={`${styles.navBtn} ${activeTab === 'produtos' ? styles.active : ''}`}
-            onClick={() => setActiveTab('produtos')}
-          >
-            Produtos
-          </button>
-          <button 
-            className={`${styles.navBtn} ${activeTab === 'pedidos' ? styles.active : ''}`}
-            onClick={() => setActiveTab('pedidos')}
-          >
-            Pedidos
-          </button>
-          <button 
-            className={`${styles.navBtn} ${activeTab === 'clientes' ? styles.active : ''}`}
-            onClick={() => setActiveTab('clientes')}
-          >
-            Clientes
-          </button>
-        </aside>
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError("");
+        setLoading(true);
 
-        <section className={styles.content}>
-          <header className={styles.contentHeader}>
-            <h1 className={styles.title}>{activeTab.toUpperCase()}</h1>
-            {activeTab === 'produtos' && (
-              <button className="btn-primary">+ NOVO PRODUTO</button>
-            )}
-          </header>
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+            const formData = new FormData();
+            formData.append("username", email);
+            formData.append("password", password);
 
-          <div className={styles.tableWrapper}>
-            {/* Simple Dynamic Table Placeholder */}
-            {activeTab === 'produtos' ? (
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>NOME</th>
-                    <th>PREÇO</th>
-                    <th>ESTOQUE</th>
-                    <th>CANAIS</th>
-                    <th>AÇÕES</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Sérum Facial Antioxidante</td>
-                    <td>R$ 89,90</td>
-                    <td>50</td>
-                    <td>Site, ML, SH</td>
-                    <td>
-                      <button className={styles.editBtn}>Editar</button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            ) : (
-              <div className={styles.emptyState}>
-                Dados de {activeTab} carregando...
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
-    </main>
-  );
+            const res = await fetch(`${apiUrl}/auth/login`, {
+                method: "POST",
+                body: formData,
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                localStorage.setItem("token", data.access_token);
+                router.push("/admin/dashboard");
+            } else {
+                setError("Credenciais inválidas");
+            }
+        } catch (err) {
+            setError("Erro ao conectar com o servidor");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className={styles.container}>
+            <div className={styles.loginBox}>
+                <h1>Painel Administrativo</h1>
+                <form onSubmit={handleLogin}>
+                    <div className={styles.inputGroup}>
+                        <label>E-mail</label>
+                        <input 
+                            type="email" 
+                            value={email} 
+                            onChange={(e) => setEmail(e.target.value)} 
+                            required 
+                            placeholder="admin@admin.com"
+                        />
+                    </div>
+                    <div className={styles.inputGroup}>
+                        <label>Senha</label>
+                        <input 
+                            type="password" 
+                            value={password} 
+                            onChange={(e) => setPassword(e.target.value)} 
+                            required 
+                            placeholder="admin123"
+                        />
+                    </div>
+                    {error && <p className={styles.error}>{error}</p>}
+                    <button type="submit" className="btn-primary" disabled={loading}>
+                        {loading ? "Entrando..." : "Entrar"}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
 }
