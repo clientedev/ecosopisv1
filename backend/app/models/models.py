@@ -51,7 +51,7 @@ class Order(Base):
 
     user = relationship("User", back_populates="orders")
 
-class Coupon(BaseBase):
+class Coupon(Base):
     __tablename__ = "coupons"
 
     id = Column(Integer, primary_key=True, index=True)
