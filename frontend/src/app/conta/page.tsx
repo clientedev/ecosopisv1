@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
@@ -10,10 +11,42 @@ export default function ContaPage() {
     const [password, setPassword] = useState("");
     const [name, setName] = useState("");
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const router = useRouter();
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // TODO: Integrar com API de autenticação
-        console.log(isLogin ? "Login" : "Cadastro", { email, password, name });
+        
+        if (isLogin) {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+                const formData = new FormData();
+                formData.append("username", email);
+                formData.append("password", password);
+
+                const res = await fetch(`${apiUrl}/auth/login`, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    localStorage.setItem("token", data.access_token);
+                    if (data.role === "admin") {
+                        router.push("/admin/dashboard");
+                    } else {
+                        // Redirect normal user to account dashboard if it exists, or home
+                        router.push("/");
+                    }
+                } else {
+                    alert("Credenciais inválidas");
+                }
+            } catch (err) {
+                alert("Erro ao conectar com o servidor");
+            }
+        } else {
+            // Cadastro logic
+            console.log("Cadastro", { email, password, name });
+        }
     };
 
     return (
