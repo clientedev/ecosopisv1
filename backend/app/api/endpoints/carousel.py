@@ -18,7 +18,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 def list_carousel_items(db: Session = Depends(get_db)):
     return db.query(models.CarouselItem).filter(models.CarouselItem.is_active == True).order_by(models.CarouselItem.order).all()
 
-@router.post("/")
+@router.post("/", response_model=schemas.CarouselItemResponse)
 def create_carousel_item(
     badge: Optional[str] = Form(None),
     title: Optional[str] = Form(None),
@@ -56,24 +56,9 @@ def create_carousel_item(
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
-    
-    # Return as dict to avoid response_model issues in this turn
-    return {
-        "id": db_item.id,
-        "badge": db_item.badge,
-        "title": db_item.title,
-        "description": db_item.description,
-        "image_url": db_item.image_url,
-        "cta_primary_text": db_item.cta_primary_text,
-        "cta_primary_link": db_item.cta_primary_link,
-        "cta_secondary_text": db_item.cta_secondary_text,
-        "cta_secondary_link": db_item.cta_secondary_link,
-        "order": db_item.order,
-        "is_active": db_item.is_active,
-        "created_at": db_item.created_at.isoformat() if db_item.created_at else None
-    }
+    return db_item
 
-@router.put("/{item_id}")
+@router.put("/{item_id}", response_model=schemas.CarouselItemResponse)
 def update_carousel_item(
     item_id: int,
     badge: Optional[str] = Form(None),
@@ -114,21 +99,7 @@ def update_carousel_item(
     
     db.commit()
     db.refresh(db_item)
-    
-    return {
-        "id": db_item.id,
-        "badge": db_item.badge,
-        "title": db_item.title,
-        "description": db_item.description,
-        "image_url": db_item.image_url,
-        "cta_primary_text": db_item.cta_primary_text,
-        "cta_primary_link": db_item.cta_primary_link,
-        "cta_secondary_text": db_item.cta_secondary_text,
-        "cta_secondary_link": db_item.cta_secondary_link,
-        "order": db_item.order,
-        "is_active": db_item.is_active,
-        "created_at": db_item.created_at.isoformat() if db_item.created_at else None
-    }
+    return db_item
 
 @router.delete("/{item_id}")
 def delete_carousel_item(

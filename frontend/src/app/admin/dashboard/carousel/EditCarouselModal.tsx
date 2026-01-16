@@ -34,7 +34,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
             const data = new FormData();
             Object.keys(formData).forEach(key => {
                 const value = formData[key as key_of_typeof_formData];
-                if (value !== null && value !== undefined) {
+                if (value !== null && value !== undefined && value !== "") {
                     data.append(key, value.toString());
                 }
             });
