@@ -1,17 +1,31 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
+import Link from "next/link";
 
 export default function ContaPage() {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [name, setName] = useState("");
+    const [isAdmin, setIsAdmin] = useState(false);
 
     const router = useRouter();
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                if (payload.role === 'admin') {
+                    setIsAdmin(true);
+                }
+            } catch (e) {}
+        }
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -33,7 +47,6 @@ export default function ContaPage() {
                     if (data.role === "admin") {
                         router.push("/admin/dashboard");
                     } else {
-                        // Redirect normal user to account dashboard if it exists, or home
                         router.push("/");
                     }
                 } else {
@@ -43,7 +56,6 @@ export default function ContaPage() {
                 alert("Erro ao conectar com o servidor");
             }
         } else {
-            // Cadastro logic
             console.log("Cadastro", { email, password, name });
         }
     };
@@ -53,6 +65,13 @@ export default function ContaPage() {
             <Header />
             <div className={`container ${styles.contaContainer}`}>
                 <div className={styles.formBox}>
+                    {isAdmin && (
+                        <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #10b981', textAlign: 'center' }}>
+                            <p style={{ color: '#065f46', fontWeight: 'bold', marginBottom: '10px' }}>Você está logado como Administrador</p>
+                            <Link href="/admin/dashboard" className="btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>ACESSAR PAINEL ADMIN</Link>
+                        </div>
+                    )}
+                    
                     <div className={styles.tabs}>
                         <button
                             className={isLogin ? styles.activeTab : ""}

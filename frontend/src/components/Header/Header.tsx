@@ -2,8 +2,23 @@
 import Link from "next/link";
 import styles from "./Header.module.css";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function Header() {
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                setIsAdmin(payload.role === 'admin');
+            } catch (e) {
+                console.error("Error parsing token", e);
+            }
+        }
+    }, []);
+
     return (
         <header className={styles.header}>
             <div className={`container ${styles.headerContent}`}>
@@ -28,6 +43,7 @@ export default function Header() {
                     <Link href="/quizz">QUIZZ</Link>
                     <Link href="/box">BOX SURPRESA</Link>
                     <Link href="/sobre">SOBRE</Link>
+                    {isAdmin && <Link href="/admin/dashboard" style={{ color: 'var(--primary-green)', fontWeight: 'bold' }}>PAINEL ADMIN</Link>}
                 </nav>
 
                 <div className={styles.actions}>
