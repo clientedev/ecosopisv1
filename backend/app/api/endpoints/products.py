@@ -29,9 +29,9 @@ async def upload_image(
     # In a real scenario, this would depend on the base URL
     return {"url": f"/static/uploads/{file_name}"}
 
-@router.get("/", response_model=List[schemas.ProductResponse])
+@router.get("", response_model=List[schemas.ProductResponse])
 def list_products(db: Session = Depends(get_db)):
-    return db.query(models.Product).filter(models.Product.is_active == True).all()
+    return db.query(models.Product).all()
 
 @router.get("/{slug}", response_model=schemas.ProductResponse)
 def get_product(slug: str, db: Session = Depends(get_db)):

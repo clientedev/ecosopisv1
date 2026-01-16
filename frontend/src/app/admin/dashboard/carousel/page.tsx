@@ -14,8 +14,20 @@ export default function CarouselAdmin() {
 
     const fetchItems = async () => {
         try {
-            const res = await fetch('/api/carousel');
+            console.log("Fetching carousel items...");
+            const res = await fetch('/api/carousel', {
+                cache: 'no-store',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem("token")}`
+                }
+            });
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error("Fetch failed:", res.status, errorText);
+                return;
+            }
             const data = await res.json();
+            console.log("Fetched data:", data);
             setItems(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Error fetching carousel items:", error);

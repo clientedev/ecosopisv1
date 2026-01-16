@@ -56,7 +56,7 @@ export default function Home() {
     useEffect(() => {
         const fetchRecent = async () => {
             try {
-                const res = await fetch('/api/products/');
+                const res = await fetch('/api/products');
                 const data = await res.json();
                 setRecentProducts(data.slice(0, 4));
             } catch (error) {

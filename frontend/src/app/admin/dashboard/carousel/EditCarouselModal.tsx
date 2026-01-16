@@ -50,13 +50,17 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                 body: data,
             });
 
+            console.log("Response status:", res.status);
+            const responseData = await res.json();
             if (res.ok) {
-                const updatedItem = await res.json();
-                onSave(updatedItem);
+                console.log("Save successful:", responseData);
                 onClose();
+                setTimeout(() => {
+                    onSave(responseData);
+                }, 100);
             } else {
-                const errorData = await res.json();
-                alert(`Erro ao salvar: ${JSON.stringify(errorData.detail || errorData)}`);
+                console.error("Save failed:", responseData);
+                alert(`Erro ao salvar: ${JSON.stringify(responseData.detail || responseData)}`);
             }
         } catch (error) {
             console.error("Error saving carousel item:", error);

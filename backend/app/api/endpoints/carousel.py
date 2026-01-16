@@ -14,9 +14,11 @@ router = APIRouter()
 UPLOAD_DIR = "static/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-@router.get("/", response_model=List[schemas.CarouselItemResponse])
+@router.get("", response_model=List[schemas.CarouselItemResponse])
 def list_carousel_items(db: Session = Depends(get_db)):
-    return db.query(models.CarouselItem).filter(models.CarouselItem.is_active == True).order_by(models.CarouselItem.order).all()
+    db.expire_all()
+    items = db.query(models.CarouselItem).order_by(models.CarouselItem.order).all()
+    return items
 
 @router.post("", response_model=schemas.CarouselItemResponse)
 def create_carousel_item(
@@ -33,8 +35,11 @@ def create_carousel_item(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
+    print(f"DEBUG: Creating carousel item. File present: {file is not None}")
     final_image_url = image_url
     if file and file.filename:
+        # Create static/uploads if it doesn't exist
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
         file_ext = file.filename.split(".")[-1]
         file_name = f"{uuid.uuid4()}.{file_ext}"
         file_path = os.path.join(UPLOAD_DIR, file_name)
@@ -56,6 +61,11 @@ def create_carousel_item(
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
+    print(f"DEBUG: Created item with ID {db_item.id}")
+    
+    # Force a refresh of the session to ensure data is loaded
+    db.expire_all()
+    
     return db_item
 
 @router.put("/{item_id}", response_model=schemas.CarouselItemResponse)
