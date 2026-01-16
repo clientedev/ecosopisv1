@@ -34,7 +34,7 @@ def create_carousel_item(
     admin: models.User = Depends(get_current_admin)
 ):
     final_image_url = image_url
-    if file:
+    if file and file.filename:
         file_ext = file.filename.split(".")[-1]
         file_name = f"{uuid.uuid4()}.{file_ext}"
         file_path = os.path.join(UPLOAD_DIR, file_name)
@@ -79,7 +79,7 @@ def update_carousel_item(
         raise HTTPException(status_code=404, detail="Item not found")
     
     final_image_url = image_url or db_item.image_url
-    if file:
+    if file and file.filename:
         file_ext = file.filename.split(".")[-1]
         file_name = f"{uuid.uuid4()}.{file_ext}"
         file_path = os.path.join(UPLOAD_DIR, file_name)
@@ -87,15 +87,15 @@ def update_carousel_item(
             shutil.copyfileobj(file.file, buffer)
         final_image_url = f"/static/uploads/{file_name}"
 
-    db_item.badge = badge
-    db_item.title = title
-    db_item.description = description
-    db_item.image_url = final_image_url
-    db_item.cta_primary_text = cta_primary_text
-    db_item.cta_primary_link = cta_primary_link
-    db_item.cta_secondary_text = cta_secondary_text
-    db_item.cta_secondary_link = cta_secondary_link
-    db_item.order = order
+    db_item.badge = str(badge) if badge is not None else None
+    db_item.title = str(title) if title is not None else None
+    db_item.description = str(description) if description is not None else None
+    db_item.image_url = str(final_image_url) if final_image_url is not None else None
+    db_item.cta_primary_text = str(cta_primary_text) if cta_primary_text is not None else None
+    db_item.cta_primary_link = str(cta_primary_link) if cta_primary_link is not None else None
+    db_item.cta_secondary_text = str(cta_secondary_text) if cta_secondary_text is not None else None
+    db_item.cta_secondary_link = str(cta_secondary_link) if cta_secondary_link is not None else None
+    db_item.order = int(order)
     
     db.commit()
     db.refresh(db_item)
