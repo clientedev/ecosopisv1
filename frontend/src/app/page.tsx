@@ -24,7 +24,7 @@ export default function Home() {
     useEffect(() => {
         const fetchCarousel = async () => {
             try {
-                const res = await fetch('/api/carousel/');
+                const res = await fetch('/api/carousel');
                 if (res.ok) {
                     const data = await res.json();
                     if (data.length > 0) {

@@ -28,7 +28,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         e.preventDefault();
         setLoading(true);
         try {
-            const url = item ? `/api/carousel/${item.id}` : `/api/carousel/`;
+            const url = item ? `/api/carousel/${item.id}` : `/api/carousel`;
             const method = item ? "PUT" : "POST";
             
             const data = new FormData();
@@ -54,9 +54,13 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                 const updatedItem = await res.json();
                 onSave(updatedItem);
                 onClose();
+            } else {
+                const errorData = await res.json();
+                alert(`Erro ao salvar: ${JSON.stringify(errorData.detail || errorData)}`);
             }
         } catch (error) {
             console.error("Error saving carousel item:", error);
+            alert("Erro de conexão ao salvar.");
         } finally {
             setLoading(false);
         }

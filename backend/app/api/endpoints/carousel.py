@@ -18,7 +18,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 def list_carousel_items(db: Session = Depends(get_db)):
     return db.query(models.CarouselItem).filter(models.CarouselItem.is_active == True).order_by(models.CarouselItem.order).all()
 
-@router.post("/", response_model=schemas.CarouselItemResponse)
+@router.post("", response_model=schemas.CarouselItemResponse)
 def create_carousel_item(
     badge: Optional[str] = Form(None),
     title: Optional[str] = Form(None),

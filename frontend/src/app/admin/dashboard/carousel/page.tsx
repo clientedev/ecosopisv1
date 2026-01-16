@@ -14,7 +14,7 @@ export default function CarouselAdmin() {
 
     const fetchItems = async () => {
         try {
-            const res = await fetch('/api/carousel/');
+            const res = await fetch('/api/carousel');
             const data = await res.json();
             setItems(Array.isArray(data) ? data : []);
         } catch (error) {
