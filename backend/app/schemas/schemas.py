@@ -42,6 +42,32 @@ class Token(BaseModel):
     token_type: str
     role: str
 
+# Coupon Schemas
+class CouponBase(BaseModel):
+    code: str
+    discount_type: str
+    discount_value: float
+    min_purchase_value: float = 0
+    valid_until: Optional[datetime] = None
+    is_active: bool = True
+    usage_limit: Optional[int] = None
+
+class CouponCreate(CouponBase):
+    pass
+
+class CouponUpdate(BaseModel):
+    is_active: Optional[bool] = None
+    usage_limit: Optional[int] = None
+    valid_until: Optional[datetime] = None
+
+class CouponResponse(CouponBase):
+    id: int
+    usage_count: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 # Product Schemas
 class ProductBase(BaseModel):
     name: str
