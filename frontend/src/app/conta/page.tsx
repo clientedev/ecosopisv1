@@ -78,6 +78,7 @@ export default function ContaPage() {
 
     return (
         <main>
+            {/* VERSION: 1.0.5 */}
             <Header />
             <div className={`container ${styles.contaContainer}`}>
                 <div className={styles.formBox}>

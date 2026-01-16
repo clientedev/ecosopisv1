@@ -35,6 +35,7 @@ export default function Header() {
 
     return (
         <header className={styles.header}>
+            {/* VERSION: 1.0.5 */}
             <div className={`container ${styles.headerContent}`}>
                 <div className={styles.logo}>
                     <Link href="/">
