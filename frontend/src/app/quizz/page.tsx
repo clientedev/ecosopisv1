@@ -53,7 +53,8 @@ export default function QuizPage() {
     setSkinTypeLabel(finalAnswers[0].text.toLowerCase());
 
     try {
-      const res = await fetch(`${window.location.protocol}//${window.location.hostname}:8000/products/`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+      const res = await fetch(`${apiUrl}/products/`);
       const allProducts = await res.json();
       
       // Filter products based on tags
