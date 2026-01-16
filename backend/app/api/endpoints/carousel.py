@@ -1,12 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
 from app.api.endpoints.auth import get_current_admin
+import shutil
+import os
+import uuid
 
 router = APIRouter()
+
+UPLOAD_DIR = "static/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.get("/", response_model=List[schemas.CarouselItemResponse])
 def list_carousel_items(db: Session = Depends(get_db)):
@@ -14,11 +20,39 @@ def list_carousel_items(db: Session = Depends(get_db)):
 
 @router.post("/", response_model=schemas.CarouselItemResponse)
 def create_carousel_item(
-    item_in: schemas.CarouselItemCreate,
+    badge: Optional[str] = Form(None),
+    title: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    order: int = Form(0),
+    file: Optional[UploadFile] = File(None),
+    image_url: Optional[str] = Form(None),
+    cta_primary_text: Optional[str] = Form(None),
+    cta_primary_link: Optional[str] = Form(None),
+    cta_secondary_text: Optional[str] = Form(None),
+    cta_secondary_link: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
-    db_item = models.CarouselItem(**item_in.dict())
+    final_image_url = image_url
+    if file:
+        file_ext = file.filename.split(".")[-1]
+        file_name = f"{uuid.uuid4()}.{file_ext}"
+        file_path = os.path.join(UPLOAD_DIR, file_name)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        final_image_url = f"/static/uploads/{file_name}"
+
+    db_item = models.CarouselItem(
+        badge=badge,
+        title=title,
+        description=description,
+        image_url=final_image_url,
+        cta_primary_text=cta_primary_text,
+        cta_primary_link=cta_primary_link,
+        cta_secondary_text=cta_secondary_text,
+        cta_secondary_link=cta_secondary_link,
+        order=order
+    )
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
@@ -27,7 +61,16 @@ def create_carousel_item(
 @router.put("/{item_id}", response_model=schemas.CarouselItemResponse)
 def update_carousel_item(
     item_id: int,
-    item_in: schemas.CarouselItemCreate,
+    badge: Optional[str] = Form(None),
+    title: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    order: int = Form(0),
+    file: Optional[UploadFile] = File(None),
+    image_url: Optional[str] = Form(None),
+    cta_primary_text: Optional[str] = Form(None),
+    cta_primary_link: Optional[str] = Form(None),
+    cta_secondary_text: Optional[str] = Form(None),
+    cta_secondary_link: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -35,9 +78,24 @@ def update_carousel_item(
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
     
-    update_data = item_in.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_item, key, value)
+    final_image_url = image_url or db_item.image_url
+    if file:
+        file_ext = file.filename.split(".")[-1]
+        file_name = f"{uuid.uuid4()}.{file_ext}"
+        file_path = os.path.join(UPLOAD_DIR, file_name)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        final_image_url = f"/static/uploads/{file_name}"
+
+    db_item.badge = badge
+    db_item.title = title
+    db_item.description = description
+    db_item.image_url = final_image_url
+    db_item.cta_primary_text = cta_primary_text
+    db_item.cta_primary_link = cta_primary_link
+    db_item.cta_secondary_text = cta_secondary_text
+    db_item.cta_secondary_link = cta_secondary_link
+    db_item.order = order
     
     db.commit()
     db.refresh(db_item)

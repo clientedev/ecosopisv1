@@ -21,6 +21,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         order: item?.order || 0,
         is_active: item?.is_active ?? true,
     });
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -30,18 +31,27 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
             const url = item ? `/api/carousel/${item.id}` : `/api/carousel/`;
             const method = item ? "PUT" : "POST";
             
+            const data = new FormData();
+            Object.keys(formData).forEach(key => {
+                if (formData[key as key_of_typeof_formData] !== null && formData[key as key_of_typeof_formData] !== undefined) {
+                    data.append(key, formData[key as key_of_typeof_formData].toString());
+                }
+            });
+            if (selectedFile) {
+                data.append("file", selectedFile);
+            }
+            
             const res = await fetch(url, {
                 method,
                 headers: {
-                    "Content-Type": "application/json",
                     "Authorization": `Bearer ${localStorage.getItem("token")}`
                 },
-                body: JSON.stringify(formData),
+                body: data,
             });
 
             if (res.ok) {
-                const data = await res.json();
-                onSave(data);
+                const updatedItem = await res.json();
+                onSave(updatedItem);
                 onClose();
             }
         } catch (error) {
@@ -50,6 +60,8 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
             setLoading(false);
         }
     };
+
+    type key_of_typeof_formData = keyof typeof formData;
 
     return (
         <div className={styles.modalOverlay}>
@@ -63,14 +75,19 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                         </div>
                         <div className={styles.formGroup}>
                             <label>Título Principal</label>
-                            <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
+                            <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
                         </div>
                         <div className={styles.formGroup}>
                             <label>Descrição</label>
                             <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
                         </div>
                         <div className={styles.formGroup}>
-                            <label>URL da Imagem de Fundo</label>
+                            <label>Anexar Imagem de Fundo</label>
+                            <input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
+                            {item?.image_url && <p className={styles.smallInfo}>Imagem atual: {item.image_url}</p>}
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label>Ou URL da Imagem</label>
                             <input type="text" value={formData.image_url} onChange={e => setFormData({...formData, image_url: e.target.value})} placeholder="https://..." />
                         </div>
                         <div className={styles.formGroup}>
