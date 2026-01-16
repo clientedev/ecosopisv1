@@ -1,25 +1,32 @@
-.hero {
-    padding: var(--spacing-xl) 0;
+.heroCarousel {
     background-color: var(--neutral-gray-100);
-    min-height: 500px;
+    min-height: 600px;
     display: flex;
     align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.carouselSlide {
+    width: 100%;
 }
 
 .heroContent {
-    max-width: 600px;
+    max-width: 700px;
 }
 
-.hero h1 {
+.heroContent h1 {
     font-size: 3.5rem;
     line-height: 1.1;
-    margin: var(--spacing-sm) 0 var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    letter-spacing: -2px;
 }
 
-.hero p {
+.heroContent p {
     font-size: 1.2rem;
     color: var(--text-secondary);
     margin-bottom: var(--spacing-lg);
+    max-width: 500px;
 }
 
 .heroActions {
@@ -27,19 +34,95 @@
     gap: var(--spacing-md);
 }
 
+.advantages {
+    padding: var(--spacing-xl) 0;
+    border-bottom: 1px solid var(--neutral-gray-200);
+}
+
+.advantagesGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-lg);
+    text-align: center;
+}
+
+.advantageItem h3 {
+    font-size: 1.1rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.advantageItem p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
 .section {
     padding: var(--spacing-xl) 0;
 }
 
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: var(--spacing-lg);
+}
+
 .sectionTitle {
-    text-align: center;
-    margin-bottom: var(--spacing-xl);
-    font-size: 2rem;
-    letter-spacing: 2px;
+    font-size: 1.5rem;
+    letter-spacing: 1px;
+}
+
+.viewAll {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--primary-green);
 }
 
 .productGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: var(--spacing-lg);
+}
+
+.quizPromo {
+    background-color: var(--primary-green);
+    color: white;
+    padding: var(--spacing-xl) 0;
+    text-align: center;
+    margin: var(--spacing-xl) 0;
+}
+
+.quizPromo h2 {
+    color: white;
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.quizPromo p {
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-lg);
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.quizPromo :global(.btn-primary) {
+    background-color: white;
+    color: var(--primary-green);
+}
+
+.quizPromo :global(.btn-primary):hover {
+    background-color: var(--neutral-gray-100);
+}
+
+@media (max-width: 768px) {
+    .heroContent h1 {
+        font-size: 2.5rem;
+    }
+    .productGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .advantagesGrid {
+        grid-template-columns: 1fr;
+    }
 }

@@ -9,13 +9,9 @@ export default function Header() {
             <div className={`container ${styles.headerContent}`}>
                 <div className={styles.logo}>
                     <Link href="/">
-                        <Image
-                            src="https://acdn-us.mitiendanube.com/stores/003/178/794/themes/common/logo-65144578-1764594496-26e39c18ae7ef0f89bef32b1271fd7561764594496-640-0.webp"
-                            alt="ECOSOPIS"
-                            width={150}
-                            height={50}
-                            style={{ objectFit: 'contain' }}
-                        />
+                        <div className={styles.logoContainer}>
+                            <span className={styles.logoText}>ECOSOPIS</span>
+                        </div>
                     </Link>
                 </div>
 

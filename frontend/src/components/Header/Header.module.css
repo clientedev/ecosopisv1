@@ -1,6 +1,20 @@
+.logoContainer {
+    display: flex;
+    align-items: center;
+}
+
+.logoText {
+    font-family: var(--font-header);
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--primary-green);
+    letter-spacing: -1px;
+    line-height: 1;
+}
+
 .header {
     border-bottom: 1px solid var(--neutral-gray-200);
-    padding: var(--spacing-md) 0;
+    padding: var(--spacing-sm) 0;
     background-color: var(--secondary-white);
     position: sticky;
     top: 0;
