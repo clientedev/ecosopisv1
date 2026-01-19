@@ -69,8 +69,8 @@ export default function Header() {
                             <Image
                                 src="/attached_assets/image_1768566026984.png"
                                 alt="ECOSOPIS Logo"
-                                width={70}
-                                height={70}
+                                width={100}
+                                height={100}
                                 className={styles.logoImage}
                                 priority
                             />
