@@ -15,12 +15,15 @@ export default function ContaPage() {
 
     const router = useRouter();
 
+    const [token, setToken] = useState<string | null>(null);
+
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        console.log("Token check:", token ? "Exists" : "None");
-        if (token) {
+        const storedToken = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
+        setToken(storedToken);
+        console.log("Token check:", storedToken ? "Exists" : "None");
+        if (storedToken) {
             try {
-                const base64Url = token.split('.')[1];
+                const base64Url = storedToken.split('.')[1];
                 const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
                 const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
                     return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
@@ -54,10 +57,13 @@ export default function ContaPage() {
                 if (res.ok) {
                     const data = await res.json();
                     localStorage.setItem("token", data.access_token);
+                    setToken(data.access_token);
                     if (data.role === "admin") {
                         router.push("/admin/dashboard");
                     } else {
-                        router.push("/");
+                        const searchParams = new URLSearchParams(window.location.search);
+                        const redirect = searchParams.get('redirect') || "/";
+                        router.push(redirect);
                     }
                 } else {
                     alert("Credenciais inválidas");
@@ -66,19 +72,42 @@ export default function ContaPage() {
                 alert("Erro ao conectar com o servidor");
             }
         } else {
-            console.log("Cadastro", { email, password, name });
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        full_name: name
+                    })
+                });
+
+                if (res.ok) {
+                    alert("Conta criada com sucesso! Agora você pode entrar.");
+                    setIsLogin(true);
+                } else {
+                    const data = await res.json();
+                    alert(data.detail || "Erro ao criar conta");
+                }
+            } catch (err) {
+                alert("Erro ao conectar com o servidor");
+            }
         }
     };
 
     const handleLogout = () => {
         localStorage.removeItem("token");
+        setToken(null);
         setIsAdmin(false);
         router.push("/");
     };
 
     return (
         <main>
-            {/* VERSION: 1.0.5 */}
+            {/* VERSION: 1.0.6 */}
             <Header />
             <div className={`container ${styles.contaContainer}`}>
                 <div className={styles.formBox}>
@@ -92,13 +121,13 @@ export default function ContaPage() {
                         </div>
                     )}
                     
-                    {!isAdmin && localStorage.getItem("token") && (
+                    {!isAdmin && token && (
                         <div style={{ marginBottom: '20px', textAlign: 'center' }}>
                             <button onClick={handleLogout} className="btn-primary" style={{ backgroundColor: '#ef4444' }}>SAIR DA CONTA</button>
                         </div>
                     )}
 
-                    {!localStorage.getItem("token") && (
+                    {!token && (
                         <>
                             <div className={styles.tabs}>
                         <button
