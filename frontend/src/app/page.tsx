@@ -25,6 +25,7 @@ export default function Home() {
                             description: item.description && item.description !== "-" ? item.description : null,
                             image_url: item.image_url,
                             alignment: item.alignment || "center",
+                            elements_config: typeof item.elements_config === 'string' ? JSON.parse(item.elements_config) : item.elements_config,
                             ctaPrimary: item.cta_primary_text && item.cta_primary_text !== "-" ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
                             ctaSecondary: item.cta_secondary_text && item.cta_secondary_text !== "-" ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null
                         }));
@@ -80,18 +81,54 @@ export default function Home() {
                         }}
                     >
                         <div className={`container ${styles.heroContent}`} style={{
-                            textAlign: slide.alignment as any,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'flex-end' : 'flex-start',
+                            position: 'relative',
+                            width: '100%',
+                            height: '100%',
+                            display: 'block'
                         }}>
-                            {slide.badge && <span className="scientific-badge">{slide.badge}</span>}
-                            {slide.title && <h1>{slide.title}</h1>}
-                            {slide.description && <p>{slide.description}</p>}
-                            <div className={styles.heroActions}>
-                                {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary">{slide.ctaPrimary.text}</Link>}
-                                {slide.ctaSecondary && <Link href={slide.ctaSecondary.link} className="btn-outline">{slide.ctaSecondary.text}</Link>}
-                            </div>
+                            {slide.badge && slide.elements_config?.badge && (
+                                <div style={{ 
+                                    position: 'absolute', 
+                                    left: slide.elements_config.badge.x, 
+                                    top: slide.elements_config.badge.y,
+                                    width: slide.elements_config.badge.width
+                                }}>
+                                    <span className="scientific-badge">{slide.badge}</span>
+                                </div>
+                            )}
+                            {slide.title && slide.elements_config?.title && (
+                                <div style={{ 
+                                    position: 'absolute', 
+                                    left: slide.elements_config.title.x, 
+                                    top: slide.elements_config.title.y,
+                                    width: slide.elements_config.title.width
+                                }}>
+                                    <h1>{slide.title}</h1>
+                                </div>
+                            )}
+                            {slide.description && slide.elements_config?.description && (
+                                <div style={{ 
+                                    position: 'absolute', 
+                                    left: slide.elements_config.description.x, 
+                                    top: slide.elements_config.description.y,
+                                    width: slide.elements_config.description.width
+                                }}>
+                                    <p>{slide.description}</p>
+                                </div>
+                            )}
+                            {slide.ctaPrimary && slide.elements_config?.buttons && (
+                                <div style={{ 
+                                    position: 'absolute', 
+                                    left: slide.elements_config.buttons.x, 
+                                    top: slide.elements_config.buttons.y,
+                                    width: slide.elements_config.buttons.width,
+                                    display: 'flex',
+                                    gap: '15px'
+                                }}>
+                                    <Link href={slide.ctaPrimary.link} className="btn-primary">{slide.ctaPrimary.text}</Link>
+                                    {slide.ctaSecondary && <Link href={slide.ctaSecondary.link} className="btn-outline">{slide.ctaSecondary.text}</Link>}
+                                </div>
+                            )}
                         </div>
                     </div>
                 ))}
