@@ -126,12 +126,20 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                     <input type="text" value={formData.cta_primary_text} onChange={e => setFormData({...formData, cta_primary_text: e.target.value})} />
                                 </div>
                                 <div className={styles.formGroup}>
+                                    <label>Botão 1 (Link)</label>
+                                    <input type="text" value={formData.cta_primary_link} onChange={e => setFormData({...formData, cta_primary_link: e.target.value})} />
+                                </div>
+                                <div className={styles.formGroup}>
                                     <label>Botão 2 (Texto)</label>
                                     <input type="text" value={formData.cta_secondary_text} onChange={e => setFormData({...formData, cta_secondary_text: e.target.value})} />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Botão 2 (Link)</label>
                                     <input type="text" value={formData.cta_secondary_link} onChange={e => setFormData({...formData, cta_secondary_link: e.target.value})} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Ordem</label>
+                                    <input type="number" value={formData.order} onChange={e => setFormData({...formData, order: parseInt(e.target.value) || 0})} />
                                 </div>
                             </div>
                             <div className={styles.formActions} style={{ marginTop: '20px', position: 'sticky', bottom: 0, background: 'white', padding: '10px 0' }}>
