@@ -91,9 +91,9 @@ export default function Home() {
                             {slide.badge && (
                                 <div style={{ 
                                     position: 'absolute', 
-                                    left: slide.elements_config?.badge?.x ?? 50, 
-                                    top: slide.elements_config?.badge?.y ?? 50,
-                                    width: slide.elements_config?.badge?.width ?? 200,
+                                    left: typeof slide.elements_config?.badge?.x === 'number' ? `${slide.elements_config.badge.x}%` : '5%', 
+                                    top: typeof slide.elements_config?.badge?.y === 'number' ? `${slide.elements_config.badge.y}%` : '10%',
+                                    width: slide.elements_config?.badge?.width || '200px',
                                     zIndex: 10
                                 }}>
                                     <span className="scientific-badge">{slide.badge}</span>
@@ -102,9 +102,9 @@ export default function Home() {
                             {slide.title && (
                                 <div style={{ 
                                     position: 'absolute', 
-                                    left: slide.elements_config?.title?.x ?? 50, 
-                                    top: slide.elements_config?.title?.y ?? 100,
-                                    width: slide.elements_config?.title?.width ?? 500,
+                                    left: typeof slide.elements_config?.title?.x === 'number' ? `${slide.elements_config.title.x}%` : '5%', 
+                                    top: typeof slide.elements_config?.title?.y === 'number' ? `${slide.elements_config.title.y}%` : '20%',
+                                    width: slide.elements_config?.title?.width || '500px',
                                     zIndex: 10
                                 }}>
                                     <h1>{slide.title}</h1>
@@ -113,9 +113,9 @@ export default function Home() {
                             {slide.description && (
                                 <div style={{ 
                                     position: 'absolute', 
-                                    left: slide.elements_config?.description?.x ?? 50, 
-                                    top: slide.elements_config?.description?.y ?? 220,
-                                    width: slide.elements_config?.description?.width ?? 500,
+                                    left: typeof slide.elements_config?.description?.x === 'number' ? `${slide.elements_config.description.x}%` : '5%', 
+                                    top: typeof slide.elements_config?.description?.y === 'number' ? `${slide.elements_config.description.y}%` : '44%',
+                                    width: slide.elements_config?.description?.width || '500px',
                                     zIndex: 10
                                 }}>
                                     <p>{slide.description}</p>
@@ -124,16 +124,16 @@ export default function Home() {
                             {slide.ctaPrimary && (
                                 <div style={{ 
                                     position: 'absolute', 
-                                    left: slide.elements_config?.buttons?.x ?? 50, 
-                                    top: slide.elements_config?.buttons?.y ?? 350,
-                                    width: slide.elements_config?.buttons?.width ?? 400,
+                                    left: typeof slide.elements_config?.buttons?.x === 'number' ? `${slide.elements_config.buttons.x}%` : '5%', 
+                                    top: typeof slide.elements_config?.buttons?.y === 'number' ? `${slide.elements_config.buttons.y}%` : '70%',
+                                    width: slide.elements_config?.buttons?.width || '400px',
                                     display: 'flex',
                                     gap: '15px',
                                     flexWrap: 'wrap',
                                     zIndex: 10
                                 }}>
                                     <Link href={slide.ctaPrimary.link} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>{slide.ctaPrimary.text}</Link>
-                                    {slide.ctaSecondary && <Link href={slide.ctaSecondary.link} className="btn-outline" style={{ whiteSpace: 'nowrap' }}>{slide.ctaSecondary.text}</Link>}
+                                    {slide.ctaSecondary && <Link href={slide.ctaSecondary.link} className="btn-outline" style={{ whiteSpace: 'nowrap', color: 'white', borderColor: 'white' }}>{slide.ctaSecondary.text}</Link>}
                                 </div>
                             )}
                         </div>

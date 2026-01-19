@@ -42,11 +42,28 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
     }, [selectedFile]);
 
     const handleElementChange = (element: string, data: any) => {
+        const viewport = document.getElementById('canva-viewport');
+        if (!viewport) return;
+        
+        const vWidth = viewport.offsetWidth;
+        const vHeight = viewport.offsetHeight;
+
+        let updatedData = { ...data };
+        
+        // Converter pixels para porcentagem se x ou y estiverem presentes
+        if (data.x !== undefined) updatedData.x = (data.x / vWidth) * 100;
+        if (data.y !== undefined) updatedData.y = (data.y / vHeight) * 100;
+        if (typeof data.width === 'string' && data.width.includes('px')) {
+            updatedData.width = (parseInt(data.width) / vWidth) * 100 + '%';
+        } else if (typeof data.width === 'number') {
+            updatedData.width = (data.width / vWidth) * 100 + '%';
+        }
+
         setFormData(prev => ({
             ...prev,
             elements_config: {
                 ...prev.elements_config,
-                [element]: { ...prev.elements_config[element as keyof typeof prev.elements_config], ...data }
+                [element]: { ...prev.elements_config[element as keyof typeof prev.elements_config], ...updatedData }
             }
         }));
     };
@@ -168,14 +185,26 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                         }}>
                             {formData.badge && (
                                 <Rnd
-                                    size={{ width: formData.elements_config.badge.width, height: formData.elements_config.badge.height }}
-                                    position={{ x: formData.elements_config.badge.x, y: formData.elements_config.badge.y }}
+                                    size={{ 
+                                        width: typeof formData.elements_config.badge.width === 'string' && formData.elements_config.badge.width.includes('%') 
+                                            ? (parseFloat(formData.elements_config.badge.width) / 100) * 850 // fallback approximate width for editor
+                                            : (formData.elements_config.badge.width || 200), 
+                                        height: formData.elements_config.badge.height || 'auto' 
+                                    }}
+                                    position={{ 
+                                        x: typeof formData.elements_config.badge.x === 'number' && formData.elements_config.badge.x <= 100 
+                                            ? (formData.elements_config.badge.x / 100) * 850 
+                                            : (formData.elements_config.badge.x || 50), 
+                                        y: typeof formData.elements_config.badge.y === 'number' && formData.elements_config.badge.y <= 100 
+                                            ? (formData.elements_config.badge.y / 100) * 500 
+                                            : (formData.elements_config.badge.y || 50) 
+                                    }}
                                     onDragStop={(e, d) => handleElementChange('badge', { x: d.x, y: d.y })}
-                                    onResizeStop={(e, direction, ref, delta, position) => handleElementChange('badge', { width: ref.style.width, height: ref.style.height, ...position })}
+                                    onResizeStop={(e, direction, ref, delta, position) => handleElementChange('badge', { width: ref.offsetWidth, height: ref.offsetHeight, ...position })}
                                     bounds="parent"
                                     enableResizing={{ right: true, left: true }}
                                 >
-                                    <div style={{ padding: '5px', cursor: 'move', border: '1px dashed rgba(255,255,255,0.5)' }}>
+                                    <div style={{ padding: '5px', cursor: 'move', border: '1px dashed rgba(255,255,255,0.5)', width: '100%', height: '100%' }}>
                                         <span className="scientific-badge" style={{ margin: 0 }}>{formData.badge}</span>
                                     </div>
                                 </Rnd>
@@ -183,14 +212,26 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
 
                             {formData.title && (
                                 <Rnd
-                                    size={{ width: formData.elements_config.title.width, height: formData.elements_config.title.height }}
-                                    position={{ x: formData.elements_config.title.x, y: formData.elements_config.title.y }}
+                                    size={{ 
+                                        width: typeof formData.elements_config.title.width === 'string' && formData.elements_config.title.width.includes('%') 
+                                            ? (parseFloat(formData.elements_config.title.width) / 100) * 850 
+                                            : (formData.elements_config.title.width || 500), 
+                                        height: formData.elements_config.title.height || 'auto' 
+                                    }}
+                                    position={{ 
+                                        x: typeof formData.elements_config.title.x === 'number' && formData.elements_config.title.x <= 100 
+                                            ? (formData.elements_config.title.x / 100) * 850 
+                                            : (formData.elements_config.title.x || 50), 
+                                        y: typeof formData.elements_config.title.y === 'number' && formData.elements_config.title.y <= 100 
+                                            ? (formData.elements_config.title.y / 100) * 500 
+                                            : (formData.elements_config.title.y || 100) 
+                                    }}
                                     onDragStop={(e, d) => handleElementChange('title', { x: d.x, y: d.y })}
-                                    onResizeStop={(e, direction, ref, delta, position) => handleElementChange('title', { width: ref.style.width, height: ref.style.height, ...position })}
+                                    onResizeStop={(e, direction, ref, delta, position) => handleElementChange('title', { width: ref.offsetWidth, height: ref.offsetHeight, ...position })}
                                     bounds="parent"
                                     enableResizing={{ right: true, left: true }}
                                 >
-                                    <div style={{ padding: '5px', cursor: 'move', border: '1px dashed rgba(255,255,255,0.5)' }}>
+                                    <div style={{ padding: '5px', cursor: 'move', border: '1px dashed rgba(255,255,255,0.5)', width: '100%', height: '100%' }}>
                                         <h1 style={{ margin: 0, color: 'white' }}>{formData.title}</h1>
                                     </div>
                                 </Rnd>
@@ -198,14 +239,26 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
 
                             {formData.description && (
                                 <Rnd
-                                    size={{ width: formData.elements_config.description.width, height: formData.elements_config.description.height }}
-                                    position={{ x: formData.elements_config.description.x, y: formData.elements_config.description.y }}
+                                    size={{ 
+                                        width: typeof formData.elements_config.description.width === 'string' && formData.elements_config.description.width.includes('%') 
+                                            ? (parseFloat(formData.elements_config.description.width) / 100) * 850 
+                                            : (formData.elements_config.description.width || 500), 
+                                        height: formData.elements_config.description.height || 'auto' 
+                                    }}
+                                    position={{ 
+                                        x: typeof formData.elements_config.description.x === 'number' && formData.elements_config.description.x <= 100 
+                                            ? (formData.elements_config.description.x / 100) * 850 
+                                            : (formData.elements_config.description.x || 50), 
+                                        y: typeof formData.elements_config.description.y === 'number' && formData.elements_config.description.y <= 100 
+                                            ? (formData.elements_config.description.y / 100) * 500 
+                                            : (formData.elements_config.description.y || 220) 
+                                    }}
                                     onDragStop={(e, d) => handleElementChange('description', { x: d.x, y: d.y })}
-                                    onResizeStop={(e, direction, ref, delta, position) => handleElementChange('description', { width: ref.style.width, height: ref.style.height, ...position })}
+                                    onResizeStop={(e, direction, ref, delta, position) => handleElementChange('description', { width: ref.offsetWidth, height: ref.offsetHeight, ...position })}
                                     bounds="parent"
                                     enableResizing={{ right: true, left: true }}
                                 >
-                                    <div style={{ padding: '5px', cursor: 'move', border: '1px dashed rgba(255,255,255,0.5)' }}>
+                                    <div style={{ padding: '5px', cursor: 'move', border: '1px dashed rgba(255,255,255,0.5)', width: '100%', height: '100%' }}>
                                         <p style={{ margin: 0, color: 'white', opacity: 0.9 }}>{formData.description}</p>
                                     </div>
                                 </Rnd>
@@ -213,14 +266,26 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
 
                             {formData.cta_primary_text && (
                                 <Rnd
-                                    size={{ width: formData.elements_config.buttons.width, height: formData.elements_config.buttons.height }}
-                                    position={{ x: formData.elements_config.buttons.x, y: formData.elements_config.buttons.y }}
+                                    size={{ 
+                                        width: typeof formData.elements_config.buttons.width === 'string' && formData.elements_config.buttons.width.includes('%') 
+                                            ? (parseFloat(formData.elements_config.buttons.width) / 100) * 850 
+                                            : (formData.elements_config.buttons.width || 400), 
+                                        height: formData.elements_config.buttons.height || 'auto' 
+                                    }}
+                                    position={{ 
+                                        x: typeof formData.elements_config.buttons.x === 'number' && formData.elements_config.buttons.x <= 100 
+                                            ? (formData.elements_config.buttons.x / 100) * 850 
+                                            : (formData.elements_config.buttons.x || 50), 
+                                        y: typeof formData.elements_config.buttons.y === 'number' && formData.elements_config.buttons.y <= 100 
+                                            ? (formData.elements_config.buttons.y / 100) * 500 
+                                            : (formData.elements_config.buttons.y || 350) 
+                                    }}
                                     onDragStop={(e, d) => handleElementChange('buttons', { x: d.x, y: d.y })}
-                                    onResizeStop={(e, direction, ref, delta, position) => handleElementChange('buttons', { width: ref.style.width, height: ref.style.height, ...position })}
+                                    onResizeStop={(e, direction, ref, delta, position) => handleElementChange('buttons', { width: ref.offsetWidth, height: ref.offsetHeight, ...position })}
                                     bounds="parent"
                                     enableResizing={{ right: true, left: true }}
                                 >
-                                    <div style={{ padding: '5px', cursor: 'move', border: '1px dashed rgba(255,255,255,0.5)', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                                    <div style={{ padding: '5px', cursor: 'move', border: '1px dashed rgba(255,255,255,0.5)', display: 'flex', gap: '15px', flexWrap: 'wrap', width: '100%', height: '100%' }}>
                                         <button className="btn-primary" style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>{formData.cta_primary_text}</button>
                                         {formData.cta_secondary_text && (
                                             <button className="btn-outline" style={{ pointerEvents: 'none', whiteSpace: 'nowrap', color: 'white', borderColor: 'white' }}>{formData.cta_secondary_text}</button>
