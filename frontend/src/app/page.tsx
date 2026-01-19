@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 
 export default function Home() {
+    const [recentProducts, setRecentProducts] = useState<any[]>([]);
     const [reviews, setReviews] = useState<any[]>([]);
     const [reviewForm, setReviewForm] = useState({ user_name: "", comment: "", rating: 5 });
     const [formStatus, setFormStatus] = useState({ type: "", text: "" });
