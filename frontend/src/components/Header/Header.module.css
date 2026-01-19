@@ -40,9 +40,16 @@
     color: var(--primary-green);
 }
 
+.logoImage {
+    object-fit: contain;
+    margin-right: 15px;
+    mix-blend-mode: multiply; /* Helps remove white background */
+}
+
 .actions {
     display: flex;
-    gap: var(--spacing-md);
+    align-items: center;
+    gap: var(--spacing-lg);
     font-weight: 600;
     font-size: 0.8rem;
 }

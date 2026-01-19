@@ -69,9 +69,9 @@ export default function Header() {
                             <Image
                                 src="/attached_assets/image_1768566026984.png"
                                 alt="ECOSOPIS Logo"
-                                width={50}
-                                height={50}
-                                style={{ objectFit: 'contain', marginRight: '10px' }}
+                                width={70}
+                                height={70}
+                                className={styles.logoImage}
                                 priority
                             />
                             <span className={styles.logoText}>ECOSOPIS</span>
