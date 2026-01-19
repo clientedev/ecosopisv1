@@ -73,13 +73,16 @@ export default function Home() {
                         className={`${styles.carouselSlide} ${index === currentSlide ? styles.activeSlide : ''}`}
                         style={{ 
                             backgroundImage: slide.image_url ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${slide.image_url})` : 'none',
-                            backgroundSize: 'cover',
+                            backgroundSize: 'contain',
+                            backgroundRepeat: 'no-repeat',
                             backgroundPosition: 'center',
+                            backgroundColor: '#000',
                             minHeight: '500px',
                             display: index === currentSlide ? 'flex' : 'none',
                             alignItems: 'center',
                             width: '100%',
-                            height: '500px'
+                            height: '500px',
+                            position: 'relative'
                         }}
                     >
                         <div className={`container ${styles.heroContent}`} style={{
