@@ -3,9 +3,12 @@ import Link from "next/link";
 import styles from "./Header.module.css";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { User, LogOut, Settings, LayoutDashboard, ChevronDown } from "lucide-react";
 
 export default function Header() {
     const [isAdmin, setIsAdmin] = useState(false);
+    const [user, setUser] = useState<{ name: string, email: string, role: string } | null>(null);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -18,9 +21,31 @@ export default function Header() {
                 }).join(''));
 
                 const payload = JSON.parse(jsonPayload);
-                if (payload.role === 'admin') {
-                    setIsAdmin(true);
-                }
+                // The token payload contains 'sub' (user_id), but we need the name.
+                // For now, let's fetch the user profile or parse name if available.
+                // Ideally, the token should include the name or we fetch it.
+                
+                const fetchProfile = async () => {
+                    try {
+                        const res = await fetch('/api/auth/me', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                            const userData = await res.json();
+                            setUser({
+                                name: userData.full_name,
+                                email: userData.email,
+                                role: userData.role
+                            });
+                            if (userData.role === 'admin') {
+                                setIsAdmin(true);
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Error fetching profile", err);
+                    }
+                };
+                fetchProfile();
             } catch (e) {
                 console.error("Error parsing token", e);
             }
@@ -29,13 +54,14 @@ export default function Header() {
 
     const handleLogout = () => {
         localStorage.removeItem("token");
+        setUser(null);
         setIsAdmin(false);
+        setIsMenuOpen(false);
         window.location.href = "/";
     };
 
     return (
         <header className={styles.header}>
-            {/* VERSION: 1.0.5 */}
             <div className={`container ${styles.headerContent}`}>
                 <div className={styles.logo}>
                     <Link href="/">
@@ -58,28 +84,52 @@ export default function Header() {
                     <Link href="/quizz">QUIZZ</Link>
                     <Link href="/box">BOX SURPRESA</Link>
                     <Link href="/sobre">SOBRE</Link>
-                    {isAdmin && <Link href="/admin/dashboard" style={{ color: 'var(--primary-green)', fontWeight: 'bold' }}>PAINEL ADMIN</Link>}
-                    {(isAdmin || (typeof window !== 'undefined' && localStorage.getItem("token"))) && (
-                        <button 
-                            onClick={handleLogout} 
-                            style={{ 
-                                background: 'none', 
-                                border: 'none', 
-                                color: '#ef4444', 
-                                cursor: 'pointer', 
-                                fontWeight: 'bold',
-                                fontSize: '0.9rem',
-                                marginLeft: '10px'
-                            }}
-                        >
-                            SAIR
-                        </button>
-                    )}
                 </nav>
 
                 <div className={styles.actions}>
-                    <Link href="/perfil" className={styles.actionIcon}>CONTA</Link>
                     <Link href="/carrinho" className={styles.actionIcon}>CARRINHO</Link>
+                    
+                    {user ? (
+                        <div className={styles.userMenuContainer}>
+                            <button 
+                                className={styles.userButton}
+                                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            >
+                                <div className={styles.avatar}>
+                                    {user.name.charAt(0).toUpperCase()}
+                                </div>
+                                <span className={styles.userName}>{user.name.split(' ')[0]}</span>
+                                <ChevronDown size={16} className={`${styles.chevron} ${isMenuOpen ? styles.chevronOpen : ''}`} />
+                            </button>
+
+                            {isMenuOpen && (
+                                <div className={styles.dropdown}>
+                                    <div className={styles.dropdownHeader}>
+                                        <strong>{user.name}</strong>
+                                        <span>{user.email}</span>
+                                    </div>
+                                    <hr className={styles.divider} />
+                                    <Link href="/perfil" className={styles.dropdownItem} onClick={() => setIsMenuOpen(false)}>
+                                        <User size={18} />
+                                        Minha Conta
+                                    </Link>
+                                    {isAdmin && (
+                                        <Link href="/admin/dashboard" className={styles.dropdownItem} onClick={() => setIsMenuOpen(false)}>
+                                            <LayoutDashboard size={18} />
+                                            Painel Admin
+                                        </Link>
+                                    )}
+                                    <hr className={styles.divider} />
+                                    <button onClick={handleLogout} className={`${styles.dropdownItem} ${styles.logoutAction}`}>
+                                        <LogOut size={18} />
+                                        Sair
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <Link href="/conta" className={styles.actionIcon}>ENTRAR</Link>
+                    )}
                 </div>
             </div>
         </header>

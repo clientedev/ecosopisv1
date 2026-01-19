@@ -47,8 +47,127 @@
     font-size: 0.8rem;
 }
 
-.actionIcon {
-    text-transform: uppercase;
+.userMenuContainer {
+    position: relative;
+}
+
+.userButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: 1px solid var(--neutral-gray-200);
+    padding: 4px 12px 4px 4px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.userButton:hover {
+    background-color: var(--neutral-gray-100);
+    border-color: var(--primary-green);
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    background-color: var(--primary-green);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.userName {
+    font-weight: 600;
+    color: var(--neutral-gray-800);
+    font-size: 0.85rem;
+}
+
+.chevron {
+    color: var(--neutral-gray-500);
+    transition: transform 0.2s ease;
+}
+
+.chevronOpen {
+    transform: rotate(180deg);
+}
+
+.dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 220px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    border: 1px solid var(--neutral-gray-200);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdownHeader {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.dropdownHeader strong {
+    font-size: 0.9rem;
+    color: var(--neutral-gray-900);
+}
+
+.dropdownHeader span {
+    font-size: 0.75rem;
+    color: var(--neutral-gray-500);
+}
+
+.divider {
+    border: none;
+    border-top: 1px solid var(--neutral-gray-100);
+    margin: 4px 0;
+}
+
+.dropdownItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--neutral-gray-700);
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: background 0.2s;
+    text-decoration: none;
+    width: 100%;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+.dropdownItem:hover {
+    background-color: var(--neutral-gray-100);
+    color: var(--primary-green);
+}
+
+.logoutAction {
+    color: #ef4444;
+}
+
+.logoutAction:hover {
+    background-color: #fef2f2;
+    color: #ef4444;
 }
 
 @media (max-width: 768px) {
