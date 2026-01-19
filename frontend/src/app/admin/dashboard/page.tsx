@@ -20,8 +20,8 @@ export default function AdminDashboard() {
 
         const fetchProducts = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-                const res = await fetch(`${apiUrl}/products/`);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+                const res = await fetch(`${apiUrl}/api/products/`);
                 const data = await res.json();
                 setProducts(data);
             } catch (error) {
@@ -41,8 +41,8 @@ export default function AdminDashboard() {
     const getImageUrl = (url: string) => {
         if (!url) return "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
         if (url.startsWith("http")) return url;
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-        return `${apiUrl}${url}`;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+        return `${apiUrl}/api${url}`;
     };
 
     return (

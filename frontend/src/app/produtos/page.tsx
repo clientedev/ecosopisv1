@@ -33,8 +33,8 @@ export default function ProductsPage() {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-                const res = await fetch(`${apiUrl}/products/`);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+                const res = await fetch(`${apiUrl}/api/products/`);
                 const data = await res.json();
                 setAllProducts(data);
                 setFilteredProducts(data);
