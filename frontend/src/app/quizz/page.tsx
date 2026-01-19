@@ -241,16 +241,29 @@ export default function QuizPage() {
       .map(([tag]) => tag);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-      const res = await fetch(`${apiUrl}/products/`);
+      // Usar o rewrite configurado no next.config.mjs
+      const res = await fetch('/api/products');
       const allProducts = await res.json();
       
       // Filtrar produtos que correspondem às tags mais frequentes
       let recommendations = allProducts.filter((p: any) => {
         if (!p.tags) return false;
         const pTags = Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? JSON.parse(p.tags) : p.tags);
-        // Prioridade para as 2 principais tags do usuário
         return pTags.some((t: string) => sortedTags.slice(0, 2).includes(t));
+      }).map((p: any) => {
+        // Adicionar explicação baseada nas tags
+        const pTags = Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? JSON.parse(p.tags) : p.tags);
+        const matchedTags = pTags.filter((t: string) => sortedTags.includes(t));
+        
+        let reason = "Ideal para o seu perfil.";
+        if (matchedTags.includes('acne')) reason = "Ajuda no controle ativo de espinhas e inflamações.";
+        else if (matchedTags.includes('skin:oily')) reason = "Equilibra a oleosidade excessiva sem ressecar.";
+        else if (matchedTags.includes('spots')) reason = "Atua na uniformização do tom e clareamento de manchas.";
+        else if (matchedTags.includes('hair:damaged')) reason = "Restaura a fibra capilar e devolve a força aos fios.";
+        else if (matchedTags.includes('hair:dry')) reason = "Nutrição profunda para cabelos que precisam de brilho.";
+        else if (matchedTags.includes('sensitivity')) reason = "Fórmula calmante para peles que irritam facilmente.";
+        
+        return { ...p, explanation: reason };
       });
 
       // Garantir diversidade se tiver poucos resultados
@@ -258,7 +271,7 @@ export default function QuizPage() {
         recommendations = allProducts.filter((p: any) => {
           const pTags = Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? JSON.parse(p.tags) : p.tags);
           return pTags.some((t: string) => sortedTags.includes(t)) || pTags.includes("todos-os-tipos");
-        });
+        }).map((p: any) => ({ ...p, explanation: "Essencial para manter sua rotina equilibrada." }));
       }
 
       setResult(recommendations.slice(0, 4));
@@ -365,6 +378,7 @@ export default function QuizPage() {
                   </div>
                   <div className={styles.productInfo}>
                     <h3>{product.name}</h3>
+                    <p className={styles.explanationText}>{product.explanation}</p>
                     <p className={styles.productPrice}>R$ {product.price.toFixed(2)}</p>
                     <button 
                       className={styles.detailsBtn}
