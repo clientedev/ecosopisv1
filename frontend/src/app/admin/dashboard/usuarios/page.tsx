@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "../dashboard.module.css";
 
+import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -40,6 +42,30 @@ export default function UserManagement() {
         fetchUsers();
     }, [router]);
 
+    const handlePromoteUser = async (userId: number) => {
+        if (!confirm("Tem certeza que deseja promover este usuário a administrador?")) return;
+        
+        try {
+            const token = localStorage.getItem("token");
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+            const res = await fetch(`${apiUrl}/api/auth/users/${userId}/promote`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                alert("Usuário promovido com sucesso!");
+                fetchUsers();
+            } else {
+                const error = await res.json();
+                alert(error.detail || "Erro ao promover usuário");
+            }
+        } catch (error) {
+            console.error("Error promoting user:", error);
+        }
+    };
+
     const handleDeleteUser = async (userId: number) => {
         if (!confirm("Tem certeza que deseja remover este usuário?")) return;
         
@@ -63,22 +89,9 @@ export default function UserManagement() {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        router.push("/admin");
-    };
-
     return (
         <div className={styles.dashboard}>
-            <aside className={styles.sidebar}>
-                <div className={styles.logo}>ECOSOPIS ADMIN</div>
-                <nav>
-                    <Link href="/admin/dashboard">Produtos</Link>
-                    <Link href="/admin/dashboard/usuarios" className={styles.active}>Usuários</Link>
-                    <Link href="/">Ver Site</Link>
-                    <button onClick={handleLogout} className={styles.logoutBtn}>Sair</button>
-                </nav>
-            </aside>
+            <AdminSidebar activePath="/admin/dashboard/usuarios" />
             <main className={styles.mainContent}>
                 <header className={styles.header}>
                     <h1>Gerenciar Usuários</h1>
@@ -117,12 +130,15 @@ export default function UserManagement() {
                                     <td>{new Date(user.created_at).toLocaleDateString('pt-BR')}</td>
                                     <td>
                                         <div className={styles.actions}>
-                                            <Link 
-                                                href={`/admin/dashboard/usuarios/${user.id}`}
-                                                className={styles.editBtn}
-                                            >
-                                                Ver Perfil
-                                            </Link>
+                                            {user.role !== 'admin' && (
+                                                <button 
+                                                    className={styles.editBtn}
+                                                    onClick={() => handlePromoteUser(user.id)}
+                                                    style={{ backgroundColor: '#2d5a27', color: 'white' }}
+                                                >
+                                                    Promover
+                                                </button>
+                                            )}
                                             <button 
                                                 className={styles.deleteBtn}
                                                 onClick={() => handleDeleteUser(user.id)}

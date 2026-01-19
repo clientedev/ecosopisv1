@@ -4,6 +4,9 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
 
+import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+import styles from "../dashboard/dashboard.module.css";
+
 export default function AdminOrdersPage() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -32,19 +35,18 @@ export default function AdminOrdersPage() {
     }, []);
 
     return (
-        <main>
-            <Header />
-            <div className="container" style={{ padding: '50px 0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                    <h1>GERENCIAMENTO DE PEDIDOS</h1>
-                    <Link href="/admin/dashboard" className="btn-outline">VOLTAR AO DASHBOARD</Link>
-                </div>
+        <div className={styles.dashboard}>
+            <AdminSidebar activePath="/admin/compras" />
+            <main className={styles.mainContent} style={{ padding: '2rem' }}>
+                <header className={styles.header}>
+                    <h1>Gerenciamento de Pedidos</h1>
+                </header>
 
                 {loading ? (
                     <p>Carregando pedidos...</p>
                 ) : (
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+                    <div className={styles.productTable}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px' }}>
                             <thead style={{ backgroundColor: '#f4f4f4' }}>
                                 <tr>
                                     <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>ID</th>
@@ -84,8 +86,7 @@ export default function AdminOrdersPage() {
                         </table>
                     </div>
                 )}
-            </div>
-            <Footer />
-        </main>
+            </main>
+        </div>
     );
 }

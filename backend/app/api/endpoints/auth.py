@@ -80,6 +80,16 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_admin: mode
     db.commit()
     return None
 
+@router.post("/users/{user_id}/promote", response_model=schemas.UserResponse)
+def promote_to_admin(user_id: int, db: Session = Depends(get_db), current_admin: models.User = Depends(get_current_admin)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.role = "admin"
+    db.commit()
+    db.refresh(user)
+    return user
+
 @router.post("/login", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == form_data.username).first()

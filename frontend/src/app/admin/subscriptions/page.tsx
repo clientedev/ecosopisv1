@@ -4,6 +4,9 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
 
+import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+import styles from "../dashboard/dashboard.module.css";
+
 export default function AdminSubscriptionsPage() {
     const [subs, setSubs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -27,43 +30,43 @@ export default function AdminSubscriptionsPage() {
     }, []);
 
     return (
-        <main>
-            <Header />
-            <div className="container" style={{ padding: '50px 0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                    <h1>GERENCIAMENTO DE ASSINATURAS</h1>
-                    <Link href="/admin/dashboard" className="btn-outline">VOLTAR</Link>
-                </div>
+        <div className={styles.dashboard}>
+            <AdminSidebar activePath="/admin/subscriptions" />
+            <main className={styles.mainContent} style={{ padding: '2rem' }}>
+                <header className={styles.header}>
+                    <h1>Gerenciamento de Assinaturas</h1>
+                </header>
                 {loading ? <p>Carregando...</p> : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px' }}>
-                        <thead style={{ backgroundColor: '#f4f4f4' }}>
-                            <tr>
-                                <th style={{ padding: '15px', textAlign: 'left' }}>Cliente</th>
-                                <th style={{ padding: '15px', textAlign: 'left' }}>Plano</th>
-                                <th style={{ padding: '15px', textAlign: 'left' }}>Valor</th>
-                                <th style={{ padding: '15px', textAlign: 'left' }}>Status</th>
-                                <th style={{ padding: '15px', textAlign: 'left' }}>Data</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {subs.map((s) => (
-                                <tr key={s.id}>
-                                    <td style={{ padding: '15px', borderBottom: '1px solid #ddd' }}>{s.user_email}</td>
-                                    <td style={{ padding: '15px', borderBottom: '1px solid #ddd' }}>{s.plan_name}</td>
-                                    <td style={{ padding: '15px', borderBottom: '1px solid #ddd' }}>R$ {s.price?.toFixed(2)}</td>
-                                    <td style={{ padding: '15px', borderBottom: '1px solid #ddd' }}>
-                                        <span style={{ padding: '5px 10px', borderRadius: '20px', backgroundColor: '#d4edda', color: '#155724' }}>
-                                            {s.status.toUpperCase()}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '15px', borderBottom: '1px solid #ddd' }}>{new Date(s.created_at).toLocaleDateString()}</td>
+                    <div className={styles.productTable}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px' }}>
+                            <thead style={{ backgroundColor: '#f4f4f4' }}>
+                                <tr>
+                                    <th style={{ padding: '15px', textAlign: 'left' }}>Cliente</th>
+                                    <th style={{ padding: '15px', textAlign: 'left' }}>Plano</th>
+                                    <th style={{ padding: '15px', textAlign: 'left' }}>Valor</th>
+                                    <th style={{ padding: '15px', textAlign: 'left' }}>Status</th>
+                                    <th style={{ padding: '15px', textAlign: 'left' }}>Data</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {subs.map((s) => (
+                                    <tr key={s.id}>
+                                        <td style={{ padding: '15px', borderBottom: '1px solid #ddd' }}>{s.user_email}</td>
+                                        <td style={{ padding: '15px', borderBottom: '1px solid #ddd' }}>{s.plan_name}</td>
+                                        <td style={{ padding: '15px', borderBottom: '1px solid #ddd' }}>R$ {s.price?.toFixed(2)}</td>
+                                        <td style={{ padding: '15px', borderBottom: '1px solid #ddd' }}>
+                                            <span style={{ padding: '5px 10px', borderRadius: '20px', backgroundColor: '#d4edda', color: '#155724' }}>
+                                                {s.status.toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '15px', borderBottom: '1px solid #ddd' }}>{new Date(s.created_at).toLocaleDateString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
-            </div>
-            <Footer />
-        </main>
+            </main>
+        </div>
     );
 }

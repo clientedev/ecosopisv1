@@ -5,6 +5,8 @@ import Link from "next/link";
 import styles from "./dashboard.module.css";
 import EditProductModal from "./EditProductModal";
 
+import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+
 export default function AdminDashboard() {
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -33,11 +35,6 @@ export default function AdminDashboard() {
         fetchProducts();
     }, [router]);
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        router.push("/admin");
-    };
-
     const getImageUrl = (url: string) => {
         if (!url) return "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
         if (url.startsWith("http")) return url;
@@ -47,22 +44,7 @@ export default function AdminDashboard() {
 
     return (
         <div className={styles.dashboard}>
-            <aside className={styles.sidebar}>
-                <div className={styles.logo}>ECOSOPIS ADMIN</div>
-                <nav>
-                    <Link href="/admin/dashboard" className={styles.active}>Produtos</Link>
-                    <Link href="/admin/compras">Compras</Link>
-                    <Link href="/admin/subscriptions">Assinaturas</Link>
-                    <Link href="/admin/dashboard/carousel">Carrossel Hero</Link>
-                    <Link href="/admin/dashboard/announcement">Faixa de Aviso</Link>
-                    <Link href="/admin/dashboard/box">Assinaturas Box</Link>
-                    <Link href="/admin/dashboard/reviews">Avaliações</Link>
-                    <Link href="/admin/dashboard/usuarios">Usuários</Link>
-                    <Link href="/admin/dashboard/cupons">Cupons</Link>
-                    <Link href="/">Ver Site</Link>
-                    <button onClick={handleLogout} className={styles.logoutBtn}>Sair</button>
-                </nav>
-            </aside>
+            <AdminSidebar activePath="/admin/dashboard" />
             <main className={styles.mainContent}>
                 <header className={styles.header}>
                     <h1>Gerenciar Produtos</h1>
