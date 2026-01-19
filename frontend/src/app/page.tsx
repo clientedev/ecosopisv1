@@ -20,12 +20,12 @@ export default function Home() {
                     const data = await res.json();
                     if (data.length > 0) {
                         const dbSlides = data.map((item: any) => ({
-                            badge: item.badge,
-                            title: item.title,
-                            description: item.description,
+                            badge: item.badge && item.badge !== "-" ? item.badge : null,
+                            title: item.title && item.title !== "-" ? item.title : null,
+                            description: item.description && item.description !== "-" ? item.description : null,
                             image_url: item.image_url,
-                            ctaPrimary: item.cta_primary_text ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
-                            ctaSecondary: item.cta_secondary_text ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null
+                            ctaPrimary: item.cta_primary_text && item.cta_primary_text !== "-" ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
+                            ctaSecondary: item.cta_secondary_text && item.cta_secondary_text !== "-" ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null
                         }));
                         setSlides(dbSlides);
                     }
