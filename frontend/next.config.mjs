@@ -35,6 +35,10 @@ const nextConfig = {
         source: '/static/uploads/:path*',
         destination: 'http://0.0.0.0:8000/static/uploads/:path*',
       },
+      {
+        source: '/static/attached_assets/:path*',
+        destination: 'http://0.0.0.0:8000/static/attached_assets/:path*',
+      },
     ];
   },
 };

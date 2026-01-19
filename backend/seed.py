@@ -28,7 +28,7 @@ def seed():
             "benefits": "Ação anti-inflamatória, clareadora e cicatrizante.",
             "price": 25.00,
             "stock": 100,
-            "image_url": "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
+            "image_url": "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
             "tags": ["sabonete", "acafrao", "dolomita", "skin:oily", "acne", "foliculite"],
             "buy_on_site": True
         },
@@ -40,7 +40,7 @@ def seed():
             "benefits": "Clareamento de manchas, suavidade e maciez.",
             "price": 28.00,
             "stock": 100,
-            "image_url": "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
+            "image_url": "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
             "tags": ["sabonete", "clareador", "spots", "skin:normal", "skin:dry"],
             "buy_on_site": True
         },
@@ -52,7 +52,7 @@ def seed():
             "benefits": "Ação antisséptica, cicatrizante e calmante.",
             "price": 32.00,
             "stock": 80,
-            "image_url": "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
+            "image_url": "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
             "tags": ["sabonete", "intimo", "barbatimao", "sensitivity"],
             "buy_on_site": True
         },
@@ -64,7 +64,7 @@ def seed():
             "benefits": "Desintoxicação, controle de brilho e redução de poros.",
             "price": 22.00,
             "stock": 120,
-            "image_url": "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
+            "image_url": "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
             "tags": ["sabonete", "argila-verde", "skin:oily", "acne"],
             "buy_on_site": True
         },
@@ -76,7 +76,7 @@ def seed():
             "benefits": "Remoção de toxinas, limpeza de poros e ação detox.",
             "price": 24.00,
             "stock": 100,
-            "image_url": "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
+            "image_url": "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
             "tags": ["sabonete", "carvao", "skin:mixed", "skin:oily"],
             "buy_on_site": True
         },
@@ -88,7 +88,7 @@ def seed():
             "benefits": "Hidratação profunda, regeneração celular e suavidade.",
             "price": 30.00,
             "stock": 90,
-            "image_url": "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
+            "image_url": "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
             "tags": ["sabonete", "hidratante", "skin:dry", "sensitivity", "aging"],
             "buy_on_site": True
         },
@@ -100,7 +100,7 @@ def seed():
             "benefits": "Limpeza suave e terapêutica.",
             "price": 45.00,
             "stock": 50,
-            "image_url": "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
+            "image_url": "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
             "tags": ["sabonete-liquido", "barbatimao", "sensitivity"],
             "buy_on_site": True
         },
@@ -113,7 +113,7 @@ def seed():
             "benefits": "Secativo, controlador de oleosidade e calmante.",
             "price": 68.00,
             "stock": 70,
-            "image_url": "/attached_assets/generated_images/skincare_serum_bottle_botanical_setup.png",
+            "image_url": "/static/attached_assets/generated_images/skincare_serum_bottle_botanical_setup.png",
             "tags": ["creme", "acne", "skin:oily", "facial"],
             "buy_on_site": True
         },
@@ -125,7 +125,7 @@ def seed():
             "benefits": "Cicatrização de rachaduras e maciez extrema.",
             "price": 42.00,
             "stock": 100,
-            "image_url": "/attached_assets/generated_images/skincare_serum_bottle_botanical_setup.png",
+            "image_url": "/static/attached_assets/generated_images/skincare_serum_bottle_botanical_setup.png",
             "tags": ["creme", "pes", "hidratante"],
             "buy_on_site": True
         },
@@ -137,7 +137,7 @@ def seed():
             "benefits": "Proteção duradoura e clareamento suave.",
             "price": 38.00,
             "stock": 150,
-            "image_url": "/attached_assets/generated_images/skincare_serum_bottle_botanical_setup.png",
+            "image_url": "/static/attached_assets/generated_images/skincare_serum_bottle_botanical_setup.png",
             "tags": ["desodorante", "clareador", "spots"],
             "buy_on_site": True
         },
@@ -149,7 +149,7 @@ def seed():
             "benefits": "Combate radicais livres e prepara a pele.",
             "price": 55.00,
             "stock": 60,
-            "image_url": "/attached_assets/generated_images/skincare_serum_bottle_botanical_setup.png",
+            "image_url": "/static/attached_assets/generated_images/skincare_serum_bottle_botanical_setup.png",
             "tags": ["tonico", "antioxidante", "facial", "todos-os-tipos"],
             "buy_on_site": True
         },
@@ -161,7 +161,7 @@ def seed():
             "benefits": "Restauração capilar e hidratação corporal intensa.",
             "price": 75.00,
             "stock": 40,
-            "image_url": "/attached_assets/generated_images/natural_skincare_kit_gift_box.png",
+            "image_url": "/static/attached_assets/generated_images/natural_skincare_kit_gift_box.png",
             "tags": ["manteiga", "hair:damaged", "hair:dry", "hidratante"],
             "buy_on_site": True
         },
@@ -174,7 +174,7 @@ def seed():
             "benefits": "Regeneração, clareamento e anti-envelhecimento.",
             "price": 89.00,
             "stock": 50,
-            "image_url": "/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
             "tags": ["oleo", "spots", "aging", "skin:dry", "facial"],
             "buy_on_site": True
         },
@@ -186,7 +186,7 @@ def seed():
             "benefits": "Praticidade e eficácia regeneradora.",
             "price": 45.00,
             "stock": 100,
-            "image_url": "/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
             "tags": ["oleo", "spots", "facial"],
             "buy_on_site": True
         },
@@ -198,7 +198,7 @@ def seed():
             "benefits": "Melhor custo-benefício para uso contínuo.",
             "price": 115.00,
             "stock": 30,
-            "image_url": "/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
             "tags": ["oleo", "refil", "spots"],
             "buy_on_site": True
         },
@@ -210,7 +210,7 @@ def seed():
             "benefits": "Fortalecimento capilar e estimulante.",
             "price": 35.00,
             "stock": 80,
-            "image_url": "/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
             "tags": ["oleo", "hair:damaged", "hair:oily", "hair"],
             "buy_on_site": True
         },
@@ -222,7 +222,7 @@ def seed():
             "benefits": "Rápida absorção e rico em vitamina E.",
             "price": 38.00,
             "stock": 60,
-            "image_url": "/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
             "tags": ["oleo", "hidratante", "skin:normal"],
             "buy_on_site": True
         },
@@ -234,7 +234,7 @@ def seed():
             "benefits": "Crescimento acelerado e fortalecimento.",
             "price": 32.00,
             "stock": 100,
-            "image_url": "/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
             "tags": ["oleo", "hair:damaged", "hair"],
             "buy_on_site": True
         },
@@ -246,7 +246,7 @@ def seed():
             "benefits": "Altamente nutritivo e protetor.",
             "price": 40.00,
             "stock": 50,
-            "image_url": "/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
             "tags": ["oleo", "skin:dry", "hair:dry"],
             "buy_on_site": True
         },
@@ -258,7 +258,7 @@ def seed():
             "benefits": "Brilho intenso e selagem de cutículas.",
             "price": 95.00,
             "stock": 40,
-            "image_url": "/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
             "tags": ["oleo", "hair:dry", "hair"],
             "buy_on_site": True
         },
@@ -271,7 +271,7 @@ def seed():
             "benefits": "Calmante, cicatrizante e relaxante.",
             "price": 62.00,
             "stock": 100,
-            "image_url": "/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
             "tags": ["oe", "sensitivity", "aromaterapia"],
             "buy_on_site": True
         },
@@ -283,7 +283,7 @@ def seed():
             "benefits": "Refrescante, analgésico e estimulante.",
             "price": 58.00,
             "stock": 80,
-            "image_url": "/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
             "tags": ["oe", "hair:oily", "frescor"],
             "buy_on_site": True
         },
@@ -295,7 +295,7 @@ def seed():
             "benefits": "Bactericida, fungicida e secativo.",
             "price": 65.00,
             "stock": 90,
-            "image_url": "/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
             "tags": ["oe", "acne", "skin:oily"],
             "buy_on_site": True
         },
@@ -307,7 +307,7 @@ def seed():
             "benefits": "Antidepressivo e lipolítico.",
             "price": 42.00,
             "stock": 120,
-            "image_url": "/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
             "tags": ["oe", "detox", "alegria"],
             "buy_on_site": True
         },
@@ -320,7 +320,7 @@ def seed():
             "benefits": "Pele limpa, sem brilho e sem espinhas.",
             "price": 135.00,
             "stock": 30,
-            "image_url": "/attached_assets/generated_images/natural_skincare_kit_gift_box.png",
+            "image_url": "/static/attached_assets/generated_images/natural_skincare_kit_gift_box.png",
             "tags": ["kit", "acne", "skin:oily"],
             "buy_on_site": True
         },
@@ -332,7 +332,7 @@ def seed():
             "benefits": "Pele uniforme e livre de inflamações.",
             "price": 48.00,
             "stock": 50,
-            "image_url": "/attached_assets/generated_images/natural_skincare_kit_gift_box.png",
+            "image_url": "/static/attached_assets/generated_images/natural_skincare_kit_gift_box.png",
             "tags": ["kit", "spots", "foliculite"],
             "buy_on_site": True
         },
@@ -344,7 +344,7 @@ def seed():
             "benefits": "Clareamento visível e hidratação.",
             "price": 145.00,
             "stock": 20,
-            "image_url": "/attached_assets/generated_images/natural_skincare_kit_gift_box.png",
+            "image_url": "/static/attached_assets/generated_images/natural_skincare_kit_gift_box.png",
             "tags": ["kit", "spots", "facial"],
             "buy_on_site": True
         },
@@ -356,7 +356,7 @@ def seed():
             "benefits": "Economia no atacado.",
             "price": 750.00,
             "stock": 10,
-            "image_url": "/attached_assets/generated_images/natural_skincare_kit_gift_box.png",
+            "image_url": "/static/attached_assets/generated_images/natural_skincare_kit_gift_box.png",
             "tags": ["kit", "atacado"],
             "buy_on_site": True
         },
@@ -368,7 +368,7 @@ def seed():
             "benefits": "Margem de lucro para revenda.",
             "price": 450.00,
             "stock": 15,
-            "image_url": "/attached_assets/generated_images/natural_skincare_kit_gift_box.png",
+            "image_url": "/static/attached_assets/generated_images/natural_skincare_kit_gift_box.png",
             "tags": ["kit", "atacado"],
             "buy_on_site": True
         }
