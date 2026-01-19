@@ -27,16 +27,27 @@ export default function Home() {
                 const res = await fetch('/api/carousel');
                 if (res.ok) {
                     const data = await res.json();
+                    const defaultSlide = {
+                        badge: "ALTA PERFORMANCE NATURAL",
+                        title: "Eficácia comprovada com ativos botânicos purificados.",
+                        description: "Desenvolvemos fórmulas minimalistas e potentes para resultados reais, sem componentes sintéticos agressivos.",
+                        image_url: "",
+                        ctaPrimary: { text: "VER PRODUTOS", link: "/produtos" },
+                        ctaSecondary: { text: "FAZER QUIZZ PERSONALIZADO", link: "/quizz" }
+                    };
+
                     if (data.length > 0) {
-                        const formattedSlides = data.map((item: any) => ({
+                        const dbSlides = data.map((item: any) => ({
                             badge: item.badge,
                             title: item.title,
                             description: item.description,
                             image_url: item.image_url,
-                            ctaPrimary: { text: item.cta_primary_text || "VER PRODUTOS", link: item.cta_primary_link || "/produtos" },
-                            ctaSecondary: { text: item.cta_secondary_text || "FAZER QUIZZ", link: item.cta_secondary_link || "/quizz" }
+                            ctaPrimary: item.cta_primary_text ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
+                            ctaSecondary: item.cta_secondary_text ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null
                         }));
-                        setSlides(formattedSlides);
+                        setSlides([defaultSlide, ...dbSlides]);
+                    } else {
+                        setSlides([defaultSlide]);
                     }
                 }
             } catch (error) {
@@ -92,8 +103,8 @@ export default function Home() {
                             <h1>{slide.title}</h1>
                             <p>{slide.description}</p>
                             <div className={styles.heroActions}>
-                                <Link href={slide.ctaPrimary.link} className="btn-primary">{slide.ctaPrimary.text}</Link>
-                                <Link href={slide.ctaSecondary.link} className="btn-outline">{slide.ctaSecondary.text}</Link>
+                                {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary">{slide.ctaPrimary.text}</Link>}
+                                {slide.ctaSecondary && <Link href={slide.ctaSecondary.link} className="btn-outline">{slide.ctaSecondary.text}</Link>}
                             </div>
                         </div>
                     </div>
