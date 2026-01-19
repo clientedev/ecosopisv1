@@ -275,6 +275,57 @@
   line-height: 1.2;
 }
 
+.resultActions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.addAllBtn {
+  background: #2d5a27;
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  border-radius: 30px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+  box-shadow: 0 4px 15px rgba(45, 90, 39, 0.3);
+}
+
+.addAllBtn:hover {
+  transform: scale(1.05);
+  background: #1e3d1a;
+}
+
+.productActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cartAddBtn {
+  background: #f0f7f0;
+  border: 1px solid #2d5a27;
+  color: #2d5a27;
+  width: 35px;
+  height: 35px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cartAddBtn:hover {
+  background: #2d5a27;
+  color: white;
+}
+
 .detailsBtn {
   background: none;
   border: 1px solid #2d5a27;

@@ -282,6 +282,50 @@ export default function QuizPage() {
     }
   };
 
+  const addToCart = (product: any) => {
+    const savedCart = localStorage.getItem("cart");
+    let cart = savedCart ? JSON.parse(savedCart) : [];
+    
+    const existingItem = cart.find((item: any) => item.id === product.id);
+    if (existingItem) {
+      existingItem.quantity += 1;
+    } else {
+      cart.push({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        image_url: product.image_url
+      });
+    }
+    
+    localStorage.setItem("cart", JSON.stringify(cart));
+    alert(`${product.name} adicionado ao carrinho!`);
+  };
+
+  const addAllToCart = () => {
+    const savedCart = localStorage.getItem("cart");
+    let cart = savedCart ? JSON.parse(savedCart) : [];
+    
+    result.forEach((product: any) => {
+      const existingItem = cart.find((item: any) => item.id === product.id);
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        cart.push({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          quantity: 1,
+          image_url: product.image_url
+        });
+      }
+    });
+    
+    localStorage.setItem("cart", JSON.stringify(cart));
+    alert("Todos os produtos foram adicionados ao carrinho!");
+  };
+
   if (!quizType) {
     return (
       <main className={styles.main}>
@@ -358,7 +402,12 @@ export default function QuizPage() {
           </div>
         ) : (
           <div className={styles.resultAnimation}>
-            <div className={styles.successBadge}>✨ Recomendação Pronta</div>
+            <div className={styles.resultActions}>
+              <div className={styles.successBadge}>✨ Recomendação Pronta</div>
+              <button className={styles.addAllBtn} onClick={addAllToCart}>
+                🛒 ADICIONAR TUDO AO CARRINHO
+              </button>
+            </div>
             <h2 className={styles.resultHeading}>SUA ROTINA IDEAL</h2>
             <p className={styles.resultDescription}>
               Selecionamos estes tesouros naturais para potencializar sua beleza única:
@@ -380,12 +429,21 @@ export default function QuizPage() {
                     <h3>{product.name}</h3>
                     <p className={styles.explanationText}>{product.explanation}</p>
                     <p className={styles.productPrice}>R$ {product.price.toFixed(2)}</p>
-                    <button 
-                      className={styles.detailsBtn}
-                      onClick={() => window.location.href=`/produtos/${product.slug}`}
-                    >
-                      Ver Detalhes
-                    </button>
+                    <div className={styles.productActions}>
+                      <button 
+                        className={styles.detailsBtn}
+                        onClick={() => window.location.href=`/produtos/${product.slug}`}
+                      >
+                        Ver Detalhes
+                      </button>
+                      <button 
+                        className={styles.cartAddBtn}
+                        onClick={() => addToCart(product)}
+                        title="Adicionar ao carrinho"
+                      >
+                        🛒
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
