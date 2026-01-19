@@ -153,15 +153,16 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
 
                     {/* Editor Estilo Canva */}
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <h2 style={{ marginBottom: '10px' }}>Editor Visual (Arraste e Redimensione)</h2>
+                        <h2 style={{ marginBottom: '10px' }}>Editor Visual (100% Fiel ao Site)</h2>
                         <div id="canva-viewport" style={{ 
-                            flex: 1,
+                            width: '100%',
+                            height: '500px', 
                             border: '2px solid #4a7c44', 
                             borderRadius: '8px',
                             position: 'relative',
                             overflow: 'hidden',
                             backgroundColor: '#eee',
-                            backgroundImage: previewUrl ? `url(${previewUrl})` : 'none',
+                            backgroundImage: previewUrl ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${previewUrl})` : 'none',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                         }}>
@@ -172,9 +173,10 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                     onDragStop={(e, d) => handleElementChange('badge', { x: d.x, y: d.y })}
                                     onResizeStop={(e, direction, ref, delta, position) => handleElementChange('badge', { width: ref.style.width, height: ref.style.height, ...position })}
                                     bounds="parent"
+                                    enableResizing={{ right: true, left: true }}
                                 >
-                                    <div style={{ padding: '5px', cursor: 'move', background: 'rgba(255,255,255,0.6)', border: '1px dashed #666' }}>
-                                        <span className="scientific-badge" style={{ margin: 0, fontSize: '12px' }}>{formData.badge}</span>
+                                    <div style={{ padding: '5px', cursor: 'move', border: '1px dashed rgba(255,255,255,0.5)' }}>
+                                        <span className="scientific-badge" style={{ margin: 0 }}>{formData.badge}</span>
                                     </div>
                                 </Rnd>
                             )}
@@ -186,9 +188,10 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                     onDragStop={(e, d) => handleElementChange('title', { x: d.x, y: d.y })}
                                     onResizeStop={(e, direction, ref, delta, position) => handleElementChange('title', { width: ref.style.width, height: ref.style.height, ...position })}
                                     bounds="parent"
+                                    enableResizing={{ right: true, left: true }}
                                 >
-                                    <div style={{ padding: '5px', cursor: 'move', background: 'rgba(255,255,255,0.6)', border: '1px dashed #666' }}>
-                                        <h3 style={{ margin: 0, fontSize: '24px', color: '#1a1a1a' }}>{formData.title}</h3>
+                                    <div style={{ padding: '5px', cursor: 'move', border: '1px dashed rgba(255,255,255,0.5)' }}>
+                                        <h1 style={{ margin: 0, color: 'white' }}>{formData.title}</h1>
                                     </div>
                                 </Rnd>
                             )}
@@ -200,9 +203,10 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                     onDragStop={(e, d) => handleElementChange('description', { x: d.x, y: d.y })}
                                     onResizeStop={(e, direction, ref, delta, position) => handleElementChange('description', { width: ref.style.width, height: ref.style.height, ...position })}
                                     bounds="parent"
+                                    enableResizing={{ right: true, left: true }}
                                 >
-                                    <div style={{ padding: '5px', cursor: 'move', background: 'rgba(255,255,255,0.6)', border: '1px dashed #666' }}>
-                                        <p style={{ margin: 0, fontSize: '14px', color: '#444' }}>{formData.description}</p>
+                                    <div style={{ padding: '5px', cursor: 'move', border: '1px dashed rgba(255,255,255,0.5)' }}>
+                                        <p style={{ margin: 0, color: 'white', opacity: 0.9 }}>{formData.description}</p>
                                     </div>
                                 </Rnd>
                             )}
@@ -214,11 +218,12 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                     onDragStop={(e, d) => handleElementChange('buttons', { x: d.x, y: d.y })}
                                     onResizeStop={(e, direction, ref, delta, position) => handleElementChange('buttons', { width: ref.style.width, height: ref.style.height, ...position })}
                                     bounds="parent"
+                                    enableResizing={{ right: true, left: true }}
                                 >
-                                    <div style={{ padding: '5px', cursor: 'move', background: 'rgba(255,255,255,0.6)', border: '1px dashed #666', display: 'flex', gap: '10px' }}>
-                                        <button className="btn-primary" style={{ pointerEvents: 'none', padding: '8px 16px', fontSize: '12px' }}>{formData.cta_primary_text}</button>
+                                    <div style={{ padding: '5px', cursor: 'move', border: '1px dashed rgba(255,255,255,0.5)', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                                        <button className="btn-primary" style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>{formData.cta_primary_text}</button>
                                         {formData.cta_secondary_text && (
-                                            <button className="btn-outline" style={{ pointerEvents: 'none', padding: '8px 16px', fontSize: '12px' }}>{formData.cta_secondary_text}</button>
+                                            <button className="btn-outline" style={{ pointerEvents: 'none', whiteSpace: 'nowrap', color: 'white', borderColor: 'white' }}>{formData.cta_secondary_text}</button>
                                         )}
                                     </div>
                                 </Rnd>
