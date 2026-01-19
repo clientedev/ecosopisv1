@@ -31,6 +31,10 @@ const nextConfig = {
         source: '/api/:path*',
         destination: 'http://0.0.0.0:8000/:path*',
       },
+      {
+        source: '/static/uploads/:path*',
+        destination: 'http://0.0.0.0:8000/static/uploads/:path*',
+      },
     ];
   },
 };
