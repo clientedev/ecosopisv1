@@ -122,7 +122,13 @@ export default function CarrinhoPage() {
     const submitOrder = async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("/api/orders", {
+            if (!selectedShipping) {
+                alert("Por favor, selecione uma opção de frete");
+                return;
+            }
+
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+            const res = await fetch(`${apiUrl}/orders/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -137,7 +143,9 @@ export default function CarrinhoPage() {
                     })),
                     total: calculateTotal(),
                     address: address,
-                    payment_method: paymentMethod
+                    payment_method: paymentMethod,
+                    shipping_method: selectedShipping.id,
+                    shipping_price: selectedShipping.price
                 })
             });
             if (res.ok) {

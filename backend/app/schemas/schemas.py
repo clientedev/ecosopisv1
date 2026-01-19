@@ -29,6 +29,8 @@ class OrderCreate(BaseModel):
     total: float
     address: Dict[str, Any]
     payment_method: str # "pix" or "credit_card"
+    shipping_method: Optional[str] = None
+    shipping_price: Optional[float] = 0.0
 
 class OrderResponse(BaseModel):
     id: int
