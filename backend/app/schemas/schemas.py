@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 from datetime import datetime
 
 # Auth Schemas
@@ -24,11 +24,19 @@ class OrderItem(BaseModel):
     quantity: int
     price: float
 
+class OrderCreate(BaseModel):
+    items: List[OrderItem]
+    total: float
+    address: Dict[str, Any]
+    payment_method: str # "pix" or "credit_card"
+
 class OrderResponse(BaseModel):
     id: int
     status: str
     total: float
     items: List[OrderItem]
+    payment_url: Optional[str] = None
+    pix_code: Optional[str] = None
     created_at: datetime
 
     class Config:

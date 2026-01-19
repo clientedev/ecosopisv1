@@ -58,15 +58,152 @@ export default function CarrinhoPage() {
         }
     };
 
-    const calculateTotal = () => {
-        return Math.max(0, calculateSubtotal() - calculateDiscountAmount());
+    const handleFinalizePurchase = () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = "/conta?redirect=/carrinho";
+            return;
+        }
+        setStep("checkout");
     };
 
-    const removeItem = (id: number) => {
-        const newCart = cartItems.filter(item => item.id !== id);
-        setCartItems(newCart);
-        localStorage.setItem("cart", JSON.stringify(newCart));
+    const [step, setStep] = useState("cart"); // cart, checkout, success
+    const [paymentMethod, setPaymentMethod] = useState("pix");
+    const [address, setAddress] = useState({
+        street: "",
+        city: "",
+        zip: ""
+    });
+    const [orderResult, setOrderResult] = useState<any>(null);
+
+    const submitOrder = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch("/api/orders", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    items: cartItems.map(i => ({
+                        product_id: i.id,
+                        product_name: i.name,
+                        quantity: i.quantity,
+                        price: i.price
+                    })),
+                    total: calculateTotal(),
+                    address: address,
+                    payment_method: paymentMethod
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setOrderResult(data);
+                setStep("success");
+                localStorage.removeItem("cart");
+                setCartItems([]);
+            }
+        } catch (error) {
+            console.error("Erro ao processar pedido", error);
+        }
     };
+
+    if (step === "success") {
+        return (
+            <main>
+                <Header />
+                <div className="container" style={{ padding: '100px 0', textAlign: 'center' }}>
+                    <h1 style={{ color: '#2d5a27' }}>PEDIDO REALIZADO COM SUCESSO!</h1>
+                    <p style={{ margin: '20px 0' }}>Seu pedido #{orderResult?.id} foi recebido.</p>
+                    
+                    {orderResult?.pix_code ? (
+                        <div style={{ background: '#f9f9f9', padding: '30px', borderRadius: '12px', maxWidth: '500px', margin: '0 auto' }}>
+                            <h3>Pague via PIX</h3>
+                            <p style={{ fontSize: '0.8rem', wordBreak: 'break-all', margin: '15px 0', padding: '10px', background: '#eee' }}>
+                                {orderResult.pix_code}
+                            </p>
+                            <button className="btn-primary" onClick={() => navigator.clipboard.writeText(orderResult.pix_code)}>
+                                COPIAR CÓDIGO PIX
+                            </button>
+                        </div>
+                    ) : (
+                        <a href={orderResult?.payment_url} target="_blank" className="btn-primary">
+                            IR PARA PAGAMENTO (STRIPE)
+                        </a>
+                    )}
+                    
+                    <div style={{ marginTop: '30px' }}>
+                        <Link href="/produtos" className="btn-outline">VOLTAR ÀS COMPRAS</Link>
+                    </div>
+                </div>
+                <Footer />
+            </main>
+        );
+    }
+
+    if (step === "checkout") {
+        return (
+            <main>
+                <Header />
+                <div className="container" style={{ padding: '50px 0' }}>
+                    <h1>CHECKOUT</h1>
+                    <div className={styles.cartGrid}>
+                        <div className={styles.itemsList}>
+                            <div className={styles.detailSection} style={{ borderTop: 'none' }}>
+                                <h3>ENDEREÇO DE ENTREGA</h3>
+                                <input 
+                                    className={styles.input} 
+                                    placeholder="Rua e Número" 
+                                    style={{ width: '100%', padding: '12px', margin: '10px 0', borderRadius: '8px', border: '1px solid #ddd' }}
+                                    onChange={(e) => setAddress({...address, street: e.target.value})}
+                                />
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <input 
+                                        className={styles.input} 
+                                        placeholder="Cidade" 
+                                        style={{ flex: 2, padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
+                                        onChange={(e) => setAddress({...address, city: e.target.value})}
+                                    />
+                                    <input 
+                                        className={styles.input} 
+                                        placeholder="CEP" 
+                                        style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
+                                        onChange={(e) => setAddress({...address, zip: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={styles.detailSection}>
+                                <h3>MÉTODO DE PAGAMENTO</h3>
+                                <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                        <input type="radio" name="pay" checked={paymentMethod === 'pix'} onChange={() => setPaymentMethod('pix')} />
+                                        PIX (Confirmação Instantânea)
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                        <input type="radio" name="pay" checked={paymentMethod === 'credit_card'} onChange={() => setPaymentMethod('credit_card')} />
+                                        Cartão de Crédito
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.summaryCard}>
+                            <h3>Total: R$ {calculateTotal().toFixed(2)}</h3>
+                            <button className="btn-primary" style={{ width: '100%', marginTop: '20px' }} onClick={submitOrder}>
+                                PAGAR AGORA
+                            </button>
+                            <button className="btn-outline" style={{ width: '100%', marginTop: '10px' }} onClick={() => setStep('cart')}>
+                                VOLTAR
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <Footer />
+            </main>
+        );
+    }
 
     return (
         <main>
@@ -135,7 +272,7 @@ export default function CarrinhoPage() {
                                 <span>R$ {calculateTotal().toFixed(2)}</span>
                             </div>
 
-                            <button className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
+                            <button className="btn-primary" style={{ width: '100%', marginTop: '1rem' }} onClick={handleFinalizePurchase}>
                                 FINALIZAR COMPRA
                             </button>
                         </div>
