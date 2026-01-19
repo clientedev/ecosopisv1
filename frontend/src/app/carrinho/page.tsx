@@ -76,6 +76,10 @@ export default function CarrinhoPage() {
     });
     const [orderResult, setOrderResult] = useState<any>(null);
 
+    const calculateTotal = () => {
+        return Math.max(0, calculateSubtotal() - calculateDiscountAmount());
+    };
+
     const submitOrder = async () => {
         try {
             const token = localStorage.getItem("token");
