@@ -15,8 +15,7 @@ export default function ProductDetailPage() {
     useEffect(() => {
         const fetchProduct = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-                const res = await fetch(`${apiUrl}/products/${params.slug}`);
+                const res = await fetch(`/api/products/${params.slug}`);
                 if (res.ok) {
                     const data = await res.json();
                     setProduct(data);
@@ -29,15 +28,18 @@ export default function ProductDetailPage() {
         fetchProduct();
     }, [params.slug]);
 
-    if (!product) return <div>Carregando...</div>;
+    if (!product) return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'var(--font-karla)' }}>
+            <p>Carregando produto...</p>
+        </div>
+    );
 
     const allImages = product.images && product.images.length > 0 ? product.images : [product.image_url];
 
     const getImageUrl = (url: string) => {
-        if (!url) return "";
+        if (!url) return "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
         if (url.startsWith("http")) return url;
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-        return `${apiUrl}${url}`;
+        return url; // Rewrites will handle the /static prefix
     };
 
     return (
@@ -48,14 +50,15 @@ export default function ProductDetailPage() {
                     <div className={styles.imageSection}>
                         <div className={styles.mainImageContainer}>
                             { (activeImage || product.image_url) && (
-                                <Image
-                                    src={getImageUrl(activeImage || product.image_url)}
-                                    alt={product.name}
-                                    width={500}
-                                    height={500}
-                                    className={styles.productImage}
-                                    unoptimized={true}
-                                />
+                                <div className={styles.imageWrapper}>
+                                    <Image
+                                        src={getImageUrl(activeImage || product.image_url)}
+                                        alt={product.name}
+                                        fill
+                                        className={styles.productImage}
+                                        unoptimized={true}
+                                    />
+                                </div>
                             )}
                         </div>
                         {allImages.length > 1 && (
