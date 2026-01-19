@@ -123,10 +123,11 @@ export default function Home() {
                                     top: slide.elements_config.buttons.y,
                                     width: slide.elements_config.buttons.width,
                                     display: 'flex',
-                                    gap: '15px'
+                                    gap: '15px',
+                                    flexWrap: 'wrap'
                                 }}>
-                                    <Link href={slide.ctaPrimary.link} className="btn-primary">{slide.ctaPrimary.text}</Link>
-                                    {slide.ctaSecondary && <Link href={slide.ctaSecondary.link} className="btn-outline">{slide.ctaSecondary.text}</Link>}
+                                    <Link href={slide.ctaPrimary.link} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>{slide.ctaPrimary.text}</Link>
+                                    {slide.ctaSecondary && <Link href={slide.ctaSecondary.link} className="btn-outline" style={{ whiteSpace: 'nowrap' }}>{slide.ctaSecondary.text}</Link>}
                                 </div>
                             )}
                         </div>

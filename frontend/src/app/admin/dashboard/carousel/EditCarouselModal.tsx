@@ -22,11 +22,11 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         order: item?.order || 0,
         is_active: item?.is_active ?? true,
         alignment: item?.alignment || "left",
-        elements_config: item?.elements_config || {
-            badge: { x: 50, y: 100, width: 200, height: "auto" },
-            title: { x: 50, y: 130, width: 400, height: "auto" },
-            description: { x: 50, y: 220, width: 400, height: "auto" },
-            buttons: { x: 50, y: 320, width: 350, height: "auto" }
+        elements_config: (typeof item?.elements_config === 'string' ? JSON.parse(item.elements_config) : item?.elements_config) || {
+            badge: { x: 50, y: 50, width: 200, height: "auto" },
+            title: { x: 50, y: 100, width: 500, height: "auto" },
+            description: { x: 50, y: 220, width: 500, height: "auto" },
+            buttons: { x: 50, y: 350, width: 400, height: "auto" }
         }
     });
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -126,8 +126,12 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                     <input type="text" value={formData.cta_primary_text} onChange={e => setFormData({...formData, cta_primary_text: e.target.value})} />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Botão 1 (Link)</label>
-                                    <input type="text" value={formData.cta_primary_link} onChange={e => setFormData({...formData, cta_primary_link: e.target.value})} />
+                                    <label>Botão 2 (Texto)</label>
+                                    <input type="text" value={formData.cta_secondary_text} onChange={e => setFormData({...formData, cta_secondary_text: e.target.value})} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Botão 2 (Link)</label>
+                                    <input type="text" value={formData.cta_secondary_link} onChange={e => setFormData({...formData, cta_secondary_link: e.target.value})} />
                                 </div>
                             </div>
                             <div className={styles.formActions} style={{ marginTop: '20px', position: 'sticky', bottom: 0, background: 'white', padding: '10px 0' }}>
@@ -204,7 +208,10 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                     bounds="parent"
                                 >
                                     <div style={{ padding: '5px', cursor: 'move', background: 'rgba(255,255,255,0.6)', border: '1px dashed #666', display: 'flex', gap: '10px' }}>
-                                        <button className="btn-primary" style={{ pointerEvents: 'none', padding: '10px 20px' }}>{formData.cta_primary_text}</button>
+                                        <button className="btn-primary" style={{ pointerEvents: 'none', padding: '8px 16px', fontSize: '12px' }}>{formData.cta_primary_text}</button>
+                                        {formData.cta_secondary_text && (
+                                            <button className="btn-outline" style={{ pointerEvents: 'none', padding: '8px 16px', fontSize: '12px' }}>{formData.cta_secondary_text}</button>
+                                        )}
                                     </div>
                                 </Rnd>
                             )}
