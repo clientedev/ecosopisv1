@@ -42,6 +42,31 @@ export default function ProductDetailPage() {
         return url; // Rewrites will handle the /static prefix
     };
 
+    const handleAddToCart = () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = `/conta?redirect=/produtos/${params.slug}`;
+            return;
+        }
+        
+        const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+        const existingItem = cart.find((i: any) => i.id === product.id);
+        
+        if (existingItem) {
+            existingItem.quantity += 1;
+        } else {
+            cart.push({
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                quantity: 1
+            });
+        }
+        
+        localStorage.setItem("cart", JSON.stringify(cart));
+        window.location.href = "/carrinho";
+    };
+
     return (
         <main>
             <Header />
@@ -98,7 +123,7 @@ export default function ProductDetailPage() {
 
                         <div className={styles.buyActions}>
                             {product.buy_on_site && (
-                                <button className="btn-primary" style={{ flex: 1 }}>ADICIONAR AO CARRINHO</button>
+                                <button className="btn-primary" style={{ flex: 1 }} onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
                             )}
                             {product.mercadolivre_url && (
                                 <a href={product.mercadolivre_url} target="_blank" className="btn-outline">

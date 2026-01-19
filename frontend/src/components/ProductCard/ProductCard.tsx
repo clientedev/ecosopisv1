@@ -24,6 +24,32 @@ export default function ProductCard({ product }: ProductCardProps) {
         return `${apiUrl}${url}`;
     };
 
+    const handleBuyClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = `/conta?redirect=/produtos/${product.slug}`;
+            return;
+        }
+        
+        const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+        const existingItem = cart.find((i: any) => i.id === (product as any).id);
+        
+        if (existingItem) {
+            existingItem.quantity += 1;
+        } else {
+            cart.push({
+                id: (product as any).id,
+                name: product.name,
+                price: product.price,
+                quantity: 1
+            });
+        }
+        
+        localStorage.setItem("cart", JSON.stringify(cart));
+        window.location.href = "/carrinho";
+    };
+
     return (
         <div className={styles.card}>
             <Link href={`/produtos/${product.slug}`}>
@@ -56,7 +82,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
                 <div className={styles.actions}>
                     {product.buy_on_site && (
-                        <button className="btn-primary">COMPRAR</button>
+                        <button className="btn-primary" onClick={handleBuyClick}>COMPRAR</button>
                     )}
                     {product.mercadolivre_url && (
                         <a href={product.mercadolivre_url} target="_blank" className={styles.externalLink}>ML</a>
