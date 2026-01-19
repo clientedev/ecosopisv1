@@ -157,3 +157,134 @@
         grid-template-columns: 1fr;
     }
 }
+
+.reviewsSection {
+  padding: 80px 0;
+  background-color: #f9fbf9;
+}
+
+.reviewsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 30px;
+  margin-bottom: 60px;
+}
+
+.reviewCard {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.reviewStars {
+  color: #f1c40f;
+  font-size: 1.2rem;
+}
+
+.reviewComment {
+  font-style: italic;
+  color: #444;
+  line-height: 1.6;
+}
+
+.reviewAuthor {
+  font-weight: bold;
+  color: #2d5a27;
+  font-size: 0.9rem;
+}
+
+.reviewFormContainer {
+  max-width: 800px;
+  margin: 40px auto 0;
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+  border: 1px solid #f0f0f0;
+}
+
+.reviewFormContainer h3 {
+  text-align: center;
+  color: #2d5a27;
+  margin-bottom: 30px;
+  font-size: 1.8rem;
+  letter-spacing: -0.5px;
+}
+
+.reviewForm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reviewForm input, .reviewForm select, .reviewForm textarea {
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 1rem;
+  background-color: #fafafa;
+  transition: all 0.2s;
+}
+
+.reviewForm input:focus, .reviewForm select:focus, .reviewForm textarea:focus {
+  outline: none;
+  border-color: #2d5a27;
+  background-color: white;
+  box-shadow: 0 0 0 4px rgba(45, 90, 39, 0.05);
+}
+
+.reviewForm textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.reviewForm button {
+  padding: 15px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  border-radius: 12px;
+  transition: transform 0.2s;
+}
+
+.reviewForm button:active {
+  transform: scale(0.98);
+}
+
+.formMessage {
+  text-align: center;
+  font-size: 0.9rem;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.error {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.info {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
