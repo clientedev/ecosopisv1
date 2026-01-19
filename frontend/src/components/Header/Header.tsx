@@ -75,7 +75,7 @@ export default function Header() {
     };
 
     return (
-        <>
+        <header className={styles.header}>
             {announcement && announcement.is_active && (
                 <div 
                     style={{ 
@@ -92,7 +92,6 @@ export default function Header() {
                     {announcement.text}
                 </div>
             )}
-            <header className={styles.header}>
             <div className={`container ${styles.headerContent}`}>
                 <div className={styles.logo}>
                     <Link href="/">
