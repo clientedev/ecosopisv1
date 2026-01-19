@@ -52,6 +52,7 @@ export default function AdminDashboard() {
                 <nav>
                     <Link href="/admin/dashboard" className={styles.active}>Produtos</Link>
                     <Link href="/admin/compras">Compras</Link>
+                    <Link href="/admin/subscriptions">Assinaturas</Link>
                     <Link href="/admin/dashboard/carousel">Carrossel Hero</Link>
                     <Link href="/admin/dashboard/announcement">Faixa de Aviso</Link>
                     <Link href="/admin/dashboard/box">Assinaturas Box</Link>

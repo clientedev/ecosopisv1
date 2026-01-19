@@ -42,6 +42,44 @@ def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db), c
         "created_at": db_order.created_at
     }
 
+@router.post("/subscribe", response_model=schemas.OrderResponse)
+def create_subscription(sub_in: Dict[str, Any], db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_sub = models.Subscription(
+        user_id=current_user.id,
+        plan_name=sub_in.get("plan_name"),
+        price=sub_in.get("price"),
+        status="active"
+    )
+    db.add(db_sub)
+    db.commit()
+    db.refresh(db_sub)
+    
+    return {
+        "id": db_sub.id,
+        "status": "active",
+        "total": db_sub.price,
+        "items": [],
+        "payment_url": f"https://checkout.stripe.com/pay/sub_{uuid.uuid4()}",
+        "created_at": db_sub.created_at
+    }
+
+@router.get("/admin/subscriptions", response_model=List[Any])
+def list_all_subscriptions(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    subs = db.query(models.Subscription).all()
+    result = []
+    for s in subs:
+        result.append({
+            "id": s.id,
+            "plan_name": s.plan_name,
+            "status": s.status,
+            "price": s.price,
+            "created_at": s.created_at,
+            "user_email": s.user.email if s.user else "N/A"
+        })
+    return result
+
 @router.get("/", response_model=List[schemas.OrderResponse])
 def list_orders(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role != "admin":

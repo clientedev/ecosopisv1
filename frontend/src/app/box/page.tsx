@@ -78,7 +78,7 @@ export default function BoxPage() {
                                 <li>✓ Cancele quando quiser</li>
                                 <li>✓ Itens personalizados</li>
                             </ul>
-                            <button className="btn-primary" style={{ width: '100%' }}>ASSINAR AGORA</button>
+                            <button className="btn-primary" style={{ width: '100%' }} onClick={() => handleSubscribe('PLANO MENSAL', 129.90)}>ASSINAR AGORA</button>
                         </div>
                         <div className={`${styles.plan} ${styles.planHighlight}`}>
                             <div className={styles.bestValueBadge}>MELHOR CUSTO-BENEFÍCIO</div>
@@ -98,7 +98,7 @@ export default function BoxPage() {
                                 <li>✓ Brinde exclusivo no 1º box</li>
                                 <li>✓ Prioridade em lançamentos</li>
                             </ul>
-                            <button className="btn-primary" style={{ width: '100%', backgroundColor: '#fff', color: '#2d5a27' }}>ASSINAR AGORA</button>
+                            <button className="btn-primary" style={{ width: '100%', backgroundColor: '#fff', color: '#2d5a27' }} onClick={() => handleSubscribe('PLANO TRIMESTRAL', 109.90)}>ASSINAR AGORA</button>
                         </div>
                     </div>
                 </div>
@@ -107,3 +107,28 @@ export default function BoxPage() {
         </main>
     );
 }
+
+const handleSubscribe = async (plan: string, price: number) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        window.location.href = `/conta?redirect=/box`;
+        return;
+    }
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+    try {
+        const res = await fetch(`${apiUrl}/orders/subscribe`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ plan_name: plan, price: price })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            window.location.href = data.payment_url;
+        }
+    } catch (error) {
+        console.error(error);
+    }
+};
