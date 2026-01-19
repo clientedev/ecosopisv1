@@ -63,22 +63,43 @@ async def upload_image(
         
     return {"url": f"/static/uploads/{file_name}"}
 
-class SubscriptionUpdate(BaseModel):
-    shipping_status: str
+class ReviewCreate(BaseModel):
+    user_name: str
+    comment: str
+    rating: int
 
-@router.get("/subscriptions/all")
-def list_all_subscriptions(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
-    return db.query(models.Subscription).all()
+class ReviewUpdate(BaseModel):
+    is_approved: bool
 
-@router.put("/subscriptions/{sub_id}/shipping")
-def update_shipping_status(sub_id: int, data: SubscriptionUpdate, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
-    sub = db.query(models.Subscription).filter(models.Subscription.id == sub_id).first()
-    if not sub:
-        raise HTTPException(status_code=404, detail="Subscription not found")
-    sub.shipping_status = data.shipping_status
+@router.get("/reviews/approved")
+def get_approved_reviews(db: Session = Depends(get_db)):
+    return db.query(models.Review).filter(models.Review.is_approved == True).all()
+
+@router.get("/reviews/all")
+def list_all_reviews(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    return db.query(models.Review).all()
+
+@router.post("/reviews")
+def create_review(data: ReviewCreate, db: Session = Depends(get_db)):
+    review = models.Review(
+        user_name=data.user_name,
+        comment=data.comment,
+        rating=data.rating,
+        is_approved=False
+    )
+    db.add(review)
     db.commit()
-    db.refresh(sub)
-    return sub
+    db.refresh(review)
+    return review
+
+@router.put("/reviews/{review_id}/approve")
+def approve_review(review_id: int, data: ReviewUpdate, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    review = db.query(models.Review).filter(models.Review.id == review_id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    review.is_approved = data.is_approved
+    db.commit()
+    return review
 
 @router.get("", response_model=List[schemas.ProductResponse])
 def list_products(db: Session = Depends(get_db)):

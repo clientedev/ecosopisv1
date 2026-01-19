@@ -90,6 +90,16 @@ class Subscription(Base):
 
     user = relationship("User")
 
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_name = Column(String, nullable=False)
+    comment = Column(Text, nullable=False)
+    rating = Column(Integer, default=5)
+    is_approved = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 class Coupon(Base):
     __tablename__ = "coupons"
 

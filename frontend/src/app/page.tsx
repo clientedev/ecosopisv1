@@ -8,7 +8,44 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 
 export default function Home() {
-    const [recentProducts, setRecentProducts] = useState([]);
+    const [reviews, setReviews] = useState<any[]>([]);
+    const [reviewForm, setReviewForm] = useState({ user_name: "", comment: "", rating: 5 });
+    const [formStatus, setFormStatus] = useState({ type: "", text: "" });
+
+    useEffect(() => {
+        const fetchReviews = async () => {
+            try {
+                const res = await fetch('/api/products/reviews/approved');
+                if (res.ok) {
+                    const data = await res.json();
+                    setReviews(data);
+                }
+            } catch (err) {
+                console.error("Error fetching reviews", err);
+            }
+        };
+        fetchReviews();
+    }, []);
+
+    const handleReviewSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setFormStatus({ type: "info", text: "Enviando..." });
+        try {
+            const res = await fetch('/api/products/reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reviewForm)
+            });
+            if (res.ok) {
+                setFormStatus({ type: "success", text: "Sua avaliação foi enviada e será exibida após aprovação! ✨" });
+                setReviewForm({ user_name: "", comment: "", rating: 5 });
+            } else {
+                setFormStatus({ type: "error", text: "Erro ao enviar avaliação." });
+            }
+        } catch (err) {
+            setFormStatus({ type: "error", text: "Erro de conexão." });
+        }
+    };
     const [slides, setSlides] = useState<any[]>([]);
     const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -151,6 +188,68 @@ export default function Home() {
                     <h2>Dúvida sobre qual produto escolher?</h2>
                     <p>Nossa inteligência artificial analisa seu perfil e recomenda a rotina ideal em menos de 1 minuto.</p>
                     <Link href="/quizz" className="btn-primary">INICIAR CONSULTORIA GRATUITA</Link>
+                </div>
+            </section>
+
+            {/* Reviews Section */}
+            <section className={styles.reviewsSection}>
+                <div className="container">
+                    <h2 className={styles.sectionTitle} style={{ textAlign: 'center', marginBottom: '40px' }}>EXPERIÊNCIAS ECOSOPIS</h2>
+                    
+                    <div className={styles.reviewsGrid}>
+                        {reviews.length > 0 ? (
+                            reviews.map((rev: any) => (
+                                <div key={rev.id} className={styles.reviewCard}>
+                                    <div className={styles.reviewStars}>
+                                        {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
+                                    </div>
+                                    <p className={styles.reviewComment}>"{rev.comment}"</p>
+                                    <span className={styles.reviewAuthor}>— {rev.user_name}</span>
+                                </div>
+                            ))
+                        ) : (
+                            <p style={{ textAlign: 'center', gridColumn: '1/-1', opacity: 0.7 }}>
+                                Seja a primeira a compartilhar sua jornada de autocuidado!
+                            </p>
+                        )}
+                    </div>
+
+                    <div className={styles.reviewFormContainer}>
+                        <h3>Deixe sua Avaliação</h3>
+                        <form onSubmit={handleReviewSubmit} className={styles.reviewForm}>
+                            <div className={styles.formRow}>
+                                <input 
+                                    type="text" 
+                                    placeholder="Seu Nome" 
+                                    value={reviewForm.user_name}
+                                    onChange={(e) => setReviewForm({...reviewForm, user_name: e.target.value})}
+                                    required
+                                />
+                                <select 
+                                    value={reviewForm.rating}
+                                    onChange={(e) => setReviewForm({...reviewForm, rating: parseInt(e.target.value)})}
+                                >
+                                    <option value="5">5 Estrelas ★★★★★</option>
+                                    <option value="4">4 Estrelas ★★★★☆</option>
+                                    <option value="3">3 Estrelas ★★★☆☆</option>
+                                    <option value="2">2 Estrelas ★★☆☆☆</option>
+                                    <option value="1">1 Estrela ★☆☆☆☆</option>
+                                </select>
+                            </div>
+                            <textarea 
+                                placeholder="Conte sua experiência com nossos produtos botânicos..."
+                                value={reviewForm.comment}
+                                onChange={(e) => setReviewForm({...reviewForm, comment: e.target.value})}
+                                required
+                            />
+                            <button type="submit" className="btn-primary">ENVIAR AVALIAÇÃO</button>
+                            {formStatus.text && (
+                                <p className={`${styles.formMessage} ${styles[formStatus.type as keyof typeof styles]}`}>
+                                    {formStatus.text}
+                                </p>
+                            )}
+                        </form>
+                    </div>
                 </div>
             </section>
 

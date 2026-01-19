@@ -54,6 +54,7 @@ export default function AdminDashboard() {
                     <Link href="/admin/dashboard/carousel">Carrossel Hero</Link>
                     <Link href="/admin/dashboard/announcement">Faixa de Aviso</Link>
                     <Link href="/admin/dashboard/box">Assinaturas Box</Link>
+                    <Link href="/admin/dashboard/reviews">Avaliações</Link>
                     <Link href="/admin/dashboard/usuarios">Usuários</Link>
                     <Link href="/admin/dashboard/cupons">Cupons</Link>
                     <Link href="/">Ver Site</Link>
