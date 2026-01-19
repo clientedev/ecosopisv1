@@ -88,45 +88,49 @@ export default function Home() {
                             height: '100%',
                             display: 'block'
                         }}>
-                            {slide.badge && slide.elements_config?.badge && (
+                            {slide.badge && (
                                 <div style={{ 
                                     position: 'absolute', 
-                                    left: slide.elements_config.badge.x, 
-                                    top: slide.elements_config.badge.y,
-                                    width: slide.elements_config.badge.width
+                                    left: slide.elements_config?.badge?.x ?? 50, 
+                                    top: slide.elements_config?.badge?.y ?? 50,
+                                    width: slide.elements_config?.badge?.width ?? 200,
+                                    zIndex: 10
                                 }}>
                                     <span className="scientific-badge">{slide.badge}</span>
                                 </div>
                             )}
-                            {slide.title && slide.elements_config?.title && (
+                            {slide.title && (
                                 <div style={{ 
                                     position: 'absolute', 
-                                    left: slide.elements_config.title.x, 
-                                    top: slide.elements_config.title.y,
-                                    width: slide.elements_config.title.width
+                                    left: slide.elements_config?.title?.x ?? 50, 
+                                    top: slide.elements_config?.title?.y ?? 100,
+                                    width: slide.elements_config?.title?.width ?? 500,
+                                    zIndex: 10
                                 }}>
                                     <h1>{slide.title}</h1>
                                 </div>
                             )}
-                            {slide.description && slide.elements_config?.description && (
+                            {slide.description && (
                                 <div style={{ 
                                     position: 'absolute', 
-                                    left: slide.elements_config.description.x, 
-                                    top: slide.elements_config.description.y,
-                                    width: slide.elements_config.description.width
+                                    left: slide.elements_config?.description?.x ?? 50, 
+                                    top: slide.elements_config?.description?.y ?? 220,
+                                    width: slide.elements_config?.description?.width ?? 500,
+                                    zIndex: 10
                                 }}>
                                     <p>{slide.description}</p>
                                 </div>
                             )}
-                            {slide.ctaPrimary && slide.elements_config?.buttons && (
+                            {slide.ctaPrimary && (
                                 <div style={{ 
                                     position: 'absolute', 
-                                    left: slide.elements_config.buttons.x, 
-                                    top: slide.elements_config.buttons.y,
-                                    width: slide.elements_config.buttons.width,
+                                    left: slide.elements_config?.buttons?.x ?? 50, 
+                                    top: slide.elements_config?.buttons?.y ?? 350,
+                                    width: slide.elements_config?.buttons?.width ?? 400,
                                     display: 'flex',
                                     gap: '15px',
-                                    flexWrap: 'wrap'
+                                    flexWrap: 'wrap',
+                                    zIndex: 10
                                 }}>
                                     <Link href={slide.ctaPrimary.link} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>{slide.ctaPrimary.text}</Link>
                                     {slide.ctaSecondary && <Link href={slide.ctaSecondary.link} className="btn-outline" style={{ whiteSpace: 'nowrap' }}>{slide.ctaSecondary.text}</Link>}
