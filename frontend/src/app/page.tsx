@@ -9,16 +9,7 @@ import Image from "next/image";
 
 export default function Home() {
     const [recentProducts, setRecentProducts] = useState([]);
-    const [slides, setSlides] = useState<any[]>([
-        {
-            badge: "ALTA PERFORMANCE NATURAL",
-            title: "Eficácia comprovada com ativos botânicos purificados.",
-            description: "Desenvolvemos fórmulas minimalistas e potentes para resultados reais, sem componentes sintéticos agressivos.",
-            image_url: "",
-            ctaPrimary: { text: "VER PRODUTOS", link: "/produtos" },
-            ctaSecondary: { text: "FAZER QUIZZ PERSONALIZADO", link: "/quizz" }
-        }
-    ]);
+    const [slides, setSlides] = useState<any[]>([]);
     const [currentSlide, setCurrentSlide] = useState(0);
 
     useEffect(() => {
@@ -27,15 +18,6 @@ export default function Home() {
                 const res = await fetch('/api/carousel');
                 if (res.ok) {
                     const data = await res.json();
-                    const defaultSlide = {
-                        badge: "ALTA PERFORMANCE NATURAL",
-                        title: "Eficácia comprovada com ativos botânicos purificados.",
-                        description: "Desenvolvemos fórmulas minimalistas e potentes para resultados reais, sem componentes sintéticos agressivos.",
-                        image_url: "",
-                        ctaPrimary: { text: "VER PRODUTOS", link: "/produtos" },
-                        ctaSecondary: { text: "FAZER QUIZZ PERSONALIZADO", link: "/quizz" }
-                    };
-
                     if (data.length > 0) {
                         const dbSlides = data.map((item: any) => ({
                             badge: item.badge,
@@ -45,9 +27,7 @@ export default function Home() {
                             ctaPrimary: item.cta_primary_text ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
                             ctaSecondary: item.cta_secondary_text ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null
                         }));
-                        setSlides([defaultSlide, ...dbSlides]);
-                    } else {
-                        setSlides([defaultSlide]);
+                        setSlides(dbSlides);
                     }
                 }
             } catch (error) {
@@ -99,9 +79,9 @@ export default function Home() {
                         }}
                     >
                         <div className={`container ${styles.heroContent}`}>
-                            <span className="scientific-badge">{slide.badge}</span>
-                            <h1>{slide.title}</h1>
-                            <p>{slide.description}</p>
+                            {slide.badge && <span className="scientific-badge">{slide.badge}</span>}
+                            {slide.title && <h1>{slide.title}</h1>}
+                            {slide.description && <p>{slide.description}</p>}
                             <div className={styles.heroActions}>
                                 {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary">{slide.ctaPrimary.text}</Link>}
                                 {slide.ctaSecondary && <Link href={slide.ctaSecondary.link} className="btn-outline">{slide.ctaSecondary.text}</Link>}
