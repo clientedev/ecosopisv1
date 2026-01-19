@@ -93,6 +93,9 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                         <div className={styles.formGroup}>
                             <label>Anexar Imagem de Fundo</label>
                             <input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
+                            <p className={styles.smallInfo} style={{ color: 'var(--primary-green)', marginTop: '5px' }}>
+                                💡 Dica: O tamanho ideal para o banner é <strong>1920x800px</strong> para garantir nitidez em telas grandes.
+                            </p>
                             {item?.image_url && <p className={styles.smallInfo}>Imagem atual: {item.image_url}</p>}
                         </div>
                         <div className={styles.formGroup}>
