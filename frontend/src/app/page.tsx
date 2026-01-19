@@ -84,59 +84,18 @@ export default function Home() {
                         }}
                     >
                         <div className={`container ${styles.heroContent}`} style={{
-                            position: 'relative',
-                            width: '100%',
-                            height: '100%',
-                            display: 'block'
+                            textAlign: slide.alignment as any,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'flex-end' : 'flex-start',
                         }}>
-                            {slide.badge && (
-                                <div style={{ 
-                                    position: 'absolute', 
-                                    left: typeof slide.elements_config?.badge?.x === 'number' ? `${slide.elements_config.badge.x}%` : '5%', 
-                                    top: typeof slide.elements_config?.badge?.y === 'number' ? `${slide.elements_config.badge.y}%` : '10%',
-                                    width: slide.elements_config?.badge?.width || '200px',
-                                    zIndex: 10
-                                }}>
-                                    <span className="scientific-badge">{slide.badge}</span>
-                                </div>
-                            )}
-                            {slide.title && (
-                                <div style={{ 
-                                    position: 'absolute', 
-                                    left: typeof slide.elements_config?.title?.x === 'number' ? `${slide.elements_config.title.x}%` : '5%', 
-                                    top: typeof slide.elements_config?.title?.y === 'number' ? `${slide.elements_config.title.y}%` : '20%',
-                                    width: slide.elements_config?.title?.width || '500px',
-                                    zIndex: 10
-                                }}>
-                                    <h1>{slide.title}</h1>
-                                </div>
-                            )}
-                            {slide.description && (
-                                <div style={{ 
-                                    position: 'absolute', 
-                                    left: typeof slide.elements_config?.description?.x === 'number' ? `${slide.elements_config.description.x}%` : '5%', 
-                                    top: typeof slide.elements_config?.description?.y === 'number' ? `${slide.elements_config.description.y}%` : '44%',
-                                    width: slide.elements_config?.description?.width || '500px',
-                                    zIndex: 10
-                                }}>
-                                    <p>{slide.description}</p>
-                                </div>
-                            )}
-                            {slide.ctaPrimary && (
-                                <div style={{ 
-                                    position: 'absolute', 
-                                    left: typeof slide.elements_config?.buttons?.x === 'number' ? `${slide.elements_config.buttons.x}%` : '5%', 
-                                    top: typeof slide.elements_config?.buttons?.y === 'number' ? `${slide.elements_config.buttons.y}%` : '70%',
-                                    width: slide.elements_config?.buttons?.width || '400px',
-                                    display: 'flex',
-                                    gap: '15px',
-                                    flexWrap: 'wrap',
-                                    zIndex: 10
-                                }}>
-                                    <Link href={slide.ctaPrimary.link} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>{slide.ctaPrimary.text}</Link>
-                                    {slide.ctaSecondary && <Link href={slide.ctaSecondary.link} className="btn-outline" style={{ whiteSpace: 'nowrap', color: 'white', borderColor: 'white' }}>{slide.ctaSecondary.text}</Link>}
-                                </div>
-                            )}
+                            {slide.badge && <span className="scientific-badge">{slide.badge}</span>}
+                            {slide.title && <h1>{slide.title}</h1>}
+                            {slide.description && <p>{slide.description}</p>}
+                            <div className={styles.heroActions}>
+                                {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary">{slide.ctaPrimary.text}</Link>}
+                                {slide.ctaSecondary && <Link href={slide.ctaSecondary.link} className="btn-outline" style={{ color: 'white', borderColor: 'white' }}>{slide.ctaSecondary.text}</Link>}
+                            </div>
                         </div>
                     </div>
                 ))}
