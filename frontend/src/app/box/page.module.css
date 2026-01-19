@@ -1,94 +1,222 @@
 .boxContainer {
-    padding: var(--spacing-xl) 0;
+    padding: 80px 0;
 }
 
-.hero {
-    text-align: center;
-    max-width: 700px;
-    margin: 0 auto var(--spacing-xl);
+.heroSection {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+    margin-bottom: 100px;
 }
 
-.title {
-    font-size: 3rem;
-    margin: var(--spacing-md) 0;
+.heroContent h1 {
+    font-size: 3.5rem;
+    line-height: 1.1;
+    margin: 20px 0;
+    color: #2d5a27;
 }
 
 .subtitle {
-    font-size: 1.2rem;
-    color: var(--text-secondary);
+    font-size: 1.25rem;
+    line-height: 1.6;
+    color: #555;
+    margin-bottom: 40px;
 }
 
-.features {
+.heroStats {
+    display: flex;
+    gap: 40px;
+}
+
+.statItem strong {
+    display: block;
+    font-size: 1.5rem;
+    color: #2d5a27;
+}
+
+.statItem span {
+    font-size: 0.9rem;
+    color: #777;
+}
+
+.heroImagePlaceholder {
+    background: linear-gradient(135deg, #f0f7f0 0%, #d5e6d5 100%);
+    height: 450px;
+    border-radius: 30px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.glassCard {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    max-width: 300px;
+}
+
+.glassCard h3 {
+    margin-bottom: 20px;
+    color: #2d5a27;
+}
+
+.glassCard ul {
+    list-style: none;
+    padding: 0;
+}
+
+.glassCard li {
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+    color: #444;
+}
+
+.howItWorks {
+    margin-bottom: 100px;
+    text-align: center;
+}
+
+.sectionHeading {
+    font-size: 2.5rem;
+    margin-bottom: 50px;
+    color: #2d5a27;
+}
+
+.stepsGrid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-lg);
-    margin: var(--spacing-xl) 0;
+    gap: 40px;
 }
 
-.feature {
-    text-align: center;
-    padding: var(--spacing-lg);
-    background-color: var(--neutral-gray-100);
-    border-radius: var(--border-radius);
+.stepCard {
+    padding: 40px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    transition: transform 0.3s;
 }
 
-.feature h3 {
-    margin-bottom: var(--spacing-sm);
+.stepCard:hover {
+    transform: translateY(-10px);
+}
+
+.stepNumber {
+    font-size: 3rem;
+    font-weight: 800;
+    color: rgba(45, 90, 39, 0.1);
+    line-height: 1;
+    margin-bottom: 20px;
+}
+
+.stepCard h3 {
+    margin-bottom: 15px;
+    color: #2d5a27;
+}
+
+.stepCard p {
+    color: #666;
+    font-size: 1rem;
+    line-height: 1.5;
 }
 
 .pricing {
     text-align: center;
-    margin-top: var(--spacing-xl);
-}
-
-.pricing h2 {
-    font-size: 2rem;
-    margin-bottom: var(--spacing-xl);
 }
 
 .plans {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-lg);
-    max-width: 800px;
+    gap: 30px;
+    max-width: 900px;
     margin: 0 auto;
 }
 
 .plan {
-    background-color: var(--secondary-white);
-    border: 2px solid var(--neutral-gray-200);
-    padding: var(--spacing-xl);
-    border-radius: var(--border-radius);
+    background: white;
+    border: 1px solid #eee;
+    padding: 50px;
+    border-radius: 30px;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
 }
 
 .planHighlight {
-    border-color: var(--primary-green);
-    position: relative;
+    background: #2d5a27;
+    color: white;
+    border: none;
     transform: scale(1.05);
+    position: relative;
+    box-shadow: 0 20px 40px rgba(45, 90, 39, 0.2);
 }
 
-.planPrice {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--primary-green);
-    margin: var(--spacing-md) 0;
+.bestValueBadge {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #fff;
+    color: #2d5a27;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.planHeader h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.planHeader p {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.planPriceWrapper {
+    margin: 30px 0;
+}
+
+.currency { font-size: 1.2rem; font-weight: 600; vertical-align: top; margin-top: 10px; display: inline-block; }
+.amount { font-size: 4rem; font-weight: 800; }
+.cents { font-size: 1.2rem; font-weight: 600; vertical-align: top; margin-top: 10px; display: inline-block; }
+.period { font-size: 1rem; opacity: 0.7; }
+
+.planBenefits {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 40px 0;
+    text-align: left;
+}
+
+.planBenefits li {
+    margin-bottom: 15px;
+    font-size: 1rem;
 }
 
 .planSavings {
     font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin-bottom: var(--spacing-md);
+    margin-bottom: 20px;
+    font-weight: bold;
 }
 
-@media (max-width: 768px) {
-    .features {
+@media (max-width: 968px) {
+    .heroSection {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    .heroStats {
+        justify-content: center;
+    }
+    .stepsGrid {
         grid-template-columns: 1fr;
     }
-
     .plans {
         grid-template-columns: 1fr;
     }
-
     .planHighlight {
         transform: none;
     }
