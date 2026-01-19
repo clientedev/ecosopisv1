@@ -42,6 +42,12 @@ def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db), c
         "created_at": db_order.created_at
     }
 
+@router.get("/", response_model=List[schemas.OrderResponse])
+def list_orders(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        return db.query(models.Order).filter(models.Order.user_id == current_user.id).all()
+    return db.query(models.Order).all()
+
 @router.get("/{order_id}", response_model=schemas.OrderResponse)
 def get_order(order_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     order = db.query(models.Order).filter(models.Order.id == order_id, models.Order.user_id == current_user.id).first()
