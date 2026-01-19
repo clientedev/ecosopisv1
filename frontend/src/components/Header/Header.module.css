@@ -5,7 +5,7 @@
 
 .logoText {
     font-family: var(--font-header);
-    font-size: 2.2rem;
+    font-size: 1.8rem;
     font-weight: 800;
     color: var(--primary-green);
     letter-spacing: -1px;
@@ -14,7 +14,7 @@
 
 .header {
     border-bottom: 1px solid var(--neutral-gray-200);
-    padding: var(--spacing-sm) 0;
+    padding: 10px 0;
     background-color: var(--secondary-white);
     position: sticky;
     top: 0;
