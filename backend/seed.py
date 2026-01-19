@@ -64,7 +64,7 @@ def seed():
             "benefits": "Desintoxicação, controle de brilho e redução de poros.",
             "price": 22.00,
             "stock": 120,
-            "image_url": "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
+            "image_url": "/static/attached_assets/generated_images/natural_green_clay_soap_bar_photography.png",
             "tags": ["sabonete", "argila-verde", "skin:oily", "acne"],
             "buy_on_site": True
         },
@@ -76,7 +76,7 @@ def seed():
             "benefits": "Remoção de toxinas, limpeza de poros e ação detox.",
             "price": 24.00,
             "stock": 100,
-            "image_url": "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
+            "image_url": "/static/attached_assets/generated_images/natural_charcoal_soap_bar_photography.png",
             "tags": ["sabonete", "carvao", "skin:mixed", "skin:oily"],
             "buy_on_site": True
         },
@@ -174,7 +174,7 @@ def seed():
             "benefits": "Regeneração, clareamento e anti-envelhecimento.",
             "price": 89.00,
             "stock": 50,
-            "image_url": "/static/attached_assets/generated_images/natural_oils_collection_product_shot.png",
+            "image_url": "/static/attached_assets/generated_images/rosa_mosqueta_serum_bottle_photography.png",
             "tags": ["oleo", "spots", "aging", "skin:dry", "facial"],
             "buy_on_site": True
         },
