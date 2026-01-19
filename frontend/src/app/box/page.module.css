@@ -31,32 +31,36 @@
 
 .statItem strong {
     display: block;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     color: #2d5a27;
+    font-weight: 800;
 }
 
 .statItem span {
-    font-size: 0.9rem;
-    color: #777;
+    font-size: 0.95rem;
+    color: #444;
+    font-weight: 500;
 }
 
 .heroImagePlaceholder {
-    background: linear-gradient(135deg, #f0f7f0 0%, #d5e6d5 100%);
-    height: 450px;
-    border-radius: 30px;
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    height: 480px;
+    border-radius: 40px;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: inset 0 0 50px rgba(45, 90, 39, 0.1);
 }
 
 .glassCard {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
-    padding: 30px;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    max-width: 300px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(15px);
+    padding: 35px;
+    border-radius: 25px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+    max-width: 320px;
+    border: 1px solid rgba(255,255,255,0.5);
 }
 
 .glassCard h3 {
@@ -95,19 +99,23 @@
 .stepCard {
     padding: 40px;
     background: #fff;
-    border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-    transition: transform 0.3s;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid #f0f0f0;
 }
 
 .stepCard:hover {
-    transform: translateY(-10px);
+    transform: translateY(-12px);
+    box-shadow: 0 20px 40px rgba(45, 90, 39, 0.1);
+    border-color: #2d5a27;
 }
 
 .stepNumber {
-    font-size: 3rem;
-    font-weight: 800;
-    color: rgba(45, 90, 39, 0.1);
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: #2d5a27;
+    opacity: 0.15;
     line-height: 1;
     margin-bottom: 20px;
 }

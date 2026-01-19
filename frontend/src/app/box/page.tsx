@@ -9,7 +9,7 @@ export default function BoxPage() {
             <div className={`container ${styles.boxContainer}`}>
                 <div className={styles.heroSection}>
                     <div className={styles.heroContent}>
-                        <span className="scientific-badge">RITUAL MENSAL</span>
+                        <span className="scientific-badge">ROTINA MENSAL</span>
                         <h1 className={styles.title}>BOX SURPRESA ECOSOPIS</h1>
                         <p className={styles.subtitle}>
                             Um convite mensal para redescobrir sua beleza natural. Receba em casa uma curadoria exclusiva de ativos botânicos, formulada especialmente para o que sua pele e alma precisam no momento.
@@ -32,14 +32,14 @@ export default function BoxPage() {
                                 <li>✨ 1 Lançamento Exclusivo</li>
                                 <li>🌿 2 Produtos Full-size</li>
                                 <li>💎 2 Miniaturas Luxo</li>
-                                <li>📖 Guia de Ritual Botânico</li>
+                                <li>📖 Guia de Rotina Botânica</li>
                             </ul>
                         </div>
                     </div>
                 </div>
 
                 <div className={styles.howItWorks}>
-                    <h2 className={styles.sectionHeading}>Como funciona seu ritual?</h2>
+                    <h2 className={styles.sectionHeading}>Como funciona sua rotina?</h2>
                     <div className={styles.stepsGrid}>
                         <div className={styles.stepCard}>
                             <div className={styles.stepNumber}>01</div>
@@ -84,7 +84,7 @@ export default function BoxPage() {
                             <div className={styles.bestValueBadge}>MELHOR CUSTO-BENEFÍCIO</div>
                             <div className={styles.planHeader}>
                                 <h3>PLANO TRIMESTRAL</h3>
-                                <p>Para um cronograma de cuidados real</p>
+                                <p>Para uma rotina de cuidados real</p>
                             </div>
                             <div className={styles.planPriceWrapper}>
                                 <span className={styles.currency}>R$</span>
