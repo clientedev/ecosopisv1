@@ -67,6 +67,16 @@ class Order(Base):
 
     user = relationship("User", back_populates="orders")
 
+class AnnouncementBar(Base):
+    __tablename__ = "announcement_bar"
+
+    id = Column(Integer, primary_key=True, index=True)
+    text = Column(String, nullable=False)
+    bg_color = Column(String, default="#2d5a27")
+    text_color = Column(String, default="#ffffff")
+    is_active = Column(Boolean, default=True)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+
 class Coupon(Base):
     __tablename__ = "coupons"
 

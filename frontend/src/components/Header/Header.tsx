@@ -9,8 +9,22 @@ export default function Header() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [user, setUser] = useState<{ name: string, email: string, role: string } | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [announcement, setAnnouncement] = useState<{ text: string, bg_color: string, text_color: string, is_active: boolean } | null>(null);
 
     useEffect(() => {
+        const fetchAnnouncement = async () => {
+            try {
+                const res = await fetch('/api/products/announcement');
+                if (res.ok) {
+                    const data = await res.json();
+                    setAnnouncement(data);
+                }
+            } catch (err) {
+                console.error("Error fetching announcement", err);
+            }
+        };
+        fetchAnnouncement();
+
         const token = localStorage.getItem("token");
         if (token) {
             try {
@@ -61,7 +75,24 @@ export default function Header() {
     };
 
     return (
-        <header className={styles.header}>
+        <>
+            {announcement && announcement.is_active && (
+                <div 
+                    style={{ 
+                        backgroundColor: announcement.bg_color, 
+                        color: announcement.text_color,
+                        textAlign: 'center',
+                        padding: '8px 10px',
+                        fontSize: '0.9rem',
+                        fontWeight: '500',
+                        position: 'relative',
+                        zIndex: 1001
+                    }}
+                >
+                    {announcement.text}
+                </div>
+            )}
+            <header className={styles.header}>
             <div className={`container ${styles.headerContent}`}>
                 <div className={styles.logo}>
                     <Link href="/">
