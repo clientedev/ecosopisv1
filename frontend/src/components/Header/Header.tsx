@@ -67,10 +67,10 @@ export default function Header() {
                     <Link href="/">
                         <div className={styles.logoContainer}>
                             <Image
-                                src="/attached_assets/image_1768566026984.png"
+                                src="/attached_assets/image_1768843475417.png"
                                 alt="ECOSOPIS Logo"
-                                width={100}
-                                height={100}
+                                width={120}
+                                height={120}
                                 className={styles.logoImage}
                                 priority
                             />

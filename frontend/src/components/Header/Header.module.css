@@ -43,9 +43,8 @@
 .logoImage {
     object-fit: contain;
     margin-right: 15px;
-    mix-blend-mode: darken; /* Better for removing light backgrounds than multiply */
-    transform: scale(1.2); /* Make it even more prominent */
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    mix-blend-mode: screen; /* Perfect for removing black backgrounds */
+    filter: brightness(1.1) contrast(1.1); /* Enhance the green details */
 }
 
 .actions {
