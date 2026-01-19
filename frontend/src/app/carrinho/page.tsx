@@ -72,12 +72,51 @@ export default function CarrinhoPage() {
     const [address, setAddress] = useState({
         street: "",
         city: "",
-        zip: ""
+        zip: "",
+        neighborhood: "",
+        state: ""
     });
-    const [orderResult, setOrderResult] = useState<any>(null);
+    const [shippingOptions, setShippingOptions] = useState<any[]>([]);
+    const [selectedShipping, setSelectedShipping] = useState<any>(null);
+    const [loadingCep, setLoadingCep] = useState(false);
+
+    const handleCepChange = async (cep: string) => {
+        const cleanCep = cep.replace(/\D/g, "");
+        setAddress({ ...address, zip: cleanCep });
+        
+        if (cleanCep.length === 8) {
+            setLoadingCep(true);
+            try {
+                const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+                const data = await res.json();
+                if (!data.erro) {
+                    setAddress({
+                        ...address,
+                        zip: cleanCep,
+                        street: data.logradouro,
+                        neighborhood: data.bairro,
+                        city: data.localidade,
+                        state: data.uf
+                    });
+                    
+                    // Simular opções de frete baseadas no CEP
+                    const isSp = data.uf === "SP";
+                    setShippingOptions([
+                        { id: "pac", name: "PAC", price: isSp ? 15.90 : 25.90, days: isSp ? 5 : 10 },
+                        { id: "sedex", name: "SEDEX", price: isSp ? 22.90 : 45.90, days: isSp ? 2 : 4 }
+                    ]);
+                }
+            } catch (error) {
+                console.error("Erro ao buscar CEP", error);
+            } finally {
+                setLoadingCep(false);
+            }
+        }
+    };
 
     const calculateTotal = () => {
-        return Math.max(0, calculateSubtotal() - calculateDiscountAmount());
+        const shippingPrice = selectedShipping ? selectedShipping.price : 0;
+        return Math.max(0, calculateSubtotal() - calculateDiscountAmount() + shippingPrice);
     };
 
     const submitOrder = async () => {
@@ -156,27 +195,75 @@ export default function CarrinhoPage() {
                         <div className={styles.itemsList}>
                             <div className={styles.detailSection} style={{ borderTop: 'none' }}>
                                 <h3>ENDEREÇO DE ENTREGA</h3>
+                                <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                                    <input 
+                                        className={styles.input} 
+                                        placeholder="CEP" 
+                                        value={address.zip}
+                                        style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
+                                        onChange={(e) => handleCepChange(e.target.value)}
+                                        maxLength={8}
+                                    />
+                                    {loadingCep && <span style={{ fontSize: '0.8rem', alignSelf: 'center' }}>Buscando...</span>}
+                                </div>
                                 <input 
                                     className={styles.input} 
                                     placeholder="Rua e Número" 
-                                    style={{ width: '100%', padding: '12px', margin: '10px 0', borderRadius: '8px', border: '1px solid #ddd' }}
+                                    value={address.street}
+                                    style={{ width: '100%', padding: '12px', marginBottom: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
                                     onChange={(e) => setAddress({...address, street: e.target.value})}
                                 />
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     <input 
                                         className={styles.input} 
                                         placeholder="Cidade" 
+                                        value={address.city}
                                         style={{ flex: 2, padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
-                                        onChange={(e) => setAddress({...address, city: e.target.value})}
+                                        readOnly
                                     />
                                     <input 
                                         className={styles.input} 
-                                        placeholder="CEP" 
+                                        placeholder="UF" 
+                                        value={address.state}
                                         style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
-                                        onChange={(e) => setAddress({...address, zip: e.target.value})}
+                                        readOnly
                                     />
                                 </div>
                             </div>
+
+                            {shippingOptions.length > 0 && (
+                                <div className={styles.detailSection}>
+                                    <h3>OPÇÕES DE FRETE</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                                        {shippingOptions.map(opt => (
+                                            <label key={opt.id} style={{ 
+                                                display: 'flex', 
+                                                justifyContent: 'space-between', 
+                                                alignItems: 'center', 
+                                                padding: '12px', 
+                                                borderRadius: '8px', 
+                                                border: selectedShipping?.id === opt.id ? '2px solid #2d5a27' : '1px solid #ddd',
+                                                cursor: 'pointer',
+                                                backgroundColor: selectedShipping?.id === opt.id ? '#f0fdf4' : 'transparent'
+                                            }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <input 
+                                                        type="radio" 
+                                                        name="shipping" 
+                                                        checked={selectedShipping?.id === opt.id} 
+                                                        onChange={() => setSelectedShipping(opt)} 
+                                                    />
+                                                    <div>
+                                                        <p style={{ fontWeight: 'bold' }}>{opt.name}</p>
+                                                        <p style={{ fontSize: '0.8rem', color: '#666' }}>Entrega em até {opt.days} dias úteis</p>
+                                                    </div>
+                                                </div>
+                                                <span style={{ fontWeight: 'bold' }}>R$ {opt.price.toFixed(2)}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             <div className={styles.detailSection}>
                                 <h3>MÉTODO DE PAGAMENTO</h3>
