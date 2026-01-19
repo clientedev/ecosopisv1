@@ -24,6 +24,7 @@ export default function Home() {
                             title: item.title && item.title !== "-" ? item.title : null,
                             description: item.description && item.description !== "-" ? item.description : null,
                             image_url: item.image_url,
+                            alignment: item.alignment || "center",
                             ctaPrimary: item.cta_primary_text && item.cta_primary_text !== "-" ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
                             ctaSecondary: item.cta_secondary_text && item.cta_secondary_text !== "-" ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null
                         }));
@@ -78,7 +79,12 @@ export default function Home() {
                             height: '500px'
                         }}
                     >
-                        <div className={`container ${styles.heroContent}`}>
+                        <div className={`container ${styles.heroContent}`} style={{
+                            textAlign: slide.alignment as any,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'flex-end' : 'flex-start',
+                        }}>
                             {slide.badge && <span className="scientific-badge">{slide.badge}</span>}
                             {slide.title && <h1>{slide.title}</h1>}
                             {slide.description && <p>{slide.description}</p>}
