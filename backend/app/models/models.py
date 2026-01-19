@@ -77,6 +77,19 @@ class AnnouncementBar(Base):
     is_active = Column(Boolean, default=True)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    plan_name = Column(String, nullable=False) # e.g. "Essencial", "Premium", "Vip"
+    status = Column(String, default="active") # active, paused, cancelled
+    shipping_status = Column(String, default="pending") # pending, preparing, shipped, delivered
+    next_billing_date = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+
 class Coupon(Base):
     __tablename__ = "coupons"
 

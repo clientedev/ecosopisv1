@@ -61,9 +61,24 @@ async def upload_image(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    # Return the full URL for the frontend
-    # In a real scenario, this would depend on the base URL
     return {"url": f"/static/uploads/{file_name}"}
+
+class SubscriptionUpdate(BaseModel):
+    shipping_status: str
+
+@router.get("/subscriptions/all")
+def list_all_subscriptions(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    return db.query(models.Subscription).all()
+
+@router.put("/subscriptions/{sub_id}/shipping")
+def update_shipping_status(sub_id: int, data: SubscriptionUpdate, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    sub = db.query(models.Subscription).filter(models.Subscription.id == sub_id).first()
+    if not sub:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    sub.shipping_status = data.shipping_status
+    db.commit()
+    db.refresh(sub)
+    return sub
 
 @router.get("", response_model=List[schemas.ProductResponse])
 def list_products(db: Session = Depends(get_db)):
