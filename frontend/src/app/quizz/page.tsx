@@ -211,6 +211,7 @@ export default function QuizPage() {
   const [resultLabel, setResultLabel] = useState("");
 
   const activeQuestions = quizType === "pele" ? questionsPele : questionsCabelo;
+  const progress = (step / activeQuestions.length) * 100;
 
   const handleAnswer = (answer: any) => {
     const newAnswers = [...answers, answer];
@@ -270,24 +271,32 @@ export default function QuizPage() {
 
   if (!quizType) {
     return (
-      <main>
+      <main className={styles.main}>
         <Header />
-        <div className="container" style={{ padding: '100px 0', textAlign: 'center' }}>
-          <h1 style={{ marginBottom: '40px', color: '#2d5a27' }}>O QUE VAMOS CUIDAR HOJE?</h1>
-          <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
+        <div className={styles.heroContainer}>
+          <div className={styles.floatingLeaves}>
+            <span className={styles.leaf}>🌿</span>
+            <span className={styles.leaf}>🌸</span>
+            <span className={styles.leaf}>🍃</span>
+          </div>
+          <h1 className={styles.mainTitle}>SEU MOMENTO DE AUTOCUIDADO</h1>
+          <p className={styles.subtitle}>Vamos descobrir o que sua beleza natural precisa hoje?</p>
+          <div className={styles.choiceGrid}>
             <button 
-              className={styles.optionBtn} 
-              style={{ padding: '40px', fontSize: '1.5rem', minWidth: '250px' }}
+              className={styles.choiceCard}
               onClick={() => setQuizType("pele")}
             >
-              🌿 MINHA PELE
+              <div className={styles.iconWrapper}>🌿</div>
+              <h3>MINHA PELE</h3>
+              <p>Rotina facial personalizada</p>
             </button>
             <button 
-              className={styles.optionBtn} 
-              style={{ padding: '40px', fontSize: '1.5rem', minWidth: '250px' }}
+              className={styles.choiceCard}
               onClick={() => setQuizType("cabelo")}
             >
-              ✨ MEU CABELO
+              <div className={styles.iconWrapper}>✨</div>
+              <h3>MEU CABELO</h3>
+              <p>Cronograma capilar botânico</p>
             </button>
           </div>
         </div>
@@ -297,69 +306,79 @@ export default function QuizPage() {
   }
 
   return (
-    <main>
+    <main className={styles.main}>
       <Header />
-      <div className="container" style={{ padding: '100px 0', maxWidth: '800px' }}>
+      <div className={styles.quizWrapper}>
+        <div className={styles.progressContainer}>
+          <div className={styles.progressBar} style={{ width: `${progress}%` }}></div>
+          <span className={styles.progressText}>Sua jornada: {Math.round(progress)}%</span>
+        </div>
+
         {loading ? (
-          <div style={{ textAlign: 'center' }}>
-            <h2>Analisando seu perfil...</h2>
-            <p>Buscando os melhores ativos botânicos para você.</p>
+          <div className={styles.loadingState}>
+            <div className={styles.spinner}></div>
+            <h2>Sincronizando com a Natureza...</h2>
+            <p>Nossa IA está combinando ativos botânicos para seu perfil.</p>
           </div>
         ) : result.length === 0 ? (
-          <div className={styles.quizBox}>
-            <span className="scientific-badge">PASSO {step + 1} DE {activeQuestions.length}</span>
-            <h2 className={styles.question}>{activeQuestions[step].question}</h2>
-            <div className={styles.options}>
+          <div className={styles.quizCard}>
+            <div className={styles.stepBadge}>PASSO {step + 1} DE {activeQuestions.length}</div>
+            <h2 className={styles.questionText}>{activeQuestions[step].question}</h2>
+            <div className={styles.optionsGrid}>
               {activeQuestions[step].options.map((opt, idx) => (
                 <button 
                   key={idx} 
-                  className={styles.optionBtn}
+                  className={styles.optionButton}
                   onClick={() => handleAnswer(opt)}
                 >
+                  <span className={styles.optionIndicator}>{String.fromCharCode(65 + idx)}</span>
                   {opt.text}
                 </button>
               ))}
             </div>
             <button 
-              style={{ marginTop: '20px', background: 'none', border: 'none', color: '#666', cursor: 'pointer' }}
+              className={styles.backButton}
               onClick={() => { setQuizType(null); setStep(0); setAnswers([]); }}
             >
               ← Voltar ao início
             </button>
           </div>
         ) : (
-          <div className={styles.resultBox}>
-            <h2 className={styles.resultTitle}>SEU RESULTADO</h2>
-            <p className={styles.resultText}>
-              Com base no seu perfil, selecionamos estes produtos de alta performance para sua rotina:
+          <div className={styles.resultAnimation}>
+            <div className={styles.successBadge}>✨ Recomendação Pronta</div>
+            <h2 className={styles.resultHeading}>SUA ROTINA IDEAL</h2>
+            <p className={styles.resultDescription}>
+              Selecionamos estes tesouros naturais para potencializar sua beleza única:
             </p>
             
-            <div className={styles.recommendationsGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', margin: '30px 0' }}>
+            <div className={styles.recommendationList}>
               {result.map((product) => (
-                <div key={product.id} className={styles.productCard} style={{ border: '1px solid #eee', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
-                  <div style={{ position: 'relative', height: '150px', marginBottom: '10px' }}>
+                <div key={product.id} className={styles.productGlassCard}>
+                  <div className={styles.productImageFrame}>
                     <Image 
                       src={product.image_url} 
                       alt={product.name} 
                       fill 
                       style={{ objectFit: 'contain' }}
+                      unoptimized
                     />
                   </div>
-                  <h3 style={{ fontSize: '1rem', margin: '10px 0' }}>{product.name}</h3>
-                  <p style={{ color: '#2d5a27', fontWeight: 'bold' }}>R$ {product.price.toFixed(2)}</p>
-                  <button 
-                    className="btn-primary" 
-                    style={{ padding: '8px 15px', fontSize: '0.8rem', marginTop: '10px' }}
-                    onClick={() => window.location.href=`/produtos/${product.slug}`}
-                  >
-                    Ver Detalhes
-                  </button>
+                  <div className={styles.productInfo}>
+                    <h3>{product.name}</h3>
+                    <p className={styles.productPrice}>R$ {product.price.toFixed(2)}</p>
+                    <button 
+                      className={styles.detailsBtn}
+                      onClick={() => window.location.href=`/produtos/${product.slug}`}
+                    >
+                      Ver Detalhes
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <button className="btn-secondary" onClick={() => window.location.reload()}>
-              REFAZER QUIZZ
+            <button className={styles.restartBtn} onClick={() => window.location.reload()}>
+              REFAZER JORNADA
             </button>
           </div>
         )}

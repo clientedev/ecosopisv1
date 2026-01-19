@@ -1,47 +1,313 @@
-.quizBox {
-  background-color: var(--neutral-gray-100);
-  padding: var(--spacing-xl);
-  border-radius: var(--border-radius);
+.main {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+.heroContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.floatingLeaves {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.leaf {
+  position: absolute;
+  font-size: 2rem;
+  opacity: 0.1;
+  animation: float 15s infinite ease-in-out;
+}
+
+.leaf:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
+.leaf:nth-child(2) { top: 30%; right: 15%; animation-delay: 2s; }
+.leaf:nth-child(3) { bottom: 20%; left: 20%; animation-delay: 5s; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-50px) rotate(20deg); }
+}
+
+.mainTitle {
+  font-family: 'Raleway', sans-serif;
+  font-size: 3rem;
+  color: #2d5a27;
+  text-align: center;
+  margin-bottom: 15px;
+  z-index: 1;
+  letter-spacing: 2px;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: #666;
+  margin-bottom: 50px;
+  z-index: 1;
+}
+
+.choiceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+  width: 100%;
+  max-width: 800px;
+  z-index: 1;
+}
+
+.choiceCard {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.choiceCard:hover {
+  transform: translateY(-10px);
+  background: #2d5a27;
+  color: white;
+}
+
+.iconWrapper {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.quizWrapper {
+  flex: 1;
+  max-width: 800px;
+  margin: 50px auto;
+  width: 90%;
+  padding: 40px;
+}
+
+.progressContainer {
+  background: #eee;
+  height: 12px;
+  border-radius: 10px;
+  margin-bottom: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progressBar {
+  background: linear-gradient(90deg, #2d5a27, #4a8c43);
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.progressText {
+  position: absolute;
+  top: 15px;
+  right: 0;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.quizCard {
+  background: white;
+  border-radius: 30px;
+  padding: 50px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+  animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.stepBadge {
+  display: inline-block;
+  background: #f0f7f0;
+  color: #2d5a27;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.questionText {
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 40px;
+  line-height: 1.3;
+}
+
+.optionsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.optionButton {
+  background: #fdfdfd;
+  border: 2px solid #eee;
+  border-radius: 15px;
+  padding: 20px 25px;
+  font-size: 1.1rem;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.optionIndicator {
+  width: 30px;
+  height: 30px;
+  background: #eee;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #888;
+}
+
+.optionButton:hover {
+  border-color: #2d5a27;
+  background: #f0f7f0;
+}
+
+.optionButton:hover .optionIndicator {
+  background: #2d5a27;
+  color: white;
+}
+
+.loadingState {
+  text-align: center;
+  padding: 100px 0;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid #f0f7f0;
+  border-top: 5px solid #2d5a27;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 30px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.resultAnimation {
+  animation: fadeIn 1s ease-out;
   text-align: center;
 }
 
-.question {
-  margin: var(--spacing-md) 0 var(--spacing-xl);
-  font-size: 1.5rem;
+.successBadge {
+  background: #2d5a27;
+  color: white;
+  padding: 8px 25px;
+  border-radius: 30px;
+  display: inline-block;
+  margin-bottom: 20px;
 }
 
-.options {
+.recommendationList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 25px;
+  margin: 40px 0;
+}
+
+.productGlassCard {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid white;
+  border-radius: 25px;
+  overflow: hidden;
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+  align-items: center;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
 }
 
-.optionBtn {
-  background-color: var(--secondary-white);
-  padding: var(--spacing-md);
-  border: 1px solid var(--neutral-gray-200);
-  border-radius: var(--border-radius);
-  font-weight: 500;
+.productImageFrame {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.productInfo {
+  padding-left: 20px;
   text-align: left;
 }
 
-.optionBtn:hover {
-  border-color: var(--primary-green);
-  background-color: var(--neutral-gray-100);
+.productPrice {
+  color: #2d5a27;
+  font-weight: bold;
+  margin: 5px 0 10px;
 }
 
-.resultBox {
-  text-align: center;
-  padding: var(--spacing-xl);
-  background-color: var(--neutral-gray-100);
-  border-radius: var(--border-radius);
+.detailsBtn {
+  background: none;
+  border: 1px solid #2d5a27;
+  color: #2d5a27;
+  padding: 5px 15px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
 }
 
-.resultTitle {
-  margin-bottom: var(--spacing-md);
+.detailsBtn:hover {
+  background: #2d5a27;
+  color: white;
 }
 
-.resultText {
-  margin-bottom: var(--spacing-xl);
+.restartBtn {
+  background: #2d5a27;
+  color: white;
+  border: none;
+  padding: 15px 40px;
+  border-radius: 30px;
   font-size: 1.1rem;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: transform 0.2s;
+}
+
+.restartBtn:hover {
+  transform: scale(1.05);
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: #999;
+  margin-top: 30px;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
