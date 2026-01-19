@@ -41,8 +41,10 @@ export default function Home() {
 
     useEffect(() => {
         const timer = setInterval(() => {
-            setCurrentSlide((prev) => (prev + 1) % slides.length);
-        }, 5000);
+            if (slides.length > 0) {
+                setCurrentSlide((prev) => (prev + 1) % slides.length);
+            }
+        }, 8000);
         return () => clearInterval(timer);
     }, [slides.length]);
 
