@@ -224,22 +224,43 @@ export default function QuizPage() {
 
   const processResult = async (finalAnswers: any) => {
     setLoading(true);
-    const tagsToSearch = finalAnswers.map((a: any) => a.type || a.concern).filter(Boolean);
     
-    setResultLabel(finalAnswers[0].text.toLowerCase());
+    // Contagem de tags para recomendação inteligente
+    const tagCounts: { [key: string]: number } = {};
+    finalAnswers.forEach((a: any) => {
+      const tag = a.type || a.concern;
+      if (tag) {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      }
+    });
+
+    // Ordenar tags por relevância
+    const sortedTags = Object.entries(tagCounts)
+      .sort(([, a], [, b]) => b - a)
+      .map(([tag]) => tag);
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
       const res = await fetch(`${apiUrl}/products/`);
       const allProducts = await res.json();
       
-      const recommendations = allProducts.filter((p: any) => {
+      // Filtrar produtos que correspondem às tags mais frequentes
+      let recommendations = allProducts.filter((p: any) => {
         if (!p.tags) return false;
-        const tags = Array.isArray(p.tags) ? p.tags : JSON.parse(p.tags);
-        return tags.some((t: string) => tagsToSearch.includes(t)) || tags.includes("todos-os-tipos");
+        const pTags = Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? JSON.parse(p.tags) : p.tags);
+        // Prioridade para as 2 principais tags do usuário
+        return pTags.some((t: string) => sortedTags.slice(0, 2).includes(t));
       });
 
-      setResult(recommendations);
+      // Garantir diversidade se tiver poucos resultados
+      if (recommendations.length < 2) {
+        recommendations = allProducts.filter((p: any) => {
+          const pTags = Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? JSON.parse(p.tags) : p.tags);
+          return pTags.some((t: string) => sortedTags.includes(t)) || pTags.includes("todos-os-tipos");
+        });
+      }
+
+      setResult(recommendations.slice(0, 4));
     } catch (error) {
       console.error("Error fetching recommendations:", error);
     } finally {
