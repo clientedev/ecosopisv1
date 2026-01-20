@@ -16,38 +16,6 @@ export default function ProductDetailPage() {
     const [reviewData, setReviewData] = useState({ rating: 5, comment: "" });
     const [submittingReview, setSubmittingReview] = useState(false);
 
-    const submitReview = async () => {
-        if (!reviewData.comment) {
-            alert("Por favor, escreva um comentário");
-            return;
-        }
-        setSubmittingReview(true);
-        try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                window.location.href = `/conta?redirect=/produtos/${params.slug}`;
-                return;
-            }
-            const res = await fetch(`/api/products/${product.id}/reviews`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify(reviewData)
-            });
-            if (res.ok) {
-                alert("Avaliação enviada! Ela será exibida após aprovação.");
-                setShowReviewForm(false);
-                setReviewData({ rating: 5, comment: "" });
-            }
-        } catch (error) {
-            console.error("Erro ao enviar avaliação:", error);
-        } finally {
-            setSubmittingReview(false);
-        }
-    };
-
     const faqs = [
         { q: "Qual o prazo de entrega?", a: "O prazo médio de entrega é de 5 a 10 dias úteis, dependendo da sua região." },
         { q: "O produto é vegano?", a: "Sim! Todos os nossos produtos são 100% veganos e livres de crueldade animal." },
@@ -112,6 +80,38 @@ export default function ProductDetailPage() {
         window.location.href = "/carrinho";
     };
 
+    const submitReview = async () => {
+        if (!reviewData.comment) {
+            alert("Por favor, escreva um comentário");
+            return;
+        }
+        setSubmittingReview(true);
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                window.location.href = `/conta?redirect=/produtos/${params.slug}`;
+                return;
+            }
+            const res = await fetch(`/api/products/${product.id}/reviews`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(reviewData)
+            });
+            if (res.ok) {
+                alert("Avaliação enviada! Ela será exibida após aprovação.");
+                setShowReviewForm(false);
+                setReviewData({ rating: 5, comment: "" });
+            }
+        } catch (error) {
+            console.error("Erro ao enviar avaliação:", error);
+        } finally {
+            setSubmittingReview(false);
+        }
+    };
+
     return (
         <main>
             <Header />
@@ -120,13 +120,14 @@ export default function ProductDetailPage() {
                     <div className={styles.imageSection}>
                         <div className={styles.mainImageContainer}>
                             { (activeImage || product.image_url) && (
-                                <div className={styles.imageWrapper}>
+                                <div className={styles.imageWrapper} style={{ position: 'relative', width: '100%', height: '100%' }}>
                                     <Image
                                         src={getImageUrl(activeImage || product.image_url)}
                                         alt={product.name}
                                         fill
                                         className={styles.productImage}
                                         unoptimized={true}
+                                        priority
                                     />
                                 </div>
                             )}
@@ -151,6 +152,7 @@ export default function ProductDetailPage() {
                             </div>
                         )}
 
+                        {/* Seção de Dúvidas (Chat FAQ) - Restaurada aqui */}
                         <div className={styles.chatSection}>
                             <div className={styles.chatHeaderInline}>
                                 <span>💬 Dúvidas sobre o produto?</span>
