@@ -61,7 +61,7 @@ localPort = 8000
 externalPort = 8000
 
 [deployment]
-deploymentTarget = "autoscale"
-run = ["npm", "run", "start"]
+deploymentTarget = "vm"
+run = ["bash", "-c", "cd backend && python main.py & cd frontend && npm run start"]
 build = ["npm", "run", "build"]
 publicDir = "frontend/out"

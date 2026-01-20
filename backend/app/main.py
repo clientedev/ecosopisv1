@@ -42,3 +42,8 @@ app.include_router(carousel.router, prefix="/carousel", tags=["carousel"])
 app.include_router(orders.router, prefix="/orders", tags=["orders"])
 app.include_router(settings.router, prefix="/settings", tags=["settings"])
 app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port)
