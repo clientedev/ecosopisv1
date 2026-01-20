@@ -177,7 +177,22 @@
     font-weight: 600;
 }
 
-.backButtonSection {
+.cardFooter {
+    margin-top: 15px;
+    text-align: right;
+}
+
+.readMore {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #2d5a27;
+    text-decoration: underline;
+}
+
+.activeCard {
+    border-color: #2d5a27;
+    box-shadow: 0 15px 40px rgba(45, 90, 39, 0.15);
+}
     padding: 40px 0 80px;
     text-align: center;
 }
