@@ -6,6 +6,13 @@ from app.api.endpoints import auth, products, coupons, carousel, orders, setting
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+# Seed database
+from seed import seed
+try:
+    seed()
+except Exception as e:
+    print(f"Error seeding database: {e}")
+
 from fastapi.staticfiles import StaticFiles
 import os
 
