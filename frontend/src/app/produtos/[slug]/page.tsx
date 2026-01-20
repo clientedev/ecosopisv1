@@ -11,7 +11,6 @@ export default function ProductDetailPage() {
     const [product, setProduct] = useState<any>(null);
 
     const [activeImage, setActiveImage] = useState("");
-    const [chatOpen, setChatOpen] = useState(false);
     const [selectedFaq, setSelectedFaq] = useState<any>(null);
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [reviewData, setReviewData] = useState({ rating: 5, comment: "" });
@@ -49,7 +48,6 @@ export default function ProductDetailPage() {
         }
     };
 
-    // Perguntas pré-definidas (posteriormente podem vir do backend por produto)
     const faqs = [
         { q: "Qual o prazo de entrega?", a: "O prazo médio de entrega é de 5 a 10 dias úteis, dependendo da sua região." },
         { q: "O produto é vegano?", a: "Sim! Todos os nossos produtos são 100% veganos e livres de crueldade animal." },
@@ -83,7 +81,7 @@ export default function ProductDetailPage() {
     const getImageUrl = (url: string) => {
         if (!url) return "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
         if (url.startsWith("http")) return url;
-        return url; // Rewrites will handle the /static prefix
+        return url;
     };
 
     const handleAddToCart = () => {
@@ -92,21 +90,13 @@ export default function ProductDetailPage() {
             window.location.href = `/conta?redirect=/produtos/${params.slug}`;
             return;
         }
-        
         const cart = JSON.parse(localStorage.getItem("cart") || "[]");
         const existingItem = cart.find((i: any) => i.id === product.id);
-        
         if (existingItem) {
             existingItem.quantity += 1;
         } else {
-            cart.push({
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                quantity: 1
-            });
+            cart.push({ id: product.id, name: product.name, price: product.price, quantity: 1 });
         }
-        
         localStorage.setItem("cart", JSON.stringify(cart));
         window.location.href = "/carrinho";
     };
@@ -117,14 +107,7 @@ export default function ProductDetailPage() {
             window.location.href = `/conta?redirect=/produtos/${params.slug}`;
             return;
         }
-        
-        const cart = [{
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            quantity: 1
-        }];
-        
+        const cart = [{ id: product.id, name: product.name, price: product.price, quantity: 1 }];
         localStorage.setItem("cart", JSON.stringify(cart));
         window.location.href = "/carrinho";
     };
@@ -134,7 +117,6 @@ export default function ProductDetailPage() {
             <Header />
             <div className={`container ${styles.productContainer}`}>
                 <div className={styles.productLayout}>
-                    {/* ... existing imageSection ... */}
                     <div className={styles.imageSection}>
                         <div className={styles.mainImageContainer}>
                             { (activeImage || product.image_url) && (
@@ -169,7 +151,6 @@ export default function ProductDetailPage() {
                             </div>
                         )}
 
-                        {/* Mini Chat Section - Agora abaixo da foto */}
                         <div className={styles.chatSection}>
                             <div className={styles.chatHeaderInline}>
                                 <span>💬 Dúvidas sobre o produto?</span>
@@ -178,7 +159,6 @@ export default function ProductDetailPage() {
                                 <div className={styles.chatMessageInline}>
                                     Olá! 👋 Como posso te ajudar com o <strong>{product.name}</strong> hoje?
                                 </div>
-                                
                                 <div className={styles.faqListInline}>
                                     {faqs.map((faq, i) => (
                                         <button key={i} className={styles.faqButtonInline} onClick={() => setSelectedFaq(faq)}>
@@ -186,7 +166,6 @@ export default function ProductDetailPage() {
                                         </button>
                                     ))}
                                 </div>
-
                                 {selectedFaq && (
                                     <div className={styles.answerInline}>
                                         {selectedFaq.a}
@@ -202,15 +181,11 @@ export default function ProductDetailPage() {
                                 <span key={tag} className="scientific-badge">{tag}</span>
                             ))}
                         </div>
-
                         <h1 className={styles.productName}>{product.name}</h1>
-                        
                         {product.price && (
                             <p className={styles.price}>R$ {product.price.toFixed(2).replace(".", ",")}</p>
                         )}
-                        
                         <p className={styles.description}>{product.description}</p>
-
                         <div className={styles.buyActions}>
                             {product.buy_on_site && (
                                 <>
@@ -233,12 +208,10 @@ export default function ProductDetailPage() {
                                 </a>
                             )}
                         </div>
-
                         <div className={styles.detailSection}>
                             <h3>INGREDIENTES</h3>
                             <p>{product.ingredients}</p>
                         </div>
-
                         <div className={styles.detailSection}>
                             <h3>BENEFÍCIOS</h3>
                             <p>{product.benefits}</p>
@@ -246,7 +219,6 @@ export default function ProductDetailPage() {
                     </div>
                 </div>
 
-                {/* Seção de Avaliações */}
                 <div className={styles.reviewsSection}>
                     <div className={styles.reviewsHeader}>
                         <h2>Avaliações dos Clientes</h2>
@@ -302,7 +274,6 @@ export default function ProductDetailPage() {
                     </div>
                 </div>
             </div>
-
             <Footer />
         </main>
     );
