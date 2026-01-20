@@ -56,7 +56,7 @@ export default function Home() {
                 const res = await fetch('/api/carousel');
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.length > 0) {
+                    if (data && data.length > 0) {
                         const dbSlides = data.map((item: any) => ({
                             badge: item.badge && item.badge !== "-" ? item.badge : null,
                             title: item.title && item.title !== "-" ? item.title : null,
