@@ -29,15 +29,15 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://0.0.0.0:8000/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:8000'}/:path*`,
       },
       {
         source: '/static/uploads/:path*',
-        destination: 'http://0.0.0.0:8000/static/uploads/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:8000'}/static/uploads/:path*`,
       },
       {
         source: '/static/attached_assets/:path*',
-        destination: 'http://0.0.0.0:8000/static/attached_assets/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:8000'}/static/attached_assets/:path*`,
       },
     ];
   },
