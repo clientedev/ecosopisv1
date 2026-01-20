@@ -11,6 +11,15 @@ export default function ProductDetailPage() {
     const [product, setProduct] = useState<any>(null);
 
     const [activeImage, setActiveImage] = useState("");
+    const [chatOpen, setChatOpen] = useState(false);
+    const [selectedFaq, setSelectedFaq] = useState<any>(null);
+
+    // Perguntas pré-definidas (posteriormente podem vir do backend por produto)
+    const faqs = [
+        { q: "Qual o prazo de entrega?", a: "O prazo médio de entrega é de 5 a 10 dias úteis, dependendo da sua região." },
+        { q: "O produto é vegano?", a: "Sim! Todos os nossos produtos são 100% veganos e livres de crueldade animal." },
+        { q: "Como usar o produto?", a: "Recomendamos o uso diário sobre a pele limpa e seca para melhores resultados." }
+    ];
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -90,6 +99,7 @@ export default function ProductDetailPage() {
             <Header />
             <div className={`container ${styles.productContainer}`}>
                 <div className={styles.productLayout}>
+                    {/* ... existing imageSection ... */}
                     <div className={styles.imageSection}>
                         <div className={styles.mainImageContainer}>
                             { (activeImage || product.image_url) && (
@@ -133,22 +143,23 @@ export default function ProductDetailPage() {
                         </div>
 
                         <h1 className={styles.productName}>{product.name}</h1>
-                        <p className={styles.description}>{product.description}</p>
-
+                        
                         {product.price && (
                             <p className={styles.price}>R$ {product.price.toFixed(2).replace(".", ",")}</p>
                         )}
+                        
+                        <p className={styles.description}>{product.description}</p>
 
                         <div className={styles.buyActions}>
                             {product.buy_on_site && (
                                 <>
-                                    <button className="btn-primary" style={{ flex: 1 }} onClick={handleBuyNow}>COMPRAR AGORA</button>
-                                    <button className="btn-outline" style={{ flex: 1 }} onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
+                                    <button className="btn-primary" onClick={handleBuyNow}>COMPRAR AGORA</button>
+                                    <button className="btn-outline" onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
                                 </>
                             )}
                             {product.mercadolivre_url && (
                                 <a href={product.mercadolivre_url} target="_blank" className="btn-outline">
-                                    COMPRAR NO ML
+                                    COMPRAR NO MERCADO LIVRE
                                 </a>
                             )}
                             {product.shopee_url && (
@@ -174,6 +185,40 @@ export default function ProductDetailPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Mini Chat Widget */}
+            <div className={styles.chatFab} onClick={() => setChatOpen(!chatOpen)}>
+                {chatOpen ? '✕' : '💬'}
+            </div>
+
+            {chatOpen && (
+                <div className={styles.chatWindow}>
+                    <div className={styles.chatHeader}>
+                        <span>Suporte ECOSOPIS</span>
+                        <button onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>✕</button>
+                    </div>
+                    <div className={styles.chatContent}>
+                        <div className={styles.chatMessage}>
+                            Olá! 👋 Como posso te ajudar com o <strong>{product.name}</strong> hoje?
+                        </div>
+                        
+                        <div className={styles.faqList}>
+                            {faqs.map((faq, i) => (
+                                <button key={i} className={styles.faqButton} onClick={() => setSelectedFaq(faq)}>
+                                    {faq.q}
+                                </button>
+                            ))}
+                        </div>
+
+                        {selectedFaq && (
+                            <div className={styles.answer}>
+                                {selectedFaq.a}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <Footer />
         </main>
     );
