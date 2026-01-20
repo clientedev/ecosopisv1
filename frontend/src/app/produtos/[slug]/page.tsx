@@ -13,6 +13,41 @@ export default function ProductDetailPage() {
     const [activeImage, setActiveImage] = useState("");
     const [chatOpen, setChatOpen] = useState(false);
     const [selectedFaq, setSelectedFaq] = useState<any>(null);
+    const [showReviewForm, setShowReviewForm] = useState(false);
+    const [reviewData, setReviewData] = useState({ rating: 5, comment: "" });
+    const [submittingReview, setSubmittingReview] = useState(false);
+
+    const submitReview = async () => {
+        if (!reviewData.comment) {
+            alert("Por favor, escreva um comentário");
+            return;
+        }
+        setSubmittingReview(true);
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                window.location.href = `/conta?redirect=/produtos/${params.slug}`;
+                return;
+            }
+            const res = await fetch(`/api/products/${product.id}/reviews`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(reviewData)
+            });
+            if (res.ok) {
+                alert("Avaliação enviada! Ela será exibida após aprovação.");
+                setShowReviewForm(false);
+                setReviewData({ rating: 5, comment: "" });
+            }
+        } catch (error) {
+            console.error("Erro ao enviar avaliação:", error);
+        } finally {
+            setSubmittingReview(false);
+        }
+    };
 
     // Perguntas pré-definidas (posteriormente podem vir do backend por produto)
     const faqs = [
@@ -133,6 +168,32 @@ export default function ProductDetailPage() {
                                 ))}
                             </div>
                         )}
+
+                        {/* Mini Chat Section - Agora abaixo da foto */}
+                        <div className={styles.chatSection}>
+                            <div className={styles.chatHeaderInline}>
+                                <span>💬 Dúvidas sobre o produto?</span>
+                            </div>
+                            <div className={styles.chatContentInline}>
+                                <div className={styles.chatMessageInline}>
+                                    Olá! 👋 Como posso te ajudar com o <strong>{product.name}</strong> hoje?
+                                </div>
+                                
+                                <div className={styles.faqListInline}>
+                                    {faqs.map((faq, i) => (
+                                        <button key={i} className={styles.faqButtonInline} onClick={() => setSelectedFaq(faq)}>
+                                            {faq.q}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {selectedFaq && (
+                                    <div className={styles.answerInline}>
+                                        {selectedFaq.a}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     <div className={styles.infoSection}>
@@ -182,32 +243,62 @@ export default function ProductDetailPage() {
                             <h3>BENEFÍCIOS</h3>
                             <p>{product.benefits}</p>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Mini Chat Section */}
-                        <div className={styles.chatSection}>
-                            <div className={styles.chatHeaderInline}>
-                                <span>💬 Dúvidas sobre o produto?</span>
-                            </div>
-                            <div className={styles.chatContentInline}>
-                                <div className={styles.chatMessageInline}>
-                                    Olá! 👋 Como posso te ajudar com o <strong>{product.name}</strong> hoje?
-                                </div>
-                                
-                                <div className={styles.faqListInline}>
-                                    {faqs.map((faq, i) => (
-                                        <button key={i} className={styles.faqButtonInline} onClick={() => setSelectedFaq(faq)}>
-                                            {faq.q}
-                                        </button>
-                                    ))}
-                                </div>
+                {/* Seção de Avaliações */}
+                <div className={styles.reviewsSection}>
+                    <div className={styles.reviewsHeader}>
+                        <h2>Avaliações dos Clientes</h2>
+                        <button className="btn-primary" onClick={() => setShowReviewForm(!showReviewForm)}>
+                            {showReviewForm ? 'Cancelar' : 'Deixar uma Avaliação'}
+                        </button>
+                    </div>
 
-                                {selectedFaq && (
-                                    <div className={styles.answerInline}>
-                                        {selectedFaq.a}
-                                    </div>
-                                )}
+                    {showReviewForm && (
+                        <div className={styles.reviewForm}>
+                            <h3>Sua Avaliação</h3>
+                            <div className={styles.starRating}>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <span 
+                                        key={star} 
+                                        className={star <= reviewData.rating ? styles.starActive : styles.star}
+                                        onClick={() => setReviewData({...reviewData, rating: star})}
+                                    >
+                                        ★
+                                    </span>
+                                ))}
                             </div>
+                            <textarea 
+                                placeholder="Conte sua experiência com este produto..."
+                                value={reviewData.comment}
+                                onChange={(e) => setReviewData({...reviewData, comment: e.target.value})}
+                                className={styles.reviewInput}
+                            />
+                            <button className="btn-primary" onClick={submitReview} disabled={submittingReview}>
+                                {submittingReview ? 'Enviando...' : 'Enviar Avaliação'}
+                            </button>
                         </div>
+                    )}
+
+                    <div className={styles.reviewsList}>
+                        {product.reviews && product.reviews.length > 0 ? (
+                            product.reviews.map((rev: any) => (
+                                <div key={rev.id} className={styles.reviewCard}>
+                                    <div className={styles.reviewMeta}>
+                                        <span className={styles.reviewerName}>{rev.user_name}</span>
+                                        <div className={styles.reviewStars}>
+                                            {Array(5).fill(0).map((_, i) => (
+                                                <span key={i} className={i < rev.rating ? styles.starActiveSmall : styles.starSmall}>★</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <p className={styles.reviewComment}>{rev.comment}</p>
+                                </div>
+                            ))
+                        ) : (
+                            <p className={styles.noReviews}>Ainda não há avaliações para este produto. Seja o primeiro a avaliar!</p>
+                        )}
                     </div>
                 </div>
             </div>

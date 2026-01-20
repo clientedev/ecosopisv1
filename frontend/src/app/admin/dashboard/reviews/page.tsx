@@ -18,7 +18,8 @@ export default function AdminReviewsPage() {
 
         const fetchReviews = async () => {
             try {
-                const res = await fetch('/api/products/reviews/all', {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+                const res = await fetch(`${apiUrl}/api/reviews/pending`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -34,22 +35,41 @@ export default function AdminReviewsPage() {
         fetchReviews();
     }, [router]);
 
-    const toggleApprove = async (id: number, currentStatus: boolean) => {
+    const handleApprove = async (id: number) => {
         const token = localStorage.getItem("token");
         try {
-            const res = await fetch(`/api/products/reviews/${id}/approve`, {
-                method: 'PUT',
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+            const res = await fetch(`${apiUrl}/api/reviews/approve/${id}`, {
+                method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ is_approved: !currentStatus })
+                }
             });
             if (res.ok) {
-                setReviews(reviews.map(r => r.id === id ? { ...r, is_approved: !currentStatus } : r));
+                setReviews(reviews.filter(r => r.id !== id));
+                alert("Avaliação aprovada!");
             }
         } catch (err) {
-            console.error("Error updating review status", err);
+            console.error("Error approving review", err);
+        }
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!confirm("Excluir esta avaliação?")) return;
+        const token = localStorage.getItem("token");
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+            const res = await fetch(`${apiUrl}/api/reviews/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                setReviews(reviews.filter(r => r.id !== id));
+            }
+        } catch (err) {
+            console.error("Error deleting review", err);
         }
     };
 
@@ -83,49 +103,38 @@ export default function AdminReviewsPage() {
                     <table>
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>Produto</th>
                                 <th>Usuário</th>
                                 <th>Estrelas</th>
                                 <th>Comentário</th>
-                                <th>Status</th>
-                                <th>Ação</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             {reviews.length === 0 ? (
-                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '20px' }}>Nenhuma avaliação encontrada.</td></tr>
+                                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>Nenhuma avaliação pendente.</td></tr>
                             ) : (
                                 reviews.map((rev: any) => (
                                     <tr key={rev.id}>
-                                        <td>#{rev.id}</td>
-                                        <td><strong>{rev.user_name}</strong></td>
+                                        <td><strong>{rev.product_name}</strong></td>
+                                        <td>{rev.user_name}</td>
                                         <td><span style={{ color: '#f1c40f' }}>{"★".repeat(rev.rating)}{"☆".repeat(5-rev.rating)}</span></td>
                                         <td style={{ maxWidth: '300px', fontSize: '0.9rem' }}>{rev.comment}</td>
                                         <td>
-                                            <span style={{ 
-                                                padding: '4px 8px', 
-                                                borderRadius: '4px', 
-                                                fontSize: '0.8rem',
-                                                backgroundColor: rev.is_approved ? '#e8f5e9' : '#fff3e0',
-                                                color: rev.is_approved ? '#2e7d32' : '#ef6c00'
-                                            }}>
-                                                {rev.is_approved ? 'APROVADO' : 'PENDENTE'}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <button 
-                                                onClick={() => toggleApprove(rev.id, rev.is_approved)}
-                                                style={{ 
-                                                    padding: '5px 10px', 
-                                                    borderRadius: '5px', 
-                                                    border: '1px solid #2d5a27',
-                                                    backgroundColor: rev.is_approved ? 'white' : '#2d5a27',
-                                                    color: rev.is_approved ? '#2d5a27' : 'white',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {rev.is_approved ? 'Desaprovar' : 'Aprovar'}
-                                            </button>
+                                            <div className={styles.actions}>
+                                                <button 
+                                                    className="btn-primary"
+                                                    onClick={() => handleApprove(rev.id)}
+                                                >
+                                                    Aprovar
+                                                </button>
+                                                <button 
+                                                    className={styles.deleteBtn}
+                                                    onClick={() => handleDelete(rev.id)}
+                                                >
+                                                    Excluir
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

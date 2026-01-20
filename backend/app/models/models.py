@@ -94,11 +94,16 @@ class Review(Base):
     __tablename__ = "reviews"
 
     id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"))
     user_name = Column(String, nullable=False)
     comment = Column(Text, nullable=False)
     rating = Column(Integer, default=5)
     is_approved = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    product = relationship("Product", back_populates="reviews")
+
+Product.reviews = relationship("Review", back_populates="product")
 
 class SystemSetting(Base):
     __tablename__ = "system_settings"
