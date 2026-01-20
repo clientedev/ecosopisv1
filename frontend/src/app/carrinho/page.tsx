@@ -197,105 +197,153 @@ export default function CarrinhoPage() {
         return (
             <main>
                 <Header />
-                <div className="container" style={{ padding: '50px 0' }}>
-                    <h1>CHECKOUT</h1>
-                    <div className={styles.cartGrid}>
-                        <div className={styles.itemsList}>
-                            <div className={styles.detailSection} style={{ borderTop: 'none' }}>
-                                <h3>ENDEREÇO DE ENTREGA</h3>
-                                <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                                    <input 
-                                        className={styles.input} 
-                                        placeholder="CEP" 
-                                        value={address.zip}
-                                        style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
-                                        onChange={(e) => handleCepChange(e.target.value)}
-                                        maxLength={8}
-                                    />
-                                    {loadingCep && <span style={{ fontSize: '0.8rem', alignSelf: 'center' }}>Buscando...</span>}
-                                </div>
-                                <input 
-                                    className={styles.input} 
-                                    placeholder="Rua e Número" 
-                                    value={address.street}
-                                    style={{ width: '100%', padding: '12px', marginBottom: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-                                    onChange={(e) => setAddress({...address, street: e.target.value})}
-                                />
-                                <div style={{ display: 'flex', gap: '10px' }}>
-                                    <input 
-                                        className={styles.input} 
-                                        placeholder="Cidade" 
-                                        value={address.city}
-                                        style={{ flex: 2, padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
-                                        readOnly
-                                    />
-                                    <input 
-                                        className={styles.input} 
-                                        placeholder="UF" 
-                                        value={address.state}
-                                        style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ddd' }}
-                                        readOnly
-                                    />
-                                </div>
-                            </div>
-
-                            {shippingOptions.length > 0 && (
+                <div className={styles.carrinhoContainer}>
+                    <div className="container">
+                        <h1 className={styles.title}>FINALIZAR COMPRA</h1>
+                        
+                        <div className={styles.cartGrid}>
+                            <div className={styles.itemsList}>
                                 <div className={styles.detailSection}>
-                                    <h3>OPÇÕES DE FRETE</h3>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-                                        {shippingOptions.map(opt => (
-                                            <label key={opt.id} style={{ 
-                                                display: 'flex', 
-                                                justifyContent: 'space-between', 
-                                                alignItems: 'center', 
-                                                padding: '12px', 
-                                                borderRadius: '8px', 
-                                                border: selectedShipping?.id === opt.id ? '2px solid #2d5a27' : '1px solid #ddd',
-                                                cursor: 'pointer',
-                                                backgroundColor: selectedShipping?.id === opt.id ? '#f0fdf4' : 'transparent'
-                                            }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                    <input 
-                                                        type="radio" 
-                                                        name="shipping" 
-                                                        checked={selectedShipping?.id === opt.id} 
-                                                        onChange={() => setSelectedShipping(opt)} 
-                                                    />
-                                                    <div>
-                                                        <p style={{ fontWeight: 'bold' }}>{opt.name}</p>
-                                                        <p style={{ fontSize: '0.8rem', color: '#666' }}>Entrega em até {opt.days} dias úteis</p>
+                                    <h3>📍 ENDEREÇO DE ENTREGA</h3>
+                                    <div className={styles.inputGroup}>
+                                        <div className={styles.inputRow}>
+                                            <div style={{ flex: 1, position: 'relative' }}>
+                                                <input 
+                                                    className={styles.inputField} 
+                                                    placeholder="CEP" 
+                                                    value={address.zip}
+                                                    onChange={(e) => handleCepChange(e.target.value)}
+                                                    maxLength={8}
+                                                />
+                                                {loadingCep && (
+                                                    <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }}>
+                                                        <div className="loading-spinner-small"></div>
                                                     </div>
-                                                </div>
-                                                <span style={{ fontWeight: 'bold' }}>R$ {opt.price.toFixed(2)}</span>
-                                            </label>
-                                        ))}
+                                                )}
+                                            </div>
+                                            <div style={{ flex: 2 }}></div>
+                                        </div>
+                                        
+                                        <input 
+                                            className={styles.inputField} 
+                                            placeholder="Rua e Número" 
+                                            value={address.street}
+                                            onChange={(e) => setAddress({...address, street: e.target.value})}
+                                        />
+                                        
+                                        <div className={styles.inputRow}>
+                                            <input 
+                                                className={styles.inputField} 
+                                                placeholder="Cidade" 
+                                                value={address.city}
+                                                style={{ flex: 2 }}
+                                                readOnly
+                                            />
+                                            <input 
+                                                className={styles.inputField} 
+                                                placeholder="UF" 
+                                                value={address.state}
+                                                style={{ flex: 1 }}
+                                                readOnly
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                            )}
 
-                            <div className={styles.detailSection}>
-                                <h3>MÉTODO DE PAGAMENTO</h3>
-                                <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                        <input type="radio" name="pay" checked={paymentMethod === 'pix'} onChange={() => setPaymentMethod('pix')} />
-                                        PIX (Confirmação Instantânea)
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                        <input type="radio" name="pay" checked={paymentMethod === 'credit_card'} onChange={() => setPaymentMethod('credit_card')} />
-                                        Cartão de Crédito
-                                    </label>
+                                {shippingOptions.length > 0 && (
+                                    <div className={styles.detailSection}>
+                                        <h3>🚚 OPÇÕES DE FRETE</h3>
+                                        {shippingOptions.map(opt => (
+                                            <div 
+                                                key={opt.id} 
+                                                className={`${styles.shippingOption} ${selectedShipping?.id === opt.id ? styles.selectedOption : ''}`}
+                                                onClick={() => setSelectedShipping(opt)}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                    <div style={{ 
+                                                        width: '20px', 
+                                                        height: '20px', 
+                                                        borderRadius: '50%', 
+                                                        border: `2px solid ${selectedShipping?.id === opt.id ? '#2d5a27' : '#cbd5e1'}`,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}>
+                                                        {selectedShipping?.id === opt.id && <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#2d5a27' }}></div>}
+                                                    </div>
+                                                    <div>
+                                                        <p style={{ fontWeight: '700', margin: 0 }}>{opt.name}</p>
+                                                        <p style={{ fontSize: '0.85rem', color: '#666', margin: '4px 0 0 0' }}>Entrega em até {opt.days} dias úteis</p>
+                                                    </div>
+                                                </div>
+                                                <span style={{ fontWeight: '700', color: '#1a3a16' }}>R$ {opt.price.toFixed(2)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className={styles.detailSection}>
+                                    <h3>💳 MÉTODO DE PAGAMENTO</h3>
+                                    <div className={styles.paymentMethods}>
+                                        <div 
+                                            className={`${styles.paymentCard} ${paymentMethod === 'pix' ? styles.selectedPayment : ''}`}
+                                            onClick={() => setPaymentMethod('pix')}
+                                        >
+                                            <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>💠</div>
+                                            <p style={{ fontWeight: '600', margin: 0 }}>PIX</p>
+                                            <p style={{ fontSize: '0.75rem', marginTop: '4px', opacity: 0.8 }}>Confirmação instantânea</p>
+                                        </div>
+                                        <div 
+                                            className={`${styles.paymentCard} ${paymentMethod === 'credit_card' ? styles.selectedPayment : ''}`}
+                                            onClick={() => setPaymentMethod('credit_card')}
+                                        >
+                                            <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>💳</div>
+                                            <p style={{ fontWeight: '600', margin: 0 }}>CARTÃO</p>
+                                            <p style={{ fontSize: '0.75rem', marginTop: '4px', opacity: 0.8 }}>Até 12x sem juros</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className={styles.summaryCard}>
-                            <h3>Total: R$ {calculateTotal().toFixed(2)}</h3>
-                            <button className="btn-primary" style={{ width: '100%', marginTop: '20px' }} onClick={submitOrder}>
-                                PAGAR AGORA
-                            </button>
-                            <button className="btn-outline" style={{ width: '100%', marginTop: '10px' }} onClick={() => setStep('cart')}>
-                                VOLTAR
-                            </button>
+                            <div className={styles.summaryCard}>
+                                <h3>RESUMO DO PEDIDO</h3>
+                                <div className={styles.summaryRow}>
+                                    <span>Produtos ({cartItems.length})</span>
+                                    <span>R$ {calculateSubtotal().toFixed(2)}</span>
+                                </div>
+                                {discount && (
+                                    <div className={`${styles.summaryRow} ${styles.discountRow}`} style={{ color: '#059669' }}>
+                                        <span>Desconto (Cupom {discount.code})</span>
+                                        <span>- R$ {calculateDiscountAmount().toFixed(2)}</span>
+                                    </div>
+                                )}
+                                <div className={styles.summaryRow}>
+                                    <span>Frete</span>
+                                    <span>{selectedShipping ? `R$ ${selectedShipping.price.toFixed(2)}` : 'A definir'}</span>
+                                </div>
+                                
+                                <div className={styles.totalRow}>
+                                    <span>Total</span>
+                                    <span>R$ {calculateTotal().toFixed(2)}</span>
+                                </div>
+
+                                <button 
+                                    className="btn-primary" 
+                                    style={{ width: '100%', marginTop: '2rem', padding: '1.25rem', fontSize: '1.1rem' }} 
+                                    onClick={submitOrder}
+                                    disabled={!selectedShipping}
+                                >
+                                    {paymentMethod === 'pix' ? 'GERAR CÓDIGO PIX' : 'IR PARA PAGAMENTO'}
+                                </button>
+                                
+                                <button 
+                                    className="btn-outline" 
+                                    style={{ width: '100%', marginTop: '1rem', border: 'none' }} 
+                                    onClick={() => setStep('cart')}
+                                >
+                                    ← Voltar para o carrinho
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
