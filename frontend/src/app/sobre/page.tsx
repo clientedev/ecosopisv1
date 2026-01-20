@@ -3,6 +3,7 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function AboutPage() {
     return (
@@ -30,6 +31,11 @@ export default function AboutPage() {
                                     que a nossa biodiversidade oferece. Hoje, somos referência em cosmética vegana e orgânica, unindo 
                                     ciência e tradição.
                                 </p>
+                                <div className={styles.buttonWrapper}>
+                                    <Link href="/sobre/materia-prima" className={styles.ctaButton}>
+                                        Conheça nossa matéria-prima
+                                    </Link>
+                                </div>
                             </div>
                             <div className={styles.imageBlock}>
                                 <div className={styles.imageWrapper}>
