@@ -1,0 +1,60 @@
+Este repositório é um MONOREPO com múltiplos serviços (frontend e backend).
+O deploy no Railway está falhando porque o Railway está executando automaticamente "jdx install",
+o que ativa o "mise", que tenta instalar Python e quebra o build.
+
+Objetivo único:
+Impedir completamente que o Railway execute mise, jdx ou qualquer instalação de Python,
+garantindo que o build seja 100% Node.js e funcione corretamente.
+
+Ações OBRIGATÓRIAS:
+1. Localize e REMOVA completamente do repositório (raiz e subpastas):
+   - .mise.toml
+   - .tool-versions
+   - qualquer referência a mise
+   - qualquer referência a jdx
+   - qualquer referência a python em arquivos de configuração de build
+
+2. Verifique TODOS os arquivos que possam disparar jdx/mise automaticamente, incluindo:
+   - arquivos ocultos
+   - configs na raiz
+   - scripts de build
+   - configs de CI/CD
+   - railway.json (se existir)
+
+3. Garanta que NÃO exista nenhum arquivo ou configuração que:
+   - declare versões de python
+   - declare ferramentas gerenciadas por mise
+   - declare toolchains automáticos
+
+4. Garanta que TODOS os serviços Node.js tenham em seus package.json:
+   {
+     "engines": {
+       "node": ">=18"
+     }
+   }
+
+5. NÃO adicione Python.
+6. NÃO instale mise.
+7. NÃO instale jdx.
+8. NÃO altere código de aplicação, lógica, componentes, rotas ou estilos.
+9. NÃO altere dependências além do Next.js (que já deve estar em 14.2.35).
+10. NÃO use flags de força.
+11. Se existir railway.json:
+    - garanta que cada serviço tenha rootDir correto
+    - garanta que nenhum buildCommand invoque mise, jdx ou python
+
+12. Regenere apenas os package-lock.json estritamente necessários.
+
+Validação obrigatória antes de finalizar:
+- Não existe nenhuma referência a "mise", "jdx" ou "python" no repositório.
+- Nenhum arquivo .tool-versions ou .mise.toml existe.
+- O build depende exclusivamente de Node.js.
+- npm install && npm run build funcionam normalmente.
+
+Resultado esperado:
+- O Railway NÃO executa mais jdx install
+- O Railway NÃO tenta instalar Python
+- O build image completa com sucesso
+- Os serviços iniciam corretamente
+
+Execute somente as ações necessárias para cumprir esse objetivo e nada além disso.

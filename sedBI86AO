@@ -1,0 +1,67 @@
+modules = ["nodejs-20", "web"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+packages = ["cargo", "libiconv", "libxcrypt", "rustc"]
+
+[userenv]
+
+[userenv.shared]
+ACCESS_TOKEN_EXPIRE_MINUTES = "60"
+ALGORITHM = "HS256"
+SECRET_KEY = "your-secret-key-change-this-in-production-via-secrets-tab"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Frontend Server"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Backend Server"
+
+[[workflows.workflow]]
+name = "Frontend Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd frontend && npm run dev -- -H 0.0.0.0 -p 5000"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Backend Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 65 --workers 1"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
+
+[deployment]
+deploymentTarget = "vm"
+run = ["bash", "-c", "cd backend && python main.py & cd frontend && npm run start"]
+build = ["npm", "run", "build"]
+publicDir = "frontend/out"
