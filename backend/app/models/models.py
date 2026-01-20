@@ -100,16 +100,10 @@ class Review(Base):
     is_approved = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-class Coupon(Base):
-    __tablename__ = "coupons"
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
 
     id = Column(Integer, primary_key=True, index=True)
-    code = Column(String, unique=True, index=True, nullable=False)
-    discount_type = Column(String, nullable=False) # percentage, fixed
-    discount_value = Column(Float, nullable=False)
-    min_purchase_value = Column(Float, default=0)
-    valid_until = Column(DateTime(timezone=True), nullable=True)
-    is_active = Column(Boolean, default=True)
-    usage_limit = Column(Integer, nullable=True)
-    usage_count = Column(Integer, default=0)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    key = Column(String, unique=True, index=True, nullable=False)
+    value = Column(Text)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
