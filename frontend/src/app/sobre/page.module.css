@@ -130,6 +130,38 @@
     line-height: 1.6;
 }
 
+.expandedContent {
+    margin-top: 20px;
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.divider {
+    border: 0;
+    border-top: 1px solid #eee;
+    margin-bottom: 20px;
+}
+
+.expandedContent h4 {
+    color: #2d5a27;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.curiosityBox {
+    background: #fdf8e6;
+    border-left: 4px solid #f1c40f;
+    padding: 15px;
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: #555;
+    border-radius: 0 8px 8px 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .benefits {
     display: flex;
     flex-wrap: wrap;
