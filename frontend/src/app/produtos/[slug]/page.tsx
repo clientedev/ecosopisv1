@@ -153,6 +153,9 @@ export default function ProductDetailPage() {
                             )}
                             {product.shopee_url && (
                                 <a href={product.shopee_url} target="_blank" className={styles.shopeeBtn}>
+                                    <svg viewBox="0 0 24 24" className={styles.shopeeLogo}>
+                                        <path d="M20.972 6.307c-1.161-1.161-2.617-1.859-4.108-2.022-1.491-.163-2.996.163-4.234.921l-1.63.992-1.631-.992c-1.238-.758-2.743-1.084-4.234-.921-1.491.163-2.947.861-4.108 2.022-1.161 1.161-1.859 2.617-2.022 4.108-.163 1.491.163 2.996.921 4.234l8.074 13.292 8.074-13.292c.758-1.238 1.084-2.743.921-4.234-.163-1.491-.861-2.947-2.022-4.108z"/>
+                                    </svg>
                                     COMPRAR NA SHOPEE
                                 </a>
                             )}

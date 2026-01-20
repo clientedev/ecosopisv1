@@ -87,9 +87,34 @@
     border-radius: 8px;
 }
 
-.buyActions button:hover {
+.shopeeBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    text-align: center;
+    border-radius: 8px;
+    background-color: #ee4d2d;
+    color: white;
+    border: none;
+    width: 100%;
+}
+
+.shopeeBtn:hover {
+    background-color: #d73211;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(45, 90, 39, 0.3);
+    box-shadow: 0 6px 20px rgba(238, 77, 45, 0.3);
+}
+
+.shopeeLogo {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
 }
 
 .detailSection {
