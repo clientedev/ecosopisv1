@@ -65,101 +65,78 @@
     margin-top: 20px;
 }
 
-.chatFab {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 60px;
-    height: 60px;
-    background: #2d5a27;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-    box-shadow: 0 10px 25px rgba(45, 90, 39, 0.3);
-    z-index: 100;
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.chatFab:hover {
-    transform: scale(1.1);
-}
-
-.chatWindow {
-    position: fixed;
-    bottom: 100px;
-    right: 30px;
-    width: 350px;
-    background: white;
+.chatSection {
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    padding: 24px;
     border-radius: 20px;
-    box-shadow: 0 15px 50px rgba(0,0,0,0.15);
-    z-index: 100;
-    overflow: hidden;
-    animation: slideIn 0.3s ease-out;
+    margin-top: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
 }
 
-@keyframes slideIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.chatHeader {
-    background: #2d5a27;
-    padding: 20px;
-    color: white;
+.chatHeaderInline {
+    color: #2d5a27;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 8px;
 }
 
-.chatContent {
-    padding: 20px;
-    max-height: 400px;
-    overflow-y: auto;
+.chatContentInline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
-.chatMessage {
-    background: #f0f4f0;
+.chatMessageInline {
+    background: #f8faf8;
     padding: 12px 16px;
-    border-radius: 15px 15px 15px 0;
-    margin-bottom: 15px;
+    border-radius: 12px;
     font-size: 0.95rem;
-    color: #333;
+    color: #444;
+    border-left: 4px solid #2d5a27;
 }
 
-.faqList {
+.faqListInline {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.faqButton {
+.faqButtonInline {
     background: white;
-    border: 1.5px solid #2d5a27;
-    color: #2d5a27;
-    padding: 10px 14px;
+    border: 1px solid #e0e0e0;
+    color: #333;
+    padding: 12px 16px;
     border-radius: 10px;
     font-size: 0.9rem;
     cursor: pointer;
     text-align: left;
     transition: all 0.2s;
+    font-weight: 500;
 }
 
-.faqButton:hover {
+.faqButtonInline:hover {
+    border-color: #2d5a27;
     background: #f0fdf4;
+    color: #2d5a27;
 }
 
-.answer {
+.answerInline {
     background: #2d5a27;
     color: white;
-    padding: 12px 16px;
-    border-radius: 15px 15px 0 15px;
-    margin-top: 10px;
-    align-self: flex-end;
+    padding: 14px 18px;
+    border-radius: 12px;
     font-size: 0.95rem;
+    line-height: 1.5;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .shopeeBtn {

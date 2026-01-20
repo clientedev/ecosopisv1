@@ -182,42 +182,35 @@ export default function ProductDetailPage() {
                             <h3>BENEFÍCIOS</h3>
                             <p>{product.benefits}</p>
                         </div>
-                    </div>
-                </div>
-            </div>
 
-            {/* Mini Chat Widget */}
-            <div className={styles.chatFab} onClick={() => setChatOpen(!chatOpen)}>
-                {chatOpen ? '✕' : '💬'}
-            </div>
-
-            {chatOpen && (
-                <div className={styles.chatWindow}>
-                    <div className={styles.chatHeader}>
-                        <span>Suporte ECOSOPIS</span>
-                        <button onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>✕</button>
-                    </div>
-                    <div className={styles.chatContent}>
-                        <div className={styles.chatMessage}>
-                            Olá! 👋 Como posso te ajudar com o <strong>{product.name}</strong> hoje?
-                        </div>
-                        
-                        <div className={styles.faqList}>
-                            {faqs.map((faq, i) => (
-                                <button key={i} className={styles.faqButton} onClick={() => setSelectedFaq(faq)}>
-                                    {faq.q}
-                                </button>
-                            ))}
-                        </div>
-
-                        {selectedFaq && (
-                            <div className={styles.answer}>
-                                {selectedFaq.a}
+                        {/* Mini Chat Section */}
+                        <div className={styles.chatSection}>
+                            <div className={styles.chatHeaderInline}>
+                                <span>💬 Dúvidas sobre o produto?</span>
                             </div>
-                        )}
+                            <div className={styles.chatContentInline}>
+                                <div className={styles.chatMessageInline}>
+                                    Olá! 👋 Como posso te ajudar com o <strong>{product.name}</strong> hoje?
+                                </div>
+                                
+                                <div className={styles.faqListInline}>
+                                    {faqs.map((faq, i) => (
+                                        <button key={i} className={styles.faqButtonInline} onClick={() => setSelectedFaq(faq)}>
+                                            {faq.q}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {selectedFaq && (
+                                    <div className={styles.answerInline}>
+                                        {selectedFaq.a}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
-            )}
+            </div>
 
             <Footer />
         </main>
