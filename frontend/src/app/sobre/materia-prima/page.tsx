@@ -63,6 +63,24 @@ export default function MateriaPrimaPage() {
       image: "/attached_assets/generated_images/orange_calendula_flowers_close-up.png",
       benefits: ["Anti-inflamatória", "Suave", "Regeneradora"],
       curiosity: "As flores de calêndula se abrem ao sol e se fecham à noite, sendo chamadas de 'relógio dos fazendeiros'."
+    },
+    {
+      id: 7,
+      name: "Aloe Vera (Babosa)",
+      description: "Hidratação profunda e efeito calmante para todos os tipos de pele.",
+      fullDescription: "A Aloe Vera é rica em polissacarídeos, vitaminas e minerais. Seu gel tem propriedades hidratantes, calmantes e refrescantes. É excelente para hidratar sem pesar e acalmar a pele após exposição solar ou depilação.",
+      image: "/attached_assets/generated_images/aloe_vera_plant_close-up.png",
+      benefits: ["Hidratante", "Refrescante", "Calmante"],
+      curiosity: "Cleópatra considerava a Aloe Vera o 'segredo de sua beleza' e a usava em seus banhos diários."
+    },
+    {
+      id: 8,
+      name: "Óleo de Amêndoas Doces",
+      description: "Elasticidade e nutrição profunda para peles secas e gestantes.",
+      fullDescription: "Rico em vitaminas A e B, o Óleo de Amêndoas Doces tem alto poder de penetração. É ideal para massagens e para prevenir estrias, mantendo a pele macia e elástica.",
+      image: "/attached_assets/generated_images/sweet_almond_oil_in_a_bottle_with_almonds.png",
+      benefits: ["Nutritivo", "Elastizante", "Suavizante"],
+      curiosity: "É um dos óleos mais antigos utilizados pela humanidade para cuidados com a pele, datando de civilizações egípcias."
     }
   ];
 
@@ -85,6 +103,7 @@ export default function MateriaPrimaPage() {
                   key={item.id} 
                   className={`${styles.card} ${selectedIngredient?.id === item.id ? styles.activeCard : ''}`}
                   onClick={() => setSelectedIngredient(selectedIngredient?.id === item.id ? null : item)}
+                  style={{ cursor: 'pointer' }}
                 >
                   <div className={styles.cardImage}>
                     <div style={{ position: 'relative', width: '100%', height: '240px' }}>
@@ -112,7 +131,8 @@ export default function MateriaPrimaPage() {
                         maxHeight: selectedIngredient?.id === item.id ? '1000px' : '0',
                         overflow: 'hidden',
                         transition: 'max-height 0.5s ease-in-out',
-                        opacity: selectedIngredient?.id === item.id ? 1 : 0
+                        opacity: selectedIngredient?.id === item.id ? 1 : 0,
+                        marginTop: selectedIngredient?.id === item.id ? '20px' : '0'
                       }}
                     >
                       <hr className={styles.divider} />
