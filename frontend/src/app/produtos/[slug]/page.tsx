@@ -67,6 +67,24 @@ export default function ProductDetailPage() {
         window.location.href = "/carrinho";
     };
 
+    const handleBuyNow = () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = `/conta?redirect=/produtos/${params.slug}`;
+            return;
+        }
+        
+        const cart = [{
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            quantity: 1
+        }];
+        
+        localStorage.setItem("cart", JSON.stringify(cart));
+        window.location.href = "/carrinho";
+    };
+
     return (
         <main>
             <Header />
@@ -123,7 +141,10 @@ export default function ProductDetailPage() {
 
                         <div className={styles.buyActions}>
                             {product.buy_on_site && (
-                                <button className="btn-primary" style={{ flex: 1 }} onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
+                                <>
+                                    <button className="btn-primary" style={{ flex: 1 }} onClick={handleBuyNow}>COMPRAR AGORA</button>
+                                    <button className="btn-outline" style={{ flex: 1 }} onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
+                                </>
                             )}
                             {product.mercadolivre_url && (
                                 <a href={product.mercadolivre_url} target="_blank" className="btn-outline">
@@ -131,7 +152,7 @@ export default function ProductDetailPage() {
                                 </a>
                             )}
                             {product.shopee_url && (
-                                <a href={product.shopee_url} target="_blank" className="btn-outline">
+                                <a href={product.shopee_url} target="_blank" className={styles.shopeeBtn}>
                                     COMPRAR NA SHOPEE
                                 </a>
                             )}

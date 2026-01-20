@@ -11,6 +11,9 @@ interface Product {
     stock: number;
     image_url: string;
     category: string;
+    mercadolivre_url: string;
+    shopee_url: string;
+    buy_on_site: boolean;
 }
 
 interface Props {
@@ -157,6 +160,36 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                 </div>
                             ))}
                         </div>
+                    </div>
+
+                    <div className={styles.formGrid}>
+                        <div className={styles.formGroup}>
+                            <label>Link Mercado Livre</label>
+                            <input
+                                type="text"
+                                value={formData.mercadolivre_url || ""}
+                                onChange={(e) => setFormData({ ...formData, mercadolivre_url: e.target.value })}
+                            />
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label>Link Shopee</label>
+                            <input
+                                type="text"
+                                value={formData.shopee_url || ""}
+                                onChange={(e) => setFormData({ ...formData, shopee_url: e.target.value })}
+                            />
+                        </div>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <input
+                                type="checkbox"
+                                checked={formData.buy_on_site}
+                                onChange={(e) => setFormData({ ...formData, buy_on_site: e.target.checked })}
+                            />
+                            Vender diretamente no site
+                        </label>
                     </div>
 
                     <div className={styles.formActions}>
