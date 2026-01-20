@@ -15,6 +15,10 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['bcrypt'],
   },
+  devIndicators: {
+    buildActivity: false,
+  },
+  allowedDevOrigins: ["f9e5ba6c-32ee-4263-8c2b-86a9d134353d-00-3tg4h3hawkhd9.riker.replit.dev"],
   async headers() {
     return [
       {
