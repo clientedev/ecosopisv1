@@ -1,14 +1,17 @@
 [phases.setup]
 nixPkgs = ["nodejs_18"]
 
+[phases.install]
+cmds = ["npm ci"]
+cacheDirectories = []
+
 [phases.build]
 cmds = [
-    "rm -rf node_modules/.cache || true",
-    "npm ci --cache /tmp/.npm",
     "npm run build",
-    "cp -r .next/static .next/standalone/.next/static || true",
-    "cp -r public .next/standalone/public || true"
+    "cp -r .next/static .next/standalone/.next/static",
+    "cp -r public .next/standalone/public"
 ]
+cacheDirectories = []
 
 [start]
 cmd = "HOSTNAME=0.0.0.0 node .next/standalone/server.js"
