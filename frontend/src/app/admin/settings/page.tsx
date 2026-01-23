@@ -15,7 +15,7 @@ export default function AdminSettings() {
                 const res = await fetch(`${apiUrl}/api/settings/`);
                 if (res.ok) {
                     const data = await res.json();
-                    setSettings(prev => ({ ...prev, ...data }));
+                    setSettings((prev: any) => ({ ...prev, ...data }));
                 }
             } catch (error) {
                 console.error("Error fetching settings:", error);
@@ -71,9 +71,9 @@ export default function AdminSettings() {
                                 style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem', border: '1px solid #ddd', borderRadius: '8px' }}
                             />
                         </div>
-                        <button 
-                            className="btn-primary" 
-                            style={{ marginTop: '1.5rem' }} 
+                        <button
+                            className="btn-primary"
+                            style={{ marginTop: '1.5rem' }}
                             onClick={handleSave}
                             disabled={saving}
                         >
