@@ -14,6 +14,7 @@ interface Product {
     mercadolivre_url: string;
     shopee_url: string;
     buy_on_site: boolean;
+    images?: string[];
 }
 
 interface Props {
