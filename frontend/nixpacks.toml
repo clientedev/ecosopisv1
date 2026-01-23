@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["nodejs_18", "npm"]
+nixPkgs = ["nodejs_18"]
 
 [phases.build]
 cmds = ["npm ci", "npm run build"]
 
 [start]
-cmd = "npm run start"
+cmd = "node .next/standalone/server.js"
