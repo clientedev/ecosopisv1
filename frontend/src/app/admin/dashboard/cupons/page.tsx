@@ -8,7 +8,16 @@ export default function CouponManagement() {
     const [coupons, setCoupons] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
-    const [formData, setFormData] = useState({
+    interface CouponFormData {
+        code: string;
+        discount_type: string;
+        discount_value: number;
+        min_purchase_value: number;
+        usage_limit: number | null;
+        valid_until: string;
+    }
+
+    const [formData, setFormData] = useState<CouponFormData>({
         code: "",
         discount_type: "percentage",
         discount_value: 0,
@@ -151,20 +160,20 @@ export default function CouponManagement() {
                             <form onSubmit={handleCreateCoupon}>
                                 <div className={styles.formGroup}>
                                     <label>Código do Cupom</label>
-                                    <input 
-                                        type="text" 
-                                        value={formData.code} 
-                                        onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})} 
-                                        required 
+                                    <input
+                                        type="text"
+                                        value={formData.code}
+                                        onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                                        required
                                     />
                                 </div>
                                 <div className={styles.formGrid}>
                                     <div className={styles.formGroup}>
                                         <label>Tipo</label>
-                                        <select 
-                                            value={formData.discount_type} 
-                                            onChange={(e) => setFormData({...formData, discount_type: e.target.value})}
-                                            style={{width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1'}}
+                                        <select
+                                            value={formData.discount_type}
+                                            onChange={(e) => setFormData({ ...formData, discount_type: e.target.value })}
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1' }}
                                         >
                                             <option value="percentage">Porcentagem (%)</option>
                                             <option value="fixed">Valor Fixo (R$)</option>
@@ -172,37 +181,37 @@ export default function CouponManagement() {
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>Valor</label>
-                                        <input 
-                                            type="number" 
-                                            value={formData.discount_value} 
-                                            onChange={(e) => setFormData({...formData, discount_value: parseFloat(e.target.value)})} 
-                                            required 
+                                        <input
+                                            type="number"
+                                            value={formData.discount_value}
+                                            onChange={(e) => setFormData({ ...formData, discount_value: parseFloat(e.target.value) })}
+                                            required
                                         />
                                     </div>
                                 </div>
                                 <div className={styles.formGrid}>
                                     <div className={styles.formGroup}>
                                         <label>Compra Mínima (R$)</label>
-                                        <input 
-                                            type="number" 
-                                            value={formData.min_purchase_value} 
-                                            onChange={(e) => setFormData({...formData, min_purchase_value: parseFloat(e.target.value)})} 
+                                        <input
+                                            type="number"
+                                            value={formData.min_purchase_value}
+                                            onChange={(e) => setFormData({ ...formData, min_purchase_value: parseFloat(e.target.value) })}
                                         />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>Limite de Uso</label>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             placeholder="Deixe vazio para ilimitado"
-                                            onChange={(e) => setFormData({...formData, usage_limit: e.target.value ? parseInt(e.target.value) : null})} 
+                                            onChange={(e) => setFormData({ ...formData, usage_limit: e.target.value ? parseInt(e.target.value) : null })}
                                         />
                                     </div>
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Válido até</label>
-                                    <input 
-                                        type="datetime-local" 
-                                        onChange={(e) => setFormData({...formData, valid_until: e.target.value})} 
+                                    <input
+                                        type="datetime-local"
+                                        onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
                                     />
                                 </div>
                                 <div className={styles.formActions}>
