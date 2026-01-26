@@ -22,12 +22,13 @@ export default function AdminDashboard() {
 
         const fetchProducts = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-                const res = await fetch(`${apiUrl}/api/products/`);
+                const res = await fetch(`/api/products/`);
+                if (!res.ok) throw new Error("Falha ao carregar produtos");
                 const data = await res.json();
-                setProducts(data);
+                setProducts(Array.isArray(data) ? data : []);
             } catch (error) {
                 console.error("Error fetching products:", error);
+                setProducts([]);
             } finally {
                 setLoading(false);
             }
