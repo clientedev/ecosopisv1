@@ -374,11 +374,19 @@ def seed():
         }
     ]
 
+    # Create Initial Products
     for p_data in products:
         db_product = db.query(models.Product).filter(models.Product.slug == p_data["slug"]).first()
         if not db_product:
             db_product = models.Product(**p_data)
             db.add(db_product)
+        else:
+            # Update image if it's still using the old local path or is broken
+            if db_product.image_url and "/attached_assets" in db_product.image_url and not db_product.image_url.startswith("/static"):
+                db_product.image_url = p_data["image_url"]
+            # Ensure images field is a list
+            if db_product.images is None:
+                db_product.images = [db_product.image_url] if db_product.image_url else []
     
     # Create Initial Carousel Items
     if db.query(models.CarouselItem).count() == 0:
@@ -391,13 +399,16 @@ def seed():
                 "cta_primary_text": "VER PRODUTOS",
                 "cta_primary_link": "/produtos",
                 "cta_secondary_text": "FAZER QUIZZ",
-                "cta_secondary_link": "/quizz"
+                "cta_secondary_link": "/quizz",
+                "alignment": "center",
+                "order": 0
             }
         ]
         for s_data in carousel_items:
             item = models.CarouselItem(**s_data)
             db.add(item)
-        db.commit()
+    
+    db.commit()
 
     print("Database seeded!")
     db.close()

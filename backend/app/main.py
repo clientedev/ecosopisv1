@@ -7,11 +7,17 @@ from app.api.endpoints import auth, products, coupons, carousel, orders, setting
 Base.metadata.create_all(bind=engine)
 
 # Seed database
-from seed import seed
-try:
-    seed()
-except Exception as e:
-    print(f"Error seeding database: {e}")
+import subprocess
+import sys
+
+def run_seed():
+    try:
+        print("Running database seed...")
+        subprocess.run([sys.executable, "seed.py"], check=True)
+    except Exception as e:
+        print(f"Error seeding database: {e}")
+
+run_seed()
 
 from fastapi.staticfiles import StaticFiles
 import os

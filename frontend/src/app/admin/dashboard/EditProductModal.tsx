@@ -73,8 +73,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            const files = Array.from(e.target.files).slice(0, 5);
-            const uploadedUrls = [];
+            const files = Array.from(e.target.files);
             const token = localStorage.getItem("token");
             
             if (!token) {
@@ -83,6 +82,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                 return;
             }
 
+            const uploadedUrls = [];
             for (const file of files) {
                 const formData = new FormData();
                 formData.append("file", file);
@@ -109,7 +109,13 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
             }
             
             if (uploadedUrls.length > 0) {
-                const newImages = [...(formData as any).images, ...uploadedUrls].slice(0, 5);
+                const currentImages = Array.isArray(formData.images) ? formData.images : [];
+                // Filter out any broken or duplicate URLs
+                const combinedImages = [...currentImages, ...uploadedUrls].filter((url, index, self) => 
+                    url && self.indexOf(url) === index
+                );
+                const newImages = combinedImages.slice(0, 5);
+                
                 setFormData({ 
                     ...formData, 
                     images: newImages,
