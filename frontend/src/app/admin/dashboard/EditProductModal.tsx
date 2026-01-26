@@ -35,6 +35,12 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
         setLoading(true);
         try {
             const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Sessão expirada. Por favor, faça login novamente.");
+                window.location.href = "/admin";
+                return;
+            }
+
             const res = await fetch(`/api/products/${product.id}`, {
                 method: "PUT",
                 headers: {
@@ -43,6 +49,12 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                 },
                 body: JSON.stringify(formData),
             });
+
+            if (res.status === 401) {
+                alert("Sessão expirada. Por favor, faça login novamente.");
+                window.location.href = "/admin";
+                return;
+            }
 
             if (res.ok) {
                 const data = await res.json();
@@ -64,6 +76,12 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
             const files = Array.from(e.target.files).slice(0, 5);
             const uploadedUrls = [];
             const token = localStorage.getItem("token");
+            
+            if (!token) {
+                alert("Sessão expirada. Por favor, faça login novamente.");
+                window.location.href = "/admin";
+                return;
+            }
 
             for (const file of files) {
                 const formData = new FormData();
@@ -74,6 +92,13 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                         headers: { "Authorization": `Bearer ${token}` },
                         body: formData
                     });
+
+                    if (res.status === 401) {
+                        alert("Sessão expirada. Por favor, faça login novamente.");
+                        window.location.href = "/admin";
+                        return;
+                    }
+
                     if (res.ok) {
                         const data = await res.json();
                         uploadedUrls.push(data.url);
@@ -97,6 +122,8 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
     const getImageUrl = (url: string) => {
         if (!url) return "";
         if (url.startsWith("http")) return url;
+        if (url.startsWith("/attached_assets")) return url;
+        if (url.startsWith("/static")) return `/api${url}`;
         return `/api${url}`;
     };
 
