@@ -1,10 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import Header from "@/components/Header/Header";
-import Footer from "@/components/Footer/Footer";
-import styles from "./page.module.css";
-import Link from "next/link";
-import { ArrowLeft, Save } from "lucide-react";
+import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+import styles from "../dashboard.module.css";
+import { Save } from "lucide-react";
 
 export default function AdminAnnouncementPage() {
     const [text, setText] = useState("");
@@ -72,16 +70,14 @@ export default function AdminAnnouncementPage() {
     if (loading) return <div className="container">Carregando...</div>;
 
     return (
-        <main>
-            <Header />
-            <div className="container" style={{ padding: '40px 20px', maxWidth: '600px' }}>
-                <Link href="/admin/dashboard" className={styles.backLink}>
-                    <ArrowLeft size={16} /> Voltar ao Painel
-                </Link>
+        <div className={styles.dashboard}>
+            <AdminSidebar activePath="/admin/dashboard/announcement" />
+            <main className={styles.mainContent}>
+                <header className={styles.header}>
+                    <h1>Configurar Faixa de Aviso</h1>
+                </header>
                 
-                <h1 style={{ margin: '20px 0', color: '#2d5a27' }}>Configurar Faixa de Aviso</h1>
-                
-                <form onSubmit={handleSave} className={styles.form}>
+                <form onSubmit={handleSave} className={styles.form} style={{ maxWidth: '600px', marginTop: '20px' }}>
                     <div className={styles.formGroup}>
                         <label>Texto do Aviso</label>
                         <input 
@@ -114,7 +110,7 @@ export default function AdminAnnouncementPage() {
                         </div>
                     </div>
 
-                    <div className={styles.checkboxGroup}>
+                    <div className={styles.checkboxGroup} style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <input 
                             type="checkbox" 
                             id="isActive"
@@ -146,8 +142,7 @@ export default function AdminAnnouncementPage() {
                         <Save size={18} /> {saving ? "Salvando..." : "Salvar Configurações"}
                     </button>
                 </form>
-            </div>
-            <Footer />
-        </main>
+            </main>
+        </div>
     );
 }

@@ -60,19 +60,7 @@ export default function AdminBoxPage() {
 
     return (
         <div className={styles.dashboard}>
-            <aside className={styles.sidebar}>
-                <div className={styles.logo}>ECOSOPIS ADMIN</div>
-                <nav>
-                    <Link href="/admin/dashboard">Produtos</Link>
-                    <Link href="/admin/dashboard/carousel">Carrossel Hero</Link>
-                    <Link href="/admin/dashboard/announcement">Faixa de Aviso</Link>
-                    <Link href="/admin/dashboard/box" className={styles.active}>Assinaturas Box</Link>
-                    <Link href="/admin/dashboard/usuarios">Usuários</Link>
-                    <Link href="/admin/dashboard/cupons">Cupons</Link>
-                    <Link href="/">Ver Site</Link>
-                    <button onClick={handleLogout} className={styles.logoutBtn}>Sair</button>
-                </nav>
-            </aside>
+            <AdminSidebar activePath="/admin/dashboard/box" />
             <main className={styles.mainContent}>
                 <header className={styles.header}>
                     <h1>Gerenciar Box Surpresa</h1>
