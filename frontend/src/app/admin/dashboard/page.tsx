@@ -39,8 +39,7 @@ export default function AdminDashboard() {
     const getImageUrl = (url: string) => {
         if (!url) return "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
         if (url.startsWith("http")) return url;
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-        return `${apiUrl}/api${url}`;
+        return `/api${url}`;
     };
 
     return (

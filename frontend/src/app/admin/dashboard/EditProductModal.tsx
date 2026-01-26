@@ -35,8 +35,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
         setLoading(true);
         try {
             const token = localStorage.getItem("token");
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-            const res = await fetch(`${apiUrl}/api/products/${product.id}`, {
+            const res = await fetch(`/api/products/${product.id}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -64,14 +63,13 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
         if (e.target.files) {
             const files = Array.from(e.target.files).slice(0, 5);
             const uploadedUrls = [];
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
             const token = localStorage.getItem("token");
 
             for (const file of files) {
                 const formData = new FormData();
                 formData.append("file", file);
                 try {
-                    const res = await fetch(`${apiUrl}/api/products/upload`, {
+                    const res = await fetch(`/api/products/upload`, {
                         method: "POST",
                         headers: { "Authorization": `Bearer ${token}` },
                         body: formData
@@ -99,8 +97,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
     const getImageUrl = (url: string) => {
         if (!url) return "";
         if (url.startsWith("http")) return url;
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-        return `${apiUrl}/api${url}`;
+        return `/api${url}`;
     };
 
     return (
