@@ -30,13 +30,24 @@ export default function ProductsPage() {
     const [activeCategory, setActiveCategory] = useState("all");
     const [activeFilter, setActiveFilter] = useState("all");
 
+    const getImageUrl = (url: string) => {
+        if (!url) return "";
+        if (url.startsWith("http")) return url;
+        if (url.startsWith("/attached_assets")) return `/api/static${url}`;
+        if (url.startsWith("/static")) return `/api${url}`;
+        return `/api/static/uploads/${url.split('/').pop()}`;
+    };
+
     useEffect(() => {
         const fetchProducts = async () => {
             try {
                 const res = await fetch("/api/products");
                 if (!res.ok) throw new Error("Falha ao carregar produtos");
                 const data = await res.json();
-                const products = Array.isArray(data) ? data : [];
+                const products = (Array.isArray(data) ? data : []).map((p: any) => ({
+                    ...p,
+                    image_url: getImageUrl(p.image_url)
+                }));
                 setAllProducts(products);
                 setFilteredProducts(products);
             } catch (error) {

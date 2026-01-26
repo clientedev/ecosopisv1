@@ -380,9 +380,27 @@ def seed():
             db_product = models.Product(**p_data)
             db.add(db_product)
     
-    db.commit()
-    db.close()
+    # Create Initial Carousel Items
+    if db.query(models.CarouselItem).count() == 0:
+        carousel_items = [
+            {
+                "title": "Beleza que Floresce do Interior",
+                "description": "Cosméticos naturais e veganos criados com a pureza da botânica brasileira.",
+                "image_url": "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
+                "badge": "100% VEGANO",
+                "cta_primary_text": "VER PRODUTOS",
+                "cta_primary_link": "/produtos",
+                "cta_secondary_text": "FAZER QUIZZ",
+                "cta_secondary_link": "/quizz"
+            }
+        ]
+        for s_data in carousel_items:
+            item = models.CarouselItem(**s_data)
+            db.add(item)
+        db.commit()
+
     print("Database seeded!")
+    db.close()
 
 if __name__ == "__main__":
     seed()

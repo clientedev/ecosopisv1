@@ -122,9 +122,9 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
     const getImageUrl = (url: string) => {
         if (!url) return "";
         if (url.startsWith("http")) return url;
-        if (url.startsWith("/attached_assets")) return url;
+        if (url.startsWith("/attached_assets")) return `/api/static${url}`;
         if (url.startsWith("/static")) return `/api${url}`;
-        return `/api${url}`;
+        return `/api/static/uploads/${url.split('/').pop()}`;
     };
 
     return (

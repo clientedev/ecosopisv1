@@ -50,6 +50,14 @@ export default function Home() {
     const [slides, setSlides] = useState<any[]>([]);
     const [currentSlide, setCurrentSlide] = useState(0);
 
+    const getImageUrl = (url: string) => {
+        if (!url) return "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
+        if (url.startsWith("http")) return url;
+        if (url.startsWith("/attached_assets")) return `/api/static${url}`;
+        if (url.startsWith("/static")) return `/api${url}`;
+        return `/api/static/uploads/${url.split('/').pop()}`;
+    };
+
     useEffect(() => {
         const fetchCarousel = async () => {
             try {
@@ -61,7 +69,7 @@ export default function Home() {
                             badge: item.badge && item.badge !== "-" ? item.badge : null,
                             title: item.title && item.title !== "-" ? item.title : null,
                             description: item.description && item.description !== "-" ? item.description : null,
-                            image_url: item.image_url,
+                            image_url: getImageUrl(item.image_url),
                             alignment: item.alignment || "center",
                             elements_config: typeof item.elements_config === 'string' ? JSON.parse(item.elements_config) : item.elements_config,
                             ctaPrimary: item.cta_primary_text && item.cta_primary_text !== "-" ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
