@@ -400,7 +400,6 @@ def seed():
                 "cta_primary_link": "/produtos",
                 "cta_secondary_text": "FAZER QUIZZ",
                 "cta_secondary_link": "/quizz",
-                "alignment": "center",
                 "order": 0
             }
         ]
