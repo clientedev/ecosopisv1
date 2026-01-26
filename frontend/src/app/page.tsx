@@ -51,11 +51,11 @@ export default function Home() {
     const [currentSlide, setCurrentSlide] = useState(0);
 
     const getImageUrl = (url: string) => {
-        if (!url) return "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
+        if (!url) return "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
         if (url.startsWith("http")) return url;
-        if (url.startsWith("/attached_assets")) return `/api/static${url}`;
-        if (url.startsWith("/static")) return `/api${url}`;
-        return `/api/static/uploads/${url.split('/').pop()}`;
+        if (url.startsWith("/static")) return url;
+        if (url.startsWith("/attached_assets")) return `/static${url}`;
+        return `/static/uploads/${url.split('/').pop()}`;
     };
 
     useEffect(() => {

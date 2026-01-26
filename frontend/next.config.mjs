@@ -26,18 +26,15 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:8000';
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:8000'}/:path*`,
+        destination: `${apiUrl}/:path*`,
       },
       {
-        source: '/static/uploads/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:8000'}/static/uploads/:path*`,
-      },
-      {
-        source: '/static/attached_assets/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:8000'}/static/attached_assets/:path*`,
+        source: '/static/:path*',
+        destination: `${apiUrl}/static/:path*`,
       },
     ];
   },
