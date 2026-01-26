@@ -3,6 +3,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "../dashboard.module.css"; // Reuse dashboard styles
+import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+
+export const dynamic = 'force-dynamic';
 
 export default function AdminBoxPage() {
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
