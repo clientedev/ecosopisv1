@@ -90,10 +90,12 @@ export default function Home() {
         const fetchRecent = async () => {
             try {
                 const res = await fetch('/api/products');
+                if (!res.ok) throw new Error("Falha ao carregar produtos");
                 const data = await res.json();
-                setRecentProducts(data.slice(0, 4));
+                setRecentProducts(Array.isArray(data) ? data.slice(0, 4) : []);
             } catch (error) {
                 console.error("Error fetching recent products:", error);
+                setRecentProducts([]);
             }
         };
         fetchRecent();
