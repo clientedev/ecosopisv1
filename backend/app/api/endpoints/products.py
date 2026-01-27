@@ -6,8 +6,6 @@ from app.models import models
 from app.schemas import schemas
 from app.api.endpoints.auth import get_current_admin
 from pydantic import BaseModel
-import shutil
-import os
 import uuid
 
 router = APIRouter()
@@ -52,16 +50,22 @@ def update_announcement(data: AnnouncementUpdate, db: Session = Depends(get_db),
 @router.post("/upload")
 async def upload_image(
     file: UploadFile = File(...),
+    db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
-    file_extension = os.path.splitext(file.filename or "")[1]
-    file_name = f"{uuid.uuid4()}{file_extension}"
-    file_path = os.path.join("static/uploads", file_name)
+    content = await file.read()
+    content_type = file.content_type or "image/jpeg"
     
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
-    return {"url": f"/static/uploads/{file_name}"}
+    stored_image = models.StoredImage(
+        filename=file.filename or f"{uuid.uuid4()}.jpg",
+        content_type=content_type,
+        data=content
+    )
+    db.add(stored_image)
+    db.commit()
+    db.refresh(stored_image)
+    
+    return {"url": f"/images/{stored_image.id}"}
 
 class ReviewCreate(BaseModel):
     user_name: str

@@ -5,14 +5,9 @@ from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
 from app.api.endpoints.auth import get_current_admin
-import shutil
-import os
 import uuid
 
 router = APIRouter()
-
-UPLOAD_DIR = "static/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.get("", response_model=List[schemas.CarouselItemResponse])
 def list_carousel_items(db: Session = Depends(get_db)):
@@ -21,7 +16,7 @@ def list_carousel_items(db: Session = Depends(get_db)):
     return items
 
 @router.post("", response_model=schemas.CarouselItemResponse)
-def create_carousel_item(
+async def create_carousel_item(
     badge: Optional[str] = Form(None),
     title: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
@@ -35,17 +30,19 @@ def create_carousel_item(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
-    print(f"DEBUG: Creating carousel item. File present: {file is not None}")
     final_image_url = image_url
     if file and file.filename:
-        # Create static/uploads if it doesn't exist
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        file_ext = file.filename.split(".")[-1]
-        file_name = f"{uuid.uuid4()}.{file_ext}"
-        file_path = os.path.join(UPLOAD_DIR, file_name)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        final_image_url = f"/static/uploads/{file_name}"
+        content = await file.read()
+        content_type = file.content_type or "image/jpeg"
+        stored_image = models.StoredImage(
+            filename=file.filename,
+            content_type=content_type,
+            data=content
+        )
+        db.add(stored_image)
+        db.commit()
+        db.refresh(stored_image)
+        final_image_url = f"/images/{stored_image.id}"
 
     db_item = models.CarouselItem(
         badge=badge,
@@ -61,15 +58,12 @@ def create_carousel_item(
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
-    print(f"DEBUG: Created item with ID {db_item.id}")
-    
-    # Force a refresh of the session to ensure data is loaded
     db.expire_all()
     
     return db_item
 
 @router.put("/{item_id}", response_model=schemas.CarouselItemResponse)
-def update_carousel_item(
+async def update_carousel_item(
     item_id: int,
     badge: Optional[str] = Form(None),
     title: Optional[str] = Form(None),
@@ -90,12 +84,17 @@ def update_carousel_item(
     
     final_image_url = image_url or db_item.image_url
     if file and file.filename:
-        file_ext = file.filename.split(".")[-1]
-        file_name = f"{uuid.uuid4()}.{file_ext}"
-        file_path = os.path.join(UPLOAD_DIR, file_name)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        final_image_url = f"/static/uploads/{file_name}"
+        content = await file.read()
+        content_type = file.content_type or "image/jpeg"
+        stored_image = models.StoredImage(
+            filename=file.filename,
+            content_type=content_type,
+            data=content
+        )
+        db.add(stored_image)
+        db.commit()
+        db.refresh(stored_image)
+        final_image_url = f"/images/{stored_image.id}"
 
     db_item.badge = str(badge) if badge is not None else None
     db_item.title = str(title) if title is not None else None
