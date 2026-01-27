@@ -26,7 +26,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:8000';
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:8000').replace(/^http:/, 'https:');
     return [
       {
         source: '/api/:path*',
