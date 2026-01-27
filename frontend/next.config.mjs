@@ -26,19 +26,21 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   async rewrites() {
-    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:8000').replace(/^http:/, 'https:');
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:8000').replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const protocol = (process.env.NEXT_PUBLIC_API_URL || '').startsWith('https') ? 'https' : 'http';
+    
     return [
       {
         source: '/api/:path*',
-        destination: `${apiUrl}/:path*`,
+        destination: `${protocol}://${apiUrl}/:path*`,
       },
       {
         source: '/static/:path*',
-        destination: `${apiUrl}/static/:path*`,
+        destination: `${protocol}://${apiUrl}/static/:path*`,
       },
       {
         source: '/images/:path*',
-        destination: `${apiUrl}/images/:path*`,
+        destination: `${protocol}://${apiUrl}/images/:path*`,
       },
     ];
   },
