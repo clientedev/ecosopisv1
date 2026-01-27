@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 from app.core.database import engine, Base
 from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +17,7 @@ except Exception as e:
     print(f"Seed already exists or error: {e}")
 
 app = FastAPI(title="ECOSOPIS API", version="1.0.0")
+app.add_middleware(ProxyHeadersMiddleware, trust_proxies=["*"])
 
 # Ensure static directory exists
 os.makedirs("static/uploads", exist_ok=True)

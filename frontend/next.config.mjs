@@ -33,10 +33,6 @@ const nextConfig = {
         destination: `${apiUrl}/:path*`,
       },
       {
-        source: '/static/:path*',
-        destination: `${apiUrl}/static/:path*`,
-      },
-      {
         source: '/images/:path*',
         destination: `${apiUrl}/images/:path*`,
       },
