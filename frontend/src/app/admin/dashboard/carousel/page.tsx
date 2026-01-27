@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import styles from "../dashboard.module.css";
 import EditCarouselModal from "./EditCarouselModal";
+import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
 export default function CarouselAdmin() {
     const [items, setItems] = useState<any[]>([]);
@@ -14,7 +14,6 @@ export default function CarouselAdmin() {
 
     const fetchItems = async () => {
         try {
-            console.log("Fetching carousel items...");
             const res = await fetch('/api/carousel', {
                 cache: 'no-store',
                 headers: {
@@ -22,12 +21,9 @@ export default function CarouselAdmin() {
                 }
             });
             if (!res.ok) {
-                const errorText = await res.text();
-                console.error("Fetch failed:", res.status, errorText);
                 return;
             }
             const data = await res.json();
-            console.log("Fetched data:", data);
             setItems(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Error fetching carousel items:", error);
@@ -45,11 +41,6 @@ export default function CarouselAdmin() {
         fetchItems();
     }, [router]);
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        router.push("/admin");
-    };
-
     const handleDelete = async (id: number) => {
         if (!confirm("Tem certeza que deseja excluir este slide?")) return;
         try {
@@ -65,17 +56,7 @@ export default function CarouselAdmin() {
 
     return (
         <div className={styles.dashboard}>
-            <aside className={styles.sidebar}>
-                <div className={styles.logo}>ECOSOPIS ADMIN</div>
-                <nav>
-                    <Link href="/admin/dashboard">Produtos</Link>
-                    <Link href="/admin/dashboard/carousel" className={styles.active}>Carrossel Hero</Link>
-                    <Link href="/admin/dashboard/usuarios">Usuários</Link>
-                    <Link href="/admin/dashboard/cupons">Cupons</Link>
-                    <Link href="/">Ver Site</Link>
-                    <button onClick={handleLogout} className={styles.logoutBtn}>Sair</button>
-                </nav>
-            </aside>
+            <AdminSidebar activePath="/admin/dashboard/carousel" />
             <main className={styles.mainContent}>
                 <header className={styles.header}>
                     <h1>Gerenciar Carrossel Hero</h1>

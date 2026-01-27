@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import styles from "../dashboard.module.css";
+import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
 export default function CouponManagement() {
     const [coupons, setCoupons] = useState([]);
@@ -101,23 +101,9 @@ export default function CouponManagement() {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        router.push("/admin");
-    };
-
     return (
         <div className={styles.dashboard}>
-            <aside className={styles.sidebar}>
-                <div className={styles.logo}>ECOSOPIS ADMIN</div>
-                <nav>
-                    <Link href="/admin/dashboard">Produtos</Link>
-                    <Link href="/admin/dashboard/usuarios">Usuários</Link>
-                    <Link href="/admin/dashboard/cupons" className={styles.active}>Cupons</Link>
-                    <Link href="/">Ver Site</Link>
-                    <button onClick={handleLogout} className={styles.logoutBtn}>Sair</button>
-                </nav>
-            </aside>
+            <AdminSidebar activePath="/admin/dashboard/cupons" />
             <main className={styles.mainContent}>
                 <header className={styles.header}>
                     <h1>Gerenciar Cupons</h1>
