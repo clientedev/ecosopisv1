@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@/styles/globals.css";
 import { Raleway, Karla } from "next/font/google";
 import ChatIA from "@/components/ChatIA/ChatIA";
+import { AuthProvider } from "@/context/AuthContext";
 
 const raleway = Raleway({
     subsets: ["latin"],
@@ -26,8 +27,10 @@ export default function RootLayout({
     return (
         <html lang="pt-BR">
             <body className={`${raleway.variable} ${karla.variable}`} suppressHydrationWarning={true}>
-                {children}
-                <ChatIA />
+                <AuthProvider>
+                    {children}
+                    <ChatIA />
+                </AuthProvider>
             </body>
         </html>
     );
