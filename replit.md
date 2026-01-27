@@ -37,6 +37,12 @@ The backend follows a layered architecture:
 - **User**: Authentication with email/password, roles (admin/client)
 - **Product**: Full product catalog with tags, multiple sales channels (site, MercadoLivre, Shopee)
 - **Order**: Order tracking with status, items, and shipping address (JSON fields)
+- **StoredImage**: Images stored as binary data in PostgreSQL (persists across redeploys)
+
+### Image Storage
+Images are stored directly in PostgreSQL using the `stored_images` table. This ensures images persist across Railway redeploys. The image endpoints are:
+- `POST /images/upload` - Upload image (returns `/images/{id}` URL)
+- `GET /images/{id}` - Retrieve image by ID
 
 ### Authentication Flow
 1. User submits credentials via OAuth2PasswordRequestForm
