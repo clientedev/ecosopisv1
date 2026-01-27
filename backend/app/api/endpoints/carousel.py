@@ -42,7 +42,7 @@ async def create_carousel_item(
         db.add(stored_image)
         db.commit()
         db.refresh(stored_image)
-        final_image_url = f"/images/{stored_image.id}"
+        final_image_url = f"/api/images/{stored_image.id}"
 
     db_item = models.CarouselItem(
         badge=badge,
@@ -94,7 +94,7 @@ async def update_carousel_item(
         db.add(stored_image)
         db.commit()
         db.refresh(stored_image)
-        final_image_url = f"/images/{stored_image.id}"
+        final_image_url = f"/api/images/{stored_image.id}"
 
     db_item.badge = str(badge) if badge is not None else None
     db_item.title = str(title) if title is not None else None

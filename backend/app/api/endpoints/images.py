@@ -26,7 +26,7 @@ async def upload_image(
     db.commit()
     db.refresh(stored_image)
     
-    return {"url": f"/images/{stored_image.id}", "id": stored_image.id}
+    return {"url": f"/api/images/{stored_image.id}", "id": stored_image.id}
 
 @router.get("/{image_id}")
 def get_image(image_id: int, db: Session = Depends(get_db)):

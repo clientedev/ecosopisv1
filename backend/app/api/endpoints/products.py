@@ -65,7 +65,7 @@ async def upload_image(
     db.commit()
     db.refresh(stored_image)
     
-    return {"url": f"/images/{stored_image.id}"}
+    return {"url": f"/api/images/{stored_image.id}"}
 
 class ReviewCreate(BaseModel):
     user_name: str
