@@ -3,21 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images
 
-# Create database tables
+# Create database tables and seed
+# This is now handled by run_migrations.py in the workflow, 
+# but we keep create_all for safety.
 Base.metadata.create_all(bind=engine)
-
-# Seed database
-import subprocess
-import sys
-
-def run_seed():
-    try:
-        print("Running database seed...")
-        subprocess.run([sys.executable, "seed.py"], check=True)
-    except Exception as e:
-        print(f"Error seeding database: {e}")
-
-run_seed()
 
 from fastapi.staticfiles import StaticFiles
 import os
