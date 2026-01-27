@@ -26,18 +26,19 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   async rewrites() {
+    const apiUrl = 'https://web-production-33f04.up.railway.app';
     return [
       {
         source: '/api/:path*',
-        destination: `https://web-production-33f04.up.railway.app/:path*`,
+        destination: `${apiUrl}/:path*`,
       },
       {
         source: '/static/:path*',
-        destination: `https://web-production-33f04.up.railway.app/static/:path*`,
+        destination: `${apiUrl}/static/:path*`,
       },
       {
         source: '/images/:path*',
-        destination: `https://web-production-33f04.up.railway.app/images/:path*`,
+        destination: `${apiUrl}/images/:path*`,
       },
     ];
   },
