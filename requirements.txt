@@ -106,3 +106,4 @@ python-jose[cryptography]
 python-multipart
 sqlalchemy
 uvicorn[standard]
+starlette
