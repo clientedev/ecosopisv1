@@ -53,9 +53,11 @@ export default function Home() {
     const getImageUrl = (url: string) => {
         if (!url) return "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
         if (url.startsWith("http")) return url;
-        if (url.startsWith("/static")) return url;
-        if (url.startsWith("/attached_assets")) return `/static${url}`;
-        return `/static/uploads/${url.split('/').pop()}`;
+        if (url.startsWith("/api/")) return url;
+        if (url.startsWith("/static/")) return url;
+        if (url.startsWith("/images/")) return `/api${url}`;
+        if (url.startsWith("/attached_assets/")) return `/static${url}`;
+        return url;
     };
 
     useEffect(() => {

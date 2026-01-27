@@ -1,0 +1,33 @@
+Este repositório é um MONOREPO com múltiplos serviços (frontend e backend).
+O deploy no Railway está falhando por dois motivos distintos:
+1) Vulnerabilidades HIGH no Next.js (uso de next@14.2.3).
+2) Tentativa indevida de instalar Python via mise durante o build, o que quebra a imagem no Railway.
+
+Objetivo único:
+Fazer com que TODOS os serviços do monorepo consigam buildar e fazer deploy no Railway com sucesso, sem alterar o comportamento do sistema.
+
+Regras obrigatórias (não viole nenhuma):
+1. Localize TODOS os package.json e package-lock.json existentes no monorepo (incluindo raiz e subpastas).
+2. Atualize qualquer dependência do Next.js para exatamente a versão 14.2.35.
+3. Elimine completamente qualquer vestígio da versão vulnerável next@14.2.3 do repositório.
+4. Remova totalmente qualquer configuração relacionada a mise e Python que esteja afetando o build (ex.: .mise.toml, .tool-versions, scripts ou chamadas automáticas).
+5. Garanta que o ambiente de build seja exclusivamente Node.js.
+6. NÃO altere código de aplicação, lógica de negócio, componentes, rotas, estilos ou integrações.
+7. NÃO adicione, remova ou atualize nenhum pacote além do Next.js.
+8. NÃO refatore estrutura de pastas ou scripts que não sejam estritamente necessários para corrigir o build.
+9. NÃO use flags de força (--force, --legacy-peer-deps).
+10. Regenere corretamente os package-lock.json afetados, garantindo consistência.
+11. Garanta que cada serviço continue buildando de forma independente.
+12. Confirme ao final que não existe nenhuma referência a:
+   - next@14.2.3
+   - mise
+   - python
+   em arquivos que impactem o build do Railway.
+
+Resultado esperado:
+- O Railway não deve mais tentar instalar Python ou mise.
+- Nenhum serviço deve falhar por security scan do Next.js.
+- Todos os serviços do monorepo devem buildar e inicializar corretamente no Railway.
+- O comportamento do sistema deve permanecer exatamente igual ao atual.
+
+Execute somente as ações necessárias para cumprir esse objetivo e nada além disso.
