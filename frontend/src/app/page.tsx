@@ -2,6 +2,7 @@
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import ProductCard from "@/components/ProductCard/ProductCard";
+import NewsSection from "@/components/NewsSection/NewsSection";
 import styles from "./page.module.css";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -203,6 +204,9 @@ export default function Home() {
                     <Link href="/quizz" className="btn-primary">INICIAR CONSULTORIA GRATUITA</Link>
                 </div>
             </section>
+
+            {/* News Section */}
+            <NewsSection />
 
             {/* Reviews Section */}
             <section className={styles.reviewsSection}>

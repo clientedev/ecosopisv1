@@ -148,3 +148,26 @@ class News(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User")
+    likes = relationship("NewsLike", back_populates="news", cascade="all, delete-orphan")
+    comments = relationship("NewsComment", back_populates="news", cascade="all, delete-orphan")
+
+class NewsLike(Base):
+    __tablename__ = "news_likes"
+    id = Column(Integer, primary_key=True, index=True)
+    news_id = Column(Integer, ForeignKey("news.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    news = relationship("News", back_populates="likes")
+    user = relationship("User")
+
+class NewsComment(Base):
+    __tablename__ = "news_comments"
+    id = Column(Integer, primary_key=True, index=True)
+    news_id = Column(Integer, ForeignKey("news.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    news = relationship("News", back_populates="comments")
+    user = relationship("User")

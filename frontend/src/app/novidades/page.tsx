@@ -28,7 +28,11 @@ export default function NewsPage() {
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch('/api/news');
+      const token = localStorage.getItem('token');
+      const headers: any = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      
+      const response = await fetch('/api/news', { headers });
       if (response.ok) {
         const data = await response.json();
         setPosts(data);
@@ -37,6 +41,49 @@ export default function NewsPage() {
       console.error('Error fetching news:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLike = async (postId: number) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Você precisa estar logado para curtir!');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/news/${postId}/like`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) fetchPosts();
+    } catch (err) {
+      console.error('Error liking post:', err);
+    }
+  };
+
+  const handleComment = async (postId: number) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Você precisa estar logado para comentar!');
+      return;
+    }
+
+    const content = prompt('Digite seu comentário:');
+    if (!content) return;
+
+    try {
+      const res = await fetch(`/api/news/${postId}/comment`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content })
+      });
+      if (res.ok) fetchPosts();
+    } catch (err) {
+      console.error('Error commenting:', err);
     }
   };
 
@@ -129,23 +176,38 @@ export default function NewsPage() {
                     <p className={styles.postExcerpt}>{post.content}</p>
                     
                     <div className={styles.postFooter}>
-                      <div className={styles.interactions}>
-                        <button className={styles.interactionBtn} title="Curtir">
-                          <Heart size={20} />
-                        </button>
-                        <button className={styles.interactionBtn} title="Comentar">
-                          <MessageCircle size={20} />
-                        </button>
-                        <button className={styles.interactionBtn} title="Salvar">
-                          <Bookmark size={20} />
-                        </button>
+                  <div className={styles.px6Py4BorderTBorderStone101}>
+                  <button 
+                    onClick={() => handleLike(post.id)}
+                    className={`${styles.interactionBtn} ${post.is_liked ? styles.liked : ''}`}
+                  >
+                    <Heart size={20} fill={post.is_liked ? "currentColor" : "none"} />
+                    <span>{post.likes_count || 0}</span>
+                  </button>
+                  <button 
+                    onClick={() => handleComment(post.id)}
+                    className={styles.interactionBtn}
+                  >
+                    <MessageCircle size={20} />
+                    <span>{post.comments?.length || 0}</span>
+                  </button>
+                  <button className={styles.interactionBtn}>
+                    <Bookmark size={20} />
+                  </button>
+                  <button className={styles.shareBtn}>
+                    <Share2 size={18} />
+                  </button>
+                </div>
+
+                {post.comments && post.comments.length > 0 && (
+                  <div className={styles.commentsList}>
+                    {post.comments.map((comment: any) => (
+                      <div key={comment.id} className={styles.commentItem}>
+                        <strong>{comment.user?.full_name}:</strong> {comment.content}
                       </div>
-                      <button className={styles.shareBtn}>
-                        <Share2 size={18} />
-                      </button>
-                    </div>
+                    ))}
                   </div>
-                </article>
+                )}
               ))}
             </div>
           )}

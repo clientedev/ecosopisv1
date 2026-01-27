@@ -143,6 +143,15 @@ class ProductResponse(ProductBase):
         from_attributes = True
 
 # News Schemas
+class NewsCommentResponse(BaseModel):
+    id: int
+    content: str
+    user: UserResponse
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class NewsBase(BaseModel):
     title: str
     content: str
@@ -157,6 +166,12 @@ class NewsResponse(NewsBase):
     user_id: int
     created_at: datetime
     user: Optional[UserResponse] = None
+    likes_count: int = 0
+    is_liked: bool = False
+    comments: List[NewsCommentResponse] = []
 
     class Config:
         from_attributes = True
+
+class NewsCommentCreate(BaseModel):
+    content: str
