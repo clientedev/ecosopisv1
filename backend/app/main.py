@@ -8,6 +8,13 @@ import os
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+# In production, seed might be needed on first run
+from seed import seed
+try:
+    seed()
+except Exception as e:
+    print(f"Seed already exists or error: {e}")
+
 app = FastAPI(title="ECOSOPIS API", version="1.0.0")
 
 # Ensure static directory exists

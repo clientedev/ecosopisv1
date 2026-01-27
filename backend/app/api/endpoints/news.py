@@ -83,7 +83,8 @@ async def create_news(
                 
             # Use existing image storage logic
             file_content = await file.read()
-            new_image = models.StoredImage(data=file_content, filename=file.filename)
+            content_type = file.content_type or "application/octet-stream"
+            new_image = models.StoredImage(data=file_content, filename=file.filename, content_type=content_type)
             db.add(new_image)
             db.flush() # Get ID
             # In production, ensure absolute URL or relative with protocol
