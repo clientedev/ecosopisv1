@@ -1,1 +1,2 @@
-web: uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+release: cd /app && python run_migrations.py
+web: cd /app && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
