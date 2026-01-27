@@ -135,3 +135,16 @@ class Coupon(Base):
     usage_limit = Column(Integer, nullable=True)
     usage_count = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class News(Base):
+    __tablename__ = "news"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    media_url = Column(String) # Image or Video URL
+    media_type = Column(String) # "image" or "video"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")

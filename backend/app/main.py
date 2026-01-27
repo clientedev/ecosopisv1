@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
-from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images
+from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news
 
 # Create database tables and seed
 # This is now handled by run_migrations.py in the workflow, 
@@ -38,6 +38,7 @@ app.include_router(orders.router, prefix="/orders", tags=["orders"])
 app.include_router(settings.router, prefix="/settings", tags=["settings"])
 app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 app.include_router(images.router, prefix="/images", tags=["images"])
+app.include_router(news.router, prefix="/news", tags=["news"])
 
 if __name__ == "__main__":
     import uvicorn

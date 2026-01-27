@@ -141,3 +141,22 @@ class ProductResponse(ProductBase):
 
     class Config:
         from_attributes = True
+
+# News Schemas
+class NewsBase(BaseModel):
+    title: str
+    content: str
+    media_url: Optional[str] = None
+    media_type: Optional[str] = "image" # "image" or "video"
+
+class NewsCreate(NewsBase):
+    pass
+
+class NewsResponse(NewsBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    user: Optional[UserResponse] = None
+
+    class Config:
+        from_attributes = True
