@@ -23,6 +23,8 @@ export default function NovidadesAdmin() {
     const [content, setContent] = useState('');
     const [mediaUrl, setMediaUrl] = useState('');
     const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+    const [file, setFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
 
@@ -56,28 +58,32 @@ export default function NovidadesAdmin() {
 
         setIsSubmitting(true);
         try {
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('content', content);
+            if (mediaUrl) formData.append('media_url', mediaUrl);
+            formData.append('media_type', mediaType);
+            if (file) formData.append('file', file);
+
             const response = await fetch('/api/news', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    title,
-                    content,
-                    media_url: mediaUrl || null,
-                    media_type: mediaUrl ? mediaType : null
-                })
+                body: formData
             });
 
             if (response.ok) {
                 setTitle('');
                 setContent('');
                 setMediaUrl('');
+                setFile(null);
+                setPreviewUrl('');
                 setShowModal(false);
                 fetchPosts();
             } else {
-                alert('Erro ao criar postagem');
+                const errData = await response.json();
+                alert(`Erro ao criar postagem: ${errData.detail || 'Erro desconhecido'}`);
             }
         } catch (error) {
             console.error('Error creating post:', error);
@@ -307,44 +313,54 @@ export default function NovidadesAdmin() {
 
                                 <div className={styles.formGrid}>
                                     <div className={styles.formGroup}>
-                                        <label>URL da Mídia (opcional)</label>
+                                        <label>Anexar Mídia (Imagem ou Vídeo)</label>
                                         <input
-                                            type="text"
-                                            value={mediaUrl}
-                                            onChange={(e) => setMediaUrl(e.target.value)}
-                                            placeholder="https://..."
+                                            type="file"
+                                            accept="image/*,video/*"
+                                            onChange={(e) => {
+                                                const selectedFile = e.target.files?.[0];
+                                                if (selectedFile) {
+                                                    setFile(selectedFile);
+                                                    setPreviewUrl(URL.createObjectURL(selectedFile));
+                                                    if (selectedFile.type.startsWith('video/')) {
+                                                        setMediaType('video');
+                                                    } else {
+                                                        setMediaType('image');
+                                                    }
+                                                }
+                                            }}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                border: '1px solid #cbd5e1',
+                                                borderRadius: '0.5rem',
+                                                fontSize: '0.875rem'
+                                            }}
                                         />
-                                        <p className={styles.helpText}>Cole a URL de uma imagem ou vídeo</p>
                                     </div>
 
                                     <div className={styles.formGroup}>
-                                        <label>Tipo de Mídia</label>
-                                        <select
-                                            value={mediaType}
-                                            onChange={(e) => setMediaType(e.target.value as 'image' | 'video')}
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.75rem 1rem',
-                                                border: '1px solid #cbd5e1',
-                                                borderRadius: '0.5rem',
-                                                fontSize: '0.875rem',
-                                                backgroundColor: 'white'
+                                        <label>Ou URL da Mídia</label>
+                                        <input
+                                            type="text"
+                                            value={mediaUrl}
+                                            onChange={(e) => {
+                                                setMediaUrl(e.target.value);
+                                                setPreviewUrl(e.target.value);
                                             }}
-                                        >
-                                            <option value="image">Imagem</option>
-                                            <option value="video">Vídeo</option>
-                                        </select>
+                                            placeholder="https://..."
+                                        />
                                     </div>
                                 </div>
 
-                                {mediaUrl && (
+                                {(previewUrl || mediaUrl) && (
                                     <div style={{ marginBottom: '1.5rem' }}>
                                         <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#334155', marginBottom: '0.5rem' }}>
                                             Pré-visualização
                                         </label>
                                         {mediaType === 'video' ? (
                                             <video 
-                                                src={mediaUrl} 
+                                                src={previewUrl || mediaUrl} 
                                                 controls 
                                                 style={{ 
                                                     width: '100%', 
@@ -355,7 +371,7 @@ export default function NovidadesAdmin() {
                                             />
                                         ) : (
                                             <img 
-                                                src={mediaUrl} 
+                                                src={previewUrl || mediaUrl} 
                                                 alt="Preview" 
                                                 style={{ 
                                                     maxWidth: '100%', 
@@ -363,9 +379,6 @@ export default function NovidadesAdmin() {
                                                     borderRadius: '0.5rem',
                                                     objectFit: 'cover'
                                                 }} 
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                }}
                                             />
                                         )}
                                     </div>

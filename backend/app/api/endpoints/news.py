@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import json
 from app.api.endpoints import auth
 from app.core.database import get_db
 from app.models import models
@@ -59,12 +60,40 @@ def comment_news(
     return new_comment
 
 @router.post("/", response_model=schemas.NewsResponse)
-def create_news(
-    news_in: schemas.NewsCreate,
+async def create_news(
+    title: str = Form(...),
+    content: str = Form(...),
+    media_url: Optional[str] = Form(None),
+    media_type: Optional[str] = Form("image"),
+    file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    db_news = models.News(**news_in.dict(), user_id=current_user.id)
+    final_media_url = media_url
+    final_media_type = media_type
+
+    if file:
+        # Check file type
+        content_type = file.content_type
+        if content_type.startswith("video/"):
+            final_media_type = "video"
+        else:
+            final_media_type = "image"
+            
+        # Use existing image storage logic
+        file_content = await file.read()
+        new_image = models.StoredImage(data=file_content, filename=file.filename)
+        db.add(new_image)
+        db.flush() # Get ID
+        final_media_url = f"/api/images/{new_image.id}"
+
+    db_news = models.News(
+        title=title,
+        content=content,
+        media_url=final_media_url,
+        media_type=final_media_type,
+        user_id=current_user.id
+    )
     db.add(db_news)
     db.commit()
     db.refresh(db_news)
