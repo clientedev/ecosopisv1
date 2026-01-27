@@ -39,7 +39,7 @@ export default function NovidadesAdmin() {
 
     const fetchPosts = async () => {
         try {
-            const res = await fetch('https://web-production-33f04.up.railway.app/news/');
+            const res = await fetch('/api/news/');
             if (res.ok) {
                 const data = await res.json();
                 setPosts(data);
@@ -65,7 +65,7 @@ export default function NovidadesAdmin() {
             formData.append('media_type', mediaType);
             if (file) formData.append('file', file);
 
-            const response = await fetch('https://web-production-33f04.up.railway.app/news/', {
+            const response = await fetch('/api/news/', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
