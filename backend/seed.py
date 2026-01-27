@@ -407,6 +407,28 @@ def seed():
             item = models.CarouselItem(**s_data)
             db.add(item)
     
+    # Create Initial News Posts
+    if db.query(models.News).count() == 0 and admin:
+        news_posts = [
+            {
+                "title": "A Magia do Açafrão na Cosmética Natural",
+                "content": "Você sabia que o açafrão é um dos melhores aliados para peles com foliculite? Descubra como esse tempero milenar pode transformar seu ritual de beleza.",
+                "media_url": "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
+                "media_type": "image",
+                "user_id": admin.id
+            },
+            {
+                "title": "Guia Prático: Como Identificar seu Tipo de Pele",
+                "content": "Pele seca, oleosa ou mista? Aprender a identificar seu tipo de pele é o primeiro passo para uma rotina de skincare eficiente e consciente.",
+                "media_url": "/static/attached_assets/generated_images/skincare_serum_bottle_botanical_setup.png",
+                "media_type": "image",
+                "user_id": admin.id
+            }
+        ]
+        for n_data in news_posts:
+            news = models.News(**n_data)
+            db.add(news)
+            
     db.commit()
 
     print("Database seeded!")

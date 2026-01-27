@@ -14,6 +14,9 @@ def run_migrations():
         Base.metadata.create_all(bind=engine)
         logger.info("✓ Tables created/updated successfully.")
         
+        # Check if news tables need to be created (SQLAlchemy metadata handles this, but we log it)
+        logger.info("Verifying News, NewsLike, and NewsComment tables...")
+        
         # Run seed data
         logger.info("Starting data seeding...")
         seed()
