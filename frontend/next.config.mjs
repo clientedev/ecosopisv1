@@ -26,21 +26,18 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   async rewrites() {
-    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:8000').replace(/^https?:\/\//, '').replace(/\/$/, '');
-    const protocol = (process.env.NEXT_PUBLIC_API_URL || '').startsWith('https') ? 'https' : 'http';
-    
     return [
       {
         source: '/api/:path*',
-        destination: `${protocol}://${apiUrl}/:path*`,
+        destination: `https://web-production-33f04.up.railway.app/:path*`,
       },
       {
         source: '/static/:path*',
-        destination: `${protocol}://${apiUrl}/static/:path*`,
+        destination: `https://web-production-33f04.up.railway.app/static/:path*`,
       },
       {
         source: '/images/:path*',
-        destination: `${protocol}://${apiUrl}/images/:path*`,
+        destination: `https://web-production-33f04.up.railway.app/images/:path*`,
       },
     ];
   },

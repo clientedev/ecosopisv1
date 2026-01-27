@@ -35,7 +35,7 @@ export default function NewsPage() {
       const headers: any = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
       
-      const response = await fetch('/api/news', { headers });
+      const response = await fetch('https://web-production-33f04.up.railway.app/news/', { headers });
       if (response.ok) {
         const data = await response.json();
         setPosts(data);

@@ -73,19 +73,23 @@ async def create_news(
     final_media_type = media_type
 
     if file:
-        # Check file type
-        content_type = file.content_type
-        if content_type.startswith("video/"):
-            final_media_type = "video"
-        else:
-            final_media_type = "image"
-            
-        # Use existing image storage logic
-        file_content = await file.read()
-        new_image = models.StoredImage(data=file_content, filename=file.filename)
-        db.add(new_image)
-        db.flush() # Get ID
-        final_media_url = f"/api/images/{new_image.id}"
+        try:
+            # Check file type
+            content_type = file.content_type
+            if content_type.startswith("video/"):
+                final_media_type = "video"
+            else:
+                final_media_type = "image"
+                
+            # Use existing image storage logic
+            file_content = await file.read()
+            new_image = models.StoredImage(data=file_content, filename=file.filename)
+            db.add(new_image)
+            db.flush() # Get ID
+            # In production, ensure absolute URL or relative with protocol
+            final_media_url = f"/api/images/{new_image.id}"
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
     db_news = models.News(
         title=title,

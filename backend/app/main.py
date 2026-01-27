@@ -2,14 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news
-
-# Create database tables and seed
-# This is now handled by run_migrations.py in the workflow, 
-# but we keep create_all for safety.
-Base.metadata.create_all(bind=engine)
-
 from fastapi.staticfiles import StaticFiles
 import os
+
+# Create database tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="ECOSOPIS API", version="1.0.0")
 
@@ -20,7 +17,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace with specific domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
