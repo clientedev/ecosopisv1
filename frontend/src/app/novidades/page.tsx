@@ -19,6 +19,9 @@ interface NewsPost {
     full_name: string;
     email: string;
   };
+  likes_count: number;
+  is_liked: boolean;
+  comments: any[];
 }
 
 export default function NewsPage() {
@@ -175,39 +178,40 @@ export default function NewsPage() {
                     <h2 className={styles.postTitle}>{post.title}</h2>
                     <p className={styles.postExcerpt}>{post.content}</p>
                     
-                    <div className={styles.postFooter}>
-                  <div className={styles.px6Py4BorderTBorderStone101}>
-                  <button 
-                    onClick={() => handleLike(post.id)}
-                    className={`${styles.interactionBtn} ${post.is_liked ? styles.liked : ''}`}
-                  >
-                    <Heart size={20} fill={post.is_liked ? "currentColor" : "none"} />
-                    <span>{post.likes_count || 0}</span>
-                  </button>
-                  <button 
-                    onClick={() => handleComment(post.id)}
-                    className={styles.interactionBtn}
-                  >
-                    <MessageCircle size={20} />
-                    <span>{post.comments?.length || 0}</span>
-                  </button>
-                  <button className={styles.interactionBtn}>
-                    <Bookmark size={20} />
-                  </button>
-                  <button className={styles.shareBtn}>
-                    <Share2 size={18} />
-                  </button>
-                </div>
+                    <div className={styles.px6Py4BorderTBorderStone101}>
+                      <button 
+                        onClick={() => handleLike(post.id)}
+                        className={`${styles.interactionBtn} ${post.is_liked ? styles.liked : ''}`}
+                      >
+                        <Heart size={20} fill={post.is_liked ? "currentColor" : "none"} />
+                        <span>{post.likes_count || 0}</span>
+                      </button>
+                      <button 
+                        onClick={() => handleComment(post.id)}
+                        className={styles.interactionBtn}
+                      >
+                        <MessageCircle size={20} />
+                        <span>{post.comments?.length || 0}</span>
+                      </button>
+                      <button className={styles.interactionBtn}>
+                        <Bookmark size={20} />
+                      </button>
+                      <button className={styles.shareBtn}>
+                        <Share2 size={18} />
+                      </button>
+                    </div>
 
-                {post.comments && post.comments.length > 0 && (
-                  <div className={styles.commentsList}>
-                    {post.comments.map((comment: any) => (
-                      <div key={comment.id} className={styles.commentItem}>
-                        <strong>{comment.user?.full_name}:</strong> {comment.content}
+                    {post.comments && post.comments.length > 0 && (
+                      <div className={styles.commentsList}>
+                        {post.comments.map((comment: any) => (
+                          <div key={comment.id} className={styles.commentItem}>
+                            <strong>{comment.user?.full_name}:</strong> {comment.content}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
+                </article>
               ))}
             </div>
           )}
