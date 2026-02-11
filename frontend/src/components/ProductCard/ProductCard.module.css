@@ -80,6 +80,34 @@
     font-weight: 700;
     color: var(--text-secondary);
     border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    height: 38px;
+}
+
+.shopeeLink {
+    border: 1px solid #ee4d2d;
+    padding: 6px;
+    color: #ee4d2d;
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    transition: var(--transition);
+}
+
+.shopeeLink svg {
+    width: 20px;
+    height: 20px;
+}
+
+.shopeeLink:hover {
+    background-color: #ee4d2d;
+    color: white;
 }
 
 .externalLink:hover {

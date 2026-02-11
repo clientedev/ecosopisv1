@@ -123,6 +123,13 @@ class CarouselItemBase(BaseModel):
     cta_secondary_text: Optional[str] = None
     cta_secondary_link: Optional[str] = None
     order: int = 0
+    alignment: Optional[str] = "left"
+    title_color: Optional[str] = "#ffffff"
+    description_color: Optional[str] = "#ffffff"
+    badge_color: Optional[str] = "#ffffff"
+    badge_bg_color: Optional[str] = "#4a7c59"
+    overlay_color: Optional[str] = "#000000"
+    overlay_opacity: Optional[float] = 0.3
     is_active: bool = True
 
 class CarouselItemCreate(CarouselItemBase):
@@ -163,7 +170,7 @@ class NewsCreate(NewsBase):
 
 class NewsResponse(NewsBase):
     id: int
-    user_id: int
+    user_id: Optional[int] = None
     created_at: datetime
     user: Optional[UserResponse] = None
     likes_count: int = 0
@@ -175,3 +182,17 @@ class NewsResponse(NewsBase):
 
 class NewsCommentCreate(BaseModel):
     content: str
+
+# Metrics Schemas
+class SiteVisitLog(BaseModel):
+    path: str
+
+class ProductClickLog(BaseModel):
+    product_id: int
+    click_type: str # "shopee", "mercadolivre", "site"
+
+class MetricsSummary(BaseModel):
+    total_visits: int
+    total_clicks: int
+    clicks_by_type: Dict[str, int]
+    clicks_by_product: List[Dict[str, Any]]

@@ -26,6 +26,7 @@ export default function NovidadesAdmin() {
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [statusMessage, setStatusMessage] = useState('');
     const router = useRouter();
 
     useEffect(() => {
@@ -39,7 +40,7 @@ export default function NovidadesAdmin() {
 
     const fetchPosts = async () => {
         try {
-            const res = await fetch('/api/news/', { 
+            const res = await fetch('/api/news', {
                 cache: 'no-store'
             });
             if (res.ok) {
@@ -56,18 +57,56 @@ export default function NovidadesAdmin() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const token = localStorage.getItem("token");
-        if (!token) return;
+
+        if (!token) {
+            alert('Erro: Você não está logado. Por favor, volte para a tela de login.');
+            router.push('/admin');
+            return;
+        }
+
+        if (!title || !content) {
+            alert('Por favor, preencha o título e o conteúdo.');
+            return;
+        }
 
         setIsSubmitting(true);
+        setStatusMessage('Verificando sessão...');
+
         try {
+            // 1. Verify token before everything
+            console.log("DEBUG: Verifying session...");
+            const verifyRes = await fetch('/api/auth/verify-token', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!verifyRes.ok) {
+                const err = await verifyRes.json();
+                console.error("Session invalid:", err);
+                setStatusMessage('');
+                alert('Sessão expirada ou inválida. Por favor, faça login novamente.');
+                localStorage.removeItem("token");
+                router.push('/admin');
+                return;
+            }
+
+            // 2. Prepare data
+            setStatusMessage('Preparando mídia...');
             const formData = new FormData();
             formData.append('title', title);
             formData.append('content', content);
-            if (mediaUrl) formData.append('media_url', mediaUrl);
-            formData.append('media_type', mediaType);
-            if (file) formData.append('file', file);
 
-            const response = await fetch('/api/news/', {
+            if (file) {
+                formData.append('file', file);
+            } else if (mediaUrl) {
+                formData.append('media_url', mediaUrl);
+            }
+
+            formData.append('media_type', mediaType);
+
+            // 3. Send to backend
+            setStatusMessage('Publicando... (isso pode levar alguns segundos)');
+            console.log("DEBUG: Submitting post to /api/news/");
+            const response = await fetch('/api/news', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -76,20 +115,27 @@ export default function NovidadesAdmin() {
             });
 
             if (response.ok) {
+                setStatusMessage('Sucesso! Postagem criada.');
                 setTitle('');
                 setContent('');
                 setMediaUrl('');
                 setFile(null);
                 setPreviewUrl('');
-                setShowModal(false);
+                setTimeout(() => {
+                    setShowModal(false);
+                    setStatusMessage('');
+                }, 1500);
                 fetchPosts();
             } else {
                 const errData = await response.json();
-                alert(`Erro ao criar postagem: ${errData.detail || 'Erro desconhecido'}`);
+                console.error("Server error:", errData);
+                setStatusMessage('');
+                alert(`Erro ao criar postagem: ${errData.detail || 'Erro no servidor'}`);
             }
         } catch (error) {
             console.error('Error creating post:', error);
-            alert('Erro ao criar postagem');
+            setStatusMessage('');
+            alert('Erro de conexão ao criar postagem. Verifique sua internet.');
         } finally {
             setIsSubmitting(false);
         }
@@ -97,7 +143,7 @@ export default function NovidadesAdmin() {
 
     const handleDelete = async (postId: number) => {
         if (!confirm('Tem certeza que deseja excluir esta postagem?')) return;
-        
+
         const token = localStorage.getItem("token");
         if (!token) return;
 
@@ -134,7 +180,7 @@ export default function NovidadesAdmin() {
             <main className={styles.mainContent}>
                 <header className={styles.header}>
                     <h1>Gerenciar Novidades</h1>
-                    <button 
+                    <button
                         className="btn-primary"
                         onClick={() => setShowModal(true)}
                         style={{
@@ -208,8 +254,8 @@ export default function NovidadesAdmin() {
                                                         <Video size={24} color="#64748b" />
                                                     </div>
                                                 ) : (
-                                                    <img 
-                                                        src={post.media_url} 
+                                                    <img
+                                                        src={post.media_url}
                                                         alt={post.title}
                                                         style={{
                                                             width: '60px',
@@ -239,7 +285,7 @@ export default function NovidadesAdmin() {
                                             <strong style={{ color: '#1e293b' }}>{post.title}</strong>
                                         </td>
                                         <td>
-                                            <span style={{ 
+                                            <span style={{
                                                 color: '#64748b',
                                                 display: '-webkit-box',
                                                 WebkitLineClamp: 2,
@@ -258,8 +304,8 @@ export default function NovidadesAdmin() {
                                         </td>
                                         <td>
                                             <div className={styles.actions}>
-                                                <a 
-                                                    href="/novidades" 
+                                                <a
+                                                    href="/novidades"
                                                     target="_blank"
                                                     className={styles.editBtn}
                                                     style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none' }}
@@ -267,7 +313,7 @@ export default function NovidadesAdmin() {
                                                     <Eye size={14} />
                                                     Ver
                                                 </a>
-                                                <button 
+                                                <button
                                                     className={styles.deleteBtn}
                                                     onClick={() => handleDelete(post.id)}
                                                     style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
@@ -361,34 +407,34 @@ export default function NovidadesAdmin() {
                                             Pré-visualização
                                         </label>
                                         {mediaType === 'video' ? (
-                                            <video 
-                                                src={previewUrl || mediaUrl} 
-                                                controls 
-                                                style={{ 
-                                                    width: '100%', 
-                                                    maxHeight: '200px', 
+                                            <video
+                                                src={previewUrl || mediaUrl}
+                                                controls
+                                                style={{
+                                                    width: '100%',
+                                                    maxHeight: '200px',
                                                     borderRadius: '0.5rem',
                                                     backgroundColor: '#f1f5f9'
-                                                }} 
+                                                }}
                                             />
                                         ) : (
-                                            <img 
-                                                src={previewUrl || mediaUrl} 
-                                                alt="Preview" 
-                                                style={{ 
-                                                    maxWidth: '100%', 
-                                                    maxHeight: '200px', 
+                                            <img
+                                                src={previewUrl || mediaUrl}
+                                                alt="Preview"
+                                                style={{
+                                                    maxWidth: '100%',
+                                                    maxHeight: '200px',
                                                     borderRadius: '0.5rem',
                                                     objectFit: 'cover'
-                                                }} 
+                                                }}
                                             />
                                         )}
                                     </div>
                                 )}
 
                                 <div className={styles.formActions}>
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         className={styles.cancelBtn}
                                         onClick={() => setShowModal(false)}
                                     >
@@ -409,7 +455,7 @@ export default function NovidadesAdmin() {
                                             opacity: isSubmitting ? 0.7 : 1
                                         }}
                                     >
-                                        {isSubmitting ? 'Publicando...' : 'Publicar Novidade'}
+                                        {isSubmitting ? (statusMessage || 'Publicando...') : 'Publicar Novidade'}
                                     </button>
                                 </div>
                             </form>

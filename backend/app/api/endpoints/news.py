@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-@router.get("/", response_model=List[schemas.NewsResponse])
+@router.get("", response_model=List[schemas.NewsResponse])
 def list_news(db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(auth.get_current_user_optional)):
     news_list = db.query(models.News).order_by(models.News.created_at.desc()).all()
     
@@ -59,7 +59,7 @@ def comment_news(
     db.refresh(new_comment)
     return new_comment
 
-@router.post("/", response_model=schemas.NewsResponse)
+@router.post("", response_model=schemas.NewsResponse)
 async def create_news(
     title: str = Form(...),
     content: str = Form(...),
@@ -69,40 +69,71 @@ async def create_news(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    print(f"--- START POST CREATION ---")
+    print(f"User: {current_user.email} (ID: {current_user.id})")
+    print(f"Title: {title}")
+    
     final_media_url = media_url
     final_media_type = media_type
 
     if file:
         try:
-            # Check file type
-            content_type = file.content_type
-            if content_type.startswith("video/"):
+            filename = file.filename or "uploaded_file"
+            content_type = file.content_type or "application/octet-stream"
+            print(f"Processing file: {filename} ({content_type})")
+            
+            # More robust media type detection
+            is_video = (
+                content_type.startswith("video/") or 
+                filename.lower().endswith(('.mp4', '.mov', '.avi', '.webm', '.m4v'))
+            )
+            
+            if is_video:
                 final_media_type = "video"
             else:
+                # Assume image if not video and has content type or extension
                 final_media_type = "image"
+            
+            print(f"Detected media type: {final_media_type}")
                 
-            # Use existing image storage logic
             file_content = await file.read()
-            content_type = file.content_type or "application/octet-stream"
-            new_image = models.StoredImage(data=file_content, filename=file.filename, content_type=content_type)
+            print(f"File size: {len(file_content)} bytes")
+            
+            new_image = models.StoredImage(
+                data=file_content, 
+                filename=filename, 
+                content_type=content_type
+            )
             db.add(new_image)
-            db.flush() # Get ID
-            # In production, ensure absolute URL or relative with protocol
+            db.flush() # Get the database ID
+            
             final_media_url = f"/api/images/{new_image.id}"
+            print(f"Media saved successfully. URL: {final_media_url}")
+            
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+            print(f"CRITICAL ERROR processing file: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=f"Erro ao processar arquivo: {str(e)}")
 
-    db_news = models.News(
-        title=title,
-        content=content,
-        media_url=final_media_url,
-        media_type=final_media_type,
-        user_id=current_user.id
-    )
-    db.add(db_news)
-    db.commit()
-    db.refresh(db_news)
-    return db_news
+    try:
+        db_news = models.News(
+            title=title,
+            content=content,
+            media_url=final_media_url,
+            media_type=final_media_type,
+            user_id=current_user.id
+        )
+        db.add(db_news)
+        db.commit()
+        db.refresh(db_news)
+        print(f"Post created successfully with ID: {db_news.id}")
+        print(f"--- END POST CREATION ---")
+        return db_news
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR saving post to database: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro ao salvar postagem no banco de dados")
 
 @router.delete("/{news_id}")
 def delete_news(

@@ -27,6 +27,13 @@ async def create_carousel_item(
     cta_primary_link: Optional[str] = Form(None),
     cta_secondary_text: Optional[str] = Form(None),
     cta_secondary_link: Optional[str] = Form(None),
+    alignment: str = Form("left"),
+    title_color: str = Form("#ffffff"),
+    description_color: str = Form("#ffffff"),
+    badge_color: str = Form("#ffffff"),
+    badge_bg_color: str = Form("#4a7c59"),
+    overlay_color: str = Form("#000000"),
+    overlay_opacity: float = Form(0.3),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -53,7 +60,14 @@ async def create_carousel_item(
         cta_primary_link=cta_primary_link,
         cta_secondary_text=cta_secondary_text,
         cta_secondary_link=cta_secondary_link,
-        order=order
+        order=order,
+        alignment=alignment,
+        title_color=title_color,
+        description_color=description_color,
+        badge_color=badge_color,
+        badge_bg_color=badge_bg_color,
+        overlay_color=overlay_color,
+        overlay_opacity=overlay_opacity
     )
     db.add(db_item)
     db.commit()
@@ -75,6 +89,13 @@ async def update_carousel_item(
     cta_primary_link: Optional[str] = Form(None),
     cta_secondary_text: Optional[str] = Form(None),
     cta_secondary_link: Optional[str] = Form(None),
+    alignment: str = Form("left"),
+    title_color: str = Form("#ffffff"),
+    description_color: str = Form("#ffffff"),
+    badge_color: str = Form("#ffffff"),
+    badge_bg_color: str = Form("#4a7c59"),
+    overlay_color: str = Form("#000000"),
+    overlay_opacity: float = Form(0.3),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -105,6 +126,15 @@ async def update_carousel_item(
     db_item.cta_secondary_text = str(cta_secondary_text) if cta_secondary_text is not None else None
     db_item.cta_secondary_link = str(cta_secondary_link) if cta_secondary_link is not None else None
     db_item.order = int(order)
+    
+    # Update customization fields
+    db_item.alignment = alignment
+    db_item.title_color = title_color
+    db_item.description_color = description_color
+    db_item.badge_color = badge_color
+    db_item.badge_bg_color = badge_bg_color
+    db_item.overlay_color = overlay_color
+    db_item.overlay_opacity = overlay_opacity
     
     db.commit()
     db.refresh(db_item)

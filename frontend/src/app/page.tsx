@@ -26,7 +26,21 @@ export default function Home() {
                 console.error("Error fetching reviews", err);
             }
         };
+
+        const logVisit = async () => {
+            try {
+                await fetch('/api/metrics/log/visit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: '/' })
+                });
+            } catch (err) {
+                console.error("Error logging visit", err);
+            }
+        };
+
         fetchReviews();
+        logVisit();
     }, []);
 
     const handleReviewSubmit = async (e: React.FormEvent) => {
@@ -118,42 +132,82 @@ export default function Home() {
 
             {/* Hero Carousel */}
             <section className={styles.heroCarousel}>
-                {slides.map((slide, index) => (
-                    <div 
-                        key={index} 
-                        className={`${styles.carouselSlide} ${index === currentSlide ? styles.activeSlide : ''}`}
-                        style={{ 
-                            backgroundImage: slide.image_url ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${slide.image_url})` : 'none',
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            minHeight: '500px',
-                            display: index === currentSlide ? 'flex' : 'none',
-                            alignItems: 'center',
-                            width: '100%',
-                            height: '500px',
-                            position: 'relative'
-                        }}
-                    >
-                        <div className={`container ${styles.heroContent}`} style={{
-                            textAlign: slide.alignment as any,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'flex-end' : 'flex-start',
-                        }}>
-                            {slide.badge && <span className="scientific-badge">{slide.badge}</span>}
-                            {slide.title && <h1>{slide.title}</h1>}
-                            {slide.description && <p>{slide.description}</p>}
-                            <div className={styles.heroActions}>
-                                {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary">{slide.ctaPrimary.text}</Link>}
-                                {slide.ctaSecondary && <Link href={slide.ctaSecondary.link} className="btn-outline" style={{ color: 'white', borderColor: 'white' }}>{slide.ctaSecondary.text}</Link>}
+                {slides.map((slide, index) => {
+                    // Helper to convert hex to rgba for overlay
+                    const hexToRgba = (hex: string, opacity: number) => {
+                        const r = parseInt(hex.slice(1, 3), 16);
+                        const g = parseInt(hex.slice(3, 5), 16);
+                        const b = parseInt(hex.slice(5, 7), 16);
+                        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+                    };
+
+                    const overlay = slide.overlay_color && slide.overlay_opacity !== undefined
+                        ? hexToRgba(slide.overlay_color, slide.overlay_opacity)
+                        : 'rgba(0,0,0,0.3)';
+
+                    return (
+                        <div
+                            key={index}
+                            className={`${styles.carouselSlide} ${index === currentSlide ? styles.activeSlide : ''}`}
+                            style={{
+                                backgroundImage: slide.image_url ? `linear-gradient(${overlay}, ${overlay}), url(${slide.image_url})` : 'none',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                minHeight: '500px',
+                                display: index === currentSlide ? 'flex' : 'none',
+                                alignItems: 'center',
+                                width: '100%',
+                                height: '500px',
+                                position: 'relative'
+                            }}
+                        >
+                            <div className={`container ${styles.heroContent}`} style={{
+                                textAlign: slide.alignment as any,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'flex-end' : 'flex-start',
+                            }}>
+                                {slide.badge && (
+                                    <span
+                                        className="scientific-badge"
+                                        style={{
+                                            backgroundColor: slide.badge_bg_color || '#4a7c59',
+                                            color: slide.badge_color || '#ffffff'
+                                        }}
+                                    >
+                                        {slide.badge}
+                                    </span>
+                                )}
+                                {slide.title && (
+                                    <h1 style={{ color: slide.title_color || '#ffffff' }}>
+                                        {slide.title}
+                                    </h1>
+                                )}
+                                {slide.description && (
+                                    <p style={{ color: slide.description_color || '#ffffff' }}>
+                                        {slide.description}
+                                    </p>
+                                )}
+                                <div className={styles.heroActions}>
+                                    {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary">{slide.ctaPrimary.text}</Link>}
+                                    {slide.ctaSecondary && (
+                                        <Link
+                                            href={slide.ctaSecondary.link}
+                                            className="btn-outline"
+                                            style={{ color: 'white', borderColor: 'white' }}
+                                        >
+                                            {slide.ctaSecondary.text}
+                                        </Link>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
                 <div className={styles.carouselDots}>
                     {slides.map((_, index) => (
-                        <button 
-                            key={index} 
+                        <button
+                            key={index}
                             className={`${styles.dot} ${index === currentSlide ? styles.activeDot : ''}`}
                             onClick={() => setCurrentSlide(index)}
                         />
@@ -212,7 +266,7 @@ export default function Home() {
             <section className={styles.reviewsSection}>
                 <div className="container">
                     <h2 className={styles.sectionTitle} style={{ textAlign: 'center', marginBottom: '40px' }}>EXPERIÊNCIAS ECOSOPIS</h2>
-                    
+
                     <div className={styles.reviewsGrid}>
                         {reviews.length > 0 ? (
                             reviews.map((rev: any) => (
@@ -235,16 +289,16 @@ export default function Home() {
                         <h3>Deixe sua Avaliação</h3>
                         <form onSubmit={handleReviewSubmit} className={styles.reviewForm}>
                             <div className={styles.formRow}>
-                                <input 
-                                    type="text" 
-                                    placeholder="Seu Nome" 
+                                <input
+                                    type="text"
+                                    placeholder="Seu Nome"
                                     value={reviewForm.user_name}
-                                    onChange={(e) => setReviewForm({...reviewForm, user_name: e.target.value})}
+                                    onChange={(e) => setReviewForm({ ...reviewForm, user_name: e.target.value })}
                                     required
                                 />
-                                <select 
+                                <select
                                     value={reviewForm.rating}
-                                    onChange={(e) => setReviewForm({...reviewForm, rating: parseInt(e.target.value)})}
+                                    onChange={(e) => setReviewForm({ ...reviewForm, rating: parseInt(e.target.value) })}
                                 >
                                     <option value="5">5 Estrelas ★★★★★</option>
                                     <option value="4">4 Estrelas ★★★★☆</option>
@@ -253,10 +307,10 @@ export default function Home() {
                                     <option value="1">1 Estrela ★☆☆☆☆</option>
                                 </select>
                             </div>
-                            <textarea 
+                            <textarea
                                 placeholder="Conte sua experiência com nossos produtos botânicos..."
                                 value={reviewForm.comment}
-                                onChange={(e) => setReviewForm({...reviewForm, comment: e.target.value})}
+                                onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
                                 required
                             />
                             <button type="submit" className="btn-primary">ENVIAR AVALIAÇÃO</button>

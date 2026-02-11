@@ -37,7 +37,10 @@ def get_image(image_id: int, db: Session = Depends(get_db)):
     return Response(
         content=image.data,
         media_type=image.content_type,
-        headers={"Cache-Control": "public, max-age=31536000"}
+        headers={
+            "Cache-Control": "public, max-age=31536000",
+            "Accept-Ranges": "bytes"
+        }
     )
 
 @router.delete("/{image_id}")

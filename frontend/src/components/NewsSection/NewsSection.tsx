@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Heart, MessageCircle, ArrowRight, Calendar, User } from 'lucide-react';
+import { Heart, MessageCircle, ArrowRight, Calendar, User, Share2, Copy } from 'lucide-react';
 import styles from './NewsSection.module.css';
+import ShareModal from '../ShareModal/ShareModal';
 
 interface NewsPost {
   id: number;
@@ -16,8 +17,10 @@ interface NewsPost {
 }
 
 export default function NewsSection() {
-  const [news, setNews] = useState<NewsPost[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [sharingPost, setSharingPost] = useState<any>(null);
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -25,7 +28,7 @@ export default function NewsSection() {
         const res = await fetch('/api/news');
         if (res.ok) {
           const data = await res.json();
-          setNews(data.slice(0, 3));
+          setPosts(data.slice(0, 3));
         }
       } catch (err) {
         console.error('Error fetching news:', err);
@@ -42,7 +45,7 @@ export default function NewsSection() {
   };
 
   if (loading) return null;
-  if (news.length === 0) return null;
+  if (posts.length === 0) return null;
 
   return (
     <section className={styles.section}>
@@ -55,7 +58,7 @@ export default function NewsSection() {
         </div>
 
         <div className={styles.grid}>
-          {news.map((post) => (
+          {posts.map((post) => (
             <article key={post.id} className={styles.card}>
               <div className={styles.media}>
                 {post.media_url ? (
@@ -79,13 +82,34 @@ export default function NewsSection() {
                       <MessageCircle size={16} /> Comentar
                     </span>
                   </div>
-                  <Link href="/novidades" className={styles.readMore}>Ler mais</Link>
+                  <div className={styles.actions}>
+                    <button
+                      className={styles.shareBtn}
+                      onClick={() => {
+                        setSharingPost(post);
+                        setIsShareModalOpen(true);
+                      }}
+                      title="Compartilhar"
+                    >
+                      <Share2 size={16} />
+                    </button>
+                    <Link href="/novidades" className={styles.readMore}>Ler mais</Link>
+                  </div>
                 </div>
               </div>
             </article>
           ))}
         </div>
-      </div>
-    </section>
+
+        {sharingPost && (
+          <ShareModal
+            isOpen={isShareModalOpen}
+            onClose={() => setIsShareModalOpen(false)}
+            url={`${typeof window !== 'undefined' ? window.location.origin : ''}/novidades?id=${sharingPost.id}`}
+            title={`Confira essa novidade na ECOSOPIS: ${sharingPost.title}`}
+          />
+        )}
+      </div >
+    </section >
   );
 }

@@ -32,17 +32,22 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    secret_key = os.getenv("SECRET_KEY")
+    algorithm = os.getenv("ALGORITHM")
+    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
+        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
     except JWTError:
+        raise credentials_exception
+    except Exception:
         raise credentials_exception
     
     user = db.query(models.User).filter(models.User.id == int(user_id)).first()
@@ -56,7 +61,9 @@ async def get_current_user_optional(
     if not token:
         return None
     try:
-        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
+        secret_key = os.getenv("SECRET_KEY")
+        algorithm = os.getenv("ALGORITHM")
+        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
         user_id: str = payload.get("sub")
         if user_id is None:
             return None
@@ -118,42 +125,14 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     
     access_token = security.create_access_token(subject=user.id)
     return {"access_token": access_token, "token_type": "bearer", "role": user.role}
-
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    
-    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
-    if user is None:
-        raise credentials_exception
-    return user
-
-async def get_current_user_optional(
-    db: Session = Depends(get_db), token: Optional[str] = Depends(oauth2_scheme_optional)
-):
-    if not token:
-        return None
-    try:
-        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            return None
-        user = db.query(models.User).filter(models.User.id == int(user_id)).first()
-        return user
-    except (JWTError, ValueError, TypeError):
-        return None
-
-async def get_current_admin(current_user: models.User = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-    return current_user
+@router.get("/verify-token")
+async def verify_token(current_user: models.User = Depends(get_current_user)):
+    return {
+        "status": "ok",
+        "user": {
+            "id": current_user.id,
+            "email": current_user.email,
+            "role": current_user.role,
+            "full_name": current_user.full_name
+        }
+    }

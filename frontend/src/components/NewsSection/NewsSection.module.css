@@ -42,7 +42,7 @@
   background: white;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
   border: 1px solid #f0efeb;
   transition: transform 0.3s ease;
   display: flex;
@@ -84,7 +84,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: #1a1a1a;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .body {
@@ -143,4 +143,25 @@
   font-weight: 700;
   color: var(--primary-green);
   text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.shareBtn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.shareBtn:hover {
+  color: var(--primary-green);
 }

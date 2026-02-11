@@ -21,6 +21,12 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         order: item?.order || 0,
         is_active: item?.is_active ?? true,
         alignment: item?.alignment || "left",
+        title_color: item?.title_color || "#ffffff",
+        description_color: item?.description_color || "#ffffff",
+        badge_color: item?.badge_color || "#ffffff",
+        badge_bg_color: item?.badge_bg_color || "#4a7c59",
+        overlay_color: item?.overlay_color || "#000000",
+        overlay_opacity: item?.overlay_opacity ?? 0.3,
     });
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(item?.image_url || null);
@@ -41,18 +47,16 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
             const url = item ? `/api/carousel/${item.id}` : `/api/carousel`;
             const method = item ? "PUT" : "POST";
             const data = new FormData();
-            
+
             Object.keys(formData).forEach(key => {
                 const value = formData[key as keyof typeof formData];
                 if (value !== null && value !== undefined && value !== "") {
                     data.append(key, value.toString());
                 }
             });
-            // Reset elements_config when using alignment mode
-            data.append("elements_config", JSON.stringify({}));
-            
+
             if (selectedFile) data.append("file", selectedFile);
-            
+
             const res = await fetch(url, {
                 method,
                 headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
@@ -75,8 +79,8 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
 
     return (
         <div className={styles.modalOverlay}>
-            <div className={styles.modalContent} style={{ maxWidth: '1100px', width: '95%' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+            <div className={styles.modalContent} style={{ maxWidth: '1200px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '30px' }}>
                     {/* Painel de Edição */}
                     <div>
                         <h2>{item ? "Editar Slide" : "Novo Slide"}</h2>
@@ -84,9 +88,9 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                             <div className={styles.formGrid}>
                                 <div className={styles.formGroup}>
                                     <label>Alinhamento do Conteúdo</label>
-                                    <select 
-                                        value={formData.alignment} 
-                                        onChange={e => setFormData({...formData, alignment: e.target.value})}
+                                    <select
+                                        value={formData.alignment}
+                                        onChange={e => setFormData({ ...formData, alignment: e.target.value })}
                                         className={styles.formInput}
                                     >
                                         <option value="left">Esquerda</option>
@@ -95,40 +99,79 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                     </select>
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Badge</label>
-                                    <input type="text" value={formData.badge} onChange={e => setFormData({...formData, badge: e.target.value})} />
+                                    <label>Ordem</label>
+                                    <input type="number" value={formData.order} onChange={e => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })} />
                                 </div>
+
                                 <div className={styles.formGroup}>
                                     <label>Título</label>
-                                    <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+                                    <input type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Descrição</label>
-                                    <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                                    <label>Cor do Título</label>
+                                    <input type="color" value={formData.title_color} onChange={e => setFormData({ ...formData, title_color: e.target.value })} style={{ height: '40px' }} />
                                 </div>
+
+                                <div className={styles.formGroup}>
+                                    <label>Descrição</label>
+                                    <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Cor da Descrição</label>
+                                    <input type="color" value={formData.description_color} onChange={e => setFormData({ ...formData, description_color: e.target.value })} style={{ height: '40px' }} />
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label>Badge (Selo)</label>
+                                    <input type="text" value={formData.badge} onChange={e => setFormData({ ...formData, badge: e.target.value })} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>Cor Texto Selo</label>
+                                        <input type="color" value={formData.badge_color} onChange={e => setFormData({ ...formData, badge_color: e.target.value })} style={{ height: '40px' }} />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Cor Fundo Selo</label>
+                                        <input type="color" value={formData.badge_bg_color} onChange={e => setFormData({ ...formData, badge_bg_color: e.target.value })} style={{ height: '40px' }} />
+                                    </div>
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label>Cor da Sobreposição (Overlay)</label>
+                                    <input type="color" value={formData.overlay_color} onChange={e => setFormData({ ...formData, overlay_color: e.target.value })} style={{ height: '40px' }} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Opacidade da Sobreposição ({Math.round(formData.overlay_opacity * 100)}%)</label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.05"
+                                        value={formData.overlay_opacity}
+                                        onChange={e => setFormData({ ...formData, overlay_opacity: parseFloat(e.target.value) })}
+                                    />
+                                </div>
+
                                 <div className={styles.formGroup}>
                                     <label>Imagem de Fundo</label>
                                     <input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
                                 </div>
+
                                 <div className={styles.formGroup}>
                                     <label>Botão 1 (Texto)</label>
-                                    <input type="text" value={formData.cta_primary_text} onChange={e => setFormData({...formData, cta_primary_text: e.target.value})} />
+                                    <input type="text" value={formData.cta_primary_text} onChange={e => setFormData({ ...formData, cta_primary_text: e.target.value })} />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Botão 1 (Link)</label>
-                                    <input type="text" value={formData.cta_primary_link} onChange={e => setFormData({...formData, cta_primary_link: e.target.value})} />
+                                    <input type="text" value={formData.cta_primary_link} onChange={e => setFormData({ ...formData, cta_primary_link: e.target.value })} />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Botão 2 (Texto)</label>
-                                    <input type="text" value={formData.cta_secondary_text} onChange={e => setFormData({...formData, cta_secondary_text: e.target.value})} />
+                                    <input type="text" value={formData.cta_secondary_text} onChange={e => setFormData({ ...formData, cta_secondary_text: e.target.value })} />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Botão 2 (Link)</label>
-                                    <input type="text" value={formData.cta_secondary_link} onChange={e => setFormData({...formData, cta_secondary_link: e.target.value})} />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label>Ordem</label>
-                                    <input type="number" value={formData.order} onChange={e => setFormData({...formData, order: parseInt(e.target.value) || 0})} />
+                                    <input type="text" value={formData.cta_secondary_link} onChange={e => setFormData({ ...formData, cta_secondary_link: e.target.value })} />
                                 </div>
                             </div>
                             <div className={styles.formActions} style={{ marginTop: '20px' }}>
@@ -141,17 +184,17 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                     </div>
 
                     {/* Painel de Previsualização */}
-                    <div>
-                        <h2 style={{ marginBottom: '15px' }}>Previsualização</h2>
-                        <div style={{ 
-                            width: '100%', 
-                            height: '500px', 
-                            border: '1px solid #ddd', 
+                    <div style={{ position: 'sticky', top: '0' }}>
+                        <h2 style={{ marginBottom: '15px' }}>Previsualização Live</h2>
+                        <div style={{
+                            width: '100%',
+                            height: '500px',
+                            border: '1px solid #ddd',
                             borderRadius: '8px',
                             position: 'relative',
                             overflow: 'hidden',
                             backgroundColor: '#f5f5f5',
-                            backgroundImage: previewUrl ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${previewUrl})` : 'none',
+                            backgroundImage: previewUrl ? `linear-gradient(rgba(${parseInt(formData.overlay_color.slice(1, 3), 16)}, ${parseInt(formData.overlay_color.slice(3, 5), 16)}, ${parseInt(formData.overlay_color.slice(5, 7), 16)}, ${formData.overlay_opacity}), rgba(${parseInt(formData.overlay_color.slice(1, 3), 16)}, ${parseInt(formData.overlay_color.slice(3, 5), 16)}, ${parseInt(formData.overlay_color.slice(5, 7), 16)}, ${formData.overlay_opacity})), url(${previewUrl})` : 'none',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                             display: 'flex',
@@ -159,15 +202,43 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                             justifyContent: formData.alignment === 'center' ? 'center' : formData.alignment === 'right' ? 'flex-end' : 'flex-start',
                             padding: '60px'
                         }}>
-                            <div style={{ 
-                                maxWidth: '500px', 
+                            <div style={{
+                                maxWidth: '500px',
                                 textAlign: formData.alignment as any,
-                                color: 'white',
                                 zIndex: 2
                             }}>
-                                {formData.badge && <span className="scientific-badge" style={{ marginBottom: '15px', display: 'inline-block' }}>{formData.badge}</span>}
-                                {formData.title && <h1 style={{ fontSize: '2.5rem', margin: '0 0 20px 0', color: 'white' }}>{formData.title}</h1>}
-                                {formData.description && <p style={{ fontSize: '1.1rem', margin: '0 0 30px 0', opacity: 0.9 }}>{formData.description}</p>}
+                                {formData.badge && (
+                                    <span
+                                        className="scientific-badge"
+                                        style={{
+                                            marginBottom: '15px',
+                                            display: 'inline-block',
+                                            backgroundColor: formData.badge_bg_color,
+                                            color: formData.badge_color
+                                        }}
+                                    >
+                                        {formData.badge}
+                                    </span>
+                                )}
+                                {formData.title && (
+                                    <h1 style={{
+                                        fontSize: '2.5rem',
+                                        margin: '0 0 20px 0',
+                                        color: formData.title_color
+                                    }}>
+                                        {formData.title}
+                                    </h1>
+                                )}
+                                {formData.description && (
+                                    <p style={{
+                                        fontSize: '1.1rem',
+                                        margin: '0 0 30px 0',
+                                        color: formData.description_color,
+                                        opacity: 0.9
+                                    }}>
+                                        {formData.description}
+                                    </p>
+                                )}
                                 <div style={{ display: 'flex', gap: '15px', justifyContent: formData.alignment === 'center' ? 'center' : formData.alignment === 'right' ? 'flex-end' : 'flex-start' }}>
                                     {formData.cta_primary_text && (
                                         <button className="btn-primary" style={{ pointerEvents: 'none' }}>
@@ -175,7 +246,14 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                         </button>
                                     )}
                                     {formData.cta_secondary_text && (
-                                        <button className="btn-outline" style={{ pointerEvents: 'none', color: 'white', borderColor: 'white' }}>
+                                        <button
+                                            className="btn-outline"
+                                            style={{
+                                                pointerEvents: 'none',
+                                                color: 'white',
+                                                borderColor: 'white'
+                                            }}
+                                        >
                                             {formData.cta_secondary_text}
                                         </button>
                                     )}

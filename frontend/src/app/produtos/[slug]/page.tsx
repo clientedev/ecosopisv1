@@ -30,13 +30,43 @@ export default function ProductDetailPage() {
                     const data = await res.json();
                     setProduct(data);
                     setActiveImage(data.image_url || (data.images && data.images[0]) || "");
+                    logVisit(`/produtos/${params.slug}`);
                 }
             } catch (error) {
                 console.error("Error fetching product:", error);
             }
         };
+
+        const logVisit = async (path: string) => {
+            try {
+                await fetch('/api/metrics/log/visit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path })
+                });
+            } catch (err) {
+                console.error("Error logging visit", err);
+            }
+        };
+
         fetchProduct();
     }, [params.slug]);
+
+    const logClick = async (type: string) => {
+        if (!product) return;
+        try {
+            await fetch('/api/metrics/log/click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    product_id: product.id,
+                    click_type: type
+                })
+            });
+        } catch (err) {
+            console.error("Error logging click", err);
+        }
+    };
 
     if (!product) return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'var(--font-karla)' }}>
@@ -66,6 +96,7 @@ export default function ProductDetailPage() {
             cart.push({ id: product.id, name: product.name, price: product.price, quantity: 1 });
         }
         localStorage.setItem("cart", JSON.stringify(cart));
+        logClick("site");
         window.location.href = "/carrinho";
     };
 
@@ -77,6 +108,7 @@ export default function ProductDetailPage() {
         }
         const cart = [{ id: product.id, name: product.name, price: product.price, quantity: 1 }];
         localStorage.setItem("cart", JSON.stringify(cart));
+        logClick("site");
         window.location.href = "/carrinho";
     };
 
@@ -119,7 +151,7 @@ export default function ProductDetailPage() {
                 <div className={styles.productLayout}>
                     <div className={styles.imageSection}>
                         <div className={styles.mainImageContainer}>
-                            { (activeImage || product.image_url) && (
+                            {(activeImage || product.image_url) && (
                                 <div className={styles.imageWrapper} style={{ position: 'relative', width: '100%', height: '100%' }}>
                                     <Image
                                         src={getImageUrl(activeImage || product.image_url)}
@@ -135,16 +167,16 @@ export default function ProductDetailPage() {
                         {allImages.length > 1 && (
                             <div className={styles.thumbnailGrid}>
                                 {allImages.map((img: string, idx: number) => (
-                                    <div 
-                                        key={idx} 
+                                    <div
+                                        key={idx}
                                         className={`${styles.thumbnailItem} ${activeImage === img ? styles.activeThumbnail : ''}`}
                                         onClick={() => setActiveImage(img)}
                                     >
-                                        <Image 
-                                            src={getImageUrl(img)} 
-                                            alt={`Thumb ${idx}`} 
-                                            width={80} 
-                                            height={80} 
+                                        <Image
+                                            src={getImageUrl(img)}
+                                            alt={`Thumb ${idx}`}
+                                            width={80}
+                                            height={80}
                                             unoptimized={true}
                                         />
                                     </div>
@@ -196,15 +228,14 @@ export default function ProductDetailPage() {
                                 </>
                             )}
                             {product.mercadolivre_url && (
-                                <a href={product.mercadolivre_url} target="_blank" className="btn-outline">
+                                <a href={product.mercadolivre_url} target="_blank" className="btn-outline" onClick={() => logClick("mercadolivre")}>
                                     COMPRAR NO MERCADO LIVRE
                                 </a>
                             )}
                             {product.shopee_url && (
-                                <a href={product.shopee_url} target="_blank" className={styles.shopeeBtn}>
+                                <a href={product.shopee_url} target="_blank" className={styles.shopeeBtn} onClick={() => logClick("shopee")}>
                                     <svg viewBox="0 0 24 24" className={styles.shopeeLogo}>
-                                        <path d="M19 7h-2c0-2.76-2.24-5-5-5S7 4.24 7 7H5c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm7 15H5V9h2v2h2V9h6v2h2V9h2v10z" fill="white"/>
-                                        <path d="M11.64 12.56c-.53-.18-.94-.32-1.25-.44-.31-.11-.53-.2-.67-.28-.14-.08-.25-.17-.32-.27-.07-.1-.11-.22-.11-.36 0-.17.06-.32.17-.45s.28-.23.51-.31c.22-.07.51-.11.85-.11.38 0 .68.05.9.15.22.1.37.23.47.4l.76-.66c-.19-.3-.49-.52-.89-.66-.41-.14-.9-.21-1.46-.21-.49 0-.91.06-1.26.18s-.64.3-.85.52c-.22.23-.33.51-.33.85 0 .28.06.51.19.69s.3.33.53.46c.23.13.52.25.87.36.43.14.79.27 1.08.38.29.11.51.21.65.29.14.08.24.18.3.29.06.11.09.24.09.39 0 .22-.08.41-.24.57-.16.16-.42.24-.76.24-.48 0-.85-.12-1.1-.37-.25-.25-.4-.6-.44-1.04l-.94.09c.07.61.3 1.07.69 1.39s.95.48 1.67.48c.55 0 .99-.07 1.34-.2s.63-.32.84-.56c.21-.24.31-.54.31-.91 0-.32-.07-.58-.2-.79s-.35-.38-.63-.51z" fill="white"/>
+                                        <path d="M19.349 7.153H17.43A5.433 5.433 0 0012 2.15a5.433 5.433 0 00-5.43 5.003h-1.92a2.153 2.153 0 00-2.15 2.155L2.5 19.308a2.153 2.153 0 002.15 2.155h14.7a2.153 2.153 0 002.15-2.155l-0.001-10a2.153 2.153 0 00-2.15-2.155zM12 4.15a3.433 3.433 0 013.43 3.003H8.57A3.433 3.433 0 0112 4.15zM15.42 15.655c-0.21 0.49-0.56 0.885-1.07 1.18s-1.13 0.44-1.87 0.44c-0.65 0-1.21-0.105-1.68-0.315s-0.845-0.515-1.135-0.915l1.01-0.9c0.2 0.28 0.44 0.49 0.72 0.63s0.59 0.21 0.93 0.21c0.39 0 0.69-0.085 0.89-0.255s0.3-0.38 0.3-0.63c0-0.23-0.08-0.415-0.24-0.55s-0.455-0.27-0.88-0.4c-0.67-0.205-1.165-0.435-1.485-0.69s-0.48-0.635-0.48-1.14c0-0.53 0.21-0.965 0.63-1.3s0.975-0.5 1.665-0.5c0.59 0 1.095 0.125 1.515 0.375s0.725 0.585 0.915 1.005l-0.94 0.8c-0.165-0.33-0.4-0.57-0.705-0.72s-0.65-0.225-1.035-0.225c-0.32 0-0.57 0.075-0.75 0.225s-0.27 0.355-0.27 0.615c0 0.2 0.075 0.365 0.225 0.5s0.41 0.245 0.78 0.335c0.665 0.19 1.155 0.4 1.47 0.63s0.56 0.54 0.735 0.935 0.265 0.84 0.265 1.335z" fill="white" />
                                     </svg>
                                     COMPRAR NA SHOPEE
                                 </a>
@@ -234,19 +265,19 @@ export default function ProductDetailPage() {
                             <h3>Sua Avaliação</h3>
                             <div className={styles.starRating}>
                                 {[1, 2, 3, 4, 5].map((star) => (
-                                    <span 
-                                        key={star} 
+                                    <span
+                                        key={star}
                                         className={star <= reviewData.rating ? styles.starActive : styles.star}
-                                        onClick={() => setReviewData({...reviewData, rating: star})}
+                                        onClick={() => setReviewData({ ...reviewData, rating: star })}
                                     >
                                         ★
                                     </span>
                                 ))}
                             </div>
-                            <textarea 
+                            <textarea
                                 placeholder="Conte sua experiência com este produto..."
                                 value={reviewData.comment}
-                                onChange={(e) => setReviewData({...reviewData, comment: e.target.value})}
+                                onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
                                 className={styles.reviewInput}
                             />
                             <button className="btn-primary" onClick={submitReview} disabled={submittingReview}>

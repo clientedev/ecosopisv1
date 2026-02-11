@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
-from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news
+from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat
 from fastapi.staticfiles import StaticFiles
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -43,6 +46,8 @@ app.include_router(settings.router, prefix="/settings", tags=["settings"])
 app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 app.include_router(images.router, prefix="/images", tags=["images"])
 app.include_router(news.router, prefix="/news", tags=["news"])
+app.include_router(metrics.router, prefix="/metrics", tags=["metrics"])
+app.include_router(chat.router, prefix="/chat", tags=["chat"])
 
 if __name__ == "__main__":
     import uvicorn

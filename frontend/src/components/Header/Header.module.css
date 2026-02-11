@@ -43,8 +43,10 @@
 .logoImage {
     object-fit: contain;
     margin-right: 15px;
-    mix-blend-mode: multiply; /* Perfect for removing white backgrounds */
-    filter: contrast(1.1) saturate(1.1); /* Enhance the green details */
+    mix-blend-mode: multiply;
+    /* Perfect for removing white backgrounds */
+    filter: contrast(1.1) saturate(1.1);
+    /* Enhance the green details */
 }
 
 .actions {
@@ -111,7 +113,7 @@
     width: 220px;
     background-color: white;
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     border: 1px solid var(--neutral-gray-200);
     padding: 8px;
     display: flex;
@@ -120,8 +122,15 @@
 }
 
 @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .dropdownHeader {
@@ -183,4 +192,37 @@
         display: none;
         /* Add hamburger menu later */
     }
+}
+
+.announcementBar {
+    text-align: center;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    position: relative;
+    z-index: 1001;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.marqueeContent {
+    display: inline-block;
+    padding-left: 100%;
+    animation: marquee linear infinite;
+    min-width: 100%;
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+.staticText {
+    display: block;
+    width: 100%;
 }

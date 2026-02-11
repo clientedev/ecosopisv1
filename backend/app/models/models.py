@@ -60,6 +60,16 @@ class CarouselItem(Base):
     cta_secondary_text = Column(String)
     cta_secondary_link = Column(String)
     order = Column(Integer, default=0)
+    
+    # Customization fields
+    alignment = Column(String, default="left") # left, center, right
+    title_color = Column(String, default="#ffffff")
+    description_color = Column(String, default="#ffffff")
+    badge_color = Column(String, default="#ffffff")
+    badge_bg_color = Column(String, default="#4a7c59")
+    overlay_color = Column(String, default="#000000")
+    overlay_opacity = Column(Float, default=0.3)
+    
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -84,6 +94,9 @@ class AnnouncementBar(Base):
     bg_color = Column(String, default="#2d5a27")
     text_color = Column(String, default="#ffffff")
     is_active = Column(Boolean, default=True)
+    is_scrolling = Column(Boolean, default=False)
+    repeat_text = Column(Boolean, default=True)
+    scroll_speed = Column(Integer, default=20)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
 class Subscription(Base):
@@ -171,3 +184,18 @@ class NewsComment(Base):
 
     news = relationship("News", back_populates="comments")
     user = relationship("User")
+
+class SiteVisit(Base):
+    __tablename__ = "site_visits"
+    id = Column(Integer, primary_key=True, index=True)
+    path = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ProductClick(Base):
+    __tablename__ = "product_clicks"
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"))
+    click_type = Column(String) # "shopee", "mercadolivre", "site"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    product = relationship("Product")

@@ -9,7 +9,15 @@ export default function Header() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [user, setUser] = useState<{ name: string, email: string, role: string } | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [announcement, setAnnouncement] = useState<{ text: string, bg_color: string, text_color: string, is_active: boolean } | null>(null);
+    const [announcement, setAnnouncement] = useState<{
+        text: string,
+        bg_color: string,
+        text_color: string,
+        is_active: boolean,
+        is_scrolling: boolean,
+        scroll_speed: number,
+        repeat_text: boolean
+    } | null>(null);
 
     useEffect(() => {
         const fetchAnnouncement = async () => {
@@ -30,7 +38,7 @@ export default function Header() {
             try {
                 const base64Url = token.split('.')[1];
                 const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
                     return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
                 }).join(''));
 
@@ -38,7 +46,7 @@ export default function Header() {
                 // The token payload contains 'sub' (user_id), but we need the name.
                 // For now, let's fetch the user profile or parse name if available.
                 // Ideally, the token should include the name or we fetch it.
-                
+
                 const fetchProfile = async () => {
                     try {
                         const res = await fetch('/api/auth/me', {
@@ -77,19 +85,32 @@ export default function Header() {
     return (
         <header className={styles.header}>
             {announcement && announcement.is_active && (
-                <div 
-                    style={{ 
-                        backgroundColor: announcement.bg_color, 
+                <div
+                    className={styles.announcementBar}
+                    style={{
+                        backgroundColor: announcement.bg_color,
                         color: announcement.text_color,
-                        textAlign: 'center',
-                        padding: '8px 10px',
-                        fontSize: '0.9rem',
-                        fontWeight: '500',
-                        position: 'relative',
-                        zIndex: 1001
                     }}
                 >
-                    {announcement.text}
+                    {announcement.is_scrolling ? (
+                        <div
+                            className={styles.marqueeContent}
+                            style={{ animationDuration: `${announcement.scroll_speed || 20}s` }}
+                        >
+                            {/* Original phrases */}
+                            {announcement.text.split('||').map((phrase, i) => (
+                                <span key={i} style={{ marginRight: '50px' }}>{phrase.trim()}</span>
+                            ))}
+                            {/* Conditional repetition for a smoother loop */}
+                            {announcement.repeat_text !== false && announcement.text.split('||').map((phrase, i) => (
+                                <span key={`rep-${i}`} style={{ marginRight: '50px' }}>{phrase.trim()}</span>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className={styles.staticText}>
+                            {announcement.text.split('||')[0].trim()}
+                        </div>
+                    )}
                 </div>
             )}
             <div className={`container ${styles.headerContent}`}>
@@ -119,10 +140,10 @@ export default function Header() {
 
                 <div className={styles.actions}>
                     <Link href="/carrinho" className={styles.actionIcon}>CARRINHO</Link>
-                    
+
                     {user ? (
                         <div className={styles.userMenuContainer}>
-                            <button 
+                            <button
                                 className={styles.userButton}
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                             >

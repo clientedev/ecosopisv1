@@ -15,6 +15,9 @@ class AnnouncementUpdate(BaseModel):
     bg_color: str
     text_color: str
     is_active: bool
+    is_scrolling: bool = False
+    repeat_text: bool = True
+    scroll_speed: int = 20
 
 @router.get("/announcement")
 def get_announcement(db: Session = Depends(get_db)):
@@ -24,7 +27,10 @@ def get_announcement(db: Session = Depends(get_db)):
             text="Bem-vinda à ECOSOPIS! Frete grátis em compras acima de R$ 150",
             bg_color="#2d5a27",
             text_color="#ffffff",
-            is_active=True
+            is_active=True,
+            is_scrolling=False,
+            repeat_text=True,
+            scroll_speed=20
         )
         db.add(announcement)
         db.commit()
@@ -42,6 +48,9 @@ def update_announcement(data: AnnouncementUpdate, db: Session = Depends(get_db),
     announcement.bg_color = data.bg_color
     announcement.text_color = data.text_color
     announcement.is_active = data.is_active
+    announcement.is_scrolling = data.is_scrolling
+    announcement.repeat_text = data.repeat_text
+    announcement.scroll_speed = data.scroll_speed
     
     db.commit()
     db.refresh(announcement)

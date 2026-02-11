@@ -28,6 +28,7 @@ export default function AdminSidebar({ activePath }: AdminSidebarProps) {
                 <Link href="/admin/dashboard/reviews" className={activePath === '/admin/dashboard/reviews' ? styles.active : ''}>Avaliações</Link>
                 <Link href="/admin/dashboard/novidades" className={activePath === '/admin/dashboard/novidades' ? styles.active : ''}>Novidades</Link>
                 <Link href="/admin/dashboard/cupons" className={activePath === '/admin/dashboard/cupons' ? styles.active : ''}>Cupons</Link>
+                <Link href="/admin/dashboard/metrics" className={activePath === '/admin/dashboard/metrics' ? styles.active : ''}>Métricas</Link>
                 <Link href="/admin/settings" className={activePath === '/admin/settings' ? styles.active : ''}>Configurações</Link>
                 <Link href="/">Ver Site</Link>
                 <button onClick={handleLogout} className={styles.logoutBtn}>Sair</button>

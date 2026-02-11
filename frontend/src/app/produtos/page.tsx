@@ -1,40 +1,44 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import ProductCard from "@/components/ProductCard/ProductCard";
 import styles from "./page.module.css";
+import { Sparkles, Filter, LayoutGrid, DollarSign } from "lucide-react";
+import Link from "next/link";
 
 const categories = [
-    { id: "all", name: "Todos" },
-    { id: "sabonete", name: "Sabonetes" },
-    { id: "creme", name: "Cremes" },
-    { id: "oleo", name: "Óleos" },
-    { id: "oe", name: "Essenciais" },
-    { id: "kit", name: "Kits" }
+    { id: "all", name: "Todos os Produtos" },
+    { id: "sabonete", name: "Sabonetes Naturais" },
+    { id: "creme", name: "Cremes e Loções" },
+    { id: "oleo", name: "Óleos de Tratamento" },
+    { id: "oe", name: "Óleos Essenciais" },
+    { id: "kit", name: "Kits e Presentes" }
 ];
 
-const filters = [
+const skinFilters = [
     { id: "skin:oily", name: "Pele Oleosa" },
     { id: "skin:dry", name: "Pele Seca" },
-    { id: "skin:normal", name: "Pele Normal" },
-    { id: "hair", name: "Cabelos" },
-    { id: "facial", name: "Rosto" },
-    { id: "spots", name: "Manchas" }
+    { id: "skin:normal", name: "Pele Normal" }
+];
+
+const treatmentFilters = [
+    { id: "facial", name: "Tratamento Facial" },
+    { id: "hair", name: "Cuidado Capilar" },
+    { id: "spots", name: "Xô Manchas" }
 ];
 
 export default function ProductsPage() {
-    const [allProducts, setAllProducts] = useState([]);
-    const [filteredProducts, setFilteredProducts] = useState([]);
+    const [allProducts, setAllProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState("all");
     const [activeFilter, setActiveFilter] = useState("all");
+    const [maxPrice, setMaxPrice] = useState(500);
 
     const getImageUrl = (url: string) => {
         if (!url) return "";
         if (url.startsWith("http")) return url;
         if (url.startsWith("/static")) return url;
-        if (url.startsWith("/attached_assets")) return `/static${url}`;
         return `/static/uploads/${url.split('/').pop()}`;
     };
 
@@ -49,11 +53,9 @@ export default function ProductsPage() {
                     image_url: getImageUrl(p.image_url)
                 }));
                 setAllProducts(products);
-                setFilteredProducts(products);
             } catch (error) {
                 console.error("Error fetching products:", error);
                 setAllProducts([]);
-                setFilteredProducts([]);
             } finally {
                 setLoading(false);
             }
@@ -61,107 +63,141 @@ export default function ProductsPage() {
         fetchProducts();
     }, []);
 
-    useEffect(() => {
-        let result = allProducts;
+    const filteredProducts = useMemo(() => {
+        return allProducts.filter(p => {
+            const tags = Array.isArray(p.tags) ? p.tags : JSON.parse(p.tags || "[]");
 
-        if (activeCategory !== "all") {
-            result = result.filter(p => {
-                const tags = Array.isArray(p.tags) ? p.tags : JSON.parse(p.tags || "[]");
-                return tags.includes(activeCategory);
-            });
-        }
+            // Category check
+            const categoryMatch = activeCategory === "all" || tags.includes(activeCategory);
 
-        if (activeFilter !== "all") {
-            result = result.filter(p => {
-                const tags = Array.isArray(p.tags) ? p.tags : JSON.parse(p.tags || "[]");
-                return tags.includes(activeFilter);
-            });
-        }
+            // Sub-filter check
+            const filterMatch = activeFilter === "all" || tags.includes(activeFilter);
 
-        setFilteredProducts(result);
-    }, [activeCategory, activeFilter, allProducts]);
+            // Price check
+            const priceMatch = p.price <= maxPrice;
+
+            return categoryMatch && filterMatch && priceMatch;
+        });
+    }, [allProducts, activeCategory, activeFilter, maxPrice]);
 
     return (
-        <main>
+        <>
             <Header />
-            <div className="container" style={{ padding: '50px 0' }}>
-                <h1 className={styles.pageTitle}>NOSSOS PRODUTOS</h1>
-                
-                <div className={styles.filterSection} style={{ marginBottom: '40px' }}>
-                    <div style={{ marginBottom: '20px' }}>
-                        <p style={{ fontSize: '0.9rem', marginBottom: '10px', fontWeight: 'bold' }}>CATEGORIAS:</p>
-                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                            {categories.map(cat => (
-                                <button
-                                    key={cat.id}
-                                    onClick={() => setActiveCategory(cat.id)}
-                                    style={{
-                                        padding: '8px 16px',
-                                        borderRadius: '20px',
-                                        border: '1px solid #2d5a27',
-                                        backgroundColor: activeCategory === cat.id ? '#2d5a27' : 'transparent',
-                                        color: activeCategory === cat.id ? 'white' : '#2d5a27',
-                                        cursor: 'pointer',
-                                        fontSize: '0.85rem'
-                                    }}
-                                >
-                                    {cat.name}
-                                </button>
-                            ))}
+            <main className="container">
+                <div className={styles.productsContainer}>
+                    <aside className={styles.sidebar}>
+                        <div className={styles.quizSidebarCard}>
+                            <Sparkles size={24} color="var(--primary-green)" style={{ marginBottom: '12px' }} />
+                            <h4>Dúvida na escolha?</h4>
+                            <p>Responda nosso quiz e encontre o produto ideal para sua pele em 1 minuto.</p>
+                            <Link href="/quizz" className={styles.quizBtnSidebar} style={{ display: 'block', textDecoration: 'none' }}>
+                                INICIAR QUIZ
+                            </Link>
                         </div>
-                    </div>
 
-                    <div>
-                        <p style={{ fontSize: '0.9rem', marginBottom: '10px', fontWeight: 'bold' }}>FILTRAR POR:</p>
-                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                            <button
-                                onClick={() => setActiveFilter("all")}
-                                style={{
-                                    padding: '8px 16px',
-                                    borderRadius: '20px',
-                                    border: '1px solid #666',
-                                    backgroundColor: activeFilter === "all" ? '#666' : 'transparent',
-                                    color: activeFilter === "all" ? 'white' : '#666',
-                                    cursor: 'pointer',
-                                    fontSize: '0.85rem'
-                                }}
-                            >
-                                Limpar Filtros
-                            </button>
-                            {filters.map(f => (
-                                <button
-                                    key={f.id}
-                                    onClick={() => setActiveFilter(f.id)}
-                                    style={{
-                                        padding: '8px 16px',
-                                        borderRadius: '20px',
-                                        border: '1px solid #2d5a27',
-                                        backgroundColor: activeFilter === f.id ? '#2d5a27' : 'transparent',
-                                        color: activeFilter === f.id ? 'white' : '#2d5a27',
-                                        cursor: 'pointer',
-                                        fontSize: '0.85rem'
-                                    }}
-                                >
-                                    {f.name}
-                                </button>
-                            ))}
+                        <div className={styles.filterGroup}>
+                            <h3><LayoutGrid size={14} /> Categorias</h3>
+                            <div className={styles.filterList}>
+                                {categories.map(cat => (
+                                    <button
+                                        key={cat.id}
+                                        className={activeCategory === cat.id ? styles.filterItemActive : styles.filterItem}
+                                        onClick={() => setActiveCategory(cat.id)}
+                                    >
+                                        {cat.name}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
+
+                        <div className={styles.filterGroup}>
+                            <h3><DollarSign size={14} /> Preço Máximo</h3>
+                            <div className={styles.priceRangeContainer}>
+                                <div className={styles.priceDisplay}>
+                                    <span>R$ 0</span>
+                                    <span>R$ {maxPrice}</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="500"
+                                    step="10"
+                                    value={maxPrice}
+                                    onChange={(e) => setMaxPrice(Number(e.target.value))}
+                                    className={styles.priceSlider}
+                                />
+                            </div>
+                        </div>
+
+                        <div className={styles.filterGroup}>
+                            <h3><Filter size={14} /> Tipo de Pele</h3>
+                            <div className={styles.filterList}>
+                                <button
+                                    className={activeFilter === "all" ? styles.filterItemActive : styles.filterItem}
+                                    onClick={() => setActiveFilter("all")}
+                                >
+                                    Todos os tipos
+                                </button>
+                                {skinFilters.map(f => (
+                                    <button
+                                        key={f.id}
+                                        className={activeFilter === f.id ? styles.filterItemActive : styles.filterItem}
+                                        onClick={() => setActiveFilter(f.id)}
+                                    >
+                                        {f.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className={styles.filterGroup}>
+                            <h3><Sparkles size={14} /> Tratamentos</h3>
+                            <div className={styles.filterList}>
+                                {treatmentFilters.map(f => (
+                                    <button
+                                        key={f.id}
+                                        className={activeFilter === f.id ? styles.filterItemActive : styles.filterItem}
+                                        onClick={() => setActiveFilter(f.id)}
+                                    >
+                                        {f.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </aside>
+
+                    <div className={styles.mainContent}>
+                        <div className={styles.gridHeader}>
+                            <h2>{activeCategory === 'all' ? 'Todos os Produtos' : categories.find(c => c.id === activeCategory)?.name}</h2>
+                            <span className={styles.resultsCount}>{filteredProducts.length} itens encontrados</span>
+                        </div>
+
+                        {loading ? (
+                            <div style={{ textAlign: 'center', padding: '100px 0' }}>
+                                <div className="loader"></div>
+                                <p style={{ marginTop: '20px', color: '#999', fontSize: '0.9rem' }}>Carregando produtos...</p>
+                            </div>
+                        ) : filteredProducts.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '100px 20px', background: '#fcfcfc', border: '1px solid #f0f0f0', borderRadius: '8px' }}>
+                                <p style={{ color: '#666' }}>Nenhum produto atende aos filtros selecionados.</p>
+                                <button
+                                    onClick={() => { setActiveCategory('all'); setActiveFilter('all'); setMaxPrice(500); }}
+                                    style={{ marginTop: '20px', color: 'var(--primary-green)', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer', background: 'none', border: 'none', textDecoration: 'underline' }}
+                                >
+                                    Limpar todos os filtros
+                                </button>
+                            </div>
+                        ) : (
+                            <div className={styles.productGrid}>
+                                {filteredProducts.map((product: any) => (
+                                    <ProductCard key={product.id} product={product} />
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
-
-                {loading ? (
-                    <p style={{ textAlign: 'center' }}>Carregando produtos...</p>
-                ) : filteredProducts.length === 0 ? (
-                    <p style={{ textAlign: 'center', padding: '40px' }}>Nenhum produto encontrado com estes filtros.</p>
-                ) : (
-                    <div className={styles.productGrid}>
-                        {filteredProducts.map((product: any) => (
-                            <ProductCard key={product.id} product={product} />
-                        ))}
-                    </div>
-                )}
-            </div>
+            </main>
             <Footer />
-        </main>
+        </>
     );
 }

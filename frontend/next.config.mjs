@@ -26,7 +26,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   async rewrites() {
-    const apiUrl = 'https://web-production-33f04.up.railway.app';
+    const apiUrl = process.env.API_URL || 'http://127.0.0.1:8000';
     return [
       {
         source: '/api/:path*',
