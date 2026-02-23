@@ -26,7 +26,10 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   async rewrites() {
-    const apiUrl = process.env.API_URL || 'http://127.0.0.1:8000';
+    // On Railway: set API_URL env var to the backend service's internal URL
+    // e.g., https://your-backend.up.railway.app  OR  http://backend.railway.internal:PORT
+    // Locally: defaults to http://localhost:8000
+    const apiUrl = process.env.API_URL || 'http://localhost:8000';
     return [
       {
         source: '/api/:path*',

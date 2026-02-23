@@ -1,0 +1,12 @@
+{
+    "$schema": "https://railway.app/railway.schema.json",
+    "build": {
+        "builder": "nixpacks"
+    },
+    "deploy": {
+        "releaseCommand": "cd /app && python run_migrations.py",
+        "startCommand": "cd /app && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}",
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 10
+    }
+}
