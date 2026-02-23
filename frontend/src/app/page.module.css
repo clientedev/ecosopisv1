@@ -1,161 +1,195 @@
 .heroCarousel {
-    background-color: var(--neutral-gray-100);
-    height: 500px;
-    display: flex;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
+  background-color: var(--neutral-gray-100);
+  height: 500px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .carouselSlide {
-    width: 100%;
-    opacity: 0;
-    transition: opacity 0.8s ease-in-out;
+  width: 100%;
+  opacity: 0;
+  transition: opacity 0.8s ease-in-out;
 }
 
 .activeSlide {
-    opacity: 1;
+  opacity: 1;
 }
 
 .carouselDots {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 10px;
-    z-index: 10;
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 10;
 }
 
 .dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid var(--primary-green);
-    background: transparent;
-    cursor: pointer;
-    padding: 0;
-    transition: background 0.3s;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--primary-green);
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.3s;
 }
 
 .activeDot {
-    background: var(--primary-green);
+  background: var(--primary-green);
 }
 
 .heroContent {
-    max-width: 700px;
+  max-width: 700px;
 }
 
 .heroContent h1 {
-    font-size: 3.5rem;
-    line-height: 1.1;
-    margin-bottom: var(--spacing-md);
-    letter-spacing: -2px;
+  font-size: 3.5rem;
+  line-height: 1.1;
+  margin-bottom: var(--spacing-md);
+  letter-spacing: -2px;
 }
 
 .heroContent p {
-    font-size: 1.2rem;
-    color: var(--text-secondary);
-    margin-bottom: var(--spacing-lg);
-    max-width: 500px;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-lg);
+  max-width: 500px;
 }
 
 .heroActions {
-    display: flex;
-    gap: var(--spacing-md);
+  display: flex;
+  gap: var(--spacing-md);
 }
 
 .advantages {
-    padding: var(--spacing-xl) 0;
-    border-bottom: 1px solid var(--neutral-gray-200);
+  padding: var(--spacing-xl) 0;
+  border-bottom: 1px solid var(--neutral-gray-200);
 }
 
 .advantagesGrid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-lg);
-    text-align: center;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-lg);
+  text-align: center;
 }
 
 .advantageItem h3 {
-    font-size: 1.1rem;
-    margin-bottom: var(--spacing-sm);
+  font-size: 1.1rem;
+  margin-bottom: var(--spacing-sm);
 }
 
 .advantageItem p {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
 }
 
 .section {
-    padding: var(--spacing-xl) 0;
+  padding: var(--spacing-xl) 0;
 }
 
 .sectionHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: var(--spacing-lg);
 }
 
 .sectionTitle {
-    font-size: 1.5rem;
-    letter-spacing: 1px;
+  font-size: 1.5rem;
+  letter-spacing: 1px;
 }
 
 .viewAll {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--primary-green);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--primary-green);
 }
 
 .productGrid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--spacing-lg);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-lg);
 }
 
 .quizPromo {
-    background-color: var(--primary-green);
-    color: white;
-    padding: var(--spacing-xl) 0;
-    text-align: center;
-    margin: var(--spacing-xl) 0;
+  background-color: var(--primary-green);
+  color: white;
+  padding: var(--spacing-xl) 0;
+  text-align: center;
+  margin: var(--spacing-xl) 0;
 }
 
 .quizPromo h2 {
-    color: white;
-    font-size: 2.5rem;
-    margin-bottom: var(--spacing-md);
+  color: white;
+  font-size: 2.5rem;
+  margin-bottom: var(--spacing-md);
 }
 
 .quizPromo p {
-    font-size: 1.2rem;
-    margin-bottom: var(--spacing-lg);
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
+  font-size: 1.2rem;
+  margin-bottom: var(--spacing-lg);
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .quizPromo :global(.btn-primary) {
-    background-color: white;
-    color: var(--primary-green);
+  background-color: white;
+  color: var(--primary-green);
 }
 
 .quizPromo :global(.btn-primary):hover {
-    background-color: var(--neutral-gray-100);
+  background-color: var(--neutral-gray-100);
 }
 
 @media (max-width: 768px) {
-    .heroContent h1 {
-        font-size: 2.5rem;
-    }
-    .productGrid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .advantagesGrid {
-        grid-template-columns: 1fr;
-    }
+  .heroContent h1 {
+    font-size: 2.5rem;
+  }
+
+  .heroContent p {
+    font-size: 1rem;
+  }
+
+  .heroActions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .heroActions>* {
+    width: 100%;
+    text-align: center;
+  }
+
+  .productGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .advantagesGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroContent h1 {
+    font-size: 2rem;
+  }
+
+  .productGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionTitle {
+    font-size: 1.25rem;
+  }
+
+  .quizPromo h2 {
+    font-size: 1.8rem;
+  }
 }
 
 .reviewsSection {
@@ -174,7 +208,7 @@
   background: white;
   padding: 30px;
   border-radius: 15px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -203,7 +237,7 @@
   background: white;
   padding: 40px;
   border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
   border: 1px solid #f0f0f0;
 }
 
@@ -233,7 +267,9 @@
   }
 }
 
-.reviewForm input, .reviewForm select, .reviewForm textarea {
+.reviewForm input,
+.reviewForm select,
+.reviewForm textarea {
   padding: 15px;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
@@ -243,7 +279,9 @@
   transition: all 0.2s;
 }
 
-.reviewForm input:focus, .reviewForm select:focus, .reviewForm textarea:focus {
+.reviewForm input:focus,
+.reviewForm select:focus,
+.reviewForm textarea:focus {
   outline: none;
   border-color: #2d5a27;
   background-color: white;

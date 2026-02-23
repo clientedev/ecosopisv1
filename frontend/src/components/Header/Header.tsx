@@ -3,12 +3,13 @@ import Link from "next/link";
 import styles from "./Header.module.css";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { User, LogOut, Settings, LayoutDashboard, ChevronDown } from "lucide-react";
+import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X } from "lucide-react";
 
 export default function Header() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [user, setUser] = useState<{ name: string, email: string, role: string } | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [announcement, setAnnouncement] = useState<{
         text: string,
         bg_color: string,
@@ -130,12 +131,12 @@ export default function Header() {
                     </Link>
                 </div>
 
-                <nav className={styles.nav}>
-                    <Link href="/produtos">PRODUTOS</Link>
-                    <Link href="/novidades">NOVIDADES</Link>
-                    <Link href="/quizz">QUIZZ</Link>
-                    <Link href="/box">BOX SURPRESA</Link>
-                    <Link href="/sobre">SOBRE</Link>
+                <nav className={`${styles.nav} ${isMobileMenuOpen ? styles.navOpen : ''}`}>
+                    <Link href="/produtos" onClick={() => setIsMobileMenuOpen(false)}>PRODUTOS</Link>
+                    <Link href="/novidades" onClick={() => setIsMobileMenuOpen(false)}>NOVIDADES</Link>
+                    <Link href="/quizz" onClick={() => setIsMobileMenuOpen(false)}>QUIZZ</Link>
+                    <Link href="/box" onClick={() => setIsMobileMenuOpen(false)}>BOX SURPRESA</Link>
+                    <Link href="/sobre" onClick={() => setIsMobileMenuOpen(false)}>SOBRE</Link>
                 </nav>
 
                 <div className={styles.actions}>
@@ -182,6 +183,14 @@ export default function Header() {
                     ) : (
                         <Link href="/conta" className={styles.actionIcon}>ENTRAR</Link>
                     )}
+
+                    <button
+                        className={styles.mobileMenuButton}
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        aria-label="Toggle menu"
+                    >
+                        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
                 </div>
             </div>
         </header>
