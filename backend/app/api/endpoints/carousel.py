@@ -89,6 +89,7 @@ async def update_carousel_item(
     cta_primary_link: Optional[str] = Form(None),
     cta_secondary_text: Optional[str] = Form(None),
     cta_secondary_link: Optional[str] = Form(None),
+    is_active: bool = Form(True),
     alignment: str = Form("left"),
     title_color: str = Form("#ffffff"),
     description_color: str = Form("#ffffff"),
@@ -102,7 +103,7 @@ async def update_carousel_item(
     db_item = db.query(models.CarouselItem).filter(models.CarouselItem.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
-    
+
     final_image_url = image_url or db_item.image_url
     if file and file.filename:
         content = await file.read()
@@ -126,6 +127,7 @@ async def update_carousel_item(
     if cta_secondary_text is not None: db_item.cta_secondary_text = str(cta_secondary_text)
     if cta_secondary_link is not None: db_item.cta_secondary_link = str(cta_secondary_link)
     db_item.order = int(order)
+    db_item.is_active = is_active
     
     # Update customization fields
     if alignment: db_item.alignment = alignment
