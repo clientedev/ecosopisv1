@@ -20,6 +20,12 @@ MISSING_CAROUSEL_COLUMNS = [
     ("overlay_opacity",   "DOUBLE PRECISION DEFAULT 0.3"),
 ]
 
+MISSING_ANNOUNCEMENT_COLUMNS = [
+    ("is_scrolling", "BOOLEAN DEFAULT FALSE"),
+    ("repeat_text",  "BOOLEAN DEFAULT TRUE"),
+    ("scroll_speed", "INTEGER DEFAULT 20"),
+]
+
 def add_missing_columns():
     """Safely add any columns that don't exist yet in the live database."""
     with engine.connect() as conn:
@@ -31,11 +37,21 @@ def add_missing_columns():
                 conn.commit()
                 logger.info(f"✓ Column carousel_items.{col_name} ensured.")
             except Exception as e:
-                logger.warning(f"Could not add column {col_name}: {e}")
-                try:
-                    conn.rollback()
-                except Exception:
-                    pass
+                logger.warning(f"Could not add column carousel_items.{col_name}: {e}")
+                try: conn.rollback()
+                except Exception: pass
+
+        for col_name, col_def in MISSING_ANNOUNCEMENT_COLUMNS:
+            try:
+                conn.execute(text(
+                    f"ALTER TABLE announcement_bar ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
+                ))
+                conn.commit()
+                logger.info(f"✓ Column announcement_bar.{col_name} ensured.")
+            except Exception as e:
+                logger.warning(f"Could not add column announcement_bar.{col_name}: {e}")
+                try: conn.rollback()
+                except Exception: pass
 
 def run_migrations():
     success = True
