@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./dashboard.module.css";
 import EditProductModal from "./EditProductModal";
+import NewProductModal from "./NewProductModal";
 
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
@@ -11,6 +12,7 @@ export default function AdminDashboard() {
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingProduct, setEditingProduct] = useState<any>(null);
+    const [isAddingProduct, setIsAddingProduct] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -50,7 +52,12 @@ export default function AdminDashboard() {
             <main className={styles.mainContent}>
                 <header className={styles.header}>
                     <h1>Gerenciar Produtos</h1>
-                    <button className="btn-primary">+ Novo Produto</button>
+                    <button 
+                        className="btn-primary"
+                        onClick={() => setIsAddingProduct(true)}
+                    >
+                        + Novo Produto
+                    </button>
                 </header>
 
                 <div className={styles.stats}>
@@ -111,6 +118,15 @@ export default function AdminDashboard() {
                         onClose={() => setEditingProduct(null)}
                         onSave={(updated) => {
                             setProducts(products.map((p: any) => p.id === updated.id ? updated : p));
+                        }}
+                    />
+                )}
+
+                {isAddingProduct && (
+                    <NewProductModal 
+                        onClose={() => setIsAddingProduct(false)}
+                        onSave={(newProduct) => {
+                            setProducts([newProduct, ...products]);
                         }}
                     />
                 )}

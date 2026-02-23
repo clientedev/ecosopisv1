@@ -389,23 +389,32 @@ def seed():
                 db_product.images = [db_product.image_url] if db_product.image_url else []
     
     # Create Initial Carousel Items
+    print(f"Checking carousel items... Current count: {db.query(models.CarouselItem).count()}")
     if db.query(models.CarouselItem).count() == 0:
         carousel_items = [
             {
                 "title": "Beleza que Floresce do Interior",
-                "description": "Cosméticos naturais e veganos criados com a pureza da botânica brasileira.",
+                "description": "Cosmeticos naturais e veganos criados com a pureza da botanica brasileira.",
                 "image_url": "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png",
                 "badge": "100% VEGANO",
                 "cta_primary_text": "VER PRODUTOS",
                 "cta_primary_link": "/produtos",
                 "cta_secondary_text": "FAZER QUIZZ",
                 "cta_secondary_link": "/quizz",
-                "order": 0
+                "order": 0,
+                "alignment": "left",
+                "title_color": "#ffffff",
+                "description_color": "#ffffff",
+                "badge_color": "#ffffff",
+                "badge_bg_color": "#4a7c59",
+                "overlay_color": "#000000",
+                "overlay_opacity": 0.3
             }
         ]
         for s_data in carousel_items:
             item = models.CarouselItem(**s_data)
             db.add(item)
+            print(f"Added carousel item: {s_data['title']}")
     
     # Create Initial News Posts
     if db.query(models.News).count() == 0 and admin:

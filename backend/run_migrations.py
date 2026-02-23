@@ -54,9 +54,11 @@ def run_migrations():
         logger.info("Starting data seeding...")
         try:
             seed()
-            logger.info("✓ Database seeding completed.")
+            logger.info("✓ Database seeding completed successfully.")
         except Exception as seed_err:
-            logger.warning(f"Seed skipped or partial: {seed_err}")
+            logger.error(f"✗ Seed failed: {seed_err}")
+            # If seeding fails, we still want to continue to start the app
+            # unless it's a fatal connection error
 
         logger.info("\n✓ All migrations completed successfully!")
 
