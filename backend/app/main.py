@@ -10,7 +10,55 @@ load_dotenv()
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
-# NOTE: Seeding is handled in the release phase via run_migrations.py (Procfile)
+
+# ── Startup migration: add columns that exist in models but not in the live DB ──
+# Uses IF NOT EXISTS so this is 100% safe to run on every startup.
+def _apply_startup_migrations():
+    from sqlalchemy import text
+    import bcrypt as _bcrypt
+
+    CAROUSEL_COLS = [
+        ("alignment",         "VARCHAR DEFAULT 'left'"),
+        ("title_color",       "VARCHAR DEFAULT '#ffffff'"),
+        ("description_color", "VARCHAR DEFAULT '#ffffff'"),
+        ("badge_color",       "VARCHAR DEFAULT '#ffffff'"),
+        ("badge_bg_color",    "VARCHAR DEFAULT '#4a7c59'"),
+        ("overlay_color",     "VARCHAR DEFAULT '#000000'"),
+        ("overlay_opacity",   "DOUBLE PRECISION DEFAULT 0.3"),
+    ]
+    with engine.connect() as conn:
+        for col, defn in CAROUSEL_COLS:
+            try:
+                conn.execute(text(
+                    f"ALTER TABLE carousel_items ADD COLUMN IF NOT EXISTS {col} {defn}"
+                ))
+                conn.commit()
+            except Exception:
+                try: conn.rollback()
+                except Exception: pass
+
+        # Ensure admin user exists
+        try:
+            row = conn.execute(text("SELECT id FROM users WHERE email='admin@admin.com'")).fetchone()
+            if not row:
+                pw = _bcrypt.hashpw(b"admin123", _bcrypt.gensalt()).decode("utf-8")
+                conn.execute(text(
+                    "INSERT INTO users (email, hashed_password, full_name, role, created_at) "
+                    "VALUES (:e, :p, 'Admin Principal', 'admin', NOW())"
+                ), {"e": "admin@admin.com", "p": pw})
+                conn.commit()
+                print("✓ Admin user created: admin@admin.com / admin123")
+        except Exception as e:
+            try: conn.rollback()
+            except Exception: pass
+            print(f"Admin check skipped: {e}")
+
+try:
+    _apply_startup_migrations()
+    print("✓ Startup migrations complete.")
+except Exception as e:
+    print(f"Startup migration error (non-fatal): {e}")
+
 
 app = FastAPI(title="ECOSOPIS API", version="1.0.0")
 
