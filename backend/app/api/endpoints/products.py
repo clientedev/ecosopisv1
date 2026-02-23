@@ -21,40 +21,49 @@ class AnnouncementUpdate(BaseModel):
 
 @router.get("/announcement")
 def get_announcement(db: Session = Depends(get_db)):
-    announcement = db.query(models.AnnouncementBar).first()
-    if not announcement:
-        announcement = models.AnnouncementBar(
-            text="Bem-vinda à ECOSOPIS! Frete grátis em compras acima de R$ 150",
-            bg_color="#2d5a27",
-            text_color="#ffffff",
-            is_active=True,
-            is_scrolling=False,
-            repeat_text=True,
-            scroll_speed=20
-        )
-        db.add(announcement)
-        db.commit()
-        db.refresh(announcement)
-    return announcement
+    try:
+        announcement = db.query(models.AnnouncementBar).first()
+        if not announcement:
+            announcement = models.AnnouncementBar(
+                text="Bem-vinda à ECOSOPIS! Frete grátis em compras acima de R$ 150",
+                bg_color="#2d5a27",
+                text_color="#ffffff",
+                is_active=True,
+                is_scrolling=False,
+                repeat_text=True,
+                scroll_speed=20
+            )
+            db.add(announcement)
+            db.commit()
+            db.refresh(announcement)
+        return announcement
+    except Exception as e:
+        print(f"Error in get_announcement: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/announcement")
 def update_announcement(data: AnnouncementUpdate, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
-    announcement = db.query(models.AnnouncementBar).first()
-    if not announcement:
-        announcement = models.AnnouncementBar()
-        db.add(announcement)
-    
-    announcement.text = data.text
-    announcement.bg_color = data.bg_color
-    announcement.text_color = data.text_color
-    announcement.is_active = data.is_active
-    announcement.is_scrolling = data.is_scrolling
-    announcement.repeat_text = data.repeat_text
-    announcement.scroll_speed = data.scroll_speed
-    
-    db.commit()
-    db.refresh(announcement)
-    return announcement
+    try:
+        announcement = db.query(models.AnnouncementBar).first()
+        if not announcement:
+            announcement = models.AnnouncementBar(text=data.text)
+            db.add(announcement)
+        
+        announcement.text = data.text
+        announcement.bg_color = data.bg_color
+        announcement.text_color = data.text_color
+        announcement.is_active = data.is_active
+        announcement.is_scrolling = data.is_scrolling
+        announcement.repeat_text = data.repeat_text
+        announcement.scroll_speed = data.scroll_speed
+        
+        db.commit()
+        db.refresh(announcement)
+        return announcement
+    except Exception as e:
+        print(f"Error in update_announcement: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/upload")
 async def upload_image(
@@ -125,7 +134,7 @@ def get_product(slug: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-@router.post("/", response_model=schemas.ProductResponse)
+@router.post("", response_model=schemas.ProductResponse)
 def create_product(
     product_in: schemas.ProductCreate, 
     db: Session = Depends(get_db),

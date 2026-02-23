@@ -68,7 +68,7 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                 return;
             }
 
-            const res = await fetch(`/api/products/`, {
+            const res = await fetch(`/api/products`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -150,6 +150,7 @@ export default function NewProductModal({ onClose, onSave }: Props) {
         if (url.startsWith("http")) return url;
         if (url.startsWith("/api/")) return url;
         if (url.startsWith("/static")) return url;
+        if (url.includes("/images/")) return url;
         return `/static/uploads/${url.split('/').pop()}`;
     };
 

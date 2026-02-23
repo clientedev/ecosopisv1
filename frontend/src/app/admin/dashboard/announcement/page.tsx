@@ -68,7 +68,7 @@ export default function AdminAnnouncementPage() {
                 setMessage({ type: "success", text: "Configurações salvas com sucesso!" });
             } else {
                 const errData = await res.json().catch(() => ({}));
-                setMessage({ type: "error", text: errData.detail || "Erro ao salvar configurações. Verifique os campos." });
+                setMessage({ type: "error", text: `Erro (${res.status}): ${errData.detail || "Erro ao salvar configurações."}` });
             }
         } catch (err) {
             setMessage({ type: "error", text: "Erro de conexão com o servidor." });
