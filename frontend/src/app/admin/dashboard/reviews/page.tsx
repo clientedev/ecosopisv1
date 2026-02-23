@@ -72,19 +72,19 @@ export default function AdminReviewsPage() {
     };
 
     return (
-        <div className={styles.adminContainer}>
-            <AdminSidebar active="reviews" />
+        <div className={styles.dashboard}>
+            <AdminSidebar activePath="/admin/dashboard/reviews" />
 
             <main className={styles.mainContent}>
-                <div className={styles.header}>
+                <header className={styles.header}>
                     <div>
                         <h1>Moderação de Avaliações</h1>
                         <p>Aprove ou remova avaliações enviadas por clientes.</p>
                     </div>
-                </div>
+                </header>
 
-                <div className={styles.tableCard}>
-                    <table className={styles.adminTable}>
+                <div className={styles.productTable}>
+                    <table>
                         <thead>
                             <tr>
                                 <th>Origem/Produto</th>
@@ -97,7 +97,7 @@ export default function AdminReviewsPage() {
                         <tbody>
                             {reviews.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className={styles.emptyRow}>
+                                    <td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>
                                         {loading ? "Carregando..." : "Nenhuma avaliação pendente."}
                                     </td>
                                 </tr>
@@ -105,30 +105,29 @@ export default function AdminReviewsPage() {
                                 reviews.map((rev: any) => (
                                     <tr key={rev.id}>
                                         <td>
-                                            <span className={styles.productBadge}>
+                                            <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>
                                                 {rev.product_name || "Geral"}
                                             </span>
                                         </td>
                                         <td><strong>{rev.user_name}</strong></td>
                                         <td>
-                                            <div className={styles.stars}>
+                                            <div style={{ color: '#f1c40f', fontSize: '1.2rem' }}>
                                                 {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
                                             </div>
                                         </td>
-                                        <td className={styles.commentCell}>{rev.comment}</td>
+                                        <td style={{ maxWidth: '400px', fontSize: '0.9rem', lineHeight: '1.4' }}>{rev.comment}</td>
                                         <td>
-                                            <div className={styles.actionButtons}>
+                                            <div className={styles.actions}>
                                                 <button
-                                                    className={styles.approveBtn}
+                                                    className={styles.editBtn}
                                                     onClick={() => handleApprove(rev.id)}
-                                                    title="Aprovar"
+                                                    style={{ backgroundColor: '#dcfce7', color: '#16a34a', border: 'none' }}
                                                 >
                                                     Aprovar
                                                 </button>
                                                 <button
                                                     className={styles.deleteBtn}
                                                     onClick={() => handleDelete(rev.id)}
-                                                    title="Excluir"
                                                 >
                                                     Excluir
                                                 </button>
