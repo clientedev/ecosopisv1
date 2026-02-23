@@ -26,11 +26,26 @@ def _apply_startup_migrations():
         ("overlay_color",     "VARCHAR DEFAULT '#000000'"),
         ("overlay_opacity",   "DOUBLE PRECISION DEFAULT 0.3"),
     ]
+    ANNOUNCEMENT_COLS = [
+        ("is_scrolling", "BOOLEAN DEFAULT FALSE"),
+        ("repeat_text",  "BOOLEAN DEFAULT TRUE"),
+        ("scroll_speed", "INTEGER DEFAULT 20"),
+    ]
     with engine.connect() as conn:
         for col, defn in CAROUSEL_COLS:
             try:
                 conn.execute(text(
                     f"ALTER TABLE carousel_items ADD COLUMN IF NOT EXISTS {col} {defn}"
+                ))
+                conn.commit()
+            except Exception:
+                try: conn.rollback()
+                except Exception: pass
+
+        for col, defn in ANNOUNCEMENT_COLS:
+            try:
+                conn.execute(text(
+                    f"ALTER TABLE announcement_bar ADD COLUMN IF NOT EXISTS {col} {defn}"
                 ))
                 conn.commit()
             except Exception:
