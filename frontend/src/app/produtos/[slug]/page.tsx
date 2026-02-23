@@ -13,7 +13,7 @@ export default function ProductDetailPage() {
     const [activeImage, setActiveImage] = useState("");
     const [selectedFaq, setSelectedFaq] = useState<any>(null);
     const [showReviewForm, setShowReviewForm] = useState(false);
-    const [reviewData, setReviewData] = useState({ rating: 5, comment: "" });
+    const [reviewData, setReviewData] = useState({ rating: 5, comment: "", user_name: "" });
     const [submittingReview, setSubmittingReview] = useState(false);
 
     const faqs = [
@@ -125,15 +125,16 @@ export default function ProductDetailPage() {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    ...reviewData,
-                    user_name: "Cliente", // Or ask for name, but matching simplified model
+                    user_name: reviewData.user_name || "Cliente",
+                    comment: reviewData.comment,
+                    rating: reviewData.rating,
                     product_id: product.id
                 })
             });
             if (res.ok) {
                 alert("Avaliação enviada! Ela será exibida após aprovação.");
                 setShowReviewForm(false);
-                setReviewData({ rating: 5, comment: "" });
+                setReviewData({ rating: 5, comment: "", user_name: "" });
             }
         } catch (error) {
             console.error("Erro ao enviar avaliação:", error);
@@ -262,15 +263,26 @@ export default function ProductDetailPage() {
                         <div className={styles.reviewForm}>
                             <h3>Sua Avaliação</h3>
                             <div className={styles.starRating}>
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <span
-                                        key={star}
-                                        className={star <= reviewData.rating ? styles.starActive : styles.star}
-                                        onClick={() => setReviewData({ ...reviewData, rating: star })}
-                                    >
-                                        ★
-                                    </span>
-                                ))}
+                                <input
+                                    type="text"
+                                    placeholder="Seu nome"
+                                    value={reviewData.user_name}
+                                    onChange={(e) => setReviewData({ ...reviewData, user_name: e.target.value })}
+                                    className={styles.reviewInput}
+                                    style={{ marginBottom: '1rem' }}
+                                    required
+                                />
+                                <div style={{ display: 'flex', gap: '5px', marginBottom: '1rem' }}>
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <span
+                                            key={star}
+                                            className={star <= reviewData.rating ? styles.starActive : styles.star}
+                                            onClick={() => setReviewData({ ...reviewData, rating: star })}
+                                        >
+                                            ★
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
                             <textarea
                                 placeholder="Conte sua experiência com este produto..."

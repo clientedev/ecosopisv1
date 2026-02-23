@@ -50,7 +50,11 @@ export default function Home() {
             const res = await fetch('/api/reviews', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(reviewForm)
+                body: JSON.stringify({
+                    user_name: reviewForm.user_name,
+                    comment: reviewForm.comment,
+                    rating: reviewForm.rating
+                })
             });
             if (res.ok) {
                 setFormStatus({ type: "success", text: "Sua avaliação foi enviada e será exibida após aprovação! ✨" });
