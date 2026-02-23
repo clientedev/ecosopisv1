@@ -69,6 +69,13 @@ async def create_news(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    # Check permission: must be admin OR have can_post_news flag
+    if current_user.role != "admin" and not current_user.can_post_news:
+        raise HTTPException(
+            status_code=403,
+            detail="Você não tem permissão para criar postagens no blog. Solicite acesso ao administrador."
+        )
+
     print(f"--- START POST CREATION ---")
     print(f"User: {current_user.email} (ID: {current_user.id})")
     print(f"Title: {title}")

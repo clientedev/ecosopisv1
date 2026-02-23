@@ -20,6 +20,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String)
     role = Column(String, default="client") # admin, client
+    can_post_news = Column(Boolean, default=False)  # can post to blog/news
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     orders = relationship("Order", back_populates="user")

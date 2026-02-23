@@ -37,6 +37,16 @@ def _apply_startup_migrations():
                 try: conn.rollback()
                 except Exception: pass
 
+        # Add can_post_news to users if missing
+        try:
+            conn.execute(text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS can_post_news BOOLEAN DEFAULT FALSE"
+            ))
+            conn.commit()
+        except Exception:
+            try: conn.rollback()
+            except Exception: pass
+
         # Ensure admin user exists
         try:
             row = conn.execute(text("SELECT id FROM users WHERE email='admin@admin.com'")).fetchone()

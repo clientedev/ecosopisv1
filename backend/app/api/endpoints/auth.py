@@ -113,6 +113,36 @@ def promote_to_admin(user_id: int, db: Session = Depends(get_db), current_admin:
     db.refresh(user)
     return user
 
+@router.post("/users/{user_id}/blog-permission")
+def toggle_blog_permission(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin: models.User = Depends(get_current_admin)
+):
+    """Grant or revoke blog posting permission for a user."""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # Admins always can post, no need to toggle
+    if user.role == "admin":
+        raise HTTPException(status_code=400, detail="Admins already have full access")
+    user.can_post_news = not user.can_post_news
+    db.commit()
+    db.refresh(user)
+    return {"user_id": user_id, "can_post_news": user.can_post_news, "email": user.email}
+
+@router.get("/users/{user_id}/blog-permission")
+def get_blog_permission(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin: models.User = Depends(get_current_admin)
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"user_id": user_id, "can_post_news": user.can_post_news or user.role == "admin"}
+
+
 @router.post("/login", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
