@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "../dashboard.module.css";
 
+import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+
 export default function AdminReviewsPage() {
     const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -18,8 +20,7 @@ export default function AdminReviewsPage() {
 
         const fetchReviews = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-                const res = await fetch(`${apiUrl}/api/reviews/pending`, {
+                const res = await fetch(`/api/reviews/pending`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -38,8 +39,7 @@ export default function AdminReviewsPage() {
     const handleApprove = async (id: number) => {
         const token = localStorage.getItem("token");
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-            const res = await fetch(`${apiUrl}/api/reviews/approve/${id}`, {
+            const res = await fetch(`/api/reviews/approve/${id}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -47,7 +47,6 @@ export default function AdminReviewsPage() {
             });
             if (res.ok) {
                 setReviews(reviews.filter(r => r.id !== id));
-                alert("Avaliação aprovada!");
             }
         } catch (err) {
             console.error("Error approving review", err);
@@ -58,8 +57,7 @@ export default function AdminReviewsPage() {
         if (!confirm("Excluir esta avaliação?")) return;
         const token = localStorage.getItem("token");
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-            const res = await fetch(`${apiUrl}/api/reviews/${id}`, {
+            const res = await fetch(`/api/reviews/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -73,64 +71,64 @@ export default function AdminReviewsPage() {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        router.push("/admin");
-    };
-
     return (
-        <div className={styles.dashboard}>
-            <aside className={styles.sidebar}>
-                <div className={styles.logo}>ECOSOPIS ADMIN</div>
-                <nav>
-                    <Link href="/admin/dashboard">Produtos</Link>
-                    <Link href="/admin/dashboard/carousel">Carrossel Hero</Link>
-                    <Link href="/admin/dashboard/announcement">Faixa de Aviso</Link>
-                    <Link href="/admin/dashboard/box">Assinaturas Box</Link>
-                    <Link href="/admin/dashboard/reviews" className={styles.active}>Avaliações</Link>
-                    <Link href="/admin/dashboard/usuarios">Usuários</Link>
-                    <Link href="/admin/dashboard/cupons">Cupons</Link>
-                    <Link href="/">Ver Site</Link>
-                    <button onClick={handleLogout} className={styles.logoutBtn}>Sair</button>
-                </nav>
-            </aside>
-            <main className={styles.mainContent}>
-                <header className={styles.header}>
-                    <h1>Moderação de Avaliações</h1>
-                </header>
+        <div className={styles.adminContainer}>
+            <AdminSidebar active="reviews" />
 
-                <div className={styles.productTable}>
-                    <table>
+            <main className={styles.mainContent}>
+                <div className={styles.header}>
+                    <div>
+                        <h1>Moderação de Avaliações</h1>
+                        <p>Aprove ou remova avaliações enviadas por clientes.</p>
+                    </div>
+                </div>
+
+                <div className={styles.tableCard}>
+                    <table className={styles.adminTable}>
                         <thead>
                             <tr>
-                                <th>Produto</th>
+                                <th>Origem/Produto</th>
                                 <th>Usuário</th>
-                                <th>Estrelas</th>
+                                <th>Avaliação</th>
                                 <th>Comentário</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             {reviews.length === 0 ? (
-                                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>Nenhuma avaliação pendente.</td></tr>
+                                <tr>
+                                    <td colSpan={5} className={styles.emptyRow}>
+                                        {loading ? "Carregando..." : "Nenhuma avaliação pendente."}
+                                    </td>
+                                </tr>
                             ) : (
                                 reviews.map((rev: any) => (
                                     <tr key={rev.id}>
-                                        <td><strong>{rev.product_name}</strong></td>
-                                        <td>{rev.user_name}</td>
-                                        <td><span style={{ color: '#f1c40f' }}>{"★".repeat(rev.rating)}{"☆".repeat(5-rev.rating)}</span></td>
-                                        <td style={{ maxWidth: '300px', fontSize: '0.9rem' }}>{rev.comment}</td>
                                         <td>
-                                            <div className={styles.actions}>
-                                                <button 
-                                                    className="btn-primary"
+                                            <span className={styles.productBadge}>
+                                                {rev.product_name || "Geral"}
+                                            </span>
+                                        </td>
+                                        <td><strong>{rev.user_name}</strong></td>
+                                        <td>
+                                            <div className={styles.stars}>
+                                                {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
+                                            </div>
+                                        </td>
+                                        <td className={styles.commentCell}>{rev.comment}</td>
+                                        <td>
+                                            <div className={styles.actionButtons}>
+                                                <button
+                                                    className={styles.approveBtn}
                                                     onClick={() => handleApprove(rev.id)}
+                                                    title="Aprovar"
                                                 >
                                                     Aprovar
                                                 </button>
-                                                <button 
+                                                <button
                                                     className={styles.deleteBtn}
                                                     onClick={() => handleDelete(rev.id)}
+                                                    title="Excluir"
                                                 >
                                                     Excluir
                                                 </button>

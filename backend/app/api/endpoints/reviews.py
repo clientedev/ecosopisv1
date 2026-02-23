@@ -4,30 +4,54 @@ from typing import List
 from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
-from app.core.security import get_current_user, get_current_admin_user
+from app.api.endpoints.auth import get_current_admin
+from pydantic import BaseModel
 
 router = APIRouter()
 
-@router.post("/{product_id}/reviews")
-def create_review(product_id: int, review: dict, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    db_review = models.Review(
-        product_id=product_id,
-        user_name=current_user.full_name or current_user.email,
-        comment=review.get("comment"),
-        rating=review.get("rating", 5),
+class ReviewCreate(BaseModel):
+    user_name: str
+    comment: str
+    rating: int
+
+class ReviewUpdate(BaseModel):
+    is_approved: bool
+
+@router.post("")
+def create_review(data: ReviewCreate, db: Session = Depends(get_db)):
+    """Public endpoint to submit a review for approval."""
+    review = models.Review(
+        user_name=data.user_name,
+        comment=data.comment,
+        rating=data.rating,
         is_approved=False
     )
-    db.add(db_review)
+    db.add(review)
     db.commit()
+    db.refresh(review)
     return {"message": "Review submitted for approval"}
 
+@router.get("/approved")
+def get_approved_reviews(db: Session = Depends(get_db)):
+    """Public endpoint to list all approved reviews."""
+    return db.query(models.Review).filter(models.Review.is_approved == True).all()
+
 @router.get("/pending", response_model=List[dict])
-def get_pending_reviews(db: Session = Depends(get_db), current_user = Depends(get_current_admin_user)):
+def get_pending_reviews(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    """Admin endpoint to list pending reviews."""
     reviews = db.query(models.Review).filter(models.Review.is_approved == False).all()
-    return [{"id": r.id, "user_name": r.user_name, "comment": r.comment, "rating": r.rating, "product_name": r.product.name} for r in reviews]
+    return [{
+        "id": r.id, 
+        "user_name": r.user_name, 
+        "comment": r.comment, 
+        "rating": r.rating,
+        "product_id": r.product_id,
+        "product_name": r.product.name if r.product else "Geral"
+    } for r in reviews]
 
 @router.post("/approve/{review_id}")
-def approve_review(review_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_admin_user)):
+def approve_review(review_id: int, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    """Admin endpoint to approve a review."""
     review = db.query(models.Review).filter(models.Review.id == review_id).first()
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
@@ -36,7 +60,8 @@ def approve_review(review_id: int, db: Session = Depends(get_db), current_user =
     return {"message": "Review approved"}
 
 @router.delete("/{review_id}")
-def delete_review(review_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_admin_user)):
+def delete_review(review_id: int, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    """Admin endpoint to delete a review."""
     review = db.query(models.Review).filter(models.Review.id == review_id).first()
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")

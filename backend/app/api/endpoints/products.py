@@ -85,44 +85,6 @@ async def upload_image(
     
     return {"url": f"/api/images/{stored_image.id}"}
 
-class ReviewCreate(BaseModel):
-    user_name: str
-    comment: str
-    rating: int
-
-class ReviewUpdate(BaseModel):
-    is_approved: bool
-
-@router.get("/reviews/approved")
-def get_approved_reviews(db: Session = Depends(get_db)):
-    return db.query(models.Review).filter(models.Review.is_approved == True).all()
-
-@router.get("/reviews/all")
-def list_all_reviews(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
-    return db.query(models.Review).all()
-
-@router.post("/reviews")
-def create_review(data: ReviewCreate, db: Session = Depends(get_db)):
-    review = models.Review(
-        user_name=data.user_name,
-        comment=data.comment,
-        rating=data.rating,
-        is_approved=False
-    )
-    db.add(review)
-    db.commit()
-    db.refresh(review)
-    return review
-
-@router.put("/reviews/{review_id}/approve")
-def approve_review(review_id: int, data: ReviewUpdate, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
-    review = db.query(models.Review).filter(models.Review.id == review_id).first()
-    if not review:
-        raise HTTPException(status_code=404, detail="Review not found")
-    review.is_approved = data.is_approved
-    db.commit()
-    return review
-
 @router.get("", response_model=List[schemas.ProductResponse])
 def list_products(db: Session = Depends(get_db)):
     return db.query(models.Product).all()

@@ -119,18 +119,16 @@ export default function ProductDetailPage() {
         }
         setSubmittingReview(true);
         try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                window.location.href = `/conta?redirect=/produtos/${params.slug}`;
-                return;
-            }
-            const res = await fetch(`/api/products/${product.id}/reviews`, {
+            const res = await fetch(`/api/reviews`, {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
+                    "Content-Type": "application/json"
                 },
-                body: JSON.stringify(reviewData)
+                body: JSON.stringify({
+                    ...reviewData,
+                    user_name: "Cliente", // Or ask for name, but matching simplified model
+                    product_id: product.id
+                })
             });
             if (res.ok) {
                 alert("Avaliação enviada! Ela será exibida após aprovação.");

@@ -17,7 +17,7 @@ export default function Home() {
     useEffect(() => {
         const fetchReviews = async () => {
             try {
-                const res = await fetch('/api/products/reviews/approved');
+                const res = await fetch('/api/reviews/approved');
                 if (res.ok) {
                     const data = await res.json();
                     setReviews(data);
@@ -47,7 +47,7 @@ export default function Home() {
         e.preventDefault();
         setFormStatus({ type: "info", text: "Enviando..." });
         try {
-            const res = await fetch('/api/products/reviews', {
+            const res = await fetch('/api/reviews', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(reviewForm)
