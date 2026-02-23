@@ -117,24 +117,24 @@ async def update_carousel_item(
         db.refresh(stored_image)
         final_image_url = f"/api/images/{stored_image.id}"
 
-    db_item.badge = str(badge) if badge is not None else None
-    db_item.title = str(title) if title is not None else None
-    db_item.description = str(description) if description is not None else None
-    db_item.image_url = str(final_image_url) if final_image_url is not None else None
-    db_item.cta_primary_text = str(cta_primary_text) if cta_primary_text is not None else None
-    db_item.cta_primary_link = str(cta_primary_link) if cta_primary_link is not None else None
-    db_item.cta_secondary_text = str(cta_secondary_text) if cta_secondary_text is not None else None
-    db_item.cta_secondary_link = str(cta_secondary_link) if cta_secondary_link is not None else None
+    if badge is not None: db_item.badge = str(badge)
+    if title is not None: db_item.title = str(title)
+    if description is not None: db_item.description = str(description)
+    if final_image_url is not None: db_item.image_url = str(final_image_url)
+    if cta_primary_text is not None: db_item.cta_primary_text = str(cta_primary_text)
+    if cta_primary_link is not None: db_item.cta_primary_link = str(cta_primary_link)
+    if cta_secondary_text is not None: db_item.cta_secondary_text = str(cta_secondary_text)
+    if cta_secondary_link is not None: db_item.cta_secondary_link = str(cta_secondary_link)
     db_item.order = int(order)
     
     # Update customization fields
-    db_item.alignment = alignment
-    db_item.title_color = title_color
-    db_item.description_color = description_color
-    db_item.badge_color = badge_color
-    db_item.badge_bg_color = badge_bg_color
-    db_item.overlay_color = overlay_color
-    db_item.overlay_opacity = overlay_opacity
+    if alignment: db_item.alignment = alignment
+    if title_color: db_item.title_color = title_color
+    if description_color: db_item.description_color = description_color
+    if badge_color: db_item.badge_color = badge_color
+    if badge_bg_color: db_item.badge_bg_color = badge_bg_color
+    if overlay_color: db_item.overlay_color = overlay_color
+    if overlay_opacity is not None: db_item.overlay_opacity = overlay_opacity
     
     db.commit()
     db.refresh(db_item)
