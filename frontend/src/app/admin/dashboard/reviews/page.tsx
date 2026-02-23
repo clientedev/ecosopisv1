@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import styles from "../dashboard.module.css";
+import styles from "@/app/admin/dashboard/dashboard.module.css";
 
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
@@ -72,7 +72,7 @@ export default function AdminReviewsPage() {
     };
 
     return (
-        <div className={styles.dashboard}>
+        <div className={styles.dashboard} style={{ display: 'flex', minHeight: '100vh' }}>
             <AdminSidebar activePath="/admin/dashboard/reviews" />
 
             <main className={styles.mainContent}>
