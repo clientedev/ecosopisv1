@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@/styles/globals.css";
 import { Raleway, Karla } from "next/font/google";
 import ChatIA from "@/components/ChatIA/ChatIA";
+import RouletteModal from "@/components/RouletteModal/RouletteModal";
 import { AuthProvider } from "@/context/AuthContext";
 
 const raleway = Raleway({
@@ -30,6 +31,7 @@ export default function RootLayout({
                 <AuthProvider>
                     {children}
                     <ChatIA />
+                    <RouletteModal />
                 </AuthProvider>
             </body>
         </html>

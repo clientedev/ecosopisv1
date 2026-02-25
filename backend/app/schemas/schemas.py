@@ -13,6 +13,9 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     id: int
     role: str
+    total_compras: int = 0
+    pode_girar_roleta: bool = False
+    tentativas_roleta: int = 0
     created_at: datetime
 
     class Config:
@@ -93,9 +96,36 @@ class ProductBase(BaseModel):
     buy_on_site: bool = True
     mercadolivre_url: Optional[str] = None
     shopee_url: Optional[str] = None
+    is_active: bool = True
+
+# Product Details Schemas
+class ProductDetailBase(BaseModel):
+    curiosidades: Optional[str] = None
+    modo_de_uso: Optional[str] = None
+    ingredientes: Optional[str] = None
+    cuidados: Optional[str] = None
+    contraindicacoes: Optional[str] = None
+    observacoes: Optional[str] = None
+
+class ProductDetailCreate(ProductDetailBase):
+    pass
+
+class ProductDetailUpdate(ProductDetailBase):
+    pass
+
+class ProductDetailResponse(ProductDetailBase):
+    id: int
+    product_id: int
+    slug: str
+    qr_code_path: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
 
 class ProductCreate(ProductBase):
-    pass
+    details: Optional[ProductDetailCreate] = None
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -111,6 +141,7 @@ class ProductUpdate(BaseModel):
     buy_on_site: Optional[bool] = None
     mercadolivre_url: Optional[str] = None
     shopee_url: Optional[str] = None
+    is_active: Optional[bool] = None
 
 # Carousel Schemas
 class CarouselItemBase(BaseModel):
@@ -145,6 +176,7 @@ class CarouselItemResponse(CarouselItemBase):
 class ProductResponse(ProductBase):
     id: int
     created_at: datetime
+    details: Optional[ProductDetailResponse] = None
 
     class Config:
         from_attributes = True
@@ -196,3 +228,71 @@ class MetricsSummary(BaseModel):
     total_clicks: int
     clicks_by_type: Dict[str, int]
     clicks_by_product: List[Dict[str, Any]]
+
+# Roulette Schemas
+class RouletteConfigBase(BaseModel):
+    ativa: bool = False
+    popup_ativo: bool = False
+    regra_novo_usuario: bool = False
+    regra_5_compras: bool = False
+
+class RouletteConfigUpdate(BaseModel):
+    ativa: Optional[bool] = None
+    popup_ativo: Optional[bool] = None
+    regra_novo_usuario: Optional[bool] = None
+    regra_5_compras: Optional[bool] = None
+
+class RouletteConfigResponse(RouletteConfigBase):
+    id: int
+    updated_at: datetime
+    class Config:
+        from_attributes = True
+
+class RoulettePrizeBase(BaseModel):
+    nome: str
+    descricao: Optional[str] = None
+    ativo: bool = True
+    selecionado_para_sair: bool = False
+    quantidade_disponivel: Optional[int] = None
+    discount_type: Optional[str] = None # percentage, fixed
+    discount_value: Optional[float] = None
+
+class RoulettePrizeCreate(RoulettePrizeBase):
+    pass
+
+class RoulettePrizeUpdate(BaseModel):
+    nome: Optional[str] = None
+    descricao: Optional[str] = None
+    ativo: Optional[bool] = None
+    selecionado_para_sair: Optional[bool] = None
+    quantidade_disponivel: Optional[int] = None
+    discount_type: Optional[str] = None
+    discount_value: Optional[float] = None
+
+class RoulettePrizeResponse(RoulettePrizeBase):
+    id: int
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class RouletteSpinResponse(BaseModel):
+    prize: RoulettePrizeResponse
+    
+class RouletteHistoryResponse(BaseModel):
+    id: int
+    usuario_id: int
+    premio_id: int
+    data_giro: datetime
+    prize: RoulettePrizeResponse
+    class Config:
+        from_attributes = True
+
+# Raw Materials Schemas
+class RawMaterialResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

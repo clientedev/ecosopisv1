@@ -14,6 +14,17 @@ interface Product {
     shopee_url: string;
     buy_on_site: boolean;
     images?: string[];
+    tags?: string[];
+    details?: Partial<ProductDetail>;
+}
+
+interface ProductDetail {
+    curiosidades: string;
+    modo_de_uso: string;
+    ingredientes: string;
+    cuidados: string;
+    contraindicacoes: string;
+    observacoes: string;
 }
 
 interface Props {
@@ -33,9 +44,38 @@ export default function NewProductModal({ onClose, onSave }: Props) {
         mercadolivre_url: "",
         shopee_url: "",
         buy_on_site: true,
-        images: []
+        images: [],
+        tags: [],
+        details: {
+            curiosidades: "",
+            modo_de_uso: "",
+            ingredientes: "",
+            cuidados: "",
+            contraindicacoes: "",
+            observacoes: ""
+        }
     });
     const [loading, setLoading] = useState(false);
+    const [tagInput, setTagInput] = useState("");
+    const [showTechnicalInfo, setShowTechnicalInfo] = useState(false);
+
+    const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            const newTag = tagInput.trim().toUpperCase();
+            if (newTag && !(formData.tags || []).includes(newTag)) {
+                setFormData({ ...formData, tags: [...(formData.tags || []), newTag] });
+            }
+            setTagInput("");
+        }
+    };
+
+    const handleRemoveTag = (tagToRemove: string) => {
+        setFormData({
+            ...formData,
+            tags: (formData.tags || []).filter(t => t !== tagToRemove)
+        });
+    };
 
     const generateSlug = (name: string) => {
         return name
@@ -114,7 +154,7 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                 const uploadFormData = new FormData();
                 uploadFormData.append("file", file);
                 try {
-                    const res = await fetch(`/api/products/upload`, {
+                    const res = await fetch(`/api/images/upload`, {
                         method: "POST",
                         headers: { "Authorization": `Bearer ${token}` },
                         body: uploadFormData
@@ -204,10 +244,57 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                     <div className={styles.formGroup}>
                         <label>Descrição</label>
                         <textarea
+                            rows={5}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                border: '1px solid #ddd',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem',
+                                fontFamily: 'inherit',
+                                resize: 'vertical',
+                                lineHeight: '1.5'
+                            }}
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            placeholder="Descreva o produto de forma clara e atraente..."
                             required
                         />
+                    </div>
+
+                    {/* Tags */}
+                    <div className={styles.formGroup}>
+                        <label>Tags Populares (Tecle <b>Enter</b> para adicionar)</label>
+                        <input
+                            type="text"
+                            value={tagInput}
+                            onChange={(e) => setTagInput(e.target.value)}
+                            onKeyDown={handleAddTag}
+                            placeholder="SABONETE, SKIN:OILY, ACNE..."
+                        />
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
+                            {(formData.tags || []).map((tag, index) => (
+                                <span key={index} style={{
+                                    backgroundColor: '#e5e7eb',
+                                    color: '#374151',
+                                    padding: '4px 8px',
+                                    borderRadius: '16px',
+                                    fontSize: '0.8rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}>
+                                    {tag}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveTag(tag)}
+                                        style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '0.9rem', padding: '0 2px' }}
+                                    >
+                                        &times;
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
                     </div>
 
                     <div className={styles.formGroup}>
@@ -250,17 +337,99 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                                 onChange={(e) => setFormData({ ...formData, shopee_url: e.target.value })}
                             />
                         </div>
+                        <div className={styles.formGroup}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={formData.buy_on_site}
+                                    onChange={(e) => setFormData({ ...formData, buy_on_site: e.target.checked })}
+                                />
+                                Vender diretamente no site
+                            </label>
+                        </div>
                     </div>
 
+                    <hr style={{ margin: '30px 0', border: '0', borderTop: '1px solid #eee' }} />
+
                     <div className={styles.formGroup}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <input
-                                type="checkbox"
-                                checked={formData.buy_on_site}
-                                onChange={(e) => setFormData({ ...formData, buy_on_site: e.target.checked })}
-                            />
-                            Vender diretamente no site
-                        </label>
+                        <h3 style={{ marginBottom: '15px', color: '#1a3a16', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '1.2rem' }}>📄</span> Detalhes da Página Técnica
+                        </h3>
+
+                        <div style={{ background: '#f9f9f9', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                            <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '15px' }}>
+                                Estas informações aparecerão na página exclusiva do produto (acessada via QR Code).
+                                <b> O QR Code será gerado automaticamente após a criação.</b>
+                            </p>
+
+                            <button
+                                type="button"
+                                className={styles.editBtn}
+                                onClick={() => setShowTechnicalInfo(!showTechnicalInfo)}
+                                style={{ backgroundColor: '#2d5a27', color: 'white', marginBottom: showTechnicalInfo ? '20px' : '0' }}
+                            >
+                                {showTechnicalInfo ? "Ocultar Campos" : "Adicionar Informações Técnicas (Opcional)"}
+                            </button>
+
+                            {showTechnicalInfo && (
+                                <div className={styles.formTechnicalArea} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>Curiosidades</label>
+                                        <textarea
+                                            rows={2}
+                                            value={formData.details?.curiosidades || ""}
+                                            onChange={(e) => setFormData({ ...formData, details: { ...formData.details, curiosidades: e.target.value } })}
+                                            placeholder="Fatos interessantes sobre o produto..."
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Modo de Uso</label>
+                                        <textarea
+                                            rows={2}
+                                            value={formData.details?.modo_de_uso || ""}
+                                            onChange={(e) => setFormData({ ...formData, details: { ...formData.details, modo_de_uso: e.target.value } })}
+                                            placeholder="Como aplicar ou consumir..."
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Ingredientes Técnicos</label>
+                                        <textarea
+                                            rows={2}
+                                            value={formData.details?.ingredientes || ""}
+                                            onChange={(e) => setFormData({ ...formData, details: { ...formData.details, ingredientes: e.target.value } })}
+                                            placeholder="Composição detalhada..."
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Cuidados</label>
+                                        <textarea
+                                            rows={2}
+                                            value={formData.details?.cuidados || ""}
+                                            onChange={(e) => setFormData({ ...formData, details: { ...formData.details, cuidados: e.target.value } })}
+                                            placeholder="Armazenamento e manuseio..."
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Contraindicações</label>
+                                        <textarea
+                                            rows={2}
+                                            value={formData.details?.contraindicacoes || ""}
+                                            onChange={(e) => setFormData({ ...formData, details: { ...formData.details, contraindicacoes: e.target.value } })}
+                                            placeholder="Quem não deve usar..."
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Observações Adicionais</label>
+                                        <textarea
+                                            rows={2}
+                                            value={formData.details?.observacoes || ""}
+                                            onChange={(e) => setFormData({ ...formData, details: { ...formData.details, observacoes: e.target.value } })}
+                                            placeholder="Outras informações pertinentes..."
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className={styles.formActions}>

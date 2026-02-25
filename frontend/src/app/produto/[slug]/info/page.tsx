@@ -1,0 +1,239 @@
+"use client";
+import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import styles from "./page.module.css";
+import {
+    Zap,
+    Droplets,
+    ShieldAlert,
+    Stethoscope,
+    ClipboardList,
+    ArrowLeft,
+    Sparkles,
+    ShoppingBag
+} from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+
+interface ProductDetail {
+    curiosidades: string;
+    modo_de_uso: string;
+    ingredientes: string;
+    cuidados: string;
+    contraindicacoes: string;
+    observacoes: string;
+}
+
+interface Product {
+    id: number;
+    name: string;
+    slug: string;
+    description: string;
+    price: number;
+    image_url: string;
+    images: string[];
+    details?: ProductDetail;
+}
+
+export default function ProductTechnicalPage() {
+    const params = useParams();
+    const router = useRouter();
+    const [product, setProduct] = useState<Product | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [activeImage, setActiveImage] = useState("");
+
+    useEffect(() => {
+        const fetchProduct = async () => {
+            try {
+                const res = await fetch(`/api/products/${params.slug}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setProduct(data);
+                    setActiveImage(data.image_url || (data.images && data.images[0]) || "/logo_final.png");
+                } else {
+                    setError(true);
+                }
+            } catch (err) {
+                console.error("Error fetching product info:", err);
+                setError(true);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (params.slug) {
+            fetchProduct();
+        }
+    }, [params.slug]);
+
+    const getImageUrl = (url: string) => {
+        if (!url) return "/logo_final.png";
+        if (url.startsWith("http")) return url;
+        if (url.startsWith("/api/")) return url;
+        if (url.startsWith("/static/")) return url;
+        return url;
+    };
+
+    if (loading) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', gap: '20px', background: '#fbfbfb' }}>
+                <div className="loader"></div>
+                <p style={{ color: '#2d5a27', fontWeight: 600, fontFamily: 'Inter' }}>Sintonizando frequências naturais...</p>
+            </div>
+        );
+    }
+
+    if (error || !product) {
+        return (
+            <div className={styles.emptyState}>
+                <h2>Ops! Produto não encontrado.</h2>
+                <p>Parece que este produto voltou para a natureza ou o link está incorreto.</p>
+                <Link href="/produtos" className="btn-primary" style={{ marginTop: '20px', display: 'inline-block', textDecoration: 'none' }}>
+                    Ver Catálogo
+                </Link>
+            </div>
+        );
+    }
+
+    const details = product.details;
+    const allImages = [product.image_url, ...(product.images || [])].filter(Boolean);
+
+    return (
+        <div className={styles.pageContainer}>
+            <header className={styles.hero}>
+                <Link href={`/produtos/${product.slug}`} style={{
+                    position: 'absolute', top: '25px', left: '25px', color: 'white',
+                    display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none',
+                    fontSize: '0.9rem', fontWeight: 600, opacity: '0.9', zIndex: 100
+                }}>
+                    <ArrowLeft size={18} /> Voltar ao Produto
+                </Link>
+
+                <div className={styles.badge}>Ficha Técnica Premium</div>
+                <h1>{product.name}</h1>
+                <p>Equilíbrio botânico, consciência e pureza em cada detalhe.</p>
+            </header>
+
+            {/* Image Gallery Section */}
+            <section className={styles.gallerySection}>
+                <div className={styles.galleryContainer}>
+                    <div className={styles.mainImage}>
+                        <Image
+                            src={getImageUrl(activeImage)}
+                            alt={product.name}
+                            fill
+                            priority
+                            unoptimized
+                        />
+                    </div>
+                    {allImages.length > 1 && (
+                        <div className={styles.thumbnails}>
+                            {allImages.map((img, idx) => (
+                                <div
+                                    key={idx}
+                                    className={`${styles.thumbItem} ${activeImage === img ? styles.active : ''}`}
+                                    onClick={() => setActiveImage(img)}
+                                >
+                                    <Image src={getImageUrl(img)} alt={`Thumbnail ${idx}`} fill unoptimized />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            <main className={styles.content}>
+                <div className={styles.grid}>
+                    {/* Curiosidades */}
+                    <section className={styles.card} style={{ animationDelay: '0.1s' }}>
+                        <div className={styles.sectionTitle}>
+                            <div className={styles.sectionIcon}><Sparkles size={22} /></div>
+                            Curiosidades
+                        </div>
+                        <div className={styles.textBlock}>
+                            {details?.curiosidades || "Nossas fórmulas são criadas com amor e respeito à natureza, focando em resultados reais sem agredir o meio ambiente. Cada ingrediente é selecionado por sua pureza e eficácia terapêutica."}
+                        </div>
+                    </section>
+
+                    {/* Modo de Uso */}
+                    <section className={styles.card} style={{ animationDelay: '0.2s' }}>
+                        <div className={styles.sectionTitle}>
+                            <div className={styles.sectionIcon}><Zap size={22} /></div>
+                            Modo de Uso
+                        </div>
+                        <div className={styles.textBlock}>
+                            {details?.modo_de_uso || "Aplique sobre a pele úmida, massageando suavemente em movimentos circulares. Enxágue bem. Sinta a textura e o aroma natural envolverem seus sentidos."}
+                        </div>
+                    </section>
+
+                    {/* Ingredientes */}
+                    <section className={styles.card} style={{ animationDelay: '0.3s' }}>
+                        <div className={styles.sectionTitle}>
+                            <div className={styles.sectionIcon}><Droplets size={22} /></div>
+                            Ingredientes
+                        </div>
+                        <div className={styles.textBlock}>
+                            {details?.ingredientes || "Composição baseada em óleos vegetais prensados a frio, extratos botânicos concentrados e óleos essenciais puros. Totalmente livre de sulfatos, parabenos, petrolatos e fragrâncias sintéticas."}
+                        </div>
+                    </section>
+
+                    {/* Cuidados */}
+                    <section className={styles.card} style={{ animationDelay: '0.4s' }}>
+                        <div className={styles.sectionTitle}>
+                            <div className={styles.sectionIcon}><ShieldAlert size={22} /></div>
+                            Cuidados
+                        </div>
+                        <div className={styles.textBlock}>
+                            {details?.cuidados || "Mantenha em local seco, arejado e ao abrigo da luz solar direta. Após o uso, prefira saboneteiras que drenem a água para preservar a integridade e durabilidade do seu produto natural."}
+                        </div>
+                    </section>
+
+                    {/* Contraindicações */}
+                    <section className={styles.card} style={{ animationDelay: '0.5s' }}>
+                        <div className={styles.sectionTitle}>
+                            <div className={styles.sectionIcon}><Stethoscope size={22} /></div>
+                            Contraindicações
+                        </div>
+                        <div className={styles.textBlock}>
+                            {details?.contraindicacoes || "Uso externo. Em caso de irritação, suspenda o uso. Recomendamos verificar a lista de ingredientes caso possua sensibilidade ou alergias conhecidas a óleos essenciais específicos."}
+                        </div>
+                    </section>
+
+                    {/* Observações */}
+                    <section className={styles.card} style={{ animationDelay: '0.6s' }}>
+                        <div className={styles.sectionTitle}>
+                            <div className={styles.sectionIcon}><ClipboardList size={22} /></div>
+                            Observações
+                        </div>
+                        <div className={styles.textBlock}>
+                            {details?.observacoes || "Por ser um produto genuinamente artesanal e botânico, pode apresentar variações sutis de cor e formato. Estas características são a garantia de um processo humano e vivo, que não altera sua eficácia."}
+                        </div>
+                    </section>
+                </div>
+
+                <div className={styles.buySection}>
+                    <h2>Gostou desta experiência natural?</h2>
+                    <p>Adicione {product.name} ao seu ritual de autocuidado agora mesmo.</p>
+                    <Link href={`/produtos/${product.slug}`} className={styles.buyBtn}>
+                        <ShoppingBag size={20} /> QUERO COMPRAR AGORA
+                    </Link>
+                </div>
+
+                <footer className={styles.footer}>
+                    <div style={{ marginBottom: '20px' }}>
+                        <Image
+                            src="/logo_final.png"
+                            alt="Ecosopis Logo"
+                            width={140}
+                            height={45}
+                            style={{ opacity: 0.4, filter: 'grayscale(1)' }}
+                        />
+                    </div>
+                    &copy; {new Date().getFullYear()} Ecosopis Cosmética Natural. Todos os direitos reservados.<br />
+                    Tecnologia e Natureza em equilíbrio para sua pele.
+                </footer>
+            </main>
+        </div>
+    );
+}

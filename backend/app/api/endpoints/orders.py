@@ -20,10 +20,21 @@ def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db), c
         items=[item.dict() for item in order_in.items]
     )
     db.add(db_order)
+    
+    # Update user's purchase count and check for roulette spin
+    current_user.total_compras += 1
+    
+    config = db.query(models.RouletteConfig).first()
+    if config and config.ativa and config.regra_5_compras:
+        if current_user.total_compras >= 5:
+            # Grant spin if they haven't gotten one from this rule recently 
+            # (Simplification: just set to True if rule is met)
+            current_user.pode_girar_roleta = True
+
     db.commit()
     db.refresh(db_order)
     
-    # Simulação de dados de pagamento baseado no método
+    # ... rest of the payment simulation
     pix_code = None
     payment_url = None
     

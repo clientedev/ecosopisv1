@@ -1,0 +1,23 @@
+--- users ---
+(0, 'id', 'INTEGER', 1, None, 1)
+(1, 'email', 'VARCHAR', 1, None, 0)
+(2, 'hashed_password', 'VARCHAR', 1, None, 0)
+(3, 'full_name', 'VARCHAR', 0, None, 0)
+(4, 'role', 'VARCHAR', 0, None, 0)
+(5, 'can_post_news', 'BOOLEAN', 0, None, 0)
+(6, 'created_at', 'DATETIME', 0, 'CURRENT_TIMESTAMP', 0)
+(7, 'total_compras', 'INTEGER', 0, '0', 0)
+(8, 'pode_girar_roleta', 'BOOLEAN', 0, 'FALSE', 0)
+(9, 'tentativas_roleta', 'INTEGER', 0, '0', 0)
+(10, 'ultimo_premio_id', 'INTEGER', 0, None, 0)
+
+--- roulette_prizes ---
+(0, 'id', 'INTEGER', 1, None, 1)
+(1, 'nome', 'VARCHAR', 1, None, 0)
+(2, 'descricao', 'TEXT', 0, None, 0)
+(3, 'ativo', 'BOOLEAN', 0, None, 0)
+(4, 'selecionado_para_sair', 'BOOLEAN', 0, None, 0)
+(5, 'quantidade_disponivel', 'INTEGER', 0, None, 0)
+(6, 'created_at', 'DATETIME', 0, 'CURRENT_TIMESTAMP', 0)
+(7, 'discount_type', 'VARCHAR', 0, None, 0)
+(8, 'discount_value', 'FLOAT', 0, None, 0)

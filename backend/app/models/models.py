@@ -21,9 +21,54 @@ class User(Base):
     full_name = Column(String)
     role = Column(String, default="client") # admin, client
     can_post_news = Column(Boolean, default=False)  # can post to blog/news
+    
+    # Roulette fields
+    total_compras = Column(Integer, default=0)
+    pode_girar_roleta = Column(Boolean, default=False)
+    tentativas_roleta = Column(Integer, default=0)
+    ultimo_premio_id = Column(Integer, ForeignKey("roulette_prizes.id"), nullable=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     orders = relationship("Order", back_populates="user")
+    roulette_history = relationship("RouletteHistory", back_populates="user")
+
+class RouletteConfig(Base):
+    __tablename__ = "roulette_config"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ativa = Column(Boolean, default=False)
+    popup_ativo = Column(Boolean, default=False)
+    regra_novo_usuario = Column(Boolean, default=False)
+    regra_5_compras = Column(Boolean, default=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+
+class RoulettePrize(Base):
+    __tablename__ = "roulette_prizes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, nullable=False)
+    descricao = Column(Text)
+    ativo = Column(Boolean, default=True)
+    selecionado_para_sair = Column(Boolean, default=False)
+    quantidade_disponivel = Column(Integer, nullable=True) # Optional stock control
+    
+    # New coupon fields
+    discount_type = Column(String, nullable=True) # percentage, fixed
+    discount_value = Column(Float, nullable=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class RouletteHistory(Base):
+    __tablename__ = "roulette_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("users.id"))
+    premio_id = Column(Integer, ForeignKey("roulette_prizes.id"))
+    data_giro = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="roulette_history")
+    prize = relationship("RoulettePrize")
 
 class Product(Base):
     __tablename__ = "products"
@@ -47,6 +92,30 @@ class Product(Base):
     
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
+    details = relationship("ProductDetail", back_populates="product", uselist=False, cascade="all, delete-orphan")
+
+class ProductDetail(Base):
+    __tablename__ = "product_details"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), unique=True, nullable=False)
+    slug = Column(String, unique=True, index=True, nullable=False) # Permanent and immutable
+    
+    curiosidades = Column(Text, nullable=True)
+    modo_de_uso = Column(Text, nullable=True)
+    ingredientes = Column(Text, nullable=True)
+    cuidados = Column(Text, nullable=True)
+    contraindicacoes = Column(Text, nullable=True)
+    observacoes = Column(Text, nullable=True)
+    
+    qr_code_path = Column(String, nullable=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+
+    product = relationship("Product", back_populates="details")
 
 class CarouselItem(Base):
     __tablename__ = "carousel_items"
@@ -200,3 +269,11 @@ class ProductClick(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     product = relationship("Product")
+
+class RawMaterial(Base):
+    __tablename__ = "raw_materials"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

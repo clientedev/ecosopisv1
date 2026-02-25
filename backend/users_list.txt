@@ -1,0 +1,5 @@
+ID: 1 | Email: admin@admin.com | Role: admin | Name: Admin Principal
+ID: 2 | Email: admin@ecosopis.com.br | Role: admin | Name: Admin Ecosopis
+ID: 3 | Email: g.eduardo@gmail.com | Role: client | Name: Gabriel
+ID: 4 | Email: dotuzjdnpq@test.com | Role: client | Name: Test User
+ID: 5 | Email: tjpcuzlnru@test.com | Role: client | Name: Test User

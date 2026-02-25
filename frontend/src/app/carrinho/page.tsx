@@ -16,14 +16,30 @@ export default function CarrinhoPage() {
         if (savedCart) {
             setCartItems(JSON.parse(savedCart));
         }
+
+        // Check for roulette discount
+        const rouletteDiscount = localStorage.getItem("active_roulette_discount");
+        if (rouletteDiscount) {
+            try {
+                const data = JSON.parse(rouletteDiscount);
+                // Map the stored data to the format expected by the cart
+                setDiscount({
+                    code: "ROLETA",
+                    discount_type: data.type,
+                    discount_value: data.value,
+                    name: data.name
+                });
+            } catch (e) {
+                localStorage.removeItem("active_roulette_discount");
+            }
+        }
     }, []);
 
     const handleApplyCoupon = async () => {
         if (!coupon) return;
         setCouponError("");
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-            const res = await fetch(`${apiUrl}/coupons/validate/${coupon}`);
+            const res = await fetch(`/api/coupons/validate/${coupon}`);
             if (res.ok) {
                 const data = await res.json();
                 const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -79,11 +95,18 @@ export default function CarrinhoPage() {
     const [shippingOptions, setShippingOptions] = useState<any[]>([]);
     const [selectedShipping, setSelectedShipping] = useState<any>(null);
     const [loadingCep, setLoadingCep] = useState(false);
+    const [orderResult, setOrderResult] = useState<any>(null);
+
+    const removeItem = (id: number) => {
+        const newCart = cartItems.filter(item => item.id !== id);
+        setCartItems(newCart);
+        localStorage.setItem("cart", JSON.stringify(newCart));
+    };
 
     const handleCepChange = async (cep: string) => {
         const cleanCep = cep.replace(/\D/g, "");
         setAddress({ ...address, zip: cleanCep });
-        
+
         if (cleanCep.length === 8) {
             setLoadingCep(true);
             try {
@@ -98,7 +121,7 @@ export default function CarrinhoPage() {
                         city: data.localidade,
                         state: data.uf
                     });
-                    
+
                     // Simular opções de frete baseadas no CEP
                     const isSp = data.uf === "SP";
                     setShippingOptions([
@@ -167,7 +190,7 @@ export default function CarrinhoPage() {
                 <div className="container" style={{ padding: '100px 0', textAlign: 'center' }}>
                     <h1 style={{ color: '#2d5a27' }}>PEDIDO REALIZADO COM SUCESSO!</h1>
                     <p style={{ margin: '20px 0' }}>Seu pedido #{orderResult?.id} foi recebido.</p>
-                    
+
                     {orderResult?.pix_code ? (
                         <div style={{ background: '#f9f9f9', padding: '30px', borderRadius: '12px', maxWidth: '500px', margin: '0 auto' }}>
                             <h3>Pague via PIX</h3>
@@ -183,7 +206,7 @@ export default function CarrinhoPage() {
                             IR PARA PAGAMENTO (STRIPE)
                         </a>
                     )}
-                    
+
                     <div style={{ marginTop: '30px' }}>
                         <Link href="/produtos" className="btn-outline">VOLTAR ÀS COMPRAS</Link>
                     </div>
@@ -200,7 +223,7 @@ export default function CarrinhoPage() {
                 <div className={styles.carrinhoContainer}>
                     <div className="container">
                         <h1 className={styles.title}>FINALIZAR COMPRA</h1>
-                        
+
                         <div className={styles.cartGrid}>
                             <div className={styles.itemsList}>
                                 <div className={styles.detailSection}>
@@ -208,9 +231,9 @@ export default function CarrinhoPage() {
                                     <div className={styles.inputGroup}>
                                         <div className={styles.inputRow}>
                                             <div style={{ flex: 1, position: 'relative' }}>
-                                                <input 
-                                                    className={styles.inputField} 
-                                                    placeholder="CEP" 
+                                                <input
+                                                    className={styles.inputField}
+                                                    placeholder="CEP"
                                                     value={address.zip}
                                                     onChange={(e) => handleCepChange(e.target.value)}
                                                     maxLength={8}
@@ -223,25 +246,25 @@ export default function CarrinhoPage() {
                                             </div>
                                             <div style={{ flex: 2 }}></div>
                                         </div>
-                                        
-                                        <input 
-                                            className={styles.inputField} 
-                                            placeholder="Rua e Número" 
+
+                                        <input
+                                            className={styles.inputField}
+                                            placeholder="Rua e Número"
                                             value={address.street}
-                                            onChange={(e) => setAddress({...address, street: e.target.value})}
+                                            onChange={(e) => setAddress({ ...address, street: e.target.value })}
                                         />
-                                        
+
                                         <div className={styles.inputRow}>
-                                            <input 
-                                                className={styles.inputField} 
-                                                placeholder="Cidade" 
+                                            <input
+                                                className={styles.inputField}
+                                                placeholder="Cidade"
                                                 value={address.city}
                                                 style={{ flex: 2 }}
                                                 readOnly
                                             />
-                                            <input 
-                                                className={styles.inputField} 
-                                                placeholder="UF" 
+                                            <input
+                                                className={styles.inputField}
+                                                placeholder="UF"
                                                 value={address.state}
                                                 style={{ flex: 1 }}
                                                 readOnly
@@ -254,16 +277,16 @@ export default function CarrinhoPage() {
                                     <div className={styles.detailSection}>
                                         <h3>🚚 OPÇÕES DE FRETE</h3>
                                         {shippingOptions.map(opt => (
-                                            <div 
-                                                key={opt.id} 
+                                            <div
+                                                key={opt.id}
                                                 className={`${styles.shippingOption} ${selectedShipping?.id === opt.id ? styles.selectedOption : ''}`}
                                                 onClick={() => setSelectedShipping(opt)}
                                             >
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                                    <div style={{ 
-                                                        width: '20px', 
-                                                        height: '20px', 
-                                                        borderRadius: '50%', 
+                                                    <div style={{
+                                                        width: '20px',
+                                                        height: '20px',
+                                                        borderRadius: '50%',
                                                         border: `2px solid ${selectedShipping?.id === opt.id ? '#2d5a27' : '#cbd5e1'}`,
                                                         display: 'flex',
                                                         alignItems: 'center',
@@ -285,7 +308,7 @@ export default function CarrinhoPage() {
                                 <div className={styles.detailSection}>
                                     <h3>💳 MÉTODO DE PAGAMENTO</h3>
                                     <div className={styles.paymentMethods}>
-                                        <div 
+                                        <div
                                             className={`${styles.paymentCard} ${paymentMethod === 'pix' ? styles.selectedPayment : ''}`}
                                             onClick={() => setPaymentMethod('pix')}
                                         >
@@ -293,7 +316,7 @@ export default function CarrinhoPage() {
                                             <p style={{ fontWeight: '600', margin: 0 }}>PIX</p>
                                             <p style={{ fontSize: '0.75rem', marginTop: '4px', opacity: 0.8 }}>Confirmação instantânea</p>
                                         </div>
-                                        <div 
+                                        <div
                                             className={`${styles.paymentCard} ${paymentMethod === 'credit_card' ? styles.selectedPayment : ''}`}
                                             onClick={() => setPaymentMethod('credit_card')}
                                         >
@@ -321,24 +344,24 @@ export default function CarrinhoPage() {
                                     <span>Frete</span>
                                     <span>{selectedShipping ? `R$ ${selectedShipping.price.toFixed(2)}` : 'A definir'}</span>
                                 </div>
-                                
+
                                 <div className={styles.totalRow}>
                                     <span>Total</span>
                                     <span>R$ {calculateTotal().toFixed(2)}</span>
                                 </div>
 
-                                <button 
-                                    className="btn-primary" 
-                                    style={{ width: '100%', marginTop: '2rem', padding: '1.25rem', fontSize: '1.1rem' }} 
+                                <button
+                                    className="btn-primary"
+                                    style={{ width: '100%', marginTop: '2rem', padding: '1.25rem', fontSize: '1.1rem' }}
                                     onClick={submitOrder}
                                     disabled={!selectedShipping}
                                 >
                                     {paymentMethod === 'pix' ? 'GERAR CÓDIGO PIX' : 'IR PARA PAGAMENTO'}
                                 </button>
-                                
-                                <button 
-                                    className="btn-outline" 
-                                    style={{ width: '100%', marginTop: '1rem', border: 'none' }} 
+
+                                <button
+                                    className="btn-outline"
+                                    style={{ width: '100%', marginTop: '1rem', border: 'none' }}
                                     onClick={() => setStep('cart')}
                                 >
                                     ← Voltar para o carrinho
@@ -387,12 +410,12 @@ export default function CarrinhoPage() {
                                 <span>Subtotal:</span>
                                 <span>R$ {calculateSubtotal().toFixed(2)}</span>
                             </div>
-                            
+
                             <div className={styles.couponWrapper}>
                                 <div className={styles.couponInput}>
-                                    <input 
-                                        type="text" 
-                                        placeholder="CUPOM" 
+                                    <input
+                                        type="text"
+                                        placeholder="CUPOM"
                                         value={coupon}
                                         onChange={(e) => setCoupon(e.target.value.toUpperCase())}
                                     />

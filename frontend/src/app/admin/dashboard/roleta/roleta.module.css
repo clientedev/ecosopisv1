@@ -1,0 +1,165 @@
+.container {
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.section {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
+}
+
+.sectionTitle {
+    font-family: var(--font-outfit);
+    font-size: 20px;
+    color: #2d5a27;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.configGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.toggleCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+}
+
+.toggleLabel {
+    display: flex;
+    flex-direction: column;
+}
+
+.toggleLabel small {
+    color: #888;
+    font-size: 12px;
+}
+
+.prizeTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.prizeTable th {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 2px solid #f5f5f5;
+    color: #666;
+    font-weight: 600;
+}
+
+.prizeTable td {
+    padding: 15px 12px;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badgeActive {
+    background: #e6f4ea;
+    color: #1e7e34;
+}
+
+.badgeInactive {
+    background: #fbe9e7;
+    color: #d32f2f;
+}
+
+.badgeSelected {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.editBtn {
+    background: #f5f5f5;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.deleteBtn {
+    background: #fff0f0;
+    color: #d32f2f;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modalContent {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.formGroup input,
+.formGroup textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+.historyItem {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.historyItem:last-child {
+    border-bottom: none;
+}

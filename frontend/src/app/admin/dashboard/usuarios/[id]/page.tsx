@@ -14,8 +14,7 @@ export default function UserProfileAdmin() {
         const fetchUserProfile = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-                const res = await fetch(`${apiUrl}/auth/users/${params.id}`, {
+                const res = await fetch(`/api/auth/users/${params.id}`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 if (res.ok) {

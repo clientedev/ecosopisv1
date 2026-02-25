@@ -1,18 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
-from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat
-from fastapi.staticfiles import StaticFiles
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# Create database tables
-Base.metadata.create_all(bind=engine)
-
-# ── Startup migration: add columns that exist in models but not in the live DB ──
-# Uses IF NOT EXISTS so this is 100% safe to run on every startup.
+# Run migrations before potentially importing any routers that might trigger SQLAlchemy mapping errors
 def _apply_startup_migrations():
     from sqlalchemy import text
     import bcrypt as _bcrypt
@@ -31,36 +20,60 @@ def _apply_startup_migrations():
         ("repeat_text",  "BOOLEAN DEFAULT TRUE"),
         ("scroll_speed", "INTEGER DEFAULT 20"),
     ]
+    USER_COLS = [
+        ("can_post_news",      "BOOLEAN DEFAULT FALSE"),
+        ("total_compras",      "INTEGER DEFAULT 0"),
+        ("pode_girar_roleta",  "BOOLEAN DEFAULT FALSE"),
+        ("tentativas_roleta",  "INTEGER DEFAULT 0"),
+        ("ultimo_premio_id",   "INTEGER")
+    ]
+    PRIZE_COLS = [
+        ("discount_type", "VARCHAR"),
+        ("discount_value", "DOUBLE PRECISION")
+    ]
     with engine.connect() as conn:
         for col, defn in CAROUSEL_COLS:
             try:
-                conn.execute(text(
-                    f"ALTER TABLE carousel_items ADD COLUMN IF NOT EXISTS {col} {defn}"
-                ))
+                conn.execute(text(f"ALTER TABLE carousel_items ADD COLUMN IF NOT EXISTS {col} {defn}"))
                 conn.commit()
-            except Exception:
-                try: conn.rollback()
-                except Exception: pass
+            except Exception: pass
 
         for col, defn in ANNOUNCEMENT_COLS:
             try:
-                conn.execute(text(
-                    f"ALTER TABLE announcement_bar ADD COLUMN IF NOT EXISTS {col} {defn}"
-                ))
+                conn.execute(text(f"ALTER TABLE announcement_bar ADD COLUMN IF NOT EXISTS {col} {defn}"))
                 conn.commit()
-            except Exception:
-                try: conn.rollback()
-                except Exception: pass
-
-        # Add can_post_news to users if missing
-        try:
-            conn.execute(text(
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS can_post_news BOOLEAN DEFAULT FALSE"
-            ))
-            conn.commit()
-        except Exception:
-            try: conn.rollback()
             except Exception: pass
+
+        for col, defn in USER_COLS:
+            try:
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {defn}"))
+                conn.commit()
+            except Exception: pass
+
+        for col, defn in PRIZE_COLS:
+            try:
+                conn.execute(text(f"ALTER TABLE roulette_prizes ADD COLUMN IF NOT EXISTS {col} {defn}"))
+                conn.commit()
+            except Exception: pass
+
+        # Add is_active to products if missing
+        try:
+            conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE"))
+            conn.commit()
+        except Exception: pass
+
+        # Create raw_materials table if missing
+        try:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS raw_materials (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR UNIQUE NOT NULL,
+                    description TEXT,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            """))
+            conn.commit()
+        except Exception: pass
 
         # Ensure admin user exists
         try:
@@ -72,23 +85,30 @@ def _apply_startup_migrations():
                     "VALUES (:e, :p, 'Admin Principal', 'admin', NOW())"
                 ), {"e": "admin@admin.com", "p": pw})
                 conn.commit()
-                print("✓ Admin user created: admin@admin.com / admin123")
-        except Exception as e:
-            try: conn.rollback()
-            except Exception: pass
-            print(f"Admin check skipped: {e}")
+        except Exception: pass
 
 try:
     _apply_startup_migrations()
-    print("✓ Startup migrations complete.")
-except Exception as e:
-    print(f"Startup migration error (non-fatal): {e}")
+except Exception: pass
+
+from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat, roulette, admin_roulette
+from fastapi.staticfiles import StaticFiles
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Create database tables
+Base.metadata.create_all(bind=engine)
+
+# Routers included below...
 
 
 app = FastAPI(title="ECOSOPIS API", version="1.0.0")
 
 # Ensure static directory exists
 os.makedirs("static/uploads", exist_ok=True)
+os.makedirs("static/qrcodes", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # CORS Configuration
@@ -104,6 +124,7 @@ app.add_middleware(
 async def root():
     return {"message": "Welcome to ECOSOPIS API"}
 
+from app.api.endpoints import raw_materials
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(products.router, prefix="/products", tags=["products"])
 app.include_router(coupons.router, prefix="/coupons", tags=["coupons"])
@@ -115,6 +136,9 @@ app.include_router(images.router, prefix="/images", tags=["images"])
 app.include_router(news.router, prefix="/news", tags=["news"])
 app.include_router(metrics.router, prefix="/metrics", tags=["metrics"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
+app.include_router(roulette.router, prefix="/roleta", tags=["roulette"])
+app.include_router(admin_roulette.router, prefix="/admin/roleta", tags=["admin_roulette"])
+app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
 
 if __name__ == "__main__":
     import uvicorn

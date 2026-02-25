@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from app.core.database import get_db
 from app.models import models
@@ -7,6 +7,9 @@ from app.schemas import schemas
 from app.api.endpoints.auth import get_current_admin
 from pydantic import BaseModel
 import uuid
+import qrcode
+import os
+from sqlalchemy import text
 
 router = APIRouter()
 
@@ -86,8 +89,12 @@ async def upload_image(
     return {"url": f"/api/images/{stored_image.id}"}
 
 @router.get("", response_model=List[schemas.ProductResponse])
-def list_products(db: Session = Depends(get_db)):
-    return db.query(models.Product).all()
+def list_products(db: Session = Depends(get_db), include_inactive: bool = False):
+    query = db.query(models.Product)
+    if not include_inactive:
+        query = query.filter(models.Product.is_active == True)
+    # Eager load details to ensure QR code path is available
+    return query.options(joinedload(models.Product.details)).all()
 
 @router.get("/{slug}", response_model=schemas.ProductResponse)
 def get_product(slug: str, db: Session = Depends(get_db)):
@@ -96,17 +103,95 @@ def get_product(slug: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
+def generate_qr_code(slug: str):
+    """Generate a permanent QR code for the product technical page."""
+    # BASE_URL from env or default to localhost for dev
+    base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    target_url = f"{base_url}/produto/{slug}/info"
+    
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(target_url)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Filename is just the slug to ensure permanence
+    file_path = f"static/qrcodes/{slug}.png"
+    img.save(file_path)
+    return f"/{file_path}"
+
 @router.post("", response_model=schemas.ProductResponse)
 def create_product(
     product_in: schemas.ProductCreate, 
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
-    db_product = models.Product(**product_in.dict())
+    # Ensure slug is unique
+    existing = db.query(models.Product).filter(models.Product.slug == product_in.slug).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Slug already exists")
+
+    product_data = product_in.dict(exclude={"details"})
+    db_product = models.Product(**product_data)
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
+
+    # Automatically create mandatory details 1:1
+    qr_path = generate_qr_code(db_product.slug)
+    
+    details_data = {}
+    if product_in.details:
+        details_data = product_in.details.dict(exclude_unset=True)
+    
+    db_details = models.ProductDetail(
+        product_id=db_product.id,
+        slug=db_product.slug, # Mandatory immutable link
+        qr_code_path=qr_path,
+        **details_data
+    )
+    db.add(db_details)
+    db.commit()
+    
+    db.refresh(db_product)
     return db_product
+
+@router.get("/{slug}/info", response_model=schemas.ProductDetailResponse)
+def get_product_info(slug: str, db: Session = Depends(get_db)):
+    """Public endpoint for technical info page."""
+    details = db.query(models.ProductDetail).filter(models.ProductDetail.slug == slug).first()
+    if not details:
+        # Fallback: if product exists but details doesn't (legacy data), created it?
+        # Requirement: "When a product is created → detail page must be created"
+        # For legacy, we just 404
+        raise HTTPException(status_code=404, detail="Technical details not found")
+    return details
+
+@router.put("/{product_id}/details", response_model=schemas.ProductDetailResponse)
+def update_product_details(
+    product_id: int,
+    details_in: schemas.ProductDetailUpdate,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    """Admin endpoint to update technical info."""
+    db_details = db.query(models.ProductDetail).filter(models.ProductDetail.product_id == product_id).first()
+    if not db_details:
+        raise HTTPException(status_code=404, detail="Product details not found")
+    
+    update_data = details_in.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        # Slug is NOT in schemas.ProductDetailUpdate, ensuring immutability
+        setattr(db_details, key, value)
+    
+    db.commit()
+    db.refresh(db_details)
+    return db_details
 
 @router.put("/{product_id}", response_model=schemas.ProductResponse)
 def update_product(
@@ -121,8 +206,24 @@ def update_product(
     
     update_data = product_in.dict(exclude_unset=True)
     for key, value in update_data.items():
+        if key == "slug":
+            continue # Slug is immutable
         setattr(db_product, key, value)
     
     db.commit()
     db.refresh(db_product)
     return db_product
+
+@router.delete("/{product_id}")
+def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    # Soft delete: preserve referential integrity with orders
+    db_product.is_active = False
+    db.commit()
+    return {"message": "Product deactivated"}

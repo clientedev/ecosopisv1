@@ -77,8 +77,12 @@ export default function ProductDetailPage() {
     const allImages = product.images && product.images.length > 0 ? product.images : [product.image_url];
 
     const getImageUrl = (url: string) => {
-        if (!url) return "/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
+        if (!url) return "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
         if (url.startsWith("http")) return url;
+        if (url.startsWith("/api/")) return url;
+        if (url.startsWith("/static/")) return url;
+        if (url.startsWith("/images/")) return `/api${url}`;
+        if (url.startsWith("/attached_assets/")) return `/static${url}`;
         return url;
     };
 

@@ -135,15 +135,32 @@ export default function Header() {
                     <Link href="/produtos" onClick={() => setIsMobileMenuOpen(false)}>PRODUTOS</Link>
                     <Link href="/novidades" onClick={() => setIsMobileMenuOpen(false)}>NOVIDADES</Link>
                     <Link href="/quizz" onClick={() => setIsMobileMenuOpen(false)}>QUIZZ</Link>
-                    <Link href="/box" onClick={() => setIsMobileMenuOpen(false)}>BOX SURPRESA</Link>
                     <Link href="/sobre" onClick={() => setIsMobileMenuOpen(false)}>SOBRE</Link>
+                    {/* Mobile-only action buttons inside overlay */}
+                    <div className={styles.mobileActions}>
+                        <Link href="/carrinho" className={styles.actionIcon} onClick={() => setIsMobileMenuOpen(false)}>🛒 CARRINHO</Link>
+                        {user ? (
+                            <>
+                                <Link href="/perfil" className={styles.actionIcon} onClick={() => setIsMobileMenuOpen(false)}>👤 MINHA CONTA</Link>
+                                {isAdmin && (
+                                    <Link href="/admin/dashboard" className={styles.actionIcon} onClick={() => setIsMobileMenuOpen(false)}>⚙️ ADMIN</Link>
+                                )}
+                                <button onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>
+                                    Sair
+                                </button>
+                            </>
+                        ) : (
+                            <Link href="/conta" className={styles.actionIcon} onClick={() => setIsMobileMenuOpen(false)}>ENTRAR</Link>
+                        )}
+                    </div>
                 </nav>
 
-                <div className={styles.actions}>
-                    <Link href="/carrinho" className={styles.actionIcon}>CARRINHO</Link>
+                <div className={styles.actions} style={{ position: 'relative', zIndex: 1000 }}>
+                    <Link href="/carrinho" className={`${styles.actionIcon} ${styles.desktopOnlyAction}`}>CARRINHO</Link>
 
                     {user ? (
-                        <div className={styles.userMenuContainer}>
+
+                        <div className={`${styles.userMenuContainer} ${styles.desktopOnlyAction}`}>
                             <button
                                 className={styles.userButton}
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -181,7 +198,7 @@ export default function Header() {
                             )}
                         </div>
                     ) : (
-                        <Link href="/conta" className={styles.actionIcon}>ENTRAR</Link>
+                        <Link href="/conta" className={`${styles.actionIcon} ${styles.desktopOnlyAction}`}>ENTRAR</Link>
                     )}
 
                     <button

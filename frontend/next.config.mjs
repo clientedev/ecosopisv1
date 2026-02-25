@@ -32,6 +32,10 @@ const nextConfig = {
     const apiUrl = process.env.API_URL || 'http://localhost:8000';
     return [
       {
+        source: '/static/:path*',
+        destination: `${apiUrl}/static/:path*`,
+      },
+      {
         source: '/api/:path*',
         destination: `${apiUrl}/:path*`,
       },

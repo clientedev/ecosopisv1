@@ -24,7 +24,7 @@ export default function AdminDashboard() {
 
         const fetchProducts = async () => {
             try {
-                const res = await fetch(`/api/products/`);
+                const res = await fetch(`/api/products/?include_inactive=true`);
                 if (!res.ok) throw new Error("Falha ao carregar produtos");
                 const data = await res.json();
                 setProducts(Array.isArray(data) ? data : []);
@@ -39,11 +39,30 @@ export default function AdminDashboard() {
     }, [router]);
 
     const getImageUrl = (url: string) => {
-        if (!url) return "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
+        if (!url) return "/logo_final.png";
         if (url.startsWith("http")) return url;
+        if (url.startsWith("/api/")) return url;
         if (url.startsWith("/static")) return url;
         if (url.startsWith("/attached_assets")) return `/static${url}`;
-        return `/static/uploads/${url.split('/').pop()}`;
+        return url;
+    };
+
+    const handleDelete = async (productId: number, productName: string) => {
+        if (!confirm(`Desativar o produto "${productName}"? Ele ficará oculto no site mas pedidos antigos serão preservados.`)) return;
+        const token = localStorage.getItem("token");
+        try {
+            const res = await fetch(`/api/products/${productId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                setProducts(products.map((p: any) => p.id === productId ? { ...p, is_active: false } : p));
+            } else {
+                alert('Erro ao desativar produto');
+            }
+        } catch (err) {
+            alert('Erro de conexão');
+        }
     };
 
     return (
@@ -52,7 +71,7 @@ export default function AdminDashboard() {
             <main className={styles.mainContent}>
                 <header className={styles.header}>
                     <h1>Gerenciar Produtos</h1>
-                    <button 
+                    <button
                         className="btn-primary"
                         onClick={() => setIsAddingProduct(true)}
                     >
@@ -80,15 +99,26 @@ export default function AdminDashboard() {
                         </thead>
                         <tbody>
                             {products.map((p: any) => (
-                                <tr key={p.id}>
+                                <tr key={p.id} style={{ opacity: p.is_active === false ? 0.5 : 1 }}>
                                     <td>
-                                        <img 
-                                            src={getImageUrl(p.image_url)} 
-                                            alt={p.name} 
+                                        <img
+                                            src={getImageUrl(p.image_url)}
+                                            alt={p.name}
                                             className={styles.productThumb}
+                                            onError={(e) => { (e.target as HTMLImageElement).src = '/logo_final.png'; }}
                                         />
                                     </td>
-                                    <td><strong>{p.name}</strong></td>
+                                    <td>
+                                        <strong>{p.name}</strong>
+                                        {p.is_active === false && (
+                                            <span style={{
+                                                display: 'inline-block', marginLeft: '8px',
+                                                background: '#fef2f2', color: '#ef4444',
+                                                fontSize: '0.65rem', padding: '2px 6px',
+                                                borderRadius: '4px', fontWeight: 700
+                                            }}>INATIVO</span>
+                                        )}
+                                    </td>
                                     <td><span className={styles.priceTag}>{p.price ? `R$ ${p.price.toFixed(2)}` : 'R$ 0,00'}</span></td>
                                     <td>
                                         <span className={`${styles.stockBadge} ${p.stock <= 5 ? styles.stockLow : styles.stockOk}`}>
@@ -97,13 +127,37 @@ export default function AdminDashboard() {
                                     </td>
                                     <td>
                                         <div className={styles.actions}>
-                                            <button 
+                                            <a
+                                                href={`/produto/${p.slug}/info`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={styles.editBtn}
+                                                style={{ backgroundColor: '#2d5a27', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            >
+                                                Página
+                                            </a>
+                                            {p.details?.qr_code_path && (
+                                                <a
+                                                    href={getImageUrl(p.details.qr_code_path)}
+                                                    download={`QR_${p.slug}.png`}
+                                                    className={styles.editBtn}
+                                                    style={{ backgroundColor: '#b8860b', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                >
+                                                    QR
+                                                </a>
+                                            )}
+                                            <button
                                                 className={styles.editBtn}
                                                 onClick={() => setEditingProduct(p)}
                                             >
                                                 Editar
                                             </button>
-                                            <button className={styles.deleteBtn}>Excluir</button>
+                                            <button
+                                                className={styles.deleteBtn}
+                                                onClick={() => handleDelete(p.id, p.name)}
+                                            >
+                                                {p.is_active === false ? 'Reativar' : 'Desativar'}
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -113,8 +167,8 @@ export default function AdminDashboard() {
                 </div>
 
                 {editingProduct && (
-                    <EditProductModal 
-                        product={editingProduct} 
+                    <EditProductModal
+                        product={editingProduct}
                         onClose={() => setEditingProduct(null)}
                         onSave={(updated) => {
                             setProducts(products.map((p: any) => p.id === updated.id ? updated : p));
@@ -123,7 +177,7 @@ export default function AdminDashboard() {
                 )}
 
                 {isAddingProduct && (
-                    <NewProductModal 
+                    <NewProductModal
                         onClose={() => setIsAddingProduct(false)}
                         onSave={(newProduct) => {
                             setProducts([newProduct, ...products]);

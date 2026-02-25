@@ -15,16 +15,24 @@ oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=
 
 @router.post("/register", response_model=schemas.UserResponse)
 def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
+    print(f"DEBUG: Registering user {user_in.email}")
     db_user = db.query(models.User).filter(models.User.email == user_in.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_password = security.get_password_hash(user_in.password)
+    # Check roulette config for new user rule
+    config = db.query(models.RouletteConfig).first()
+    can_spin = False
+    if config and config.ativa and config.regra_novo_usuario:
+        can_spin = True
+
     new_user = models.User(
         email=user_in.email,
         hashed_password=hashed_password,
         full_name=user_in.full_name,
-        role="client"
+        role="client",
+        pode_girar_roleta=can_spin
     )
     db.add(new_user)
     db.commit()
@@ -131,6 +139,22 @@ def toggle_blog_permission(
     db.refresh(user)
     return {"user_id": user_id, "can_post_news": user.can_post_news, "email": user.email}
 
+@router.post("/users/{user_id}/toggle-roulette")
+def toggle_roulette_permission(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin: models.User = Depends(get_current_admin)
+):
+    """Grant or revoke roulette spin permission for a user."""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.pode_girar_roleta = not user.pode_girar_roleta
+    db.commit()
+    db.refresh(user)
+    return {"user_id": user_id, "pode_girar_roleta": user.pode_girar_roleta, "email": user.email}
+
 @router.get("/users/{user_id}/blog-permission")
 def get_blog_permission(
     user_id: int,
@@ -145,6 +169,7 @@ def get_blog_permission(
 
 @router.post("/login", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    print(f"DEBUG: Login attempt for {form_data.username}")
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(

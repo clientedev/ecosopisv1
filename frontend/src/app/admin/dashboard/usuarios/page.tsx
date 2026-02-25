@@ -14,8 +14,7 @@ export default function UserManagement() {
     const fetchUsers = async () => {
         try {
             const token = localStorage.getItem("token");
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-            const res = await fetch(`${apiUrl}/api/auth/users`, {
+            const res = await fetch(`/api/auth/users`, {
                 headers: {
                     "Authorization": `Bearer ${token}`
                 }
@@ -44,11 +43,10 @@ export default function UserManagement() {
 
     const handlePromoteUser = async (userId: number) => {
         if (!confirm("Tem certeza que deseja promover este usuário a administrador?")) return;
-        
+
         try {
             const token = localStorage.getItem("token");
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-            const res = await fetch(`${apiUrl}/api/auth/users/${userId}/promote`, {
+            const res = await fetch(`/api/auth/users/${userId}/promote`, {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${token}`
@@ -68,11 +66,10 @@ export default function UserManagement() {
 
     const handleDeleteUser = async (userId: number) => {
         if (!confirm("Tem certeza que deseja remover este usuário?")) return;
-        
+
         try {
             const token = localStorage.getItem("token");
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-            const res = await fetch(`${apiUrl}/api/auth/users/${userId}`, {
+            const res = await fetch(`/api/auth/users/${userId}`, {
                 method: "DELETE",
                 headers: {
                     "Authorization": `Bearer ${token}`
@@ -86,6 +83,26 @@ export default function UserManagement() {
             }
         } catch (error) {
             console.error("Error deleting user:", error);
+        }
+    };
+
+    const handleToggleRoulette = async (userId: number) => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`/api/auth/users/${userId}/toggle-roulette`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                fetchUsers();
+            } else {
+                const error = await res.json();
+                alert(error.detail || "Erro ao alterar permissão da roleta");
+            }
+        } catch (error) {
+            console.error("Error toggling roulette:", error);
         }
     };
 
@@ -112,6 +129,7 @@ export default function UserManagement() {
                                 <th>Nome</th>
                                 <th>Email</th>
                                 <th>Cargo</th>
+                                <th>Roleta</th>
                                 <th>Data Cadastro</th>
                                 <th>Ações</th>
                             </tr>
@@ -127,11 +145,23 @@ export default function UserManagement() {
                                             {user.role}
                                         </span>
                                     </td>
+                                    <td>
+                                        <span className={`${styles.stockBadge} ${user.pode_girar_roleta ? styles.stockOk : styles.deleteBtn}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
+                                            {user.pode_girar_roleta ? "DISPONÍVEL" : "BLOQUEADO"}
+                                        </span>
+                                    </td>
                                     <td>{new Date(user.created_at).toLocaleDateString('pt-BR')}</td>
                                     <td>
                                         <div className={styles.actions}>
+                                            <button
+                                                className={styles.editBtn}
+                                                onClick={() => handleToggleRoulette(user.id)}
+                                                style={{ backgroundColor: user.pode_girar_roleta ? '#ef4444' : '#b8860b', color: 'white' }}
+                                            >
+                                                {user.pode_girar_roleta ? "Remover Giro" : "Liberar Giro"}
+                                            </button>
                                             {user.role !== 'admin' && (
-                                                <button 
+                                                <button
                                                     className={styles.editBtn}
                                                     onClick={() => handlePromoteUser(user.id)}
                                                     style={{ backgroundColor: '#2d5a27', color: 'white' }}
@@ -139,11 +169,11 @@ export default function UserManagement() {
                                                     Promover
                                                 </button>
                                             )}
-                                            <button 
+                                            <button
                                                 className={styles.deleteBtn}
                                                 onClick={() => handleDeleteUser(user.id)}
                                             >
-                                                Remover
+                                                Remover User
                                             </button>
                                         </div>
                                     </td>

@@ -14,9 +14,8 @@ export default function AdminOrdersPage() {
     useEffect(() => {
         const fetchOrders = async () => {
             const token = localStorage.getItem("token");
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
             try {
-                const res = await fetch(`${apiUrl}/orders/`, {
+                const res = await fetch(`/api/orders/`, {
                     headers: {
                         "Authorization": `Bearer ${token}`
                     }
@@ -70,9 +69,9 @@ export default function AdminOrdersPage() {
                                         </td>
                                         <td style={{ padding: '15px', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>R$ {order.total.toFixed(2)}</td>
                                         <td style={{ padding: '15px', borderBottom: '1px solid #ddd' }}>
-                                            <span style={{ 
-                                                padding: '5px 10px', 
-                                                borderRadius: '20px', 
+                                            <span style={{
+                                                padding: '5px 10px',
+                                                borderRadius: '20px',
                                                 fontSize: '0.8rem',
                                                 backgroundColor: order.status === 'pending' ? '#fff3cd' : '#d4edda',
                                                 color: order.status === 'pending' ? '#856404' : '#155724'

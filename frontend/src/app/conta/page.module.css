@@ -105,3 +105,84 @@
     font-size: 0.9rem;
     color: var(--text-secondary);
 }
+
+/* Premium Roulette Card */
+.rouletteCard {
+    background: linear-gradient(135deg, #1a3a16 0%, #2d5a27 100%);
+    border: 3px solid #ffd700;
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    text-align: center;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 15px 30px rgba(26, 58, 22, 0.4);
+    position: relative;
+    overflow: hidden;
+    animation: pulseGlow 3s infinite;
+}
+
+.rouletteCard:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(45, 90, 39, 0.5);
+    background: linear-gradient(135deg, #2d5a27 0%, #1a3a16 100%);
+}
+
+.rouletteCard h2 {
+    font-family: var(--font-header);
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: #ffd700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.rouletteCard p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 20px;
+}
+
+.spinIcon {
+    font-size: 50px;
+    display: block;
+    margin-bottom: 15px;
+    animation: spinCard 10s linear infinite;
+}
+
+.cardBtn {
+    background: #ffd700;
+    color: #1a3a16;
+    padding: 12px 30px;
+    border-radius: 30px;
+    font-weight: 800;
+    font-size: 1rem;
+    text-transform: uppercase;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    display: inline-block;
+}
+
+@keyframes pulseGlow {
+    0% {
+        box-shadow: 0 15px 30px rgba(26, 58, 22, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 15px 45px rgba(255, 215, 0, 0.4);
+    }
+
+    100% {
+        box-shadow: 0 15px 30px rgba(26, 58, 22, 0.4);
+    }
+}
+
+@keyframes spinCard {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}

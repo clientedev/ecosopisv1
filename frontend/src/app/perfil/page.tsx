@@ -18,8 +18,7 @@ export default function UserProfile() {
                     router.push("/conta");
                     return;
                 }
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-                const res = await fetch(`${apiUrl}/auth/me`, {
+                const res = await fetch(`/api/auth/me`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 if (res.ok) {

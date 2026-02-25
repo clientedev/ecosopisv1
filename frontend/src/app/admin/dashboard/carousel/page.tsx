@@ -59,7 +59,7 @@ export default function CarouselAdmin() {
             <AdminSidebar activePath="/admin/dashboard/carousel" />
             <main className={styles.mainContent}>
                 <header className={styles.header}>
-                    <h1>Gerenciar Carrossel Hero</h1>
+                    <h1>Gerenciar Banner Principal</h1>
                     <button className="btn-primary" onClick={() => setIsCreateModalOpen(true)}>+ Novo Slide</button>
                 </header>
 
@@ -96,8 +96,8 @@ export default function CarouselAdmin() {
                 </div>
 
                 {(editingItem || isCreateModalOpen) && (
-                    <EditCarouselModal 
-                        item={editingItem} 
+                    <EditCarouselModal
+                        item={editingItem}
                         onClose={() => {
                             setEditingItem(null);
                             setIsCreateModalOpen(false);

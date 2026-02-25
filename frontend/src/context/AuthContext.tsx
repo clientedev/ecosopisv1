@@ -7,6 +7,7 @@ interface User {
   email: string;
   full_name: string;
   role: string;
+  pode_girar_roleta: boolean;
 }
 
 interface AuthContextType {
@@ -14,6 +15,7 @@ interface AuthContextType {
   token: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  refreshProfile: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -25,36 +27,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        localStorage.removeItem('user');
+    const initAuth = async () => {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        setToken(storedToken);
+        try {
+          // Verify token and fetch fresh user profile
+          const response = await fetch('/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${storedToken}` }
+          });
+          if (response.ok) {
+            const userData = await response.json();
+            setUser(userData);
+            localStorage.setItem('user', JSON.stringify(userData));
+          } else {
+            // Token invalid or expired
+            setUser(null);
+            setToken(null);
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
+        } catch (error) {
+          console.error("Initial auth fetch error:", error);
+          // Fallback to stored user if fetch fails
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) setUser(JSON.parse(storedUser));
+        }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    initAuth();
   }, []);
+
+  const refreshProfile = async () => {
+    const storedToken = localStorage.getItem('token');
+    if (!storedToken) return;
+
+    try {
+      const response = await fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${storedToken}` }
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+    } catch (error) {
+      console.error("Refresh profile error:", error);
+    }
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      const params = new URLSearchParams();
+      params.append("username", email);
+      params.append("password", password);
+
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify({ email, password }),
+        body: params.toString(),
       });
 
       if (response.ok) {
         const data = await response.json();
         setToken(data.access_token);
-        setUser(data.user);
         localStorage.setItem('token', data.access_token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+
+        // Fetch user profile immediately
+        const userRes = await fetch('/api/auth/me', {
+          headers: { 'Authorization': `Bearer ${data.access_token}` }
+        });
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
         return true;
       }
       return false;
@@ -72,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, refreshProfile, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
