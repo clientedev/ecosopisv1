@@ -478,6 +478,36 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                     </button>
                                 </div>
 
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+                                    <div style={{ background: '#eee', padding: '10px', borderRadius: '8px', fontSize: '0.8rem', color: '#555', display: 'flex', alignItems: 'center' }}>
+                                        <strong>URL Fixa:</strong>&nbsp;{typeof window !== 'undefined' ? `${window.location.origin}/produto/${product.slug}/info` : `/produto/${product.slug}/info`}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            try {
+                                                const response = await fetch(`/api/static/qrcodes/${product.slug}.png`);
+                                                const blob = await response.blob();
+                                                const url = window.URL.createObjectURL(blob);
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                link.download = `qrcode-${product.slug}.png`;
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                document.body.removeChild(link);
+                                            } catch (err) {
+                                                console.error("Erro ao baixar", err);
+                                                alert("Houve um erro ao baixar o QR Code.");
+                                            }
+                                        }}
+                                        className={styles.editBtn}
+                                        style={{ backgroundColor: '#b8860b', color: 'white', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, height: 'auto' }}
+                                        title="Baixar QR Code da Ficha Técnica"
+                                    >
+                                        <Download size={16} /> QR Code
+                                    </button>
+                                </div>
+
                                 {product.details?.qr_code_path && (
                                     <div style={{ textAlign: 'center' }}>
                                         <img
@@ -545,35 +575,6 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                             onChange={(e) => setTechnicalData({ ...technicalData, observacoes: e.target.value })}
                                             placeholder="Outras informações pertinentes..."
                                         />
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
-                                        <div style={{ background: '#eee', padding: '10px', borderRadius: '8px', fontSize: '0.8rem', color: '#555', flex: 1, display: 'flex', alignItems: 'center' }}>
-                                            <strong>URL Fixa:</strong>&nbsp;{typeof window !== 'undefined' ? `${window.location.origin}/produto/${product.slug}/info` : `/produto/${product.slug}/info`}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={async () => {
-                                                try {
-                                                    const response = await fetch(`/api/static/qrcodes/${product.slug}.png`);
-                                                    const blob = await response.blob();
-                                                    const url = window.URL.createObjectURL(blob);
-                                                    const link = document.createElement('a');
-                                                    link.href = url;
-                                                    link.download = `qrcode-${product.slug}.png`;
-                                                    document.body.appendChild(link);
-                                                    link.click();
-                                                    document.body.removeChild(link);
-                                                } catch (err) {
-                                                    console.error("Erro ao baixar", err);
-                                                    alert("Houve um erro ao baixar o QR Code.");
-                                                }
-                                            }}
-                                            className={styles.editBtn}
-                                            style={{ backgroundColor: '#b8860b', color: 'white', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, height: 'auto' }}
-                                            title="Baixar QR Code da Ficha Técnica"
-                                        >
-                                            <Download size={16} /> QR Code
-                                        </button>
                                     </div>
                                 </div>
                             )}
