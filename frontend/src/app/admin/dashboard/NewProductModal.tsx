@@ -186,12 +186,15 @@ export default function NewProductModal({ onClose, onSave }: Props) {
     };
 
     const getImageUrl = (url: string) => {
-        if (!url) return "";
+        if (!url) return "/logo_final.png";
         if (url.startsWith("http")) return url;
         if (url.startsWith("/api/")) return url;
-        if (url.startsWith("/static")) return url;
-        if (url.includes("/images/")) return url;
-        return `/static/uploads/${url.split('/').pop()}`;
+        if (url.startsWith("/static/")) return url;
+        if (url.startsWith("/images/")) return `/api${url}`;
+        if (url.startsWith("images/")) return `/api/${url}`;
+        if (url.startsWith("/attached_assets/")) return `/static${url}`;
+        if (url.startsWith("attached_assets/")) return `/static/${url}`;
+        return url;
     };
 
     return (

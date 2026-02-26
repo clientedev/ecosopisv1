@@ -83,7 +83,9 @@ export default function ProductDetailPage() {
         if (url.startsWith("/api/")) return url;
         if (url.startsWith("/static/")) return url;
         if (url.startsWith("/images/")) return `/api${url}`;
+        if (url.startsWith("images/")) return `/api/${url}`;
         if (url.startsWith("/attached_assets/")) return `/static${url}`;
+        if (url.startsWith("attached_assets/")) return `/static/${url}`;
         return url;
     };
 

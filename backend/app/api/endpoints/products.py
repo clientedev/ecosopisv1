@@ -242,15 +242,27 @@ def regenerate_product_qr(
     admin: models.User = Depends(get_current_admin)
 ):
     """Regenerate QR code using the current request origin."""
-    db_details = db.query(models.ProductDetail).filter(models.ProductDetail.slug == slug).first()
-    if not db_details:
-        raise HTTPException(status_code=404, detail="Product details not found")
+    db_product = db.query(models.Product).filter(models.Product.slug == slug).first()
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    db_details = db.query(models.ProductDetail).filter(models.ProductDetail.product_id == db_product.id).first()
     
     # Identify origin
     origin = request.headers.get("origin") or f"{request.url.scheme}://{request.url.netloc}"
     qr_path = generate_qr_code(slug, base_url=origin)
     
-    db_details.qr_code_path = qr_path
+    if not db_details:
+        # Create missing details for legacy products
+        db_details = models.ProductDetail(
+            product_id=db_product.id,
+            slug=db_product.slug,
+            qr_code_path=qr_path
+        )
+        db.add(db_details)
+    else:
+        db_details.qr_code_path = qr_path
+        
     db.commit()
     db.refresh(db_details)
     return {"message": "QR Code regenerated", "path": qr_path, "url": origin}

@@ -43,8 +43,11 @@ export default function AdminDashboard() {
         if (!url) return "/logo_final.png";
         if (url.startsWith("http")) return url;
         if (url.startsWith("/api/")) return url;
-        if (url.startsWith("/static")) return url;
-        if (url.startsWith("/attached_assets")) return `/static${url}`;
+        if (url.startsWith("/static/")) return url;
+        if (url.startsWith("/images/")) return `/api${url}`;
+        if (url.startsWith("images/")) return `/api/${url}`;
+        if (url.startsWith("/attached_assets/")) return `/static${url}`;
+        if (url.startsWith("attached_assets/")) return `/static/${url}`;
         return url;
     };
 
