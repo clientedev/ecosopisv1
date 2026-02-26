@@ -194,6 +194,8 @@ export default function NewProductModal({ onClose, onSave }: Props) {
         if (url.startsWith("images/")) return `/api/${url}`;
         if (url.startsWith("/attached_assets/")) return `/static${url}`;
         if (url.startsWith("attached_assets/")) return `/static/${url}`;
+        if (url.startsWith("/uploads/")) return `/static${url}`;
+        if (url.startsWith("uploads/")) return `/static/${url}`;
         return url;
     };
 

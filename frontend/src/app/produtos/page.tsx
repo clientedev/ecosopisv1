@@ -36,10 +36,17 @@ export default function ProductsPage() {
     const [maxPrice, setMaxPrice] = useState(500);
 
     const getImageUrl = (url: string) => {
-        if (!url) return "";
+        if (!url) return "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
         if (url.startsWith("http")) return url;
-        if (url.startsWith("/static")) return url;
-        return `/static/uploads/${url.split('/').pop()}`;
+        if (url.startsWith("/api/")) return url;
+        if (url.startsWith("/static/")) return url;
+        if (url.startsWith("/images/")) return `/api${url}`;
+        if (url.startsWith("images/")) return `/api/${url}`;
+        if (url.startsWith("/attached_assets/")) return `/static${url}`;
+        if (url.startsWith("attached_assets/")) return `/static/${url}`;
+        if (url.startsWith("/uploads/")) return `/static${url}`;
+        if (url.startsWith("uploads/")) return `/static/${url}`;
+        return url;
     };
 
     useEffect(() => {
@@ -50,7 +57,7 @@ export default function ProductsPage() {
                 const data = await res.json();
                 const products = (Array.isArray(data) ? data : []).map((p: any) => ({
                     ...p,
-                    image_url: getImageUrl(p.image_url)
+                    image_url: p.image_url // Pass raw URL to ProductCard which has its own getImageUrl
                 }));
                 setAllProducts(products);
             } catch (error) {
