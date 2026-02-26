@@ -25,8 +25,8 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         vertical_alignment: item?.vertical_alignment || "center",
         content_max_width: item?.content_max_width || "500px",
         glassmorphism: item?.glassmorphism ?? false,
-        offset_x: item?.offset_x || "0px",
-        offset_y: item?.offset_y || "0px",
+        offset_x: item?.offset_x || "0%",
+        offset_y: item?.offset_y || "0%",
         title_color: item?.title_color || "#ffffff",
         description_color: item?.description_color || "#ffffff",
         badge_color: item?.badge_color || "#ffffff",
@@ -273,8 +273,8 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                                         type="range"
                                                         min="-100"
                                                         max="100"
-                                                        value={parseInt(formData.offset_x)}
-                                                        onChange={e => setFormData({ ...formData, offset_x: `${e.target.value}px` })}
+                                                        value={parseInt(formData.offset_x) || 0}
+                                                        onChange={e => setFormData({ ...formData, offset_x: `${e.target.value}%` })}
                                                         style={{ flex: 1 }}
                                                     />
                                                     <span style={{ minWidth: '45px', fontSize: '0.8rem', fontWeight: 600, color: '#10b981' }}>{formData.offset_x}</span>
@@ -288,8 +288,8 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                                         type="range"
                                                         min="-100"
                                                         max="100"
-                                                        value={parseInt(formData.offset_y)}
-                                                        onChange={e => setFormData({ ...formData, offset_y: `${e.target.value}px` })}
+                                                        value={parseInt(formData.offset_y) || 0}
+                                                        onChange={e => setFormData({ ...formData, offset_y: `${e.target.value}%` })}
                                                         style={{ flex: 1 }}
                                                     />
                                                     <span style={{ minWidth: '45px', fontSize: '0.8rem', fontWeight: 600, color: '#10b981' }}>{formData.offset_y}</span>
@@ -297,7 +297,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                             </div>
                                         </div>
                                         <p style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '10px', fontStyle: 'italic' }}>
-                                            Use os controles acima para mover o texto com precisão de pixels após escolher o alinhamento base.
+                                            Use os controles acima para mover o texto com precisão de porcentagem (%) após escolher o alinhamento base. Isso garante que o texto fique "preso" na mesma posição da imagem em qualquer tela.
                                         </p>
                                     </div>
                                 </div>
@@ -387,7 +387,9 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                 WebkitBackdropFilter: formData.glassmorphism ? 'blur(10px)' : 'none',
                                 border: formData.glassmorphism ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
                                 boxShadow: formData.glassmorphism ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : 'none',
-                                transform: `translate(${formData.offset_x || '0px'}, ${formData.offset_y || '0px'})`
+                                position: 'relative',
+                                left: formData.offset_x || '0%',
+                                top: formData.offset_y || '0%'
                             }}>
                                 {formData.badge && (
                                     <span

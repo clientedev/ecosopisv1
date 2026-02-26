@@ -103,8 +103,8 @@ export default function Home() {
                             badge_bg_color: item.badge_bg_color,
                             overlay_color: item.overlay_color,
                             overlay_opacity: item.overlay_opacity,
-                            offset_x: item.offset_x || "0px",
-                            offset_y: item.offset_y || "0px",
+                            offset_x: item.offset_x || "0%",
+                            offset_y: item.offset_y || "0%",
                             ctaPrimary: item.cta_primary_text && item.cta_primary_text !== "-" ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
                             ctaSecondary: item.cta_secondary_text && item.cta_secondary_text !== "-" ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null
                         }));
@@ -201,7 +201,9 @@ export default function Home() {
                                 WebkitBackdropFilter: slide.glassmorphism ? 'blur(12px)' : 'none',
                                 border: slide.glassmorphism ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
                                 boxShadow: slide.glassmorphism ? '0 10px 40px rgba(0,0,0,0.15)' : 'none',
-                                transform: `translate(${slide.offset_x || '0px'}, ${slide.offset_y || '0px'})`
+                                position: 'relative',
+                                left: slide.offset_x || '0%',
+                                top: slide.offset_y || '0%',
                             }}>
                                 {slide.badge && (
                                     <span
