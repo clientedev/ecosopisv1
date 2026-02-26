@@ -37,6 +37,8 @@ async def create_carousel_item(
     badge_bg_color: str = Form("#4a7c59"),
     overlay_color: str = Form("#000000"),
     overlay_opacity: float = Form(0.3),
+    offset_x: str = Form("0px"),
+    offset_y: str = Form("0px"),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -68,6 +70,8 @@ async def create_carousel_item(
         vertical_alignment=vertical_alignment,
         content_max_width=content_max_width,
         glassmorphism=glassmorphism,
+        offset_x=offset_x,
+        offset_y=offset_y,
         title_color=title_color,
         description_color=description_color,
         badge_color=badge_color,
@@ -105,6 +109,9 @@ async def update_carousel_item(
     badge_bg_color: str = Form("#4a7c59"),
     overlay_color: str = Form("#000000"),
     overlay_opacity: float = Form(0.3),
+    alignment: Optional[str] = Form(None),
+    offset_x: Optional[str] = Form(None),
+    offset_y: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -141,6 +148,8 @@ async def update_carousel_item(
     if alignment: db_item.alignment = alignment
     if vertical_alignment: db_item.vertical_alignment = vertical_alignment
     if content_max_width: db_item.content_max_width = content_max_width
+    if offset_x: db_item.offset_x = offset_x
+    if offset_y: db_item.offset_y = offset_y
     db_item.glassmorphism = glassmorphism
     if title_color: db_item.title_color = title_color
     if description_color: db_item.description_color = description_color

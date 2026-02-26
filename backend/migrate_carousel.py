@@ -27,7 +27,9 @@ try:
     columns = [
         ("vertical_alignment", "TEXT", "'center'"),
         ("content_max_width", "TEXT", "'500px'"),
-        ("glassmorphism", "BOOLEAN", "0")
+        ("glassmorphism", "BOOLEAN", "0"),
+        ("offset_x", "TEXT", "'0px'"),
+        ("offset_y", "TEXT", "'0px'")
     ]
 
     with engine.connect() as conn:

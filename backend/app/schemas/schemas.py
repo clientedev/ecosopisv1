@@ -157,7 +157,9 @@ class CarouselItemBase(BaseModel):
     alignment: Optional[str] = "left"
     vertical_alignment: Optional[str] = "center"
     content_max_width: Optional[str] = "500px"
-    glassmorphism: bool = False
+    glassmorphism: Optional[bool] = False
+    offset_x: Optional[str] = "0px"
+    offset_y: Optional[str] = "0px"
     title_color: Optional[str] = "#ffffff"
     description_color: Optional[str] = "#ffffff"
     badge_color: Optional[str] = "#ffffff"

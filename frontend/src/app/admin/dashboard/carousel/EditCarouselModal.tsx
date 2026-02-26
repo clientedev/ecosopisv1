@@ -25,6 +25,8 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         vertical_alignment: item?.vertical_alignment || "center",
         content_max_width: item?.content_max_width || "500px",
         glassmorphism: item?.glassmorphism ?? false,
+        offset_x: item?.offset_x || "0px",
+        offset_y: item?.offset_y || "0px",
         title_color: item?.title_color || "#ffffff",
         description_color: item?.description_color || "#ffffff",
         badge_color: item?.badge_color || "#ffffff",
@@ -103,8 +105,23 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
 
     return (
         <div className={styles.modalOverlay}>
-            <div className={styles.modalContent} style={{ maxWidth: '1200px', width: '95%', maxHeight: '95vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) 1.2fr', height: '100%' }}>
+            <div className={styles.modalContent} style={{
+                maxWidth: '1200px',
+                width: '95%',
+                maxHeight: '95vh',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: 0,
+                overflow: 'hidden',
+                backgroundColor: 'white'
+            }}>
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(400px, 1fr) 1.2fr',
+                    height: '100%',
+                    minHeight: 0, // Fundamental para scroll em flex/grid containers
+                    overflow: 'hidden'
+                }}>
                     {/* Painel de Edição */}
                     <div style={{ padding: '30px', borderRight: '1px solid #eee', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                         <div style={{ marginBottom: '25px' }}>
@@ -242,6 +259,47 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                             onChange={e => setFormData({ ...formData, overlay_opacity: parseFloat(e.target.value) })}
                                         />
                                     </div>
+
+                                    <div style={{ marginTop: '20px', padding: '15px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                        <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.025em', display: 'block', marginBottom: '15px' }}>
+                                            🎯 Ajuste Fino de Posição
+                                        </label>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                            <div className={styles.formGroup}>
+                                                <label style={{ fontSize: '0.8rem' }}>Deslocamento Horizontal (X)</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <input
+                                                        type="range"
+                                                        min="-100"
+                                                        max="100"
+                                                        value={parseInt(formData.offset_x)}
+                                                        onChange={e => setFormData({ ...formData, offset_x: `${e.target.value}px` })}
+                                                        style={{ flex: 1 }}
+                                                    />
+                                                    <span style={{ minWidth: '45px', fontSize: '0.8rem', fontWeight: 600, color: '#10b981' }}>{formData.offset_x}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className={styles.formGroup}>
+                                                <label style={{ fontSize: '0.8rem' }}>Deslocamento Vertical (Y)</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <input
+                                                        type="range"
+                                                        min="-100"
+                                                        max="100"
+                                                        value={parseInt(formData.offset_y)}
+                                                        onChange={e => setFormData({ ...formData, offset_y: `${e.target.value}px` })}
+                                                        style={{ flex: 1 }}
+                                                    />
+                                                    <span style={{ minWidth: '45px', fontSize: '0.8rem', fontWeight: 600, color: '#10b981' }}>{formData.offset_y}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '10px', fontStyle: 'italic' }}>
+                                            Use os controles acima para mover o texto com precisão de pixels após escolher o alinhamento base.
+                                        </p>
+                                    </div>
                                 </div>
                             )}
 
@@ -328,7 +386,8 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                 backdropFilter: formData.glassmorphism ? 'blur(10px)' : 'none',
                                 WebkitBackdropFilter: formData.glassmorphism ? 'blur(10px)' : 'none',
                                 border: formData.glassmorphism ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
-                                boxShadow: formData.glassmorphism ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : 'none'
+                                boxShadow: formData.glassmorphism ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : 'none',
+                                transform: `translate(${formData.offset_x || '0px'}, ${formData.offset_y || '0px'})`
                             }}>
                                 {formData.badge && (
                                     <span

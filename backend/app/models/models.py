@@ -136,7 +136,8 @@ class CarouselItem(Base):
     vertical_alignment = Column(String, default="center") # top, center, bottom
     content_max_width = Column(String, default="500px")
     glassmorphism = Column(Boolean, default=False)
-    
+    offset_x = Column(String, default="0px")
+    offset_y = Column(String, default="0px")
     title_color = Column(String, default="#ffffff")
     description_color = Column(String, default="#ffffff")
     badge_color = Column(String, default="#ffffff")

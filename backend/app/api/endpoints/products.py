@@ -248,9 +248,13 @@ def regenerate_product_qr(
 
     db_details = db.query(models.ProductDetail).filter(models.ProductDetail.product_id == db_product.id).first()
     
-    # Identify origin - More robust for Reverse Proxies (Railway)
+    # Identify origin - Prioritize FRONTEND_URL, then EXTERNAL_URL
+    frontend_url = os.getenv("FRONTEND_URL")
     external_url = os.getenv("EXTERNAL_URL")
-    if external_url:
+    
+    if frontend_url:
+        origin = frontend_url
+    elif external_url:
         origin = external_url
     else:
         forwarded_host = request.headers.get("x-forwarded-host")
