@@ -12,7 +12,9 @@ import {
     Sparkles,
     ShoppingBag,
     MessageSquare,
-    Send
+    Send,
+    QrCode,
+    Download
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -144,7 +146,44 @@ export default function ProductTechnicalPage() {
                     <ArrowLeft size={18} /> Voltar ao Produto
                 </Link>
 
-                <div className={styles.badge}>Ficha Técnica Premium</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div className={styles.badge}>Ficha Técnica Premium</div>
+                    <button
+                        onClick={async () => {
+                            try {
+                                const response = await fetch(`/api/static/qrcodes/${product.slug}.png`);
+                                if (!response.ok) throw new Error("Falha ao baixar");
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = `qrcode-${product.slug}.png`;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                            } catch (err) {
+                                console.error("Erro ao baixar QR Code", err);
+                                alert("Não foi possível baixar o QR Code no momento.");
+                            }
+                        }}
+                        title="Baixar QR Code desta Ficha"
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '8px',
+                            borderRadius: '50%',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            color: 'white',
+                            background: 'rgba(255,255,255,0.1)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            backdropFilter: 'blur(5px)'
+                        }}
+                    >
+                        <Download size={20} />
+                    </button>
+                </div>
                 <h1>{product.name}</h1>
                 <p>Equilíbrio botânico, consciência e pureza em cada detalhe.</p>
             </header>
