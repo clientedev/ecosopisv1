@@ -248,8 +248,18 @@ def regenerate_product_qr(
 
     db_details = db.query(models.ProductDetail).filter(models.ProductDetail.product_id == db_product.id).first()
     
-    # Identify origin
-    origin = request.headers.get("origin") or f"{request.url.scheme}://{request.url.netloc}"
+    # Identify origin - More robust for Reverse Proxies (Railway)
+    external_url = os.getenv("EXTERNAL_URL")
+    if external_url:
+        origin = external_url
+    else:
+        forwarded_host = request.headers.get("x-forwarded-host")
+        forwarded_proto = request.headers.get("x-forwarded-proto", "https")
+        if forwarded_host:
+            origin = f"{forwarded_proto}://{forwarded_host}"
+        else:
+            origin = f"{request.url.scheme}://{request.url.netloc}"
+    
     qr_path = generate_qr_code(slug, base_url=origin)
     
     if not db_details:
