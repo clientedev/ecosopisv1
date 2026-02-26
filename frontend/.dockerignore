@@ -6,5 +6,4 @@ build
 .git
 .gitignore
 .dockerignore
-package-lock.json
 README.md
