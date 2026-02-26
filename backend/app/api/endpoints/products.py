@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Request
 from sqlalchemy.orm import Session, joinedload
-from typing import List
+from typing import List, Optional
 from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
