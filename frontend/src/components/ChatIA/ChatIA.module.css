@@ -2,34 +2,60 @@
     position: fixed;
     bottom: 30px;
     right: 30px;
-    padding: 0 25px;
-    height: 60px;
-    border-radius: 30px;
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
     background-color: var(--primary-green);
     color: white;
-    box-shadow: 0 8px 25px rgba(45, 90, 39, 0.3);
+    box-shadow: 0 4px 15px rgba(45, 90, 39, 0.4);
     z-index: 1000;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
+    justify-content: flex-start;
     border: none;
     cursor: pointer;
-}
-
-.btnIcon {
-    font-size: 1.5rem;
-}
-
-.btnText {
-    font-size: 1rem;
-    font-weight: 600;
-    white-space: nowrap;
+    overflow: hidden;
+    padding: 0;
 }
 
 .chatButton:hover {
-    transform: scale(1.1) rotate(5deg);
+    width: 210px;
+    box-shadow: 0 8px 25px rgba(45, 90, 39, 0.5);
+}
+
+.buttonContent {
+    display: flex;
+    align-items: center;
+    min-width: 210px;
+    height: 100%;
+    padding: 0 16px;
+    gap: 12px;
+}
+
+.chatIcon {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    transition: transform 0.3s ease;
+}
+
+.chatButton:hover .chatIcon {
+    transform: rotate(10deg) scale(1.1);
+}
+
+.btnText {
+    font-size: 0.95rem;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.4s ease;
+}
+
+.chatButton:hover .btnText {
+    opacity: 1;
+    transform: translateX(0);
 }
 
 .chatWindow {

@@ -56,8 +56,23 @@ export default function ChatIA() {
                 onClick={() => setIsOpen(!isOpen)}
                 aria-label="Converse com a Lia"
             >
-                <span className={styles.btnIcon}>💬</span>
-                <span className={styles.btnText}>Converse com a Lia</span>
+                <div className={styles.buttonContent}>
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={styles.chatIcon}
+                    >
+                        <path
+                            d="M12 21C15.5 21 18.5 19 20 16L22 16.5L21 14.5C21.6 13.5 22 12.3 22 11C22 6 17.5 2 12 2C6.5 2 2 6 2 11C2 13.5 3 15.8 4.7 17.5L3.5 21L7 20C8.5 20.6 10.2 21 12 21Z"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </svg>
+                    <span className={styles.btnText}>Converse com a Lia</span>
+                </div>
             </button>
 
             {isOpen && (
