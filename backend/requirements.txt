@@ -2,7 +2,8 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 psycopg2-binary
-pydantic
+pydantic[email]
+email-validator>=2.3.0
 pydantic-settings
 python-jose[cryptography]
 passlib[bcrypt]
@@ -14,3 +15,5 @@ httpx
 openai
 groq
 qrcode[pil]
+Pillow>=10.0.0
+starlette
