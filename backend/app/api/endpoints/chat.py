@@ -1,56 +1,54 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models import models
 from pydantic import BaseModel
 import os
-from openai import OpenAI
-from typing import List
+from groq import Groq
 
 router = APIRouter()
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 class ChatRequest(BaseModel):
     message: str
 
-def get_product_context(db: Session):
-    products = db.query(models.Product).all()
-    context = "Você é a consultora de beleza da ECOSOPIS, uma loja de cosméticos artesanais e 100% naturais. "
-    context += "Aqui estão os produtos disponíveis no catálogo:\n\n"
-    
+def get_product_context(db: Session) -> str:
+    products = db.query(models.Product).filter(models.Product.is_active == True).all()
+    context = (
+        "Você é Lia, a consultora de beleza da ECOSOPIS — uma loja de cosméticos artesanais, 100% naturais e sustentáveis. "
+        "Seu tom é caloroso, profissional, empático e entusiasmado com cosmética natural. "
+        "Conheça os produtos disponíveis no catálogo:\n\n"
+    )
     for p in products:
-        context += f"- {p.name}: R$ {p.price}. {p.description or ''}\n"
-    
-    context += "\nResponda de forma gentil, profissional e baseada nesses produtos. "
-    context += "Sempre incentive o uso de produtos naturais e mencione os benefícios para a pele."
-    context += "Se não souber a resposta ou o produto não estiver na lista, indique o nosso Quizz de Pele (/quizz) para uma recomendação personalizada."
-    
+        context += f"- **{p.name}**: R$ {p.price:.2f}. {p.description or ''}\n"
+
+    context += (
+        "\nSempre responda de forma gentil e baseada no catálogo acima. "
+        "Mencione os benefícios naturais dos produtos quando pertinente. "
+        "Se o cliente não souber o que quer, sugira o Quizz de Pele (/quizz) para uma recomendação personalizada. "
+        "Respostas curtas e objetivas, máximo de 3 linhas a não ser que o cliente peça mais detalhes."
+    )
     return context
 
 @router.post("")
 def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
-    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("GEMINI_API_KEY")
-    
-    if not api_key:
-        # Fallback for when no API key is set yet, so the UI doesn't break
-        return {"response": "Olá! No momento estou em modo de manutenção técnica (configuração de API). Por favor, consulte nosso Quizz de Pele para recomendações!"}
-
-    client = OpenAI(api_key=api_key)
-    # Note: If using Gemini with OpenAI compatibility, the base_url would be set.
-    # For now, we assume standard OpenAI or a compatible environment variable.
-    
     try:
+        client = Groq(api_key=GROQ_API_KEY)
         system_prompt = get_product_context(db)
-        
+
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo", # Default to a common model
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": request.message}
             ],
-            max_tokens=300
+            max_tokens=350,
+            temperature=0.7,
         )
-        
+
         return {"response": response.choices[0].message.content}
+
     except Exception as e:
-        print(f"Error in AI Chat: {e}")
-        return {"response": "Desculpe, tive um pequeno problema técnico. Posso te ajudar com algo mais sobre nossos produtos naturais?"}
+        print(f"Groq Chat Error: {e}")
+        return {"response": "Desculpe, tive um pequeno problema técnico. Tente novamente em instantes! 🌿"}

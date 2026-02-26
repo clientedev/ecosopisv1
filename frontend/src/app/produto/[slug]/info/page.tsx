@@ -1,6 +1,6 @@
 "use client";
-import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
 import styles from "./page.module.css";
 import {
     Zap,
@@ -10,7 +10,9 @@ import {
     ClipboardList,
     ArrowLeft,
     Sparkles,
-    ShoppingBag
+    ShoppingBag,
+    MessageSquare,
+    Send
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -37,11 +39,16 @@ interface Product {
 
 export default function ProductTechnicalPage() {
     const params = useParams();
-    const router = useRouter();
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [activeImage, setActiveImage] = useState("");
+
+    // Chat state
+    const [chatMessages, setChatMessages] = useState<{ role: string, content: string }[]>([]);
+    const [chatInput, setChatInput] = useState("");
+    const [chatLoading, setChatLoading] = useState(false);
+    const chatScrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -66,6 +73,33 @@ export default function ProductTechnicalPage() {
             fetchProduct();
         }
     }, [params.slug]);
+
+    useEffect(() => {
+        if (chatScrollRef.current) {
+            chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+        }
+    }, [chatMessages, chatLoading]);
+
+    const sendChatMessage = async () => {
+        if (!chatInput.trim() || chatLoading || !product) return;
+        const userMsg = { role: 'user', content: chatInput };
+        setChatMessages(prev => [...prev, userMsg]);
+        setChatInput("");
+        setChatLoading(true);
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `Pergunta sobre o produto "${product.name}": ${chatInput}` })
+            });
+            const data = await res.json();
+            setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+        } catch {
+            setChatMessages(prev => [...prev, { role: 'assistant', content: 'Desculpe, tive um problema de conexão. Tente novamente!' }]);
+        } finally {
+            setChatLoading(false);
+        }
+    };
 
     const getImageUrl = (url: string) => {
         if (!url) return "/logo_final.png";
@@ -218,6 +252,55 @@ export default function ProductTechnicalPage() {
                     <Link href={`/produtos/${product.slug}`} className={styles.buyBtn}>
                         <ShoppingBag size={20} /> QUERO COMPRAR AGORA
                     </Link>
+                </div>
+
+                {/* Inline Chat Section */}
+                <div className={styles.chatSection}>
+                    <div className={styles.chatSectionHeader}>
+                        <div className={styles.chatSectionIcon}><MessageSquare size={22} /></div>
+                        <div>
+                            <h2 className={styles.chatTitle}>Dúvidas sobre este produto?</h2>
+                            <p className={styles.chatSubtitle}>Nossa consultora Lia responde em segundos 💬</p>
+                        </div>
+                    </div>
+
+                    <div className={styles.chatBody} ref={chatScrollRef}>
+                        {chatMessages.length === 0 && (
+                            <div className={styles.chatEmptyState}>
+                                <span>👋</span>
+                                <p>Olá! Pergunte qualquer coisa sobre <strong>{product.name}</strong>: ingredientes, modo de uso, pele sensível, combinações e muito mais.</p>
+                            </div>
+                        )}
+                        {chatMessages.map((msg, idx) => (
+                            <div key={idx} className={`${styles.chatMsg} ${msg.role === 'user' ? styles.chatMsgUser : styles.chatMsgAI}`}>
+                                {msg.content}
+                            </div>
+                        ))}
+                        {chatLoading && (
+                            <div className={`${styles.chatMsg} ${styles.chatMsgAI} ${styles.chatTyping}`}>
+                                <span></span><span></span><span></span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className={styles.chatInputRow}>
+                        <input
+                            type="text"
+                            className={styles.chatInput}
+                            placeholder={`Pergunte sobre ${product.name}...`}
+                            value={chatInput}
+                            onChange={e => setChatInput(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
+                            disabled={chatLoading}
+                        />
+                        <button
+                            className={styles.chatSendBtn}
+                            onClick={sendChatMessage}
+                            disabled={chatLoading || !chatInput.trim()}
+                        >
+                            <Send size={18} />
+                        </button>
+                    </div>
                 </div>
 
                 <footer className={styles.footer}>

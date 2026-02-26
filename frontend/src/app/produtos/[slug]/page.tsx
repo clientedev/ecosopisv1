@@ -244,6 +244,30 @@ export default function ProductDetailPage() {
                                 </a>
                             )}
                         </div>
+                        {/* Link para a Ficha Técnica Premium */}
+                        <a
+                            href={`/produto/${product.slug}/info`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                marginTop: '14px',
+                                marginBottom: '14px',
+                                padding: '12px 24px',
+                                borderRadius: '10px',
+                                border: '1.5px solid #2d5a27',
+                                color: '#2d5a27',
+                                textDecoration: 'none',
+                                fontWeight: 600,
+                                fontSize: '0.9rem',
+                                background: 'rgba(45, 90, 39, 0.04)',
+                                transition: 'all 0.2s',
+                            }}
+                        >
+                            🧪 Ver Ficha Técnica Completa
+                        </a>
                         <div className={styles.detailSection}>
                             <h3>INGREDIENTES</h3>
                             <p>{product.ingredients}</p>

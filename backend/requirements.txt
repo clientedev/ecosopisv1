@@ -12,3 +12,5 @@ python-dotenv
 alembic
 httpx
 openai
+groq
+qrcode[pil]
