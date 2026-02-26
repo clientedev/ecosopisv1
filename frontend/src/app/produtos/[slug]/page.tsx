@@ -5,6 +5,7 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
 import Image from "next/image";
+import { QrCode, Download } from "lucide-react";
 
 export default function ProductDetailPage() {
     const params = useParams();
@@ -245,29 +246,65 @@ export default function ProductDetailPage() {
                             )}
                         </div>
                         {/* Link para a Ficha Técnica Premium */}
-                        <a
-                            href={`/produto/${product.slug}/info`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                marginTop: '14px',
-                                marginBottom: '14px',
-                                padding: '12px 24px',
-                                borderRadius: '10px',
-                                border: '1.5px solid #2d5a27',
-                                color: '#2d5a27',
-                                textDecoration: 'none',
-                                fontWeight: 600,
-                                fontSize: '0.9rem',
-                                background: 'rgba(45, 90, 39, 0.04)',
-                                transition: 'all 0.2s',
-                            }}
-                        >
-                            🧪 Ver Ficha Técnica Completa
-                        </a>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <a
+                                href={`/produto/${product.slug}/info`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    marginTop: '14px',
+                                    marginBottom: '14px',
+                                    padding: '12px 24px',
+                                    borderRadius: '10px',
+                                    border: '1.5px solid #2d5a27',
+                                    color: '#2d5a27',
+                                    textDecoration: 'none',
+                                    fontWeight: 600,
+                                    fontSize: '0.9rem',
+                                    background: 'rgba(45, 90, 39, 0.04)',
+                                    transition: 'all 0.2s',
+                                    flex: 1
+                                }}
+                            >
+                                <QrCode size={20} /> Ver Ficha Técnica Completa
+                            </a>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const response = await fetch(`/api/static/qrcodes/${product.slug}.png`);
+                                        const blob = await response.blob();
+                                        const url = window.URL.createObjectURL(blob);
+                                        const link = document.createElement('a');
+                                        link.href = url;
+                                        link.download = `qrcode-${product.slug}.png`;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                    } catch (err) {
+                                        console.error("Erro ao baixar QR Code", err);
+                                        alert("Não foi possível baixar o QR Code no momento.");
+                                    }
+                                }}
+                                title="Baixar QR Code da Ficha Técnica"
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '12px',
+                                    borderRadius: '10px',
+                                    border: '1.5px solid #2d5a27',
+                                    color: '#2d5a27',
+                                    background: 'white',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                }}
+                            >
+                                <Download size={20} />
+                            </button>
+                        </div>
                         <div className={styles.detailSection}>
                             <h3>INGREDIENTES</h3>
                             <p>{product.ingredients}</p>
