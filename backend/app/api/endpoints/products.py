@@ -147,9 +147,23 @@ def create_product(
     db.commit()
     db.refresh(db_product)
 
-    # Automatically create mandatory details 1:1
-    # Try to get host from request headers (useful for railway)
-    origin = product_in.origin or request.headers.get("origin") or f"{request.url.scheme}://{request.url.netloc}"
+    # Identify origin - Prioritize body, then FRONTEND_URL, then EXTERNAL_URL, then Headers
+    origin = product_in.origin
+    if not origin:
+        origin = os.getenv("FRONTEND_URL") or os.getenv("EXTERNAL_URL")
+    
+    if not origin:
+        forwarded_host = request.headers.get("x-forwarded-host")
+        forwarded_proto = request.headers.get("x-forwarded-proto", "https")
+        if forwarded_host:
+            origin = f"{forwarded_proto}://{forwarded_host}"
+        else:
+            origin = f"{request.url.scheme}://{request.url.netloc}"
+            
+    # Final safety check for production environments
+    if ("localhost" in origin or "127.0.0.1" in origin) and os.getenv("RAILWAY_STATIC_URL"):
+        origin = f"https://{os.getenv('RAILWAY_STATIC_URL')}"
+
     qr_path = generate_qr_code(db_product.slug, base_url=origin)
     
     details_data = {}
@@ -240,8 +254,8 @@ class QRRegenerate(BaseModel):
 @router.post("/{slug}/regenerate-qr")
 def regenerate_product_qr(
     slug: str,
+    request: Request,
     data: Optional[QRRegenerate] = None,
-    # request: Request,  # Not strictly needed if we use body, but keeping for logic
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -252,28 +266,32 @@ def regenerate_product_qr(
 
     db_details = db.query(models.ProductDetail).filter(models.ProductDetail.product_id == db_product.id).first()
     
-    # Identify origin - Prioritize body, then FRONTEND_URL, then EXTERNAL_URL
+    # Identify origin - Prioritize body, then FRONTEND_URL, then EXTERNAL_URL, then Headers
     origin = None
     if data and data.origin:
         origin = data.origin
     
     if not origin:
-        frontend_url = os.getenv("FRONTEND_URL")
-        external_url = os.getenv("EXTERNAL_URL")
+        origin = os.getenv("FRONTEND_URL") or os.getenv("EXTERNAL_URL")
         
-        if frontend_url:
-            origin = frontend_url
-        elif external_url:
-            origin = external_url
+    if not origin:
+        # Fallback to headers (very useful for Railway/Nixpacks)
+        forwarded_host = request.headers.get("x-forwarded-host")
+        forwarded_proto = request.headers.get("x-forwarded-proto", "https")
+        if forwarded_host:
+            origin = f"{forwarded_proto}://{forwarded_host}"
         else:
-            # We don't have the request object here easily unless we keep it in params
-            # But usually body is enough for production fixes
-            origin = "http://localhost:3000" # Fallback if everything else fails
+            origin = f"{request.url.scheme}://{request.url.netloc}"
     
+    # Final safety check
+    if not origin or "localhost" in origin and os.getenv("RAILWAY_STATIC_URL"):
+        # If we are in production but still got localhost, something is wrong with proxy config
+        # Try to use Railway's own var if available
+        origin = f"https://{os.getenv('RAILWAY_STATIC_URL')}" if os.getenv("RAILWAY_STATIC_URL") else origin
+
     qr_path = generate_qr_code(slug, base_url=origin)
     
     if not db_details:
-        # Create missing details for legacy products
         db_details = models.ProductDetail(
             product_id=db_product.id,
             slug=db_product.slug,
