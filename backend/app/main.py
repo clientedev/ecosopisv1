@@ -17,6 +17,8 @@ def _apply_startup_migrations():
         ("vertical_alignment", "VARCHAR DEFAULT 'center'"),
         ("content_max_width", "VARCHAR DEFAULT '500px'"),
         ("glassmorphism",     "BOOLEAN DEFAULT FALSE"),
+        ("offset_x",          "VARCHAR DEFAULT '0px'"),
+        ("offset_y",          "VARCHAR DEFAULT '0px'"),
     ]
     ANNOUNCEMENT_COLS = [
         ("is_scrolling", "BOOLEAN DEFAULT FALSE"),
