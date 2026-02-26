@@ -95,12 +95,12 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         }
     };
 
-    const flexAlignmentMap: Record<string, string> = {
-        left: 'flex-start',
-        center: 'center',
-        right: 'flex-end',
-        top: 'flex-start',
-        bottom: 'flex-end'
+    const coordinateMap: Record<string, number> = {
+        left: 10,
+        center: 50,
+        right: 90,
+        top: 10,
+        bottom: 90
     };
 
     return (
@@ -368,15 +368,13 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                             backgroundImage: previewUrl ? `linear-gradient(rgba(${parseInt(formData.overlay_color.slice(1, 3), 16)}, ${parseInt(formData.overlay_color.slice(3, 5), 16)}, ${parseInt(formData.overlay_color.slice(5, 7), 16)}, ${formData.overlay_opacity}), rgba(${parseInt(formData.overlay_color.slice(1, 3), 16)}, ${parseInt(formData.overlay_color.slice(3, 5), 16)}, ${parseInt(formData.overlay_color.slice(5, 7), 16)}, ${formData.overlay_opacity})), url(${previewUrl})` : 'none',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
-                            display: 'flex',
-                            alignItems: flexAlignmentMap[formData.vertical_alignment] || 'center',
-                            justifyContent: flexAlignmentMap[formData.alignment] || 'center',
+                            // Eliminated flex centering in favor of absolute positioning within the container
+                            display: 'block',
                             boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
                             transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                         }}>
                             <div style={{
                                 maxWidth: formData.content_max_width || '500px',
-                                textAlign: formData.alignment as any,
                                 zIndex: 2,
                                 padding: '40px',
                                 transition: 'all 0.3s ease',
@@ -386,10 +384,12 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                 backdropFilter: formData.glassmorphism ? 'blur(10px)' : 'none',
                                 WebkitBackdropFilter: formData.glassmorphism ? 'blur(10px)' : 'none',
                                 border: formData.glassmorphism ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
-                                boxShadow: formData.glassmorphism ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : 'none',
-                                position: 'relative',
-                                left: formData.offset_x || '0%',
-                                top: formData.offset_y || '0%'
+                                position: 'absolute',
+                                left: `${coordinateMap[formData.alignment] + (parseInt(formData.offset_x) || 0)}%`,
+                                top: `${coordinateMap[formData.vertical_alignment] + (parseInt(formData.offset_y) || 0)}%`,
+                                transform: 'translate(-50%, -50%)',
+                                textAlign: (formData.alignment === 'center' ? 'center' : formData.alignment === 'right' ? 'right' : 'left') as any,
+                                width: 'fit-content'
                             }}>
                                 {formData.badge && (
                                     <span
@@ -431,7 +431,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                         {formData.description}
                                     </p>
                                 )}
-                                <div style={{ display: 'flex', gap: '10px', justifyContent: flexAlignmentMap[formData.alignment] === 'flex-end' ? 'flex-end' : flexAlignmentMap[formData.alignment] === 'center' ? 'center' : 'flex-start' }}>
+                                <div style={{ display: 'flex', gap: '10px', justifyContent: formData.alignment === 'right' ? 'flex-end' : formData.alignment === 'center' ? 'center' : 'flex-start' }}>
                                     {formData.cta_primary_text && (
                                         <button className="btn-primary" style={{ padding: '10px 20px', fontSize: '0.85rem' }}>
                                             {formData.cta_primary_text}
@@ -457,6 +457,6 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

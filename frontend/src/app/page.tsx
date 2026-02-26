@@ -13,6 +13,14 @@ export default function Home() {
     const [reviews, setReviews] = useState<any[]>([]);
     const [reviewForm, setReviewForm] = useState({ user_name: "", comment: "", rating: 5 });
     const [formStatus, setFormStatus] = useState({ type: "", text: "" });
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useEffect(() => {
         const fetchReviews = async () => {
@@ -161,12 +169,12 @@ export default function Home() {
                         ? hexToRgba(slide.overlay_color, slide.overlay_opacity)
                         : 'rgba(0,0,0,0.3)';
 
-                    const flexAlignmentMap: Record<string, string> = {
-                        left: 'flex-start',
-                        center: 'center',
-                        right: 'flex-end',
-                        top: 'flex-start',
-                        bottom: 'flex-end'
+                    const coordinateMap: Record<string, number> = {
+                        left: 10,
+                        center: 50,
+                        right: 90,
+                        top: 10,
+                        bottom: 90
                     };
 
                     return (
@@ -178,9 +186,7 @@ export default function Home() {
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                                 minHeight: '500px',
-                                display: index === currentSlide ? 'flex' : 'none',
-                                alignItems: flexAlignmentMap[slide.vertical_alignment] || 'center',
-                                justifyContent: flexAlignmentMap[slide.alignment] || 'center',
+                                display: index === currentSlide ? 'block' : 'none',
                                 width: '100%',
                                 height: '600px',
                                 position: 'relative',
@@ -189,10 +195,8 @@ export default function Home() {
                         >
                             <div className={`${styles.heroContent}`} style={{
                                 maxWidth: slide.content_max_width || '500px',
-                                textAlign: slide.alignment as any,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                alignItems: flexAlignmentMap[slide.alignment] || 'center',
                                 padding: '40px',
                                 margin: '0 5%',
                                 borderRadius: '24px',
@@ -201,9 +205,13 @@ export default function Home() {
                                 WebkitBackdropFilter: slide.glassmorphism ? 'blur(12px)' : 'none',
                                 border: slide.glassmorphism ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
                                 boxShadow: slide.glassmorphism ? '0 10px 40px rgba(0,0,0,0.15)' : 'none',
-                                position: 'relative',
-                                left: slide.offset_x || '0%',
-                                top: slide.offset_y || '0%',
+                                position: 'absolute',
+                                left: isMobile ? '50%' : `${coordinateMap[slide.alignment] + (parseInt(slide.offset_x) || 0)}%`,
+                                top: isMobile ? '50%' : `${coordinateMap[slide.vertical_alignment] + (parseInt(slide.offset_y) || 0)}%`,
+                                transform: 'translate(-50%, -50%)',
+                                textAlign: isMobile ? 'center' : (slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'right' : 'left') as any,
+                                pointerEvents: 'auto',
+                                width: isMobile ? '90%' : 'fit-content',
                             }}>
                                 {slide.badge && (
                                     <span
@@ -211,7 +219,9 @@ export default function Home() {
                                         style={{
                                             backgroundColor: slide.badge_bg_color || '#4a7c59',
                                             color: slide.badge_color || '#ffffff',
-                                            marginBottom: '1rem'
+                                            marginBottom: '1rem',
+                                            display: 'inline-block',
+                                            alignSelf: isMobile ? 'center' : (slide.alignment === 'right' ? 'flex-end' : slide.alignment === 'center' ? 'center' : 'flex-start')
                                         }}
                                     >
                                         {slide.badge}
@@ -241,7 +251,7 @@ export default function Home() {
                                     </p>
                                 )}
                                 <div className={styles.heroActions} style={{
-                                    justifyContent: flexAlignmentMap[slide.alignment] || 'center'
+                                    justifyContent: isMobile ? 'center' : (slide.alignment === 'right' ? 'flex-end' : slide.alignment === 'center' ? 'center' : 'flex-start')
                                 }}>
                                     {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary" style={{ padding: '0.8rem 2rem' }}>{slide.ctaPrimary.text}</Link>}
                                     {slide.ctaSecondary && (
@@ -384,6 +394,6 @@ export default function Home() {
             </section>
 
             <Footer />
-        </main>
+        </main >
     );
 }
