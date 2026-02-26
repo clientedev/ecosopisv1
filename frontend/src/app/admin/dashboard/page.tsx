@@ -5,6 +5,7 @@ import Link from "next/link";
 import styles from "./dashboard.module.css";
 import EditProductModal from "./EditProductModal";
 import NewProductModal from "./NewProductModal";
+import { Download, ExternalLink } from "lucide-react";
 
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
@@ -132,19 +133,35 @@ export default function AdminDashboard() {
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className={styles.editBtn}
-                                                style={{ backgroundColor: '#2d5a27', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                style={{ backgroundColor: '#2d5a27', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
+                                                title="Ver Página de Detalhes"
                                             >
-                                                Página
+                                                <ExternalLink size={14} /> Página
                                             </a>
                                             {p.details?.qr_code_path && (
-                                                <a
-                                                    href={getImageUrl(p.details.qr_code_path)}
-                                                    download={`QR_${p.slug}.png`}
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            const response = await fetch(`/api/static/qrcodes/${p.slug}.png`);
+                                                            const blob = await response.blob();
+                                                            const url = window.URL.createObjectURL(blob);
+                                                            const link = document.createElement('a');
+                                                            link.href = url;
+                                                            link.download = `qrcode-${p.slug}.png`;
+                                                            document.body.appendChild(link);
+                                                            link.click();
+                                                            document.body.removeChild(link);
+                                                        } catch (err) {
+                                                            console.error("Erro ao baixar QR Code", err);
+                                                            alert("Erro ao baixar QR Code");
+                                                        }
+                                                    }}
                                                     className={styles.editBtn}
-                                                    style={{ backgroundColor: '#b8860b', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    style={{ backgroundColor: '#b8860b', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
+                                                    title="Baixar QR Code da Ficha Técnica"
                                                 >
-                                                    QR
-                                                </a>
+                                                    <Download size={14} /> QR
+                                                </button>
                                             )}
                                             <button
                                                 className={styles.editBtn}

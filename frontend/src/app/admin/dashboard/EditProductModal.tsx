@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import styles from "./dashboard.module.css";
+import { Download } from "lucide-react";
 
 interface Product {
     id: number;
@@ -477,14 +478,29 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                     </button>
 
                                     {product.details?.qr_code_path && (
-                                        <a
-                                            href={getImageUrl(product.details.qr_code_path)}
-                                            download={`QR_${product.slug}.png`}
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                try {
+                                                    const response = await fetch(`/api/static/qrcodes/${product.slug}.png`);
+                                                    const blob = await response.blob();
+                                                    const url = window.URL.createObjectURL(blob);
+                                                    const link = document.createElement('a');
+                                                    link.href = url;
+                                                    link.download = `qrcode-${product.slug}.png`;
+                                                    document.body.appendChild(link);
+                                                    link.click();
+                                                    document.body.removeChild(link);
+                                                } catch (err) {
+                                                    console.error("Erro ao baixar", err);
+                                                    alert("Houve um erro ao baixar o QR Code.");
+                                                }
+                                            }}
                                             className={styles.editBtn}
-                                            style={{ backgroundColor: '#b8860b', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '5px' }}
+                                            style={{ backgroundColor: '#b8860b', color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}
                                         >
-                                            💾 Baixar QR Code
-                                        </a>
+                                            <Download size={16} /> Baixar QR Code
+                                        </button>
                                     )}
                                 </div>
 
