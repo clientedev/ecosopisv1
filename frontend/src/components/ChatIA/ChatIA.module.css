@@ -2,18 +2,30 @@
     position: fixed;
     bottom: 30px;
     right: 30px;
-    width: 65px;
-    height: 65px;
-    border-radius: 50%;
+    padding: 0 25px;
+    height: 60px;
+    border-radius: 30px;
     background-color: var(--primary-green);
     color: white;
-    font-size: 1.8rem;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 25px rgba(45, 90, 39, 0.3);
     z-index: 1000;
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 12px;
+    border: none;
+    cursor: pointer;
+}
+
+.btnIcon {
+    font-size: 1.5rem;
+}
+
+.btnText {
+    font-size: 1rem;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .chatButton:hover {
@@ -72,10 +84,22 @@
     box-shadow: 0 0 8px #4cd137;
 }
 
+.headerTitles {
+    display: flex;
+    flex-direction: column;
+}
+
 .chatHeader h3 {
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 700;
     margin: 0;
+    line-height: 1.2;
+}
+
+.headerTitles span {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    font-weight: 400;
 }
 
 .closeBtn {

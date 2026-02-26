@@ -5,7 +5,7 @@ import styles from "./ChatIA.module.css";
 export default function ChatIA() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
-        { role: "assistant", content: "Olá! Sou a consultora de beleza da ECOSOPIS. Como posso ajudar você hoje?" }
+        { role: "assistant", content: "Olá! Eu sou a Lia, sua consultora de beleza ECOSOPIS. Como posso cuidar de você hoje?" }
     ]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -54,9 +54,10 @@ export default function ChatIA() {
             <button
                 className={styles.chatButton}
                 onClick={() => setIsOpen(!isOpen)}
-                aria-label="Abrir chat de consultoria"
+                aria-label="Converse com a Lia"
             >
-                💬
+                <span className={styles.btnIcon}>💬</span>
+                <span className={styles.btnText}>Converse com a Lia</span>
             </button>
 
             {isOpen && (
@@ -64,7 +65,10 @@ export default function ChatIA() {
                     <div className={styles.chatHeader}>
                         <div className={styles.headerInfo}>
                             <div className={styles.onlineStatus}></div>
-                            <h3>Consultora ECOSOPIS</h3>
+                            <div className={styles.headerTitles}>
+                                <h3>Lia</h3>
+                                <span>Consultora ECOSOPIS</span>
+                            </div>
                         </div>
                         <button className={styles.closeBtn} onClick={() => setIsOpen(false)}>✕</button>
                     </div>
