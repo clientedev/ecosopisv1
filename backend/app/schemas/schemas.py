@@ -155,6 +155,9 @@ class CarouselItemBase(BaseModel):
     cta_secondary_link: Optional[str] = None
     order: int = 0
     alignment: Optional[str] = "left"
+    vertical_alignment: Optional[str] = "center"
+    content_max_width: Optional[str] = "500px"
+    glassmorphism: bool = False
     title_color: Optional[str] = "#ffffff"
     description_color: Optional[str] = "#ffffff"
     badge_color: Optional[str] = "#ffffff"

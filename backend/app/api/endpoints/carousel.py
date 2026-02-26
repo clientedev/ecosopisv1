@@ -28,6 +28,9 @@ async def create_carousel_item(
     cta_secondary_text: Optional[str] = Form(None),
     cta_secondary_link: Optional[str] = Form(None),
     alignment: str = Form("left"),
+    vertical_alignment: str = Form("center"),
+    content_max_width: str = Form("500px"),
+    glassmorphism: bool = Form(False),
     title_color: str = Form("#ffffff"),
     description_color: str = Form("#ffffff"),
     badge_color: str = Form("#ffffff"),
@@ -62,6 +65,9 @@ async def create_carousel_item(
         cta_secondary_link=cta_secondary_link,
         order=order,
         alignment=alignment,
+        vertical_alignment=vertical_alignment,
+        content_max_width=content_max_width,
+        glassmorphism=glassmorphism,
         title_color=title_color,
         description_color=description_color,
         badge_color=badge_color,
@@ -90,7 +96,9 @@ async def update_carousel_item(
     cta_secondary_text: Optional[str] = Form(None),
     cta_secondary_link: Optional[str] = Form(None),
     is_active: bool = Form(True),
-    alignment: str = Form("left"),
+    vertical_alignment: str = Form("center"),
+    content_max_width: str = Form("500px"),
+    glassmorphism: bool = Form(False),
     title_color: str = Form("#ffffff"),
     description_color: str = Form("#ffffff"),
     badge_color: str = Form("#ffffff"),
@@ -131,6 +139,9 @@ async def update_carousel_item(
     
     # Update customization fields
     if alignment: db_item.alignment = alignment
+    if vertical_alignment: db_item.vertical_alignment = vertical_alignment
+    if content_max_width: db_item.content_max_width = content_max_width
+    db_item.glassmorphism = glassmorphism
     if title_color: db_item.title_color = title_color
     if description_color: db_item.description_color = description_color
     if badge_color: db_item.badge_color = badge_color

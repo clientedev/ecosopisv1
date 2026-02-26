@@ -94,7 +94,15 @@ export default function Home() {
                             description: item.description && item.description !== "-" ? item.description : null,
                             image_url: getImageUrl(item.image_url),
                             alignment: item.alignment || "center",
-                            elements_config: typeof item.elements_config === 'string' ? JSON.parse(item.elements_config) : item.elements_config,
+                            vertical_alignment: item.vertical_alignment || "center",
+                            content_max_width: item.content_max_width || "500px",
+                            glassmorphism: item.glassmorphism || false,
+                            title_color: item.title_color,
+                            description_color: item.description_color,
+                            badge_color: item.badge_color,
+                            badge_bg_color: item.badge_bg_color,
+                            overlay_color: item.overlay_color,
+                            overlay_opacity: item.overlay_opacity,
                             ctaPrimary: item.cta_primary_text && item.cta_primary_text !== "-" ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
                             ctaSecondary: item.cta_secondary_text && item.cta_secondary_text !== "-" ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null
                         }));
@@ -151,6 +159,14 @@ export default function Home() {
                         ? hexToRgba(slide.overlay_color, slide.overlay_opacity)
                         : 'rgba(0,0,0,0.3)';
 
+                    const flexAlignmentMap: Record<string, string> = {
+                        left: 'flex-start',
+                        center: 'center',
+                        right: 'flex-end',
+                        top: 'flex-start',
+                        bottom: 'flex-end'
+                    };
+
                     return (
                         <div
                             key={index}
@@ -161,46 +177,78 @@ export default function Home() {
                                 backgroundPosition: 'center',
                                 minHeight: '500px',
                                 display: index === currentSlide ? 'flex' : 'none',
-                                alignItems: 'center',
+                                alignItems: flexAlignmentMap[slide.vertical_alignment] || 'center',
+                                justifyContent: flexAlignmentMap[slide.alignment] || 'center',
                                 width: '100%',
-                                height: '500px',
-                                position: 'relative'
+                                height: '600px',
+                                position: 'relative',
+                                transition: 'opacity 0.8s ease-in-out'
                             }}
                         >
-                            <div className={`container ${styles.heroContent}`} style={{
+                            <div className={`${styles.heroContent}`} style={{
+                                maxWidth: slide.content_max_width || '500px',
                                 textAlign: slide.alignment as any,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                alignItems: slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'flex-end' : 'flex-start',
+                                alignItems: flexAlignmentMap[slide.alignment] || 'center',
+                                padding: '40px',
+                                margin: '0 5%',
+                                borderRadius: '24px',
+                                background: slide.glassmorphism ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                                backdropFilter: slide.glassmorphism ? 'blur(12px)' : 'none',
+                                WebkitBackdropFilter: slide.glassmorphism ? 'blur(12px)' : 'none',
+                                border: slide.glassmorphism ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
+                                boxShadow: slide.glassmorphism ? '0 10px 40px rgba(0,0,0,0.15)' : 'none'
                             }}>
                                 {slide.badge && (
                                     <span
                                         className="scientific-badge"
                                         style={{
                                             backgroundColor: slide.badge_bg_color || '#4a7c59',
-                                            color: slide.badge_color || '#ffffff'
+                                            color: slide.badge_color || '#ffffff',
+                                            marginBottom: '1rem'
                                         }}
                                     >
                                         {slide.badge}
                                     </span>
                                 )}
                                 {slide.title && (
-                                    <h1 style={{ color: slide.title_color || '#ffffff' }}>
+                                    <h1 style={{
+                                        color: slide.title_color || '#ffffff',
+                                        fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                                        lineHeight: 1.1,
+                                        fontWeight: 800,
+                                        marginBottom: '1rem',
+                                        textShadow: slide.glassmorphism ? 'none' : '0 2px 10px rgba(0,0,0,0.2)'
+                                    }}>
                                         {slide.title}
                                     </h1>
                                 )}
                                 {slide.description && (
-                                    <p style={{ color: slide.description_color || '#ffffff' }}>
+                                    <p style={{
+                                        color: slide.description_color || '#ffffff',
+                                        fontSize: '1.1rem',
+                                        opacity: 0.9,
+                                        marginBottom: '2rem',
+                                        maxWidth: '100%'
+                                    }}>
                                         {slide.description}
                                     </p>
                                 )}
-                                <div className={styles.heroActions}>
-                                    {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary">{slide.ctaPrimary.text}</Link>}
+                                <div className={styles.heroActions} style={{
+                                    justifyContent: flexAlignmentMap[slide.alignment] || 'center'
+                                }}>
+                                    {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary" style={{ padding: '0.8rem 2rem' }}>{slide.ctaPrimary.text}</Link>}
                                     {slide.ctaSecondary && (
                                         <Link
                                             href={slide.ctaSecondary.link}
                                             className="btn-outline"
-                                            style={{ color: 'white', borderColor: 'white' }}
+                                            style={{
+                                                color: 'white',
+                                                borderColor: 'white',
+                                                background: 'rgba(255,255,255,0.1)',
+                                                padding: '0.8rem 2rem'
+                                            }}
                                         >
                                             {slide.ctaSecondary.text}
                                         </Link>
