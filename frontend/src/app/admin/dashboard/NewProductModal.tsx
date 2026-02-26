@@ -114,7 +114,7 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({ ...formData, origin: window.location.origin }),
             });
 
             if (res.status === 401) {

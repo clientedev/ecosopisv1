@@ -153,8 +153,10 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
             const res = await fetch(`/api/products/${product.slug}/regenerate-qr`, {
                 method: "POST",
                 headers: {
+                    "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
-                }
+                },
+                body: JSON.stringify({ origin: window.location.origin })
             });
 
             if (!res.ok) throw new Error("Falha ao regenerar QR");

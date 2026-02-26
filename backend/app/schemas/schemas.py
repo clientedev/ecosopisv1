@@ -126,6 +126,7 @@ class ProductDetailResponse(ProductDetailBase):
 
 class ProductCreate(ProductBase):
     details: Optional[ProductDetailCreate] = None
+    origin: Optional[str] = None
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None

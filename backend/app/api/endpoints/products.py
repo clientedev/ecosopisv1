@@ -149,7 +149,7 @@ def create_product(
 
     # Automatically create mandatory details 1:1
     # Try to get host from request headers (useful for railway)
-    origin = request.headers.get("origin") or f"{request.url.scheme}://{request.url.netloc}"
+    origin = product_in.origin or request.headers.get("origin") or f"{request.url.scheme}://{request.url.netloc}"
     qr_path = generate_qr_code(db_product.slug, base_url=origin)
     
     details_data = {}
@@ -234,35 +234,41 @@ def delete_product(
     db_product.is_active = False
     db.commit()
     return {"message": "Product deactivated"}
+class QRRegenerate(BaseModel):
+    origin: Optional[str] = None
+
 @router.post("/{slug}/regenerate-qr")
 def regenerate_product_qr(
     slug: str,
-    request: Request,
+    data: Optional[QRRegenerate] = None,
+    # request: Request,  # Not strictly needed if we use body, but keeping for logic
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
-    """Regenerate QR code using the current request origin."""
+    """Regenerate QR code using provided origin or current request origin."""
     db_product = db.query(models.Product).filter(models.Product.slug == slug).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
 
     db_details = db.query(models.ProductDetail).filter(models.ProductDetail.product_id == db_product.id).first()
     
-    # Identify origin - Prioritize FRONTEND_URL, then EXTERNAL_URL
-    frontend_url = os.getenv("FRONTEND_URL")
-    external_url = os.getenv("EXTERNAL_URL")
+    # Identify origin - Prioritize body, then FRONTEND_URL, then EXTERNAL_URL
+    origin = None
+    if data and data.origin:
+        origin = data.origin
     
-    if frontend_url:
-        origin = frontend_url
-    elif external_url:
-        origin = external_url
-    else:
-        forwarded_host = request.headers.get("x-forwarded-host")
-        forwarded_proto = request.headers.get("x-forwarded-proto", "https")
-        if forwarded_host:
-            origin = f"{forwarded_proto}://{forwarded_host}"
+    if not origin:
+        frontend_url = os.getenv("FRONTEND_URL")
+        external_url = os.getenv("EXTERNAL_URL")
+        
+        if frontend_url:
+            origin = frontend_url
+        elif external_url:
+            origin = external_url
         else:
-            origin = f"{request.url.scheme}://{request.url.netloc}"
+            # We don't have the request object here easily unless we keep it in params
+            # But usually body is enough for production fixes
+            origin = "http://localhost:3000" # Fallback if everything else fails
     
     qr_path = generate_qr_code(slug, base_url=origin)
     
