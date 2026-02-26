@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Request
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from app.core.database import get_db
@@ -103,10 +103,14 @@ def get_product(slug: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-def generate_qr_code(slug: str):
+def generate_qr_code(slug: str, base_url: str = None):
     """Generate a permanent QR code for the product technical page."""
-    # BASE_URL from env or default to localhost for dev
-    base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    if not base_url:
+        # BASE_URL from env or default to localhost for dev
+        base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    
+    # Remove trailing slash if present
+    base_url = base_url.rstrip('/')
     target_url = f"{base_url}/produto/{slug}/info"
     
     qr = qrcode.QRCode(
@@ -128,6 +132,7 @@ def generate_qr_code(slug: str):
 @router.post("", response_model=schemas.ProductResponse)
 def create_product(
     product_in: schemas.ProductCreate, 
+    request: Request,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -143,7 +148,9 @@ def create_product(
     db.refresh(db_product)
 
     # Automatically create mandatory details 1:1
-    qr_path = generate_qr_code(db_product.slug)
+    # Try to get host from request headers (useful for railway)
+    origin = request.headers.get("origin") or f"{request.url.scheme}://{request.url.netloc}"
+    qr_path = generate_qr_code(db_product.slug, base_url=origin)
     
     details_data = {}
     if product_in.details:
@@ -227,3 +234,23 @@ def delete_product(
     db_product.is_active = False
     db.commit()
     return {"message": "Product deactivated"}
+@router.post("/{slug}/regenerate-qr")
+def regenerate_product_qr(
+    slug: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    """Regenerate QR code using the current request origin."""
+    db_details = db.query(models.ProductDetail).filter(models.ProductDetail.slug == slug).first()
+    if not db_details:
+        raise HTTPException(status_code=404, detail="Product details not found")
+    
+    # Identify origin
+    origin = request.headers.get("origin") or f"{request.url.scheme}://{request.url.netloc}"
+    qr_path = generate_qr_code(slug, base_url=origin)
+    
+    db_details.qr_code_path = qr_path
+    db.commit()
+    db.refresh(db_details)
+    return {"message": "QR Code regenerated", "path": qr_path, "url": origin}

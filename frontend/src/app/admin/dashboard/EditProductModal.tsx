@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import styles from "./dashboard.module.css";
-import { Download } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 
 interface Product {
     id: number;
@@ -51,6 +51,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
         tags: Array.isArray((product as any).tags) ? (product as any).tags : (typeof (product as any).tags === 'string' ? JSON.parse((product as any).tags || '[]') : [])
     });
     const [loading, setLoading] = useState(false);
+    const [regeneratingQR, setRegeneratingQR] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [tagInput, setTagInput] = useState("");
     const [showTechnicalInfo, setShowTechnicalInfo] = useState(false);
@@ -140,6 +141,41 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
             alert("Erro de conexão");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleRegenerateQR = async () => {
+        if (!confirm("Isso irá atualizar o link do QR Code para o endereço atual. Deseja continuar?")) return;
+
+        setRegeneratingQR(true);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`/api/products/${product.slug}/regenerate-qr`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (!res.ok) throw new Error("Falha ao regenerar QR");
+            const data = await res.json();
+
+            alert("QR Code regenerado com sucesso!");
+            // Update local state to show new QR (if we were displaying it)
+            if (formData.details) {
+                setFormData({
+                    ...formData,
+                    details: {
+                        ...formData.details,
+                        qr_code_path: data.path
+                    }
+                });
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao regenerar QR Code");
+        } finally {
+            setRegeneratingQR(false);
         }
     };
 
@@ -506,12 +542,23 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                     >
                                         <Download size={16} /> QR Code
                                     </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleRegenerateQR}
+                                        disabled={regeneratingQR}
+                                        className={styles.editBtn}
+                                        style={{ backgroundColor: '#1a3a16', color: 'white', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, height: 'auto' }}
+                                        title="Atualizar link do QR Code"
+                                    >
+                                        <RefreshCw size={16} className={regeneratingQR ? "spin-animation" : ""} />
+                                        {regeneratingQR ? "Atualizando..." : "Regenerar QR"}
+                                    </button>
                                 </div>
 
-                                {product.details?.qr_code_path && (
+                                {formData.details?.qr_code_path && (
                                     <div style={{ textAlign: 'center' }}>
                                         <img
-                                            src={getImageUrl(product.details.qr_code_path)}
+                                            src={getImageUrl(formData.details.qr_code_path)}
                                             alt="QR Code"
                                             style={{ width: '60px', height: '60px', border: '1px solid #ddd', borderRadius: '4px' }}
                                         />
