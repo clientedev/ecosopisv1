@@ -195,16 +195,15 @@ export default function Home() {
                         >
                             <div className={`${styles.heroContent}`} style={{
                                 maxWidth: slide.content_max_width || '500px',
-                                display: 'flex',
-                                flexDirection: 'column',
                                 padding: '40px',
-                                margin: '0 5%',
                                 borderRadius: '24px',
                                 background: slide.glassmorphism ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
                                 backdropFilter: slide.glassmorphism ? 'blur(12px)' : 'none',
                                 WebkitBackdropFilter: slide.glassmorphism ? 'blur(12px)' : 'none',
                                 border: slide.glassmorphism ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
                                 boxShadow: slide.glassmorphism ? '0 10px 40px rgba(0,0,0,0.15)' : 'none',
+                                display: 'flex',
+                                flexDirection: 'column',
                                 position: 'absolute',
                                 left: isMobile ? '50%' : `${coordinateMap[slide.alignment] + (parseInt(slide.offset_x) || 0)}%`,
                                 top: isMobile ? '50%' : `${coordinateMap[slide.vertical_alignment] + (parseInt(slide.offset_y) || 0)}%`,

@@ -370,6 +370,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                             backgroundPosition: 'center',
                             // Eliminated flex centering in favor of absolute positioning within the container
                             display: 'block',
+                            height: '600px', // faithful height
                             boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
                             transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                         }}>
@@ -389,7 +390,9 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                 top: `${coordinateMap[formData.vertical_alignment] + (parseInt(formData.offset_y) || 0)}%`,
                                 transform: 'translate(-50%, -50%)',
                                 textAlign: (formData.alignment === 'center' ? 'center' : formData.alignment === 'right' ? 'right' : 'left') as any,
-                                width: 'fit-content'
+                                width: 'fit-content',
+                                display: 'flex',
+                                flexDirection: 'column'
                             }}>
                                 {formData.badge && (
                                     <span
