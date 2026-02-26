@@ -14,6 +14,9 @@ def _apply_startup_migrations():
         ("badge_bg_color",    "VARCHAR DEFAULT '#4a7c59'"),
         ("overlay_color",     "VARCHAR DEFAULT '#000000'"),
         ("overlay_opacity",   "DOUBLE PRECISION DEFAULT 0.3"),
+        ("vertical_alignment", "VARCHAR DEFAULT 'center'"),
+        ("content_max_width", "VARCHAR DEFAULT '500px'"),
+        ("glassmorphism",     "BOOLEAN DEFAULT FALSE"),
     ]
     ANNOUNCEMENT_COLS = [
         ("is_scrolling", "BOOLEAN DEFAULT FALSE"),
