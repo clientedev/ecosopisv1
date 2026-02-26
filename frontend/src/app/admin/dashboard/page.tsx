@@ -138,31 +138,29 @@ export default function AdminDashboard() {
                                             >
                                                 <ExternalLink size={14} /> Página
                                             </a>
-                                            {p.details?.qr_code_path && (
-                                                <button
-                                                    onClick={async () => {
-                                                        try {
-                                                            const response = await fetch(`/api/static/qrcodes/${p.slug}.png`);
-                                                            const blob = await response.blob();
-                                                            const url = window.URL.createObjectURL(blob);
-                                                            const link = document.createElement('a');
-                                                            link.href = url;
-                                                            link.download = `qrcode-${p.slug}.png`;
-                                                            document.body.appendChild(link);
-                                                            link.click();
-                                                            document.body.removeChild(link);
-                                                        } catch (err) {
-                                                            console.error("Erro ao baixar QR Code", err);
-                                                            alert("Erro ao baixar QR Code");
-                                                        }
-                                                    }}
-                                                    className={styles.editBtn}
-                                                    style={{ backgroundColor: '#b8860b', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
-                                                    title="Baixar QR Code da Ficha Técnica"
-                                                >
-                                                    <Download size={14} /> QR
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        const response = await fetch(`/api/static/qrcodes/${p.slug}.png`);
+                                                        const blob = await response.blob();
+                                                        const url = window.URL.createObjectURL(blob);
+                                                        const link = document.createElement('a');
+                                                        link.href = url;
+                                                        link.download = `qrcode-${p.slug}.png`;
+                                                        document.body.appendChild(link);
+                                                        link.click();
+                                                        document.body.removeChild(link);
+                                                    } catch (err) {
+                                                        console.error("Erro ao baixar QR Code", err);
+                                                        alert("Erro ao baixar QR Code");
+                                                    }
+                                                }}
+                                                className={styles.editBtn}
+                                                style={{ backgroundColor: '#b8860b', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
+                                                title="Baixar QR Code da Ficha Técnica"
+                                            >
+                                                <Download size={14} /> QR
+                                            </button>
                                             <button
                                                 className={styles.editBtn}
                                                 onClick={() => setEditingProduct(p)}

@@ -46,6 +46,7 @@
     text-transform: uppercase;
     letter-spacing: 3px;
     animation: fadeInUp 0.6s ease-out;
+    color: #ffffff !important;
 }
 
 .hero p {
