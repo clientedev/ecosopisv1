@@ -2,7 +2,7 @@
 name = "repl-nix-workspace"
 version = "0.1.0"
 description = "Add your description here"
-requires-python = ">=3.11"
+requires-python = "~=3.11.0"
 dependencies = [
     "alembic>=1.18.1",
     "bcrypt==4.0.1",
@@ -18,4 +18,6 @@ dependencies = [
     "python-multipart>=0.0.21",
     "sqlalchemy>=2.0.45",
     "uvicorn[standard]>=0.40.0",
+    "qrcode[pil]>=7.4.2",
+    "Pillow>=10.0.0",
 ]
