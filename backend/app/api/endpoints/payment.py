@@ -55,8 +55,9 @@ class PreferenceResponse(BaseModel):
 
 
 # ── Helper ───────────────────────────────────────────────────────────────────
-def _build_preference_body(data: CreatePreferenceIn, order_id: int) -> Dict[str, Any]:
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+def _build_preference_body(data: CreatePreferenceIn, order_id: int, base_url: Optional[str] = None) -> Dict[str, Any]:
+    # Use provided base_url (from request) or fallback to env
+    frontend_url = base_url or os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
     backend_url  = os.getenv("BACKEND_URL",  "http://localhost:8000").rstrip("/")
 
     # Mercado Pago requires absolute URLs with protocols
@@ -64,6 +65,10 @@ def _build_preference_body(data: CreatePreferenceIn, order_id: int) -> Dict[str,
         frontend_url = f"https://{frontend_url}"
     if not backend_url.startswith("http"):
         backend_url = f"https://{backend_url}"
+
+    # Force https for non-localhost production-like environments
+    if "localhost" not in frontend_url and not frontend_url.startswith("https"):
+        frontend_url = frontend_url.replace("http://", "https://")
 
     items = [
         {
@@ -111,6 +116,7 @@ def _build_preference_body(data: CreatePreferenceIn, order_id: int) -> Dict[str,
 @router.post("/create-preference", response_model=PreferenceResponse)
 async def create_preference(
     data: CreatePreferenceIn,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -118,6 +124,16 @@ async def create_preference(
     Creates a MercadoPago preference and returns the checkout URL.
     If order_id is not provided, a new Order is created first.
     """
+    # Try to determine frontend URL from request headers (origin or referer)
+    origin = request.headers.get("origin") or request.headers.get("referer")
+    if origin:
+        # Strip trailing slash and potential path from referer
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+        base_url = f"{parsed.scheme}://{parsed.netloc}"
+    else:
+        base_url = None
+
     sdk = get_mp_sdk()
 
     # ── Create order if not provided ─────────────────────────────────────────
@@ -141,7 +157,7 @@ async def create_preference(
         logger.info(f"Order created: id={order.id} user={current_user.email}")
 
     # ── Create MP preference ─────────────────────────────────────────────────
-    pref_body = _build_preference_body(data, order.id)
+    pref_body = _build_preference_body(data, order.id, base_url=base_url)
     logger.info(f"Creating MP preference for order {order.id}. Body: {pref_body}")
 
     result = sdk.preference().create(pref_body)

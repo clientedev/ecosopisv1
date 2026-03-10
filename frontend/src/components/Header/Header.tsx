@@ -63,6 +63,11 @@ export default function Header() {
                             if (userData.role === 'admin') {
                                 setIsAdmin(true);
                             }
+                        } else if (res.status === 401) {
+                            // Clear invalid token
+                            localStorage.removeItem("token");
+                            setUser(null);
+                            setIsAdmin(false);
                         }
                     } catch (err) {
                         console.error("Error fetching profile", err);
