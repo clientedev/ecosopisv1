@@ -31,7 +31,8 @@ function PaymentContent() {
                 const token = localStorage.getItem("token");
                 if (!token) { setPolling(false); return; }
 
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+                // Use relative path for Next.js rewrites
+                const apiUrl = "/api";
                 const res = await fetch(`${apiUrl}/payment/status/${orderId}`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });

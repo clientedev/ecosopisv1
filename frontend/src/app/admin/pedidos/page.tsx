@@ -32,9 +32,7 @@ export default function AdminPedidosPage() {
     const [generatingLabel, setGeneratingLabel] = useState<number | null>(null);
     const [filter, setFilter] = useState("all");
 
-    const apiUrl = typeof window !== "undefined"
-        ? (process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`)
-        : "";
+    const apiUrl = "/api";
 
     const getToken = () => typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
 

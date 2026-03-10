@@ -11,8 +11,8 @@ export default function AdminSettings() {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-                const res = await fetch(`${apiUrl}/api/settings/`);
+                const apiUrl = "/api";
+                const res = await fetch(`${apiUrl}/settings/`);
                 if (res.ok) {
                     const data = await res.json();
                     setSettings((prev: any) => ({ ...prev, ...data }));
@@ -30,8 +30,8 @@ export default function AdminSettings() {
         setSaving(true);
         try {
             const token = localStorage.getItem("token");
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-            const res = await fetch(`${apiUrl}/api/settings/`, {
+            const apiUrl = "/api";
+            const res = await fetch(`${apiUrl}/settings/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
