@@ -31,7 +31,7 @@ class OrderCreate(BaseModel):
     items: List[OrderItem]
     total: float
     address: Dict[str, Any]
-    payment_method: str # "pix" or "credit_card"
+    payment_method: str # "mercadopago" (or legacy "pix"/"credit_card")
     shipping_method: Optional[str] = None
     shipping_price: Optional[float] = 0.0
 
@@ -42,10 +42,29 @@ class OrderResponse(BaseModel):
     items: List[OrderItem]
     payment_url: Optional[str] = None
     pix_code: Optional[str] = None
+    mp_preference_id: Optional[str] = None
+    mp_payment_id: Optional[str] = None
+    buyer_name: Optional[str] = None
+    buyer_email: Optional[str] = None
+    correios_label_url: Optional[str] = None
+    shipping_method: Optional[str] = None
+    shipping_price: Optional[float] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+class AdminOrderResponse(OrderResponse):
+    address: Optional[Dict[str, Any]] = None
+
+class PaymentStatusResponse(BaseModel):
+    order_id: int
+    status: str
+    buyer_name: Optional[str] = None
+    buyer_email: Optional[str] = None
+    total: float
+    items: Optional[list] = None
+    created_at: Optional[datetime] = None
 
 class UserProfileResponse(UserResponse):
     orders: List[OrderResponse] = []

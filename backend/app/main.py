@@ -67,6 +67,22 @@ def _apply_startup_migrations():
             conn.commit()
         except Exception: pass
 
+        # Add MercadoPago + Correios fields to orders
+        ORDER_COLS = [
+            ("shipping_method",    "VARCHAR"),
+            ("shipping_price",     "DOUBLE PRECISION DEFAULT 0"),
+            ("mp_preference_id",   "VARCHAR"),
+            ("mp_payment_id",      "VARCHAR"),
+            ("buyer_name",         "VARCHAR"),
+            ("buyer_email",        "VARCHAR"),
+            ("correios_label_url", "VARCHAR"),
+        ]
+        for col, defn in ORDER_COLS:
+            try:
+                conn.execute(text(f"ALTER TABLE orders ADD COLUMN IF NOT EXISTS {col} {defn}"))
+                conn.commit()
+            except Exception: pass
+
         # Create raw_materials table if missing
         try:
             conn.execute(text("""
@@ -114,6 +130,7 @@ app = FastAPI(title="ECOSOPIS API", version="1.0.0")
 # Ensure static directory exists
 os.makedirs("static/uploads", exist_ok=True)
 os.makedirs("static/qrcodes", exist_ok=True)
+os.makedirs("static/labels", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # CORS Configuration
@@ -130,6 +147,7 @@ async def root():
     return {"message": "Welcome to ECOSOPIS API"}
 
 from app.api.endpoints import raw_materials
+from app.api.endpoints import payment, shipping
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(products.router, prefix="/products", tags=["products"])
 app.include_router(coupons.router, prefix="/coupons", tags=["coupons"])
@@ -144,6 +162,8 @@ app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(roulette.router, prefix="/roleta", tags=["roulette"])
 app.include_router(admin_roulette.router, prefix="/admin/roleta", tags=["admin_roulette"])
 app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
+app.include_router(payment.router, prefix="/payment", tags=["payment"])
+app.include_router(shipping.router, prefix="/shipping", tags=["shipping"])
 
 if __name__ == "__main__":
     import uvicorn

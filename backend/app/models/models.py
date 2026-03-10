@@ -157,6 +157,18 @@ class Order(Base):
     total = Column(Float)
     address = Column(JSON) # Shipping address
     items = Column(JSON) # List of product IDs and quantities
+    shipping_method = Column(String, nullable=True)  # pac, sedex
+    shipping_price = Column(Float, nullable=True, default=0.0)
+    
+    # MercadoPago fields
+    mp_preference_id = Column(String, nullable=True)
+    mp_payment_id = Column(String, nullable=True)
+    buyer_name = Column(String, nullable=True)
+    buyer_email = Column(String, nullable=True)
+    
+    # Correios
+    correios_label_url = Column(String, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="orders")

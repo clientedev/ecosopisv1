@@ -84,7 +84,7 @@ export default function CarrinhoPage() {
     };
 
     const [step, setStep] = useState("cart"); // cart, checkout, success
-    const [paymentMethod, setPaymentMethod] = useState("pix");
+    const [submittingOrder, setSubmittingOrder] = useState(false);
     const [address, setAddress] = useState({
         street: "",
         city: "",
@@ -145,13 +145,25 @@ export default function CarrinhoPage() {
     const submitOrder = async () => {
         try {
             const token = localStorage.getItem("token");
+            if (!token) {
+                window.location.href = "/conta?redirect=/carrinho";
+                return;
+            }
             if (!selectedShipping) {
                 alert("Por favor, selecione uma opção de frete");
                 return;
             }
+            if (!address.zip || !address.street) {
+                alert("Por favor, preencha o endereço de entrega");
+                return;
+            }
+
+            setSubmittingOrder(true);
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
-            const res = await fetch(`${apiUrl}/orders/`, {
+
+            // Step 1: Create the order in our database first
+            const orderRes = await fetch(`${apiUrl}/orders/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -166,20 +178,64 @@ export default function CarrinhoPage() {
                     })),
                     total: calculateTotal(),
                     address: address,
-                    payment_method: paymentMethod,
+                    payment_method: "mercadopago",
                     shipping_method: selectedShipping.id,
                     shipping_price: selectedShipping.price
                 })
             });
-            if (res.ok) {
-                const data = await res.json();
-                setOrderResult(data);
-                setStep("success");
-                localStorage.removeItem("cart");
-                setCartItems([]);
+
+            if (!orderRes.ok) {
+                const err = await orderRes.json();
+                throw new Error(err.detail || "Falha ao criar pedido");
             }
-        } catch (error) {
-            console.error("Erro ao processar pedido", error);
+
+            const orderData = await orderRes.json();
+            const orderId = orderData.id;
+
+            // Step 2: Create a MercadoPago preference
+            const prefRes = await fetch(`${apiUrl}/payment/create-preference`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    order_id: orderId,
+                    items: cartItems.map(i => ({
+                        product_id: i.id,
+                        product_name: i.name,
+                        quantity: i.quantity,
+                        price: i.price
+                    })),
+                    total: calculateTotal(),
+                    address: address,
+                    shipping_method: selectedShipping.id,
+                    shipping_price: selectedShipping.price
+                })
+            });
+
+            if (!prefRes.ok) {
+                const err = await prefRes.json();
+                throw new Error(err.detail || "Falha ao criar preferência de pagamento");
+            }
+
+            const prefData = await prefRes.json();
+
+            // Step 3: Clear cart and redirect to MercadoPago Checkout Pro
+            localStorage.removeItem("cart");
+            setCartItems([]);
+
+            const checkoutUrl = process.env.NODE_ENV === "production"
+                ? prefData.init_point
+                : prefData.sandbox_init_point;
+
+            window.location.href = checkoutUrl || prefData.init_point;
+
+        } catch (error: any) {
+            console.error("Erro ao processar pagamento", error);
+            alert(`Erro: ${error.message || "Tente novamente"}`);
+        } finally {
+            setSubmittingOrder(false);
         }
     };
 
@@ -306,23 +362,12 @@ export default function CarrinhoPage() {
                                 )}
 
                                 <div className={styles.detailSection}>
-                                    <h3>💳 MÉTODO DE PAGAMENTO</h3>
-                                    <div className={styles.paymentMethods}>
-                                        <div
-                                            className={`${styles.paymentCard} ${paymentMethod === 'pix' ? styles.selectedPayment : ''}`}
-                                            onClick={() => setPaymentMethod('pix')}
-                                        >
-                                            <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>💠</div>
-                                            <p style={{ fontWeight: '600', margin: 0 }}>PIX</p>
-                                            <p style={{ fontSize: '0.75rem', marginTop: '4px', opacity: 0.8 }}>Confirmação instantânea</p>
-                                        </div>
-                                        <div
-                                            className={`${styles.paymentCard} ${paymentMethod === 'credit_card' ? styles.selectedPayment : ''}`}
-                                            onClick={() => setPaymentMethod('credit_card')}
-                                        >
-                                            <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>💳</div>
-                                            <p style={{ fontWeight: '600', margin: 0 }}>CARTÃO</p>
-                                            <p style={{ fontSize: '0.75rem', marginTop: '4px', opacity: 0.8 }}>Até 12x sem juros</p>
+                                    <h3>💳 COMO PAGAR</h3>
+                                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                        <div style={{ fontSize: '2.5rem' }}>🐿️</div>
+                                        <div>
+                                            <p style={{ fontWeight: 700, margin: '0 0 4px', color: '#15803d' }}>Mercado Pago</p>
+                                            <p style={{ fontSize: '0.82rem', color: '#555', margin: 0 }}>Pague com Pix, Cartão de Crédito, Débito ou Boleto — tudo no checkout seguro do Mercado Pago</p>
                                         </div>
                                     </div>
                                 </div>
@@ -354,10 +399,14 @@ export default function CarrinhoPage() {
                                     className="btn-primary"
                                     style={{ width: '100%', marginTop: '2rem', padding: '1.25rem', fontSize: '1.1rem' }}
                                     onClick={submitOrder}
-                                    disabled={!selectedShipping}
+                                    disabled={!selectedShipping || submittingOrder}
                                 >
-                                    {paymentMethod === 'pix' ? 'GERAR CÓDIGO PIX' : 'IR PARA PAGAMENTO'}
+                                    {submittingOrder ? '⏳ Processando...' : '🐟 PAGAR COM MERCADO PAGO'}
                                 </button>
+
+                                <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#888', marginTop: '10px' }}>
+                                    Você será redirecionado para o Mercado Pago para finalizar o pagamento com Pix, Cartão ou Boleto
+                                </p>
 
                                 <button
                                     className="btn-outline"

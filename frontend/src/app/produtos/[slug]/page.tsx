@@ -109,16 +109,55 @@ export default function ProductDetailPage() {
         window.location.href = "/carrinho";
     };
 
-    const handleBuyNow = () => {
+    const [buyingNow, setBuyingNow] = useState(false);
+
+    const handleBuyNow = async () => {
         const token = localStorage.getItem("token");
         if (!token) {
             window.location.href = `/conta?redirect=/produtos/${params.slug}`;
             return;
         }
-        const cart = [{ id: product.id, name: product.name, price: product.price, quantity: 1 }];
-        localStorage.setItem("cart", JSON.stringify(cart));
-        logClick("site");
-        window.location.href = "/carrinho";
+        if (!product) return;
+        setBuyingNow(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+            const res = await fetch(`${apiUrl}/payment/create-preference`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    items: [{
+                        product_id: product.id,
+                        product_name: product.name,
+                        quantity: 1,
+                        price: product.price
+                    }],
+                    total: product.price,
+                    address: {},
+                    shipping_method: "pac",
+                    shipping_price: 0
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                logClick("site");
+                // Redirect to MercadoPago Checkout Pro
+                const checkoutUrl = process.env.NODE_ENV === "production"
+                    ? data.init_point
+                    : data.sandbox_init_point;
+                window.location.href = checkoutUrl || data.init_point;
+            } else {
+                const err = await res.json();
+                alert(`Erro ao iniciar pagamento: ${err.detail || "Tente novamente"}`);
+            }
+        } catch (error) {
+            console.error("Erro ao criar preference MP:", error);
+            alert("Erro de conexão. Tente novamente.");
+        } finally {
+            setBuyingNow(false);
+        }
     };
 
     const submitReview = async () => {
@@ -231,7 +270,14 @@ export default function ProductDetailPage() {
                         <div className={styles.buyActions}>
                             {product.buy_on_site && (
                                 <>
-                                    <button className="btn-primary" onClick={handleBuyNow}>COMPRAR AGORA</button>
+                                    <button
+                                        className="btn-primary"
+                                        onClick={handleBuyNow}
+                                        disabled={buyingNow}
+                                        style={{ position: 'relative' }}
+                                    >
+                                        {buyingNow ? '⏳ Redirecionando...' : 'COMPRAR AGORA'}
+                                    </button>
                                     <button className="btn-outline" onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
                                 </>
                             )}
