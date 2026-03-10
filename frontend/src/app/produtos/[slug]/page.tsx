@@ -110,6 +110,7 @@ export default function ProductDetailPage() {
     };
 
     const [buyingNow, setBuyingNow] = useState(false);
+    const [paymentError, setPaymentError] = useState("");
 
     const handleBuyNow = async () => {
         const token = localStorage.getItem("token");
@@ -119,8 +120,10 @@ export default function ProductDetailPage() {
         }
         if (!product) return;
         setBuyingNow(true);
+        setPaymentError("");
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+            // Use relative path for Next.js rewrites
+            const apiUrl = "/api";
             const res = await fetch(`${apiUrl}/payment/create-preference`, {
                 method: "POST",
                 headers: {
@@ -152,9 +155,9 @@ export default function ProductDetailPage() {
                 const err = await res.json();
                 alert(`Erro ao iniciar pagamento: ${err.detail || "Tente novamente"}`);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Erro ao criar preference MP:", error);
-            alert("Erro de conexão. Tente novamente.");
+            setPaymentError(error.message || "Falha ao iniciar pagamento. Tente novamente.");
         } finally {
             setBuyingNow(false);
         }
@@ -280,6 +283,12 @@ export default function ProductDetailPage() {
                                     </button>
                                     <button className="btn-outline" onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
                                 </>
+                            )}
+
+                            {paymentError && (
+                                <div style={{ marginTop: '15px', padding: '12px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '8px', color: '#b91c1c', fontSize: '0.82rem', width: '100%' }}>
+                                    ⚠️ {paymentError}
+                                </div>
                             )}
                             {product.mercadolivre_url && (
                                 <a href={product.mercadolivre_url} target="_blank" className="btn-outline" onClick={() => logClick("mercadolivre")}>

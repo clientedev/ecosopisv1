@@ -56,8 +56,14 @@ class PreferenceResponse(BaseModel):
 
 # ── Helper ───────────────────────────────────────────────────────────────────
 def _build_preference_body(data: CreatePreferenceIn, order_id: int) -> Dict[str, Any]:
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-    backend_url  = os.getenv("BACKEND_URL",  "http://localhost:8000")
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+    backend_url  = os.getenv("BACKEND_URL",  "http://localhost:8000").rstrip("/")
+
+    # Mercado Pago requires absolute URLs with protocols
+    if not frontend_url.startswith("http"):
+        frontend_url = f"https://{frontend_url}"
+    if not backend_url.startswith("http"):
+        backend_url = f"https://{backend_url}"
 
     items = [
         {
@@ -136,12 +142,12 @@ async def create_preference(
 
     # ── Create MP preference ─────────────────────────────────────────────────
     pref_body = _build_preference_body(data, order.id)
-    logger.info(f"Creating MP preference for order {order.id}")
+    logger.info(f"Creating MP preference for order {order.id}. Body: {pref_body}")
 
     result = sdk.preference().create(pref_body)
 
     if result["status"] not in (200, 201):
-        logger.error(f"MP preference error: {result}")
+        logger.error(f"MP preference error. Status: {result.get('status')}. Response: {result.get('response')}")
         raise HTTPException(
             status_code=502,
             detail=f"Erro ao criar preference no MercadoPago: {result.get('response', {})}"

@@ -96,6 +96,7 @@ export default function CarrinhoPage() {
     const [selectedShipping, setSelectedShipping] = useState<any>(null);
     const [loadingCep, setLoadingCep] = useState(false);
     const [orderResult, setOrderResult] = useState<any>(null);
+    const [paymentError, setPaymentError] = useState("");
 
     const removeItem = (id: number) => {
         const newCart = cartItems.filter(item => item.id !== id);
@@ -159,8 +160,10 @@ export default function CarrinhoPage() {
             }
 
             setSubmittingOrder(true);
+            setPaymentError("");
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+            // Use relative path for Next.js rewrites
+            const apiUrl = "/api";
 
             // Step 1: Create the order in our database first
             const orderRes = await fetch(`${apiUrl}/orders/`, {
@@ -233,7 +236,7 @@ export default function CarrinhoPage() {
 
         } catch (error: any) {
             console.error("Erro ao processar pagamento", error);
-            alert(`Erro: ${error.message || "Tente novamente"}`);
+            setPaymentError(error.message || "Falha ao processar o pagamento. Tente novamente.");
         } finally {
             setSubmittingOrder(false);
         }
@@ -403,6 +406,12 @@ export default function CarrinhoPage() {
                                 >
                                     {submittingOrder ? '⏳ Processando...' : '🐟 PAGAR COM MERCADO PAGO'}
                                 </button>
+
+                                {paymentError && (
+                                    <div style={{ marginTop: '15px', padding: '12px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '8px', color: '#b91c1c', fontSize: '0.85rem' }}>
+                                        ⚠️ {paymentError}
+                                    </div>
+                                )}
 
                                 <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#888', marginTop: '10px' }}>
                                     Você será redirecionado para o Mercado Pago para finalizar o pagamento com Pix, Cartão ou Boleto
