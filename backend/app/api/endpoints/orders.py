@@ -9,7 +9,7 @@ from app.api.endpoints.auth import get_current_user
 
 router = APIRouter()
 
-@router.post("/", response_model=schemas.OrderResponse)
+@router.post("", response_model=schemas.OrderResponse)
 def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     # Simulação de criação de pedido e processamento de pagamento
     db_order = models.Order(

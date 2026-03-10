@@ -166,7 +166,7 @@ export default function CarrinhoPage() {
             const apiUrl = "/api";
 
             // Step 1: Create the order in our database first
-            const orderRes = await fetch(`${apiUrl}/orders/`, {
+            const orderRes = await fetch(`${apiUrl}/orders`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
