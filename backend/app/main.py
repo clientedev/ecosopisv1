@@ -143,7 +143,7 @@ app.add_middleware(
 )
 
 @app.middleware("http")
-async def fix_proto_header(request: Request, call_next):
+async def fix_proto_header(request, call_next):
     # If we're behind a proxy (like Next.js rewrite or Railway edge),
     # respect the X-Forwarded-Proto header to ensure redirects and
     # URL generation use the correct protocol (HTTPS).
