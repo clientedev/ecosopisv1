@@ -50,11 +50,17 @@ export default function Header() {
 
                 const fetchProfile = async () => {
                     try {
-                        const res = await fetch('/api/auth/me', {
+                        const response = await fetch('/api/auth/me', {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
-                        if (res.ok) {
-                            const userData = await res.json();
+                        if (response.status === 401) {
+                            localStorage.removeItem("token");
+                            setUser(null);
+                            setIsAdmin(false);
+                            return;
+                        }
+                        if (response.ok) {
+                            const userData = await response.json();
                             setUser({
                                 name: userData.full_name,
                                 email: userData.email,

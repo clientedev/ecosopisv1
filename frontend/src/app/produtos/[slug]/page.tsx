@@ -10,12 +10,13 @@ import { QrCode, Download } from "lucide-react";
 export default function ProductDetailPage() {
     const params = useParams();
     const [product, setProduct] = useState<any>(null);
-
     const [activeImage, setActiveImage] = useState("");
     const [selectedFaq, setSelectedFaq] = useState<any>(null);
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [reviewData, setReviewData] = useState({ rating: 5, comment: "", user_name: "" });
     const [submittingReview, setSubmittingReview] = useState(false);
+    const [buyingNow, setBuyingNow] = useState(false);
+    const [paymentError, setPaymentError] = useState("");
 
     const faqs = [
         { q: "Qual o prazo de entrega?", a: "O prazo médio de entrega é de 5 a 10 dias úteis, dependendo da sua região." },
@@ -108,9 +109,6 @@ export default function ProductDetailPage() {
         logClick("site");
         window.location.href = "/carrinho";
     };
-
-    const [buyingNow, setBuyingNow] = useState(false);
-    const [paymentError, setPaymentError] = useState("");
 
     const handleBuyNow = async () => {
         const token = localStorage.getItem("token");

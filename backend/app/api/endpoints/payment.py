@@ -20,11 +20,11 @@ router = APIRouter()
 
 # ── SDK init ────────────────────────────────────────────────────────────────
 def get_mp_sdk() -> mercadopago.SDK:
-    token = os.getenv("MP_ACCESS_TOKEN")
+    token = os.getenv("MP_ACCESS_TOKEN") or os.getenv("ACCESS_TOKEN")
     if not token:
         raise HTTPException(
             status_code=500,
-            detail="MP_ACCESS_TOKEN não configurado nas variáveis de ambiente"
+            detail="Mercado Pago Access Token não configurado (use MP_ACCESS_TOKEN ou ACCESS_TOKEN)"
         )
     return mercadopago.SDK(token)
 
