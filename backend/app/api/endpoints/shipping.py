@@ -42,8 +42,6 @@ async def calculate_shipping(request: ShippingRequest):
 
 @router.get("/test-connection")
 async def test_melhorenvio():
-@router.get("/test-connection")
-async def test_melhorenvio():
     """
     Testa a conexão com o Melhor Envio e retorna detalhes do erro se houver.
     """
