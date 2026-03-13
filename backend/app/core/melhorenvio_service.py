@@ -9,6 +9,10 @@ MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN")
 STORE_CEP = os.getenv("STORE_CEP", "01001000")
 
 class MelhorEnvioService:
+    MELHORENVIO_URL = MELHORENVIO_URL
+    MELHORENVIO_TOKEN = MELHORENVIO_TOKEN
+    STORE_CEP = STORE_CEP
+
     @staticmethod
     def calculate_shipping(dest_cep, items):
         """

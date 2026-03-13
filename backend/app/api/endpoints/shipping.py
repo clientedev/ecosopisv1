@@ -29,16 +29,28 @@ class ShippingRequest(BaseModel):
     dest_cep: str
     items: List[ShippingItem]
 
-@router.post("/calculate")
-async def calculate_shipping(request: ShippingRequest):
-    """
-    Calcula opções de frete reais via Melhor Envio.
-    """
-    items_dict = [item.model_dump() for item in request.items]
-    options = MelhorEnvioService.calculate_shipping(request.dest_cep, items_dict)
-    if not options:
-        return []
     return options
+
+@router.get("/test-connection")
+async def test_melhorenvio():
+    """
+    Testa a conexão com o Melhor Envio e retorna detalhes do erro se houver.
+    """
+    url = f"{MelhorEnvioService.MELHORENVIO_URL}/api/v2/me"
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {MelhorEnvioService.MELHORENVIO_TOKEN}"
+    }
+    try:
+        resp = requests.get(url, headers=headers)
+        return {
+            "status_code": resp.status_code,
+            "response": resp.json() if resp.status_code == 200 else resp.text,
+            "token_prefix": MelhorEnvioService.MELHORENVIO_TOKEN[:5] if MelhorEnvioService.MELHORENVIO_TOKEN else "None",
+            "url": MelhorEnvioService.MELHORENVIO_URL
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 # --- Correios Label Generation (Merged from previous implementation) ---
 
