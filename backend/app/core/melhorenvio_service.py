@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MELHORENVIO_URL = os.getenv("MELHORENVIO_URL", "https://api.melhorenvio.com.br")
-MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN")
-STORE_CEP = os.getenv("STORE_CEP", "01001000")
+MELHORENVIO_URL = os.getenv("MELHORENVIO_URL", "https://api.melhorenvio.com.br").strip()
+MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN", "").strip()
+STORE_CEP = os.getenv("STORE_CEP", "01001000").strip()
 
 class MelhorEnvioService:
     MELHORENVIO_URL = MELHORENVIO_URL

@@ -51,12 +51,14 @@ async def test_melhorenvio():
         "Authorization": f"Bearer {MelhorEnvioService.MELHORENVIO_TOKEN}"
     }
     try:
-        resp = requests.get(url, headers=headers)
+        resp = requests.get(url, headers=headers, timeout=10)
         return {
             "status_code": resp.status_code,
             "response": resp.json() if resp.status_code == 200 else resp.text,
             "token_prefix": MelhorEnvioService.MELHORENVIO_TOKEN[:5] if MelhorEnvioService.MELHORENVIO_TOKEN else "None",
-            "url": MelhorEnvioService.MELHORENVIO_URL
+            "url_used": url,
+            "url_length": len(MelhorEnvioService.MELHORENVIO_URL),
+            "token_length": len(MelhorEnvioService.MELHORENVIO_TOKEN)
         }
     except Exception as e:
         return {"error": str(e)}
