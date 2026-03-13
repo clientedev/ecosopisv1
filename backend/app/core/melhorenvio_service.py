@@ -30,18 +30,34 @@ class MelhorEnvioService:
             "Authorization": f"Bearer {MELHORENVIO_TOKEN}"
         }
 
-        # Melhor Envio espera um array de produtos
-        products = []
-        for item in items:
-            products.append({
-                "id": str(item.get("id", "1")),
-                "width": item.get("width", 15),
-                "height": item.get("height", 15),
-                "length": item.get("length", 15),
-                "weight": item.get("weight", 0.5),
-                "insurance_value": item.get("price", 10.0),
-                "quantity": item.get("quantity", 1)
-            })
+        # Lógica de Embalagem Automática
+        total_quantity = sum(item.get("quantity", 1) for item in items)
+        total_price = sum(item.get("price", 0) * item.get("quantity", 1) for item in items)
+        
+        # Peso médio por produto: 0.25kg
+        total_weight = total_quantity * 0.25
+        
+        # Seleção de Caixa
+        if total_quantity <= 2:
+            # Caixa P
+            width, height, length = 16, 12, 20
+        elif total_quantity <= 5:
+            # Caixa M
+            width, height, length = 20, 20, 20
+        else:
+            # Caixa G (6 ou mais)
+            width, height, length = 30, 25, 25
+
+        # Monta a requisição interna (o cliente não vê esses dados)
+        products = [{
+            "id": "envio_ecosopis",
+            "width": width,
+            "height": height,
+            "length": length,
+            "weight": total_weight,
+            "insurance_value": total_price,
+            "quantity": 1
+        }]
 
         payload = {
             "from": {"postal_code": STORE_CEP},
