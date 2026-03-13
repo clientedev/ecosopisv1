@@ -1,18 +1,22 @@
 import requests
 import os
+import re
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# Configurações do Melhor Envio
 MELHORENVIO_URL = os.getenv("MELHORENVIO_URL", "https://api.melhorenvio.com.br").strip()
 MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN", "").strip()
 MELHORENVIO_CLIENT_ID = os.getenv("MELHORENVIO_CLIENT_ID", "").strip()
 MELHORENVIO_CLIENT_SECRET = os.getenv("MELHORENVIO_CLIENT_SECRET", "").strip()
-STORE_CEP = os.getenv("STORE_CEP", "01001000").strip()
+# CEP de Origem (Padrão: 07430350 conforme solicitado)
+STORE_CEP = re.sub(r"\D", "", os.getenv("STORE_CEP", "07430350")).strip()
 
 class MelhorEnvioService:
     MELHORENVIO_URL = MELHORENVIO_URL
-    MELHORENVIO_TOKEN = MELHORENVIO_TOKEN # For fallback
+    MELHORENVIO_TOKEN = MELHORENVIO_TOKEN
     _cached_token = None
 
     @classmethod
@@ -23,7 +27,6 @@ class MelhorEnvioService:
         if cls._cached_token:
             return cls._cached_token
 
-        # Se tiver Client ID/Secret, tenta gerar via OAuth
         if MELHORENVIO_CLIENT_ID and MELHORENVIO_CLIENT_SECRET:
             try:
                 url = f"{MELHORENVIO_URL}/oauth/token"
@@ -37,26 +40,28 @@ class MelhorEnvioService:
                 if resp.status_code == 200:
                     data = resp.json()
                     cls._cached_token = data.get("access_token")
+                    print("Token OAuth gerado com sucesso")
                     return cls._cached_token
                 else:
                     print(f"Erro ao gerar token OAuth: {resp.status_code} - {resp.text}")
             except Exception as e:
                 print(f"Falha na requisição de token: {e}")
 
-        # Fallback para o token manual do .env
         return MELHORENVIO_TOKEN
 
     @classmethod
     def calculate_shipping(cls, dest_cep, items):
         """
-        Calcula frete para múltiplas transportadoras via Melhor Envio.
-        items: lista de objetos com {weight, width, height, length, price, quantity}
+        Calcula frete para múltiplas transportadoras via Melhor Envio com validações rigorosas.
         """
         token = cls._get_access_token()
         if not token or token == "SEU_TOKEN_AQUI":
             print("Token do Melhor Envio não disponível")
             return []
 
+        # Limpeza do CEP de destino
+        clean_dest_cep = re.sub(r"\D", "", str(dest_cep))
+        
         url = f"{MELHORENVIO_URL}/api/v2/me/shipment/calculate"
         headers = {
             "Accept": "application/json",
@@ -68,46 +73,48 @@ class MelhorEnvioService:
         total_quantity = sum(item.get("quantity", 1) for item in items)
         total_price = sum(item.get("price", 0) * item.get("quantity", 1) for item in items)
         
-        # Peso médio por produto: 0.25kg
-        total_weight = total_quantity * 0.25
+        # Peso total (mínimo 0.1kg per item logic simplified to total)
+        total_weight = max(total_quantity * 0.25, 0.1)
         
-        # Seleção de Caixa
+        # Seleção de Caixa com dimensões mínimas de 10
         if total_quantity <= 2:
-            # Caixa P
             width, height, length = 16, 12, 20
         elif total_quantity <= 5:
-            # Caixa M
             width, height, length = 20, 20, 20
         else:
-            # Caixa G (6 ou mais)
             width, height, length = 30, 25, 25
 
-        # Monta a requisição interna (o cliente não vê esses dados)
-        products = [{
-            "id": "envio_ecosopis",
-            "width": width,
-            "height": height,
-            "length": length,
-            "weight": total_weight,
-            "insurance_value": total_price,
-            "quantity": 1
-        }]
+        # Garantir dimensões mínimas de 10x10x10
+        width = max(width, 10)
+        height = max(height, 10)
+        length = max(length, 10)
 
         payload = {
             "from": {"postal_code": STORE_CEP},
-            "to": {"postal_code": dest_cep},
-            "products": products
+            "to": {"postal_code": clean_dest_cep},
+            "products": [{
+                "id": "envio_ecosopis",
+                "width": width,
+                "height": height,
+                "length": length,
+                "weight": total_weight,
+                "insurance_value": total_price,
+                "quantity": 1
+            }]
         }
 
         try:
-            print(f"Enviando consulta de frete para {dest_cep}")
-            print(f"Payload: {payload}")
-            response = requests.post(url, json=payload, headers=headers)
-            print(f"Resposta Melhor Envio ({response.status_code}): {response.text}")
+            print(f"--- MelhorEnvio Freight Request ---")
+            print(f"URL: {url}")
+            print(f"Payload enviado: {json.dumps(payload, indent=2)}")
             
+            response = requests.post(url, json=payload, headers=headers, timeout=15)
+            
+            print(f"Status Code: {response.status_code}")
+            print(f"Resposta completa: {response.text}")
+
             if response.status_code == 200:
                 data = response.json()
-                # Filtrar apenas as opções que não têm erro
                 options = []
                 for opt in data:
                     if "error" not in opt:
@@ -120,8 +127,8 @@ class MelhorEnvioService:
                         })
                 return options
             else:
-                print(f"Erro Melhor Envio: {response.status_code} - {response.text}")
+                print(f"MELHORENVIO_ERROR: {response.status_code} - {response.text}")
                 return []
         except Exception as e:
-            print(f"Erro ao calcular frete: {e}")
+            print(f"Erro na conexão com Melhor Envio: {e}")
             return []
