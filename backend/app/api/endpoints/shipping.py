@@ -42,6 +42,8 @@ async def calculate_shipping(request: ShippingRequest):
 
 @router.get("/test-connection")
 async def test_melhorenvio():
+@router.get("/test-connection")
+async def test_melhorenvio():
     """
     Testa a conexão com o Melhor Envio e retorna detalhes do erro se houver.
     """
@@ -50,13 +52,18 @@ async def test_melhorenvio():
         "Accept": "application/json",
         "Authorization": f"Bearer {MelhorEnvioService.MELHORENVIO_TOKEN}"
     }
+    me_status = "Unknown"
+    me_error = None
+    try:
+        resp = requests.get(url, headers=headers, timeout=15)
+        me_status = f"Success ({resp.status_code})"
     except Exception as e:
         me_error = str(e)
     
     # Teste de conectividade geral
     google_status = "Unknown"
     try:
-        g_resp = requests.get("https://www.google.com", timeout=5)
+        g_resp = requests.get("https://www.google.com", timeout=10)
         google_status = f"Success ({g_resp.status_code})"
     except Exception as ge:
         google_status = f"Error: {ge}"
@@ -64,8 +71,8 @@ async def test_melhorenvio():
     return {
         "melhorenvio": {
             "url": url,
-            "status": resp.status_code if 'resp' in locals() else "Failed",
-            "error": me_error if 'me_error' in locals() else None,
+            "status": me_status,
+            "error": me_error,
             "token_length": len(MelhorEnvioService.MELHORENVIO_TOKEN)
         },
         "general_connectivity": {
