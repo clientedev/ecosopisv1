@@ -194,10 +194,7 @@ app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(roulette.router, prefix="/roleta", tags=["roulette"])
 app.include_router(admin_roulette.router, prefix="/admin/roleta", tags=["admin_roulette"])
 app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
-<<<<<<< HEAD
-=======
 app.include_router(payment.router, prefix="/payment", tags=["payment"])
->>>>>>> 647e807ad5b6cf780b235da1fc4d9e9a55405983
 app.include_router(shipping.router, prefix="/shipping", tags=["shipping"])
 
 if __name__ == "__main__":

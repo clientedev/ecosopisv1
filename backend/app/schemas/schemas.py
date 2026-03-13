@@ -31,11 +31,7 @@ class OrderCreate(BaseModel):
     items: List[OrderItem]
     total: float
     address: Dict[str, Any]
-<<<<<<< HEAD
-    payment_method: str  # "pix" or "credit_card"
-=======
-    payment_method: str # "mercadopago" (or legacy "pix"/"credit_card")
->>>>>>> 647e807ad5b6cf780b235da1fc4d9e9a55405983
+    payment_method: str  # "pix", "credit_card", or "mercadopago"
     shipping_method: Optional[str] = None
     shipping_price: Optional[float] = 0.0
     customer_name: Optional[str] = None
@@ -59,23 +55,15 @@ class OrderResponse(BaseModel):
     mp_init_point: Optional[str] = None
     # Legacy fields kept for compatibility
     payment_url: Optional[str] = None
-<<<<<<< HEAD
-    # Customer
+    # Customer & Address
     customer_name: Optional[str] = None
     customer_email: Optional[str] = None
     address: Optional[Dict[str, Any]] = None
+    # Discounts
     coupon_code: Optional[str] = None
     discount_amount: Optional[float] = None
-=======
-    pix_code: Optional[str] = None
-    mp_preference_id: Optional[str] = None
-    mp_payment_id: Optional[str] = None
-    buyer_name: Optional[str] = None
-    buyer_email: Optional[str] = None
+    # Shipping Extras
     correios_label_url: Optional[str] = None
-    shipping_method: Optional[str] = None
-    shipping_price: Optional[float] = None
->>>>>>> 647e807ad5b6cf780b235da1fc4d9e9a55405983
     created_at: datetime
 
     class Config:
