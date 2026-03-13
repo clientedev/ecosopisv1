@@ -6,28 +6,62 @@ load_dotenv()
 
 MELHORENVIO_URL = os.getenv("MELHORENVIO_URL", "https://api.melhorenvio.com.br").strip()
 MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN", "").strip()
+MELHORENVIO_CLIENT_ID = os.getenv("MELHORENVIO_CLIENT_ID", "").strip()
+MELHORENVIO_CLIENT_SECRET = os.getenv("MELHORENVIO_CLIENT_SECRET", "").strip()
 STORE_CEP = os.getenv("STORE_CEP", "01001000").strip()
 
 class MelhorEnvioService:
     MELHORENVIO_URL = MELHORENVIO_URL
-    MELHORENVIO_TOKEN = MELHORENVIO_TOKEN
-    STORE_CEP = STORE_CEP
+    MELHORENVIO_TOKEN = MELHORENVIO_TOKEN # For fallback
+    _cached_token = None
 
-    @staticmethod
-    def calculate_shipping(dest_cep, items):
+    @classmethod
+    def _get_access_token(cls):
+        """
+        Obtém o token de acesso via OAuth ou retorna o token manual se configurado.
+        """
+        if cls._cached_token:
+            return cls._cached_token
+
+        # Se tiver Client ID/Secret, tenta gerar via OAuth
+        if MELHORENVIO_CLIENT_ID and MELHORENVIO_CLIENT_SECRET:
+            try:
+                url = f"{MELHORENVIO_URL}/oauth/token"
+                payload = {
+                    "grant_type": "client_credentials",
+                    "client_id": MELHORENVIO_CLIENT_ID,
+                    "client_secret": MELHORENVIO_CLIENT_SECRET
+                }
+                headers = {"Accept": "application/json", "Content-Type": "application/json"}
+                resp = requests.post(url, json=payload, headers=headers, timeout=10)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    cls._cached_token = data.get("access_token")
+                    return cls._cached_token
+                else:
+                    print(f"Erro ao gerar token OAuth: {resp.status_code} - {resp.text}")
+            except Exception as e:
+                print(f"Falha na requisição de token: {e}")
+
+        # Fallback para o token manual do .env
+        return MELHORENVIO_TOKEN
+
+    @classmethod
+    def calculate_shipping(cls, dest_cep, items):
         """
         Calcula frete para múltiplas transportadoras via Melhor Envio.
         items: lista de objetos com {weight, width, height, length, price, quantity}
         """
-        if not MELHORENVIO_TOKEN or MELHORENVIO_TOKEN == "SEU_TOKEN_AQUI":
-            print("MELHORENVIO_TOKEN não configurado ou é um placeholder")
+        token = cls._get_access_token()
+        if not token or token == "SEU_TOKEN_AQUI":
+            print("Token do Melhor Envio não disponível")
             return []
 
         url = f"{MELHORENVIO_URL}/api/v2/me/shipment/calculate"
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {MELHORENVIO_TOKEN}"
+            "Authorization": f"Bearer {token}"
         }
 
         # Lógica de Embalagem Automática
