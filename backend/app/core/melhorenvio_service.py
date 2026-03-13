@@ -15,8 +15,8 @@ class MelhorEnvioService:
         Calcula frete para múltiplas transportadoras via Melhor Envio.
         items: lista de objetos com {weight, width, height, length, price, quantity}
         """
-        if not MELHORENVIO_TOKEN:
-            print("MELHORENVIO_TOKEN não configurado")
+        if not MELHORENVIO_TOKEN or MELHORENVIO_TOKEN == "SEU_TOKEN_AQUI":
+            print("MELHORENVIO_TOKEN não configurado ou é um placeholder")
             return []
 
         url = f"{MELHORENVIO_URL}/api/v2/me/shipment/calculate"
