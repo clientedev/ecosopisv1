@@ -13,6 +13,7 @@ import os
 
 router = APIRouter()
 
+<<<<<<< HEAD
 
 def _ensure_order_columns(db: Session):
     """Ensure new MP columns exist (safe migration for SQLite)."""
@@ -48,6 +49,11 @@ def create_order(
     _ensure_order_columns(db)
 
     # Build the order in the DB first (so we have an ID)
+=======
+@router.post("", response_model=schemas.OrderResponse)
+def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    # Simulação de criação de pedido e processamento de pagamento
+>>>>>>> 647e807ad5b6cf780b235da1fc4d9e9a55405983
     db_order = models.Order(
         user_id=current_user.id,
         status="pending",

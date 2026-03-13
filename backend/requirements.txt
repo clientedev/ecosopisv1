@@ -18,4 +18,9 @@ qrcode[pil]
 Pillow>=10.0.0
 starlette
 mercadopago
+<<<<<<< HEAD
+=======
+zeep
+requests
+>>>>>>> 647e807ad5b6cf780b235da1fc4d9e9a55405983
 reportlab

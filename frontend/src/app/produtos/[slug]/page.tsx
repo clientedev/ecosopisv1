@@ -10,12 +10,13 @@ import { QrCode, Download } from "lucide-react";
 export default function ProductDetailPage() {
     const params = useParams();
     const [product, setProduct] = useState<any>(null);
-
     const [activeImage, setActiveImage] = useState("");
     const [selectedFaq, setSelectedFaq] = useState<any>(null);
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [reviewData, setReviewData] = useState({ rating: 5, comment: "", user_name: "" });
     const [submittingReview, setSubmittingReview] = useState(false);
+    const [buyingNow, setBuyingNow] = useState(false);
+    const [paymentError, setPaymentError] = useState("");
 
     const faqs = [
         { q: "Qual o prazo de entrega?", a: "O prazo médio de entrega é de 5 a 10 dias úteis, dependendo da sua região." },
@@ -107,6 +108,57 @@ export default function ProductDetailPage() {
         localStorage.setItem("cart", JSON.stringify(cart));
         logClick("site");
         alert("Produto adicionado ao carrinho!");
+    };
+
+    const handleBuyNow = async () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = `/conta?redirect=/produtos/${params.slug}`;
+            return;
+        }
+        if (!product) return;
+        setBuyingNow(true);
+        setPaymentError("");
+        try {
+            // Use relative path for Next.js rewrites
+            const apiUrl = "/api";
+            const res = await fetch(`${apiUrl}/payment/create-preference`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    items: [{
+                        product_id: product.id,
+                        product_name: product.name,
+                        quantity: 1,
+                        price: product.price
+                    }],
+                    total: product.price,
+                    address: {},
+                    shipping_method: "pac",
+                    shipping_price: 0
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                logClick("site");
+                // Redirect to MercadoPago Checkout Pro
+                const checkoutUrl = process.env.NODE_ENV === "production"
+                    ? data.init_point
+                    : data.sandbox_init_point;
+                window.location.href = checkoutUrl || data.init_point;
+            } else {
+                const err = await res.json();
+                alert(`Erro ao iniciar pagamento: ${err.detail || "Tente novamente"}`);
+            }
+        } catch (error: any) {
+            console.error("Erro ao criar preference MP:", error);
+            setPaymentError(error.message || "Falha ao iniciar pagamento. Tente novamente.");
+        } finally {
+            setBuyingNow(false);
+        }
     };
 
     const submitReview = async () => {
@@ -219,8 +271,26 @@ export default function ProductDetailPage() {
                         <div className={styles.buyActions}>
                             {product.buy_on_site && (
                                 <>
+<<<<<<< HEAD
                                     <button className="btn-primary" onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
+=======
+                                    <button
+                                        className="btn-primary"
+                                        onClick={handleBuyNow}
+                                        disabled={buyingNow}
+                                        style={{ position: 'relative' }}
+                                    >
+                                        {buyingNow ? '⏳ Redirecionando...' : 'COMPRAR AGORA'}
+                                    </button>
+                                    <button className="btn-outline" onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
+>>>>>>> 647e807ad5b6cf780b235da1fc4d9e9a55405983
                                 </>
+                            )}
+
+                            {paymentError && (
+                                <div style={{ marginTop: '15px', padding: '12px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '8px', color: '#b91c1c', fontSize: '0.82rem', width: '100%' }}>
+                                    ⚠️ {paymentError}
+                                </div>
                             )}
                             {product.mercadolivre_url && (
                                 <a href={product.mercadolivre_url} target="_blank" className="btn-outline" onClick={() => logClick("mercadolivre")}>

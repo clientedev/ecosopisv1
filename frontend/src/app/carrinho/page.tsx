@@ -24,9 +24,87 @@ export default function CarrinhoPage() {
     const [shippingLoading, setShippingLoading] = useState(false);
     const [shippingOptions, setShippingOptions] = useState<any[]>([]);
 
+<<<<<<< HEAD
     // Form states
     const [cep, setCep] = useState("");
     const [address, setAddress] = useState<any>({
+=======
+    useEffect(() => {
+        const savedCart = localStorage.getItem("cart");
+        if (savedCart) {
+            setCartItems(JSON.parse(savedCart));
+        }
+
+        // Check for roulette discount
+        const rouletteDiscount = localStorage.getItem("active_roulette_discount");
+        if (rouletteDiscount) {
+            try {
+                const data = JSON.parse(rouletteDiscount);
+                // Map the stored data to the format expected by the cart
+                setDiscount({
+                    code: "ROLETA",
+                    discount_type: data.type,
+                    discount_value: data.value,
+                    name: data.name
+                });
+            } catch (e) {
+                localStorage.removeItem("active_roulette_discount");
+            }
+        }
+    }, []);
+
+    const handleApplyCoupon = async () => {
+        if (!coupon) return;
+        setCouponError("");
+        try {
+            const res = await fetch(`/api/coupons/validate/${coupon}`);
+            if (res.ok) {
+                const data = await res.json();
+                const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+                if (data.min_purchase_value > subtotal) {
+                    setCouponError(`Compra mínima de R$ ${data.min_purchase_value} necessária`);
+                    setDiscount(null);
+                    return;
+                }
+                setDiscount(data);
+            } else {
+                const err = await res.json();
+                setCouponError(err.detail || "Cupom inválido");
+                setDiscount(null);
+            }
+        } catch (error) {
+            setCouponError("Erro ao validar cupom");
+            setDiscount(null);
+        }
+    };
+
+    const calculateSubtotal = () => {
+        return cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    };
+
+    const calculateDiscountAmount = () => {
+        if (!discount) return 0;
+        const subtotal = calculateSubtotal();
+        if (discount.discount_type === 'percentage') {
+            return subtotal * (discount.discount_value / 100);
+        } else {
+            return Math.min(subtotal, discount.discount_value);
+        }
+    };
+
+    const handleFinalizePurchase = () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = "/conta?redirect=/carrinho";
+            return;
+        }
+        setStep("checkout");
+    };
+
+    const [step, setStep] = useState("cart"); // cart, checkout, success
+    const [submittingOrder, setSubmittingOrder] = useState(false);
+    const [address, setAddress] = useState({
+>>>>>>> 647e807ad5b6cf780b235da1fc4d9e9a55405983
         street: "",
         number: "",
         complement: "",
@@ -37,8 +115,14 @@ export default function CarrinhoPage() {
     const [customerName, setCustomerName] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
     const [selectedShipping, setSelectedShipping] = useState<any>(null);
+<<<<<<< HEAD
     const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+=======
+    const [loadingCep, setLoadingCep] = useState(false);
+    const [orderResult, setOrderResult] = useState<any>(null);
+    const [paymentError, setPaymentError] = useState("");
+>>>>>>> 647e807ad5b6cf780b235da1fc4d9e9a55405983
 
     useEffect(() => {
         const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -70,10 +154,36 @@ export default function CarrinhoPage() {
         setSelectedShipping(null);
 
         try {
+<<<<<<< HEAD
             const res = await fetch(`${API_URL}/shipping/calculate`, {
+=======
+            const token = localStorage.getItem("token");
+            if (!token) {
+                window.location.href = "/conta?redirect=/carrinho";
+                return;
+            }
+            if (!selectedShipping) {
+                alert("Por favor, selecione uma opção de frete");
+                return;
+            }
+            if (!address.zip || !address.street) {
+                alert("Por favor, preencha o endereço de entrega");
+                return;
+            }
+
+            setSubmittingOrder(true);
+            setPaymentError("");
+
+            // Use relative path for Next.js rewrites
+            const apiUrl = "/api";
+
+            // Step 1: Create the order in our database first
+            const orderRes = await fetch(`${apiUrl}/orders`, {
+>>>>>>> 647e807ad5b6cf780b235da1fc4d9e9a55405983
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+<<<<<<< HEAD
                     dest_cep: targetCep,
                     items: cart.map(i => ({
                         id: String(i.id),
@@ -122,6 +232,74 @@ export default function CarrinhoPage() {
             }
         } catch (error) {
             console.error("CEP lookup error", error);
+=======
+                    items: cartItems.map(i => ({
+                        product_id: i.id,
+                        product_name: i.name,
+                        quantity: i.quantity,
+                        price: i.price
+                    })),
+                    total: calculateTotal(),
+                    address: address,
+                    payment_method: "mercadopago",
+                    shipping_method: selectedShipping.id,
+                    shipping_price: selectedShipping.price
+                })
+            });
+
+            if (!orderRes.ok) {
+                const err = await orderRes.json();
+                throw new Error(err.detail || "Falha ao criar pedido");
+            }
+
+            const orderData = await orderRes.json();
+            const orderId = orderData.id;
+
+            // Step 2: Create a MercadoPago preference
+            const prefRes = await fetch(`${apiUrl}/payment/create-preference`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    order_id: orderId,
+                    items: cartItems.map(i => ({
+                        product_id: i.id,
+                        product_name: i.name,
+                        quantity: i.quantity,
+                        price: i.price
+                    })),
+                    total: calculateTotal(),
+                    address: address,
+                    shipping_method: selectedShipping.id,
+                    shipping_price: selectedShipping.price
+                })
+            });
+
+            if (!prefRes.ok) {
+                const err = await prefRes.json();
+                throw new Error(err.detail || "Falha ao criar preferência de pagamento");
+            }
+
+            const prefData = await prefRes.json();
+
+            // Step 3: Clear cart and redirect to MercadoPago Checkout Pro
+            localStorage.removeItem("cart");
+            setCartItems([]);
+
+            const checkoutUrl = process.env.NODE_ENV === "production"
+                ? prefData.init_point
+                : prefData.sandbox_init_point;
+
+            window.location.href = checkoutUrl || prefData.init_point;
+
+        } catch (error: any) {
+            console.error("Erro ao processar pagamento", error);
+            setPaymentError(error.message || "Falha ao processar o pagamento. Tente novamente.");
+        } finally {
+            setSubmittingOrder(false);
+>>>>>>> 647e807ad5b6cf780b235da1fc4d9e9a55405983
         }
     };
 
@@ -220,6 +398,7 @@ export default function CarrinhoPage() {
             <main>
                 <Header />
                 <div className={styles.carrinhoContainer}>
+<<<<<<< HEAD
                     <div className={styles.emptyCart}>
                         <ShoppingBag size={64} style={{ color: "#ddd", marginBottom: "1rem" }} />
                         <h2>Seu carrinho está vazio</h2>
@@ -227,6 +406,154 @@ export default function CarrinhoPage() {
                         <Link href="/produtos" className="btn-primary" style={{ marginTop: "20px", display: "inline-block" }}>
                             VER PRODUTOS
                         </Link>
+=======
+                    <div className="container">
+                        <h1 className={styles.title}>FINALIZAR COMPRA</h1>
+
+                        <div className={styles.cartGrid}>
+                            <div className={styles.itemsList}>
+                                <div className={styles.detailSection}>
+                                    <h3>📍 ENDEREÇO DE ENTREGA</h3>
+                                    <div className={styles.inputGroup}>
+                                        <div className={styles.inputRow}>
+                                            <div style={{ flex: 1, position: 'relative' }}>
+                                                <input
+                                                    className={styles.inputField}
+                                                    placeholder="CEP"
+                                                    value={address.zip}
+                                                    onChange={(e) => handleCepChange(e.target.value)}
+                                                    maxLength={8}
+                                                />
+                                                {loadingCep && (
+                                                    <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }}>
+                                                        <div className="loading-spinner-small"></div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div style={{ flex: 2 }}></div>
+                                        </div>
+
+                                        <input
+                                            className={styles.inputField}
+                                            placeholder="Rua e Número"
+                                            value={address.street}
+                                            onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                                        />
+
+                                        <div className={styles.inputRow}>
+                                            <input
+                                                className={styles.inputField}
+                                                placeholder="Cidade"
+                                                value={address.city}
+                                                style={{ flex: 2 }}
+                                                readOnly
+                                            />
+                                            <input
+                                                className={styles.inputField}
+                                                placeholder="UF"
+                                                value={address.state}
+                                                style={{ flex: 1 }}
+                                                readOnly
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {shippingOptions.length > 0 && (
+                                    <div className={styles.detailSection}>
+                                        <h3>🚚 OPÇÕES DE FRETE</h3>
+                                        {shippingOptions.map(opt => (
+                                            <div
+                                                key={opt.id}
+                                                className={`${styles.shippingOption} ${selectedShipping?.id === opt.id ? styles.selectedOption : ''}`}
+                                                onClick={() => setSelectedShipping(opt)}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                    <div style={{
+                                                        width: '20px',
+                                                        height: '20px',
+                                                        borderRadius: '50%',
+                                                        border: `2px solid ${selectedShipping?.id === opt.id ? '#2d5a27' : '#cbd5e1'}`,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}>
+                                                        {selectedShipping?.id === opt.id && <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#2d5a27' }}></div>}
+                                                    </div>
+                                                    <div>
+                                                        <p style={{ fontWeight: '700', margin: 0 }}>{opt.name}</p>
+                                                        <p style={{ fontSize: '0.85rem', color: '#666', margin: '4px 0 0 0' }}>Entrega em até {opt.days} dias úteis</p>
+                                                    </div>
+                                                </div>
+                                                <span style={{ fontWeight: '700', color: '#1a3a16' }}>R$ {opt.price.toFixed(2)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className={styles.detailSection}>
+                                    <h3>💳 COMO PAGAR</h3>
+                                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                        <div style={{ fontSize: '2.5rem' }}>🐿️</div>
+                                        <div>
+                                            <p style={{ fontWeight: 700, margin: '0 0 4px', color: '#15803d' }}>Mercado Pago</p>
+                                            <p style={{ fontSize: '0.82rem', color: '#555', margin: 0 }}>Pague com Pix, Cartão de Crédito, Débito ou Boleto — tudo no checkout seguro do Mercado Pago</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className={styles.summaryCard}>
+                                <h3>RESUMO DO PEDIDO</h3>
+                                <div className={styles.summaryRow}>
+                                    <span>Produtos ({cartItems.length})</span>
+                                    <span>R$ {calculateSubtotal().toFixed(2)}</span>
+                                </div>
+                                {discount && (
+                                    <div className={`${styles.summaryRow} ${styles.discountRow}`} style={{ color: '#059669' }}>
+                                        <span>Desconto (Cupom {discount.code})</span>
+                                        <span>- R$ {calculateDiscountAmount().toFixed(2)}</span>
+                                    </div>
+                                )}
+                                <div className={styles.summaryRow}>
+                                    <span>Frete</span>
+                                    <span>{selectedShipping ? `R$ ${selectedShipping.price.toFixed(2)}` : 'A definir'}</span>
+                                </div>
+
+                                <div className={styles.totalRow}>
+                                    <span>Total</span>
+                                    <span>R$ {calculateTotal().toFixed(2)}</span>
+                                </div>
+
+                                <button
+                                    className="btn-primary"
+                                    style={{ width: '100%', marginTop: '2rem', padding: '1.25rem', fontSize: '1.1rem' }}
+                                    onClick={submitOrder}
+                                    disabled={!selectedShipping || submittingOrder}
+                                >
+                                    {submittingOrder ? '⏳ Processando...' : '🐟 PAGAR COM MERCADO PAGO'}
+                                </button>
+
+                                {paymentError && (
+                                    <div style={{ marginTop: '15px', padding: '12px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '8px', color: '#b91c1c', fontSize: '0.85rem' }}>
+                                        ⚠️ {paymentError}
+                                    </div>
+                                )}
+
+                                <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#888', marginTop: '10px' }}>
+                                    Você será redirecionado para o Mercado Pago para finalizar o pagamento com Pix, Cartão ou Boleto
+                                </p>
+
+                                <button
+                                    className="btn-outline"
+                                    style={{ width: '100%', marginTop: '1rem', border: 'none' }}
+                                    onClick={() => setStep('cart')}
+                                >
+                                    ← Voltar para o carrinho
+                                </button>
+                            </div>
+                        </div>
+>>>>>>> 647e807ad5b6cf780b235da1fc4d9e9a55405983
                     </div>
                 </div>
                 <Footer />
