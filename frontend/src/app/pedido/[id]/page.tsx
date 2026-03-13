@@ -30,7 +30,7 @@ export default function OrderPage() {
         const token = localStorage.getItem("token");
         if (!token || !orderId) return;
         try {
-            const res = await fetch(`${API_URL}/orders/${orderId}`, {
+            const res = await fetch(`/api/orders/${orderId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.ok) setOrder(await res.json());

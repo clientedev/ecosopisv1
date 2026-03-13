@@ -71,7 +71,7 @@ export default function CarrinhoPage() {
         setSelectedShipping(null);
 
         try {
-            const res = await fetch(`${API_URL}/shipping/calculate`, {
+            const res = await fetch(`/api/shipping/calculate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -177,7 +177,7 @@ export default function CarrinhoPage() {
         setLoading(true);
         const token = localStorage.getItem("token");
         try {
-            const res = await fetch(`${API_URL}/orders/`, {
+            const res = await fetch(`/api/payment/create-preference`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

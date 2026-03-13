@@ -24,7 +24,7 @@ export default function AdminOrdersPage() {
         if (isManual) setRefreshing(true);
         const token = localStorage.getItem("token");
         try {
-            const res = await fetch(`${API_URL}/orders/admin/all`, {
+            const res = await fetch(`/api/orders/admin/all`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (res.ok) {
@@ -48,7 +48,7 @@ export default function AdminOrdersPage() {
     const updateStatus = async (orderId: number, newStatus: string) => {
         const token = localStorage.getItem("token");
         try {
-            const res = await fetch(`${API_URL}/orders/${orderId}/status`, {
+            const res = await fetch(`/api/orders/${orderId}/status`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -66,7 +66,7 @@ export default function AdminOrdersPage() {
 
     const printLabel = (orderId: number) => {
         const token = localStorage.getItem("token");
-        window.open(`${API_URL}/orders/${orderId}/label?token=${token}`, "_blank");
+        window.open(`/api/orders/${orderId}/label?token=${token}`, "_blank");
     };
 
     return (
