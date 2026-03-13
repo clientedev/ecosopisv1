@@ -6,6 +6,7 @@ import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
 import Image from "next/image";
 import { QrCode, Download } from "lucide-react";
+import { useToast } from "@/components/Toast/Toast";
 
 export default function ProductDetailPage() {
     const params = useParams();
@@ -97,6 +98,12 @@ export default function ProductDetailPage() {
         if (!token) {
             window.location.href = `/conta?redirect=/produtos/${params.slug}`;
             return;
+    const { showToast } = useToast();
+
+    const handleAddToCart = () => {
+        if (!product) {
+            showToast("Erro ao carregar produto", 'error');
+            return;
         }
         const cart = JSON.parse(localStorage.getItem("cart") || "[]");
         const existingItem = cart.find((i: any) => i.id === product.id);
@@ -107,7 +114,7 @@ export default function ProductDetailPage() {
         }
         localStorage.setItem("cart", JSON.stringify(cart));
         logClick("site");
-        alert("Produto adicionado ao carrinho!");
+        showToast(`${product.name} adicionado ao carrinho!`, 'success');
     };
 
     const handleBuyNow = async () => {

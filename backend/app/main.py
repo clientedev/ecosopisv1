@@ -179,7 +179,7 @@ async def root():
     return {"message": "Welcome to ECOSOPIS API"}
 
 from app.api.endpoints import raw_materials
-from app.api.endpoints import payment, shipping
+from app.api.endpoints import payment, shipping, crm
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(products.router, prefix="/products", tags=["products"])
 app.include_router(coupons.router, prefix="/coupons", tags=["coupons"])
@@ -196,6 +196,7 @@ app.include_router(admin_roulette.router, prefix="/admin/roleta", tags=["admin_r
 app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
 app.include_router(payment.router, prefix="/payment", tags=["payment"])
 app.include_router(shipping.router, prefix="/shipping", tags=["shipping"])
+app.include_router(crm.router, prefix="/crm", tags=["crm"])
 
 if __name__ == "__main__":
     import uvicorn

@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MELHORENVIO_URL = os.getenv("MELHORENVIO_URL", "https://sandbox.melhorenvio.com.br")
+MELHORENVIO_URL = os.getenv("MELHORENVIO_URL", "https://api.melhorenvio.com.br")
 MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN")
-STORE_CEP = os.getenv("STORE_CEP", "01001000") # CEP padrão de exemplo
+STORE_CEP = os.getenv("STORE_CEP", "01001000")
 
 class MelhorEnvioService:
     @staticmethod
@@ -46,7 +46,11 @@ class MelhorEnvioService:
         }
 
         try:
+            print(f"Enviando consulta de frete para {dest_cep}")
+            print(f"Payload: {payload}")
             response = requests.post(url, json=payload, headers=headers)
+            print(f"Resposta Melhor Envio ({response.status_code}): {response.text}")
+            
             if response.status_code == 200:
                 data = response.json()
                 # Filtrar apenas as opções que não têm erro

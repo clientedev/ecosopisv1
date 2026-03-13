@@ -126,6 +126,7 @@ export default function CarrinhoPage() {
         const cleanCep = cep.replace(/\D/g, "");
         if (cleanCep.length !== 8) return;
 
+        setShippingLoading(true); // Start loader early
         try {
             const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
             const data = await res.json();
@@ -139,10 +140,13 @@ export default function CarrinhoPage() {
                 });
                 fetchShippingRates(cleanCep);
             } else {
+                setShippingLoading(false);
+                setShippingOptions([]);
                 alert("CEP não encontrado.");
             }
         } catch (error) {
             console.error("CEP lookup error", error);
+            setShippingLoading(false);
         }
     };
 
@@ -353,32 +357,56 @@ export default function CarrinhoPage() {
                                 <div className={styles.detailSection}>
                                     <h3>🚚 OPÇÕES DE FRETE</h3>
                                     {shippingLoading ? (
-                                        <div style={{ textAlign: "center", padding: "30px" }}>
+                                        <div style={{ textAlign: "center", padding: "30px", background: "#fff", borderRadius: "16px", border: "1px solid #f1f5f9" }}>
                                             <Loader2 className="spin" style={{ margin: "0 auto", color: "#2d5a27" }} />
-                                            <p style={{ marginTop: "10px", fontSize: "0.9rem", color: "#666" }}>Consultando transportadoras...</p>
+                                            <p style={{ marginTop: "10px", fontSize: "0.9rem", color: "#64748b", fontWeight: 500 }}>Buscando as melhores ofertas de frete...</p>
+                                        </div>
+                                    ) : cep.replace(/\D/g, "").length === 8 && shippingOptions.length === 0 ? (
+                                        <div style={{ padding: "30px", background: "#fff1f2", borderRadius: "16px", border: "1px solid #fecdd3", textAlign: "center" }}>
+                                            <Info size={24} style={{ color: "#e11d48", marginBottom: "12px" }} />
+                                            <p style={{ margin: 0, fontSize: "0.9rem", color: "#9f1239", fontWeight: 600 }}>
+                                                Não foi possível calcular o frete para este CEP.
+                                            </p>
+                                            <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "#be123c" }}>Verifique o endereço ou tente novamente.</p>
                                         </div>
                                     ) : shippingOptions.length === 0 ? (
-                                        <div style={{ padding: "20px", background: "#f8fafc", borderRadius: "12px", border: "1px dashed #cbd5e1", textAlign: "center" }}>
-                                            <Info size={20} style={{ color: "#64748b", marginBottom: "8px" }} />
-                                            <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b" }}>
-                                                {cep.length === 8 ? "Não há frete disponível para este CEP." : "Informe o CEP para calcular o frete."}
+                                        <div style={{ padding: "30px", background: "#f8fafc", borderRadius: "16px", border: "2px dashed #e2e8f0", textAlign: "center" }}>
+                                            <Truck size={32} style={{ color: "#cbd5e1", marginBottom: "12px" }} />
+                                            <p style={{ margin: 0, fontSize: "0.9rem", color: "#64748b", fontWeight: 500 }}>
+                                                Informe seu CEP para ver as opções de entrega.
                                             </p>
                                         </div>
                                     ) : (
                                         <div className={styles.shippingOptionsList}>
                                             {shippingOptions.map(opt => (
-                                                <div
+                                                <label
                                                     key={opt.id}
                                                     className={`${styles.shippingOption} ${selectedShipping?.id === opt.id ? styles.selectedOption : ""}`}
-                                                    onClick={() => setSelectedShipping(opt)}
                                                 >
-                                                    <div>
-                                                        <span className={styles.carrierBadge}>{opt.company}</span>
-                                                        <strong style={{ display: "block" }}>{opt.name}</strong>
-                                                        <p style={{ margin: 0, fontSize: "0.8rem", opacity: 0.7 }}>Prazo: {opt.delivery_time} dias úteis</p>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: "15px", width: "100%" }}>
+                                                        <input 
+                                                            type="radio" 
+                                                            name="shipping" 
+                                                            checked={selectedShipping?.id === opt.id}
+                                                            onChange={() => setSelectedShipping(opt)}
+                                                            className={styles.radioInput}
+                                                        />
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                                                <div>
+                                                                    <span className={styles.carrierBadge}>{opt.company}</span>
+                                                                    <strong style={{ display: "block", fontSize: "1rem", color: "#1e293b" }}>{opt.name}</strong>
+                                                                    <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>
+                                                                        Entrega em até <strong>{opt.delivery_time} dias úteis</strong>
+                                                                    </p>
+                                                                </div>
+                                                                <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#2d5a27" }}>
+                                                                    R$ {opt.price.toFixed(2)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <span style={{ fontWeight: 700, color: "#2d5a27" }}>R$ {opt.price.toFixed(2)}</span>
-                                                </div>
+                                                </label>
                                             ))}
                                         </div>
                                     )}

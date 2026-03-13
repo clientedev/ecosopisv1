@@ -1,6 +1,7 @@
 import Link from "next/link";
 import styles from "./ProductCard.module.css";
 import Image from "next/image";
+import { useToast } from "@/components/Toast/Toast";
 
 interface ProductCardProps {
     product: {
@@ -46,6 +47,8 @@ export default function ProductCard({ product }: ProductCardProps) {
         }
     };
 
+    const { showToast } = useToast();
+
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
         logClick("site");
@@ -71,8 +74,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         }
 
         localStorage.setItem("cart", JSON.stringify(cart));
-        // Instead of redirecting, we could show a toast or just let the user continue.
-        // For now, I'll just change the text as requested.
+        showToast(`${product.name} adicionado ao carrinho!`, 'success');
     };
 
     return (

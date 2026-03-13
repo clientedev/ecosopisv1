@@ -4,6 +4,7 @@ import { Raleway, Karla } from "next/font/google";
 import ChatIA from "@/components/ChatIA/ChatIA";
 import RouletteModal from "@/components/RouletteModal/RouletteModal";
 import { AuthProvider } from "@/context/AuthContext";
+import { ToastProvider } from "@/components/Toast/Toast";
 
 const raleway = Raleway({
     subsets: ["latin"],
@@ -29,9 +30,11 @@ export default function RootLayout({
         <html lang="pt-BR">
             <body className={`${raleway.variable} ${karla.variable}`} suppressHydrationWarning={true}>
                 <AuthProvider>
-                    {children}
-                    <ChatIA />
-                    <RouletteModal />
+                    <ToastProvider>
+                        {children}
+                        <ChatIA />
+                        <RouletteModal />
+                    </ToastProvider>
                 </AuthProvider>
             </body>
         </html>
