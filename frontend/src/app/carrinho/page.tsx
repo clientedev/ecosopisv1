@@ -64,11 +64,12 @@ export default function CarrinhoPage() {
         }
     }, []);
 
+    const [shippingError, setShippingError] = useState(false);
+
     const fetchShippingRates = useCallback(async (targetCep: string) => {
         if (targetCep.length !== 8) return;
         setShippingLoading(true);
-        // We don't necessarily want to clear selectedShipping immediately to avoid flickering
-        // but we should clear options to show loading
+        setShippingError(false);
         setShippingOptions([]);
 
         try {
@@ -79,7 +80,7 @@ export default function CarrinhoPage() {
                     dest_cep: targetCep,
                     items: cart.map(i => ({
                         id: String(i.id),
-                        width: 15, // Backend will ignore these, but we keep them for types
+                        width: 15,
                         height: 15,
                         length: 15,
                         weight: 0.25,
@@ -92,7 +93,6 @@ export default function CarrinhoPage() {
                 const data = await res.json();
                 setShippingOptions(data);
                 
-                // Try to preserve selection if possible, otherwise select first
                 if (data.length > 0) {
                     const stillAvailable = selectedShipping ? data.find((opt: any) => opt.id === selectedShipping.id) : null;
                     if (stillAvailable) {
@@ -103,9 +103,12 @@ export default function CarrinhoPage() {
                 } else {
                     setSelectedShipping(null);
                 }
+            } else {
+                setShippingError(true);
             }
         } catch (error) {
             console.error("Shipping calculation error", error);
+            setShippingError(true);
         } finally {
             setShippingLoading(false);
         }
@@ -359,13 +362,20 @@ export default function CarrinhoPage() {
                                             <Loader2 className="spin" style={{ margin: "0 auto", color: "#2d5a27" }} />
                                             <p style={{ marginTop: "10px", fontSize: "0.9rem", color: "#64748b", fontWeight: 500 }}>Buscando as melhores ofertas de frete...</p>
                                         </div>
-                                    ) : cep.replace(/\D/g, "").length === 8 && shippingOptions.length === 0 ? (
+                                    ) : shippingError ? (
                                         <div style={{ padding: "30px", background: "#fff1f2", borderRadius: "16px", border: "1px solid #fecdd3", textAlign: "center" }}>
                                             <Info size={24} style={{ color: "#e11d48", marginBottom: "12px" }} />
                                             <p style={{ margin: 0, fontSize: "0.9rem", color: "#9f1239", fontWeight: 600 }}>
                                                 Não foi possível calcular o frete para este CEP.
                                             </p>
                                             <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "#be123c" }}>Verifique o endereço ou tente novamente.</p>
+                                        </div>
+                                    ) : cep.replace(/\D/g, "").length === 8 && shippingOptions.length === 0 ? (
+                                        <div style={{ padding: "30px", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+                                            <Truck size={32} style={{ color: "#94a3b8", marginBottom: "12px" }} />
+                                            <p style={{ margin: 0, fontSize: "0.9rem", color: "#475569", fontWeight: 600 }}>
+                                                Nenhuma transportadora disponível para este CEP.
+                                            </p>
                                         </div>
                                     ) : shippingOptions.length === 0 ? (
                                         <div style={{ padding: "30px", background: "#f8fafc", borderRadius: "16px", border: "2px dashed #e2e8f0", textAlign: "center" }}>
