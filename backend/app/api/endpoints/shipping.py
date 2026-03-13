@@ -50,18 +50,32 @@ async def test_melhorenvio():
         "Accept": "application/json",
         "Authorization": f"Bearer {MelhorEnvioService.MELHORENVIO_TOKEN}"
     }
-    try:
-        resp = requests.get(url, headers=headers, timeout=10)
-        return {
-            "status_code": resp.status_code,
-            "response": resp.json() if resp.status_code == 200 else resp.text,
-            "token_prefix": MelhorEnvioService.MELHORENVIO_TOKEN[:5] if MelhorEnvioService.MELHORENVIO_TOKEN else "None",
-            "url_used": url,
-            "url_length": len(MelhorEnvioService.MELHORENVIO_URL),
-            "token_length": len(MelhorEnvioService.MELHORENVIO_TOKEN)
-        }
     except Exception as e:
-        return {"error": str(e)}
+        me_error = str(e)
+    
+    # Teste de conectividade geral
+    google_status = "Unknown"
+    try:
+        g_resp = requests.get("https://www.google.com", timeout=5)
+        google_status = f"Success ({g_resp.status_code})"
+    except Exception as ge:
+        google_status = f"Error: {ge}"
+
+    return {
+        "melhorenvio": {
+            "url": url,
+            "status": resp.status_code if 'resp' in locals() else "Failed",
+            "error": me_error if 'me_error' in locals() else None,
+            "token_length": len(MelhorEnvioService.MELHORENVIO_TOKEN)
+        },
+        "general_connectivity": {
+            "google_test": google_status
+        },
+        "env_info": {
+            "MELHORENVIO_URL": os.getenv("MELHORENVIO_URL"),
+            "STORE_CEP": MelhorEnvioService.STORE_CEP
+        }
+    }
 
 # --- Correios Label Generation (Merged from previous implementation) ---
 
