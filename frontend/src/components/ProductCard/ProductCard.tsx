@@ -2,6 +2,7 @@ import Link from "next/link";
 import styles from "./ProductCard.module.css";
 import Image from "next/image";
 import { useToast } from "@/components/Toast/Toast";
+import { useCart } from "@/context/CartContext";
 
 interface ProductCardProps {
     product: {
@@ -48,33 +49,21 @@ export default function ProductCard({ product }: ProductCardProps) {
     };
 
     const { showToast } = useToast();
+    const { addToCart } = useCart();
 
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
         logClick("site");
-        const token = localStorage.getItem("token");
-        if (!token) {
-            window.location.href = `/conta?redirect=/produtos/${product.slug}`;
-            return;
-        }
-
-        const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-        const existingItem = cart.find((i: any) => i.id === (product as any).id);
-
-        if (existingItem) {
-            existingItem.quantity += 1;
-        } else {
-            cart.push({
-                id: (product as any).id,
-                name: product.name,
-                price: product.price,
-                quantity: 1,
-                image_url: product.image_url
-            });
-        }
-
-        localStorage.setItem("cart", JSON.stringify(cart));
-        showToast(`${product.name} adicionado ao carrinho!`, 'success');
+        
+        // Items must have these fields for the cart
+        const cartItem = {
+            id: (product as any).id,
+            name: product.name,
+            price: product.price,
+            image_url: product.image_url
+        };
+        
+        addToCart(cartItem);
     };
 
     return (

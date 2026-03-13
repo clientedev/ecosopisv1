@@ -7,6 +7,7 @@ import styles from "./page.module.css";
 import Image from "next/image";
 import { QrCode, Download } from "lucide-react";
 import { useToast } from "@/components/Toast/Toast";
+import { useCart } from "@/context/CartContext";
 
 export default function ProductDetailPage() {
     const params = useParams();
@@ -93,28 +94,24 @@ export default function ProductDetailPage() {
         return url;
     };
 
-    const handleAddToCart = () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            window.location.href = `/conta?redirect=/produtos/${params.slug}`;
-            return;
     const { showToast } = useToast();
+    const { addToCart } = useCart();
 
     const handleAddToCart = () => {
         if (!product) {
             showToast("Erro ao carregar produto", 'error');
             return;
         }
-        const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-        const existingItem = cart.find((i: any) => i.id === product.id);
-        if (existingItem) {
-            existingItem.quantity += 1;
-        } else {
-            cart.push({ id: product.id, name: product.name, price: product.price, quantity: 1, image_url: product.image_url });
-        }
-        localStorage.setItem("cart", JSON.stringify(cart));
+        
+        const cartItem = {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image_url: product.image_url
+        };
+        
+        addToCart(cartItem);
         logClick("site");
-        showToast(`${product.name} adicionado ao carrinho!`, 'success');
     };
 
     const handleBuyNow = async () => {

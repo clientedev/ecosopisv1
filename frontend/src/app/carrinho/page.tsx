@@ -5,7 +5,8 @@ import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
 import Link from "next/link";
 import Script from "next/script";
-import { Trash2, ShoppingBag, ShieldCheck, Truck, CreditCard, ChevronRight, Loader2, Info } from "lucide-react";
+import { Trash2, ShoppingBag, ShieldCheck, Truck, CreditCard, ChevronRight, Loader2, Info, ShoppingCart } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const MP_PUBLIC_KEY = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "";
@@ -18,8 +19,7 @@ declare global {
 }
 
 export default function CarrinhoPage() {
-    // Basic states
-    const [cart, setCart] = useState<any[]>([]);
+    const { cart, updateQuantity, removeFromCart, cartTotal: subtotal } = useCart();
     const [step, setStep] = useState<"cart" | "checkout">("cart");
     const [loading, setLoading] = useState(false);
     const [shippingLoading, setShippingLoading] = useState(false);
@@ -45,11 +45,8 @@ export default function CarrinhoPage() {
     const [couponCode, setCouponCode] = useState("");
     const [couponError, setCouponError] = useState("");
 
-    // Initialize cart
+    // Initialize/Check for coupons
     useEffect(() => {
-        const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
-        setCart(savedCart);
-
         // Check for roulette discount
         const rouletteDiscount = localStorage.getItem("active_roulette_discount");
         if (rouletteDiscount) {
@@ -66,24 +63,6 @@ export default function CarrinhoPage() {
             }
         }
     }, []);
-
-    const updateQuantity = (id: number, delta: number) => {
-        const newCart = cart.map(item => {
-            if (item.id === id) {
-                const q = Math.max(1, item.quantity + delta);
-                return { ...item, quantity: q };
-            }
-            return item;
-        });
-        setCart(newCart);
-        localStorage.setItem("cart", JSON.stringify(newCart));
-    };
-
-    const removeItem = (id: number) => {
-        const newCart = cart.filter(item => item.id !== id);
-        setCart(newCart);
-        localStorage.setItem("cart", JSON.stringify(newCart));
-    };
 
     const fetchShippingRates = useCallback(async (targetCep: string) => {
         if (targetCep.length !== 8) return;
@@ -179,10 +158,11 @@ export default function CarrinhoPage() {
         }
     };
 
-    const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const shippingPrice = selectedShipping ? selectedShipping.price : 0;
     const discount = appliedCoupon ? (appliedCoupon.type === "fixed" ? appliedCoupon.value : (subtotal * appliedCoupon.value / 100)) : 0;
-    const total = Math.max(0, subtotal + shippingPrice - discount);
+    // Total is calculated in CartContext, but we might need to adjust it for shipping and coupons here
+    // Let's redefine total here to include shipping and discount
+    const finalTotal = Math.max(0, subtotal + shippingPrice - discount);
 
     const handleCheckout = async () => {
         if (!selectedShipping) {
@@ -205,7 +185,7 @@ export default function CarrinhoPage() {
                 },
                 body: JSON.stringify({
                     items: cart.map(i => ({ product_id: i.id, quantity: i.quantity, price: i.price, product_name: i.name })),
-                    total: total,
+                    total: finalTotal,
                     address: { ...address, cep: cep.replace(/\D/g, "") },
                     payment_method: paymentMethod,
                     shipping_method: `${selectedShipping.company} (${selectedShipping.name})`,
@@ -314,7 +294,7 @@ export default function CarrinhoPage() {
                                                 <span>{item.quantity}</span>
                                                 <button onClick={() => updateQuantity(item.id, 1)}>+</button>
                                             </div>
-                                            <button className={styles.removeBtn} onClick={() => removeItem(item.id)} title="Remover item">
+                                            <button className={styles.removeBtn} onClick={() => removeFromCart(item.id)} title="Remover item">
                                                 <Trash2 size={20} />
                                             </button>
                                         </div>
@@ -471,7 +451,7 @@ export default function CarrinhoPage() {
                             )}
                             <div className={styles.totalRow}>
                                 <span>Total</span>
-                                <span>R$ {total.toFixed(2)}</span>
+                                <span>R$ {finalTotal.toFixed(2)}</span>
                             </div>
 
                             {step === "cart" ? (

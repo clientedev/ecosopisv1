@@ -3,9 +3,11 @@ import Link from "next/link";
 import styles from "./Header.module.css";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X } from "lucide-react";
+import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
 export default function Header() {
+    const { cartCount } = useCart();
     const [isAdmin, setIsAdmin] = useState(false);
     const [user, setUser] = useState<{ name: string, email: string, role: string } | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -69,7 +71,7 @@ export default function Header() {
                             if (userData.role === 'admin') {
                                 setIsAdmin(true);
                             }
-                        } else if (res.status === 401) {
+                        } else if (response.status === 401) {
                             // Clear invalid token
                             localStorage.removeItem("token");
                             setUser(null);
@@ -149,7 +151,12 @@ export default function Header() {
                     <Link href="/sobre" onClick={() => setIsMobileMenuOpen(false)}>SOBRE</Link>
                     {/* Mobile-only action buttons inside overlay */}
                     <div className={styles.mobileActions}>
-                        <Link href="/carrinho" className={styles.actionIcon} onClick={() => setIsMobileMenuOpen(false)}>🛒 CARRINHO</Link>
+                        <Link href="/carrinho" className={styles.actionIcon} onClick={() => setIsMobileMenuOpen(false)}>
+                            <div className={styles.cartLinkContent}>
+                                🛒 CARRINHO
+                                {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
+                            </div>
+                        </Link>
                         {user ? (
                             <>
                                 <Link href="/perfil" className={styles.actionIcon} onClick={() => setIsMobileMenuOpen(false)}>👤 MINHA CONTA</Link>
@@ -167,7 +174,13 @@ export default function Header() {
                 </nav>
 
                 <div className={styles.actions} style={{ position: 'relative', zIndex: 1000 }}>
-                    <Link href="/carrinho" className={`${styles.actionIcon} ${styles.desktopOnlyAction}`}>CARRINHO</Link>
+                    <Link href="/carrinho" className={`${styles.actionIcon} ${styles.desktopOnlyAction}`}>
+                        <div className={styles.cartIconWrapper}>
+                            <ShoppingCart size={22} />
+                            {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
+                            <span className={styles.cartLabel}>CARRINHO</span>
+                        </div>
+                    </Link>
 
                     {user ? (
 

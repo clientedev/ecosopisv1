@@ -334,3 +334,48 @@
     display: block;
     width: 100%;
 }
+
+.cartIconWrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    padding: 8px 12px;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.cartIconWrapper:hover {
+    background: rgba(45, 90, 39, 0.05);
+}
+
+.cartBadge {
+    position: absolute;
+    top: -5px;
+    left: 28px;
+    background: #e11d48;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 800;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.cartLabel {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.cartLinkContent {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+}
