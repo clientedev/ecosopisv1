@@ -67,8 +67,9 @@ export default function CarrinhoPage() {
     const fetchShippingRates = useCallback(async (targetCep: string) => {
         if (targetCep.length !== 8) return;
         setShippingLoading(true);
+        // We don't necessarily want to clear selectedShipping immediately to avoid flickering
+        // but we should clear options to show loading
         setShippingOptions([]);
-        setSelectedShipping(null);
 
         try {
             const res = await fetch(`/api/shipping/calculate`, {
@@ -78,10 +79,10 @@ export default function CarrinhoPage() {
                     dest_cep: targetCep,
                     items: cart.map(i => ({
                         id: String(i.id),
-                        width: 15,
+                        width: 15, // Backend will ignore these, but we keep them for types
                         height: 15,
                         length: 15,
-                        weight: 0.5,
+                        weight: 0.25,
                         price: i.price,
                         quantity: i.quantity
                     }))
@@ -90,8 +91,17 @@ export default function CarrinhoPage() {
             if (res.ok) {
                 const data = await res.json();
                 setShippingOptions(data);
+                
+                // Try to preserve selection if possible, otherwise select first
                 if (data.length > 0) {
-                    setSelectedShipping(data[0]);
+                    const stillAvailable = selectedShipping ? data.find((opt: any) => opt.id === selectedShipping.id) : null;
+                    if (stillAvailable) {
+                        setSelectedShipping(stillAvailable);
+                    } else {
+                        setSelectedShipping(data[0]);
+                    }
+                } else {
+                    setSelectedShipping(null);
                 }
             }
         } catch (error) {
@@ -99,7 +109,15 @@ export default function CarrinhoPage() {
         } finally {
             setShippingLoading(false);
         }
-    }, [cart]);
+    }, [cart, selectedShipping]);
+
+    // Recalculate shipping whenever cart or CEP changes
+    useEffect(() => {
+        const cleanCep = cep.replace(/\D/g, "");
+        if (cleanCep.length === 8 && cart.length > 0) {
+            fetchShippingRates(cleanCep);
+        }
+    }, [cart.length, cart.map(i => i.quantity).join(',')]); // Watch cart changes
 
     const handleCepLookup = async () => {
         const cleanCep = cep.replace(/\D/g, "");
