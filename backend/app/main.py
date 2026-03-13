@@ -176,7 +176,7 @@ async def fix_proto_header(request, call_next):
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to ECOSOPIS API"}
+    return {"message": "Welcome to ECOSOPIS API", "version": "1.0.1"}
 
 from app.api.endpoints import raw_materials
 from app.api.endpoints import payment, shipping, crm
