@@ -271,9 +271,6 @@ export default function ProductDetailPage() {
                         <div className={styles.buyActions}>
                             {product.buy_on_site && (
                                 <>
-<<<<<<< HEAD
-                                    <button className="btn-primary" onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
-=======
                                     <button
                                         className="btn-primary"
                                         onClick={handleBuyNow}
@@ -283,7 +280,6 @@ export default function ProductDetailPage() {
                                         {buyingNow ? '⏳ Redirecionando...' : 'COMPRAR AGORA'}
                                     </button>
                                     <button className="btn-outline" onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
->>>>>>> 647e807ad5b6cf780b235da1fc4d9e9a55405983
                                 </>
                             )}
 
