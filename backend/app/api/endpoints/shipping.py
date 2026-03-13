@@ -66,13 +66,24 @@ async def test_melhorenvio():
     except Exception as ge:
         google_status = f"Error: {ge}"
 
+    # Testes adicionais de subdomínios
+    subdomains = {}
+    for sub in ["www", "sandbox"]:
+        sub_url = f"https://{sub}.melhorenvio.com.br"
+        try:
+            s_resp = requests.get(sub_url, timeout=5)
+            subdomains[sub] = f"Success ({s_resp.status_code})"
+        except Exception as se:
+            subdomains[sub] = f"Error: {str(se)[:100]}"
+
     return {
-        "melhorenvio": {
+        "melhorenvio_api": {
             "url": url,
             "status": me_status,
             "error": me_error,
             "token_length": len(MelhorEnvioService.MELHORENVIO_TOKEN)
         },
+        "subdomain_tests": subdomains,
         "general_connectivity": {
             "google_test": google_status
         },
