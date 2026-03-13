@@ -29,6 +29,15 @@ class ShippingRequest(BaseModel):
     dest_cep: str
     items: List[ShippingItem]
 
+@router.post("/calculate")
+async def calculate_shipping(request: ShippingRequest):
+    """
+    Calcula opções de frete reais via Melhor Envio.
+    """
+    items_dict = [item.model_dump() for item in request.items]
+    options = MelhorEnvioService.calculate_shipping(request.dest_cep, items_dict)
+    if not options:
+        return []
     return options
 
 @router.get("/test-connection")
