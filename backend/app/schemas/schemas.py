@@ -31,17 +31,36 @@ class OrderCreate(BaseModel):
     items: List[OrderItem]
     total: float
     address: Dict[str, Any]
-    payment_method: str # "pix" or "credit_card"
+    payment_method: str  # "pix" or "credit_card"
     shipping_method: Optional[str] = None
     shipping_price: Optional[float] = 0.0
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    coupon_code: Optional[str] = None
+    discount_amount: Optional[float] = 0.0
 
 class OrderResponse(BaseModel):
     id: int
     status: str
     total: float
     items: List[OrderItem]
+    payment_method: Optional[str] = None
+    shipping_method: Optional[str] = None
+    shipping_price: Optional[float] = None
+    # Mercado Pago
+    mp_payment_id: Optional[str] = None
+    mp_preference_id: Optional[str] = None
+    pix_qr_code: Optional[str] = None
+    pix_qr_code_base64: Optional[str] = None
+    mp_init_point: Optional[str] = None
+    # Legacy fields kept for compatibility
     payment_url: Optional[str] = None
-    pix_code: Optional[str] = None
+    # Customer
+    customer_name: Optional[str] = None
+    customer_email: Optional[str] = None
+    address: Optional[Dict[str, Any]] = None
+    coupon_code: Optional[str] = None
+    discount_amount: Optional[float] = None
     created_at: datetime
 
     class Config:

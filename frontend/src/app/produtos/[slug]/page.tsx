@@ -102,23 +102,11 @@ export default function ProductDetailPage() {
         if (existingItem) {
             existingItem.quantity += 1;
         } else {
-            cart.push({ id: product.id, name: product.name, price: product.price, quantity: 1 });
+            cart.push({ id: product.id, name: product.name, price: product.price, quantity: 1, image_url: product.image_url });
         }
         localStorage.setItem("cart", JSON.stringify(cart));
         logClick("site");
-        window.location.href = "/carrinho";
-    };
-
-    const handleBuyNow = () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            window.location.href = `/conta?redirect=/produtos/${params.slug}`;
-            return;
-        }
-        const cart = [{ id: product.id, name: product.name, price: product.price, quantity: 1 }];
-        localStorage.setItem("cart", JSON.stringify(cart));
-        logClick("site");
-        window.location.href = "/carrinho";
+        alert("Produto adicionado ao carrinho!");
     };
 
     const submitReview = async () => {
@@ -231,8 +219,7 @@ export default function ProductDetailPage() {
                         <div className={styles.buyActions}>
                             {product.buy_on_site && (
                                 <>
-                                    <button className="btn-primary" onClick={handleBuyNow}>COMPRAR AGORA</button>
-                                    <button className="btn-outline" onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
+                                    <button className="btn-primary" onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
                                 </>
                             )}
                             {product.mercadolivre_url && (

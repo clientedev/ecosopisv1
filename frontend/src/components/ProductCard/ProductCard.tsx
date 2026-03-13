@@ -46,7 +46,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         }
     };
 
-    const handleBuyClick = (e: React.MouseEvent) => {
+    const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
         logClick("site");
         const token = localStorage.getItem("token");
@@ -65,12 +65,14 @@ export default function ProductCard({ product }: ProductCardProps) {
                 id: (product as any).id,
                 name: product.name,
                 price: product.price,
-                quantity: 1
+                quantity: 1,
+                image_url: product.image_url
             });
         }
 
         localStorage.setItem("cart", JSON.stringify(cart));
-        window.location.href = "/carrinho";
+        // Instead of redirecting, we could show a toast or just let the user continue.
+        // For now, I'll just change the text as requested.
     };
 
     return (
@@ -105,7 +107,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
                 <div className={styles.actions}>
                     {product.buy_on_site && (
-                        <button className="btn-primary" onClick={handleBuyClick}>COMPRAR</button>
+                        <button className="btn-primary" onClick={handleAddToCart} style={{ fontSize: '0.8rem' }}>ADICIONAR AO CARRINHO</button>
                     )}
                     {product.mercadolivre_url && (
                         <a href={product.mercadolivre_url} target="_blank" className={styles.externalLink} onClick={() => logClick("mercadolivre")}>ML</a>

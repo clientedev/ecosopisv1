@@ -157,6 +157,21 @@ class Order(Base):
     total = Column(Float)
     address = Column(JSON) # Shipping address
     items = Column(JSON) # List of product IDs and quantities
+    payment_method = Column(String, default="pix")  # pix, credit_card
+    shipping_method = Column(String, nullable=True)
+    shipping_price = Column(Float, default=0.0)
+    # Mercado Pago fields
+    mp_payment_id = Column(String, nullable=True)
+    mp_preference_id = Column(String, nullable=True)
+    pix_qr_code = Column(Text, nullable=True)
+    pix_qr_code_base64 = Column(Text, nullable=True)
+    mp_init_point = Column(String, nullable=True)
+    # Customer info for shipping label
+    customer_name = Column(String, nullable=True)
+    customer_email = Column(String, nullable=True)
+    customer_phone = Column(String, nullable=True)
+    coupon_code = Column(String, nullable=True)
+    discount_amount = Column(Float, default=0.0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="orders")

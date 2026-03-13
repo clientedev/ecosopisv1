@@ -36,7 +36,29 @@ def _apply_startup_migrations():
         ("discount_type", "VARCHAR"),
         ("discount_value", "DOUBLE PRECISION")
     ]
+    ORDER_COLS = [
+        ("payment_method",      "VARCHAR DEFAULT 'pix'"),
+        ("shipping_method",     "VARCHAR"),
+        ("shipping_price",      "REAL DEFAULT 0"),
+        ("mp_payment_id",       "VARCHAR"),
+        ("mp_preference_id",    "VARCHAR"),
+        ("pix_qr_code",        "TEXT"),
+        ("pix_qr_code_base64", "TEXT"),
+        ("mp_init_point",      "VARCHAR"),
+        ("customer_name",      "VARCHAR"),
+        ("customer_email",     "VARCHAR"),
+        ("customer_phone",     "VARCHAR"),
+        ("coupon_code",        "VARCHAR"),
+        ("discount_amount",    "REAL DEFAULT 0"),
+    ]
     with engine.connect() as conn:
+        for col, defn in ORDER_COLS:
+            try:
+                # Use ALTER TABLE ADD COLUMN IF NOT EXISTS syntax (works in newer SQLite and Postgres)
+                # For older SQLite, we might need a different check, but this is the current pattern.
+                conn.execute(text(f"ALTER TABLE orders ADD COLUMN IF NOT EXISTS {col} {defn}"))
+                conn.commit()
+            except Exception: pass
         for col, defn in CAROUSEL_COLS:
             try:
                 conn.execute(text(f"ALTER TABLE carousel_items ADD COLUMN IF NOT EXISTS {col} {defn}"))
@@ -96,7 +118,7 @@ try:
     _apply_startup_migrations()
 except Exception: pass
 
-from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat, roulette, admin_roulette
+from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat, roulette, admin_roulette, shipping
 from fastapi.staticfiles import StaticFiles
 import os
 from dotenv import load_dotenv
@@ -144,6 +166,7 @@ app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(roulette.router, prefix="/roleta", tags=["roulette"])
 app.include_router(admin_roulette.router, prefix="/admin/roleta", tags=["admin_roulette"])
 app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
+app.include_router(shipping.router, prefix="/shipping", tags=["shipping"])
 
 if __name__ == "__main__":
     import uvicorn
