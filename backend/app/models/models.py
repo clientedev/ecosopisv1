@@ -32,6 +32,7 @@ class User(Base):
 
     orders = relationship("Order", back_populates="user")
     roulette_history = relationship("RouletteHistory", back_populates="user")
+    addresses = relationship("Address", back_populates="user", cascade="all, delete-orphan")
 
 class RouletteConfig(Base):
     __tablename__ = "roulette_config"
@@ -177,6 +178,24 @@ class Order(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="orders")
+
+class Address(Base):
+    __tablename__ = "addresses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String, nullable=True) # E.g. "Work", "Home"
+    street = Column(String, nullable=False)
+    number = Column(String, nullable=False)
+    complement = Column(String, nullable=True)
+    neighborhood = Column(String, nullable=False)
+    city = Column(String, nullable=False)
+    state = Column(String, nullable=False)
+    postal_code = Column(String, nullable=False)
+    is_default = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="addresses")
 
 class AnnouncementBar(Base):
     __tablename__ = "announcement_bar"

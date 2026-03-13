@@ -1,0 +1,34 @@
+﻿Iniciando teste de cßlculo de frete...
+Origem: 07430350
+Destino: 08230010
+Itens: [{'id': 'produto_teste', 'price': 50.0, 'quantity': 1}]
+--- MelhorEnvio Freight Request ---
+URL: https://api.melhorenvio.com.br/api/v2/me/shipment/calculate
+Payload enviado: {
+  "from": {
+    "postal_code": "01001000"
+  },
+  "to": {
+    "postal_code": "08230010"
+  },
+  "products": [
+    {
+      "id": "envio_ecosopis",
+      "width": 16,
+      "height": 12,
+      "length": 20,
+      "weight": 0.3,
+      "insurance_value": 50.0,
+      "quantity": 1
+    }
+  ],
+  "options": {
+    "insurance_value": 50.0,
+    "receipt": false,
+    "own_hand": false
+  },
+  "services": ""
+}
+Erro na conexÒo com Melhor Envio: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno 11001] getaddrinfo failed)"))
+
+Falha ao calcular frete ou nenhuma transportadora disponÝvel.

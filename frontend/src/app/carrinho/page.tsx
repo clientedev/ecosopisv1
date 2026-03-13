@@ -18,8 +18,11 @@ declare global {
     }
 }
 
+import { useAuth } from "@/context/AuthContext";
+
 export default function CarrinhoPage() {
     const { cart, updateQuantity, removeFromCart, cartTotal: subtotal } = useCart();
+    const { user, token, refreshProfile } = useAuth();
     const [step, setStep] = useState<"cart" | "checkout">("cart");
     const [loading, setLoading] = useState(false);
     const [shippingLoading, setShippingLoading] = useState(false);
@@ -38,6 +41,34 @@ export default function CarrinhoPage() {
         city: "",
         state: ""
     });
+
+    // Address selection state
+    const [showAddressForm, setShowAddressForm] = useState(false);
+    const [savingAddress, setSavingAddress] = useState(false);
+
+    // Initialize data from logged in user
+    useEffect(() => {
+        if (user && step === "checkout") {
+            if (!customerName) setCustomerName(user.full_name || "");
+            
+            // Auto select default address if available
+            if (user.addresses && user.addresses.length > 0 && !cep) {
+                const defaultAddr = user.addresses.find((a: any) => a.is_default) || user.addresses[0];
+                setCep(defaultAddr.postal_code);
+                setAddress({
+                    street: defaultAddr.street,
+                    number: defaultAddr.number,
+                    complement: defaultAddr.complement || "",
+                    neighborhood: defaultAddr.neighborhood,
+                    city: defaultAddr.city,
+                    state: defaultAddr.state
+                });
+                setShowAddressForm(false);
+            } else if (!user.addresses || user.addresses.length === 0) {
+                setShowAddressForm(true);
+            }
+        }
+    }, [user, step]);
 
     // Payment/Coupon states
     const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
@@ -148,6 +179,65 @@ export default function CarrinhoPage() {
             console.error("CEP lookup error", error);
             setShippingLoading(false);
         }
+    };
+
+    const handleSaveAddress = async () => {
+        const cleanCep = cep.replace(/\D/g, "");
+        if (cleanCep.length !== 8 || !address.street || !address.number || !address.neighborhood || !address.city || !address.state) {
+            alert("Preencha todos os campos obrigatórios do endereço.");
+            return;
+        }
+
+        if (!token) {
+            setShowAddressForm(false);
+            fetchShippingRates(cleanCep);
+            return;
+        }
+
+        setSavingAddress(true);
+        try {
+            const res = await fetch(`/api/addresses/me`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    street: address.street,
+                    number: address.number,
+                    complement: address.complement,
+                    neighborhood: address.neighborhood,
+                    city: address.city,
+                    state: address.state,
+                    postal_code: cleanCep,
+                    is_default: true
+                })
+            });
+
+            if (res.ok) {
+                await refreshProfile();
+            }
+        } catch (error) {
+            console.error("Save address error:", error);
+        } finally {
+            setSavingAddress(false);
+            setShowAddressForm(false);
+            fetchShippingRates(cleanCep);
+        }
+    };
+
+    const selectAddress = (addr: any) => {
+        setCep(addr.postal_code);
+        setAddress({
+            street: addr.street,
+            number: addr.number,
+            complement: addr.complement || "",
+            neighborhood: addr.neighborhood,
+            city: addr.city,
+            state: addr.state
+        });
+        setShowAddressForm(false);
+        fetchShippingRates(addr.postal_code.replace(/\D/g, ""));
     };
 
     const handleApplyCoupon = async () => {
@@ -339,20 +429,70 @@ export default function CarrinhoPage() {
 
                                 <div className={styles.detailSection}>
                                     <h3>📍 ENDEREÇO DE ENTREGA</h3>
-                                    <div className={styles.inputGroup}>
-                                        <div className={styles.inputRow}>
-                                            <input type="text" placeholder="CEP (Ex: 01001000)" className={styles.inputField} value={cep} onChange={(e) => setCep(e.target.value)} onBlur={handleCepLookup} />
+                                    
+                                    {user && user.addresses && user.addresses.length > 0 && !showAddressForm ? (
+                                        <div className={styles.savedAddressesList}>
+                                            {user.addresses.map((addr: any) => (
+                                                <div 
+                                                    key={addr.id} 
+                                                    className={`${styles.addressCard} ${cep === addr.postal_code && address.number === addr.number ? styles.selectedAddress : ""}`}
+                                                    onClick={() => selectAddress(addr)}
+                                                >
+                                                    <div className={styles.addressInfo}>
+                                                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                                            <strong>{addr.name || "Endereço"}</strong>
+                                                            {addr.is_default && <span className={styles.defaultBadge}>Principal</span>}
+                                                        </div>
+                                                        <p>{addr.street}, {addr.number}{addr.complement ? ` - ${addr.complement}` : ""}</p>
+                                                        <p>{addr.neighborhood}, {addr.city} - {addr.state}</p>
+                                                        <p>CEP: {addr.postal_code}</p>
+                                                    </div>
+                                                    <div className={styles.selectIndicator}>
+                                                        <div className={styles.radioOuter}>
+                                                            <div className={styles.radioInner}></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            <button 
+                                                className={styles.addAddressBtn} 
+                                                onClick={() => {
+                                                    setShowAddressForm(true);
+                                                    setCep("");
+                                                    setAddress({ street: "", number: "", complement: "", neighborhood: "", city: "", state: "" });
+                                                }}
+                                            >
+                                                + Adicionar novo endereço
+                                            </button>
                                         </div>
-                                        <input type="text" placeholder="Endereço / Logradouro" className={styles.inputField} value={address.street} onChange={(e) => setAddress({ ...address, street: e.target.value })} />
-                                        <div className={styles.inputRow}>
-                                            <input type="text" placeholder="Número" className={styles.inputField} value={address.number} onChange={(e) => setAddress({ ...address, number: e.target.value })} />
-                                            <input type="text" placeholder="Complemento" className={styles.inputField} value={address.complement} onChange={(e) => setAddress({ ...address, complement: e.target.value })} />
+                                    ) : (
+                                        <div className={styles.inputGroup}>
+                                            <div className={styles.inputRow}>
+                                                <input type="text" placeholder="CEP (Ex: 01001000)" className={styles.inputField} value={cep} onChange={(e) => setCep(e.target.value)} onBlur={handleCepLookup} />
+                                            </div>
+                                            <input type="text" placeholder="Endereço / Logradouro" className={styles.inputField} value={address.street} onChange={(e) => setAddress({ ...address, street: e.target.value })} />
+                                            <div className={styles.inputRow}>
+                                                <input type="text" placeholder="Número" className={styles.inputField} value={address.number} onChange={(e) => setAddress({ ...address, number: e.target.value })} />
+                                                <input type="text" placeholder="Complemento" className={styles.inputField} value={address.complement} onChange={(e) => setAddress({ ...address, complement: e.target.value })} />
+                                            </div>
+                                            <div className={styles.inputRow}>
+                                                <input type="text" placeholder="Bairro" className={styles.inputField} value={address.neighborhood} onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })} />
+                                                <input type="text" placeholder="Cidade" className={styles.inputField} value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} />
+                                            </div>
+                                            {token && (
+                                                <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+                                                    <button className="btn-primary" style={{ flex: 1 }} onClick={handleSaveAddress} disabled={savingAddress}>
+                                                        {savingAddress ? "SALVANDO..." : "SALVAR E USAR"}
+                                                    </button>
+                                                    {user && user.addresses && user.addresses.length > 0 && (
+                                                        <button className={styles.cancelBtn} onClick={() => setShowAddressForm(false)}>
+                                                            CANCELAR
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className={styles.inputRow}>
-                                            <input type="text" placeholder="Bairro" className={styles.inputField} value={address.neighborhood} onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })} />
-                                            <input type="text" placeholder="Cidade" className={styles.inputField} value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} />
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
 
                                 <div className={styles.detailSection}>

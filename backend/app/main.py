@@ -134,7 +134,7 @@ try:
     _apply_startup_migrations()
 except Exception: pass
 
-from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat, roulette, admin_roulette, shipping
+from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat, roulette, admin_roulette, shipping, addresses
 from fastapi.staticfiles import StaticFiles
 import os
 from dotenv import load_dotenv
@@ -197,6 +197,7 @@ app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-mat
 app.include_router(payment.router, prefix="/payment", tags=["payment"])
 app.include_router(shipping.router, prefix="/shipping", tags=["shipping"])
 app.include_router(crm.router, prefix="/crm", tags=["crm"])
+app.include_router(addresses.router, prefix="/addresses", tags=["addresses"])
 
 if __name__ == "__main__":
     import uvicorn

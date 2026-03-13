@@ -8,6 +8,7 @@ interface User {
   full_name: string;
   role: string;
   pode_girar_roleta: boolean;
+  addresses?: any[];
 }
 
 interface AuthContextType {

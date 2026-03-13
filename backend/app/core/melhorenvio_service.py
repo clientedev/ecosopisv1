@@ -76,7 +76,10 @@ class MelhorEnvioService:
         # Peso total (mínimo 0.1kg per item logic simplified to total)
         total_weight = max(total_quantity * 0.25, 0.1)
         
-        # Seleção de Caixa com dimensões mínimas de 10
+        # Melhor Envio strict minimums from user feedback
+        min_width, min_height, min_length, min_weight = 16, 12, 20, 0.3
+        
+        # Seleção de Caixa baseada na quantidade
         if total_quantity <= 2:
             width, height, length = 16, 12, 20
         elif total_quantity <= 5:
@@ -84,10 +87,11 @@ class MelhorEnvioService:
         else:
             width, height, length = 30, 25, 25
 
-        # Garantir dimensões mínimas de 10x10x10
-        width = max(width, 10)
-        height = max(height, 10)
-        length = max(length, 10)
+        # Garantir dimensões e peso mínimos recomendados
+        width = max(width, min_width)
+        height = max(height, min_height)
+        length = max(length, min_length)
+        total_weight = max(total_weight, min_weight)
 
         payload = {
             "from": {"postal_code": STORE_CEP},
@@ -100,7 +104,13 @@ class MelhorEnvioService:
                 "weight": total_weight,
                 "insurance_value": total_price,
                 "quantity": 1
-            }]
+            }],
+            "options": {
+                "insurance_value": total_price,
+                "receipt": False,
+                "own_hand": False
+            },
+            "services": "" # Permitir todos os serviços ativos
         }
 
         try:

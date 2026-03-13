@@ -18,7 +18,7 @@ def test_shipping_logic():
         {
             "id": "produto_teste",
             "price": 50.00,
-            "quantity": 4 # Isso deve selecionar a Caixa M (20x20x20) e peso 1.0kg (4 * 0.25)
+            "quantity": 1 # Deve disparar o mínimo seguro (16x12x20)
         }
     ]
     
