@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -13,27 +13,7 @@ import os
 
 router = APIRouter()
 
-def _ensure_order_columns(db: Session):
-    """Ensure new Stripe columns exist (safe migration)."""
-    new_cols = [
-        ("payment_method",       "VARCHAR DEFAULT 'stripe'"),
-        ("shipping_method",      "VARCHAR"),
-        ("shipping_price",       "REAL DEFAULT 0"),
-        ("stripe_payment_id",    "VARCHAR"),
-        ("stripe_session_id",    "VARCHAR"),
-        ("customer_name",        "VARCHAR"),
-        ("customer_email",       "VARCHAR"),
-        ("customer_phone",       "VARCHAR"),
-        ("coupon_code",          "VARCHAR"),
-        ("discount_amount",      "REAL DEFAULT 0"),
-    ]
-    for col, defn in new_cols:
-        try:
-            db.execute(text(f"ALTER TABLE orders ADD COLUMN {col} {defn}"))
-            db.commit()
-        except Exception:
-            pass
-
+router = APIRouter()
 
 @router.post("/", response_model=schemas.OrderResponse)
 def create_order(
@@ -41,9 +21,7 @@ def create_order(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_order_columns(db)
 
-    # Build the order in the DB first (so we have an ID)
     db_order = models.Order(
         user_id=current_user.id,
         status="pending",
@@ -63,7 +41,7 @@ def create_order(
     db.commit()
     db.refresh(db_order)
 
-    return _order_to_response(db_order)
+    return _order_to_response(db_order, db)
 
 
 @router.get("/admin/all")
@@ -73,14 +51,10 @@ def list_all_orders(
 ):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
-    _ensure_order_columns(db)
     orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
     result = []
     for o in orders:
-        user = db.query(models.User).filter(models.User.id == o.user_id).first()
-        r = _order_to_response(o)
-        r["user_email"] = user.email if user else "N/A"
-        r["user_name"] = user.full_name if user else "N/A"
+        r = _order_to_response(o, db)
         result.append(r)
     return result
 
@@ -88,6 +62,7 @@ def list_all_orders(
 @router.get("/{order_id}/label")
 def get_order_label(
     order_id: int,
+    token: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -97,7 +72,7 @@ def get_order_label(
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
 
-    order_dict = _order_to_response(order)
+    order_dict = _order_to_response(order, db)
     try:
         pdf_bytes = pdf_service.generate_shipping_label_pdf(order_dict)
     except Exception as e:
@@ -106,7 +81,7 @@ def get_order_label(
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename=etiqueta_pedido_{order_id}.pdf"},
+        headers={"Content-Disposition": f"inline; filename=ticket_pedido_{order_id}.pdf"},
     )
 
 
@@ -122,10 +97,16 @@ def update_order_status(
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
-    order.status = body.get("status", order.status)
+
+    valid_statuses = {"pending", "paid", "shipped", "delivered", "cancelled"}
+    new_status = body.get("status", order.status)
+    if new_status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Status inválido. Use: {', '.join(valid_statuses)}")
+
+    order.status = new_status
     db.commit()
     db.refresh(order)
-    return _order_to_response(order)
+    return _order_to_response(order, db)
 
 
 @router.get("/", response_model=List[schemas.OrderResponse])
@@ -133,12 +114,13 @@ def list_orders(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_order_columns(db)
     if current_user.role != "admin":
-        orders = db.query(models.Order).filter(models.Order.user_id == current_user.id).all()
+        orders = db.query(models.Order).filter(
+            models.Order.user_id == current_user.id
+        ).order_by(models.Order.created_at.desc()).all()
     else:
         orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
-    return [_order_to_response(o) for o in orders]
+    return [_order_to_response(o, db) for o in orders]
 
 
 @router.get("/{order_id}", response_model=schemas.OrderResponse)
@@ -156,7 +138,7 @@ def get_order(
         ).first()
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
-    return _order_to_response(order)
+    return _order_to_response(order, db)
 
 
 @router.post("/subscribe")
@@ -196,9 +178,22 @@ def list_all_subscriptions(
     ]
 
 
-def _order_to_response(o: models.Order) -> dict:
+def _order_to_response(o: models.Order, db: Session = None) -> dict:
     """Convert an Order model to a dict (handles missing columns gracefully)."""
     items = o.items or []
+
+    # Get user info for buyer fields
+    buyer_name = getattr(o, "buyer_name", None) or getattr(o, "customer_name", None) or ""
+    buyer_email = getattr(o, "buyer_email", None) or getattr(o, "customer_email", None) or ""
+
+    if (not buyer_name or not buyer_email) and o.user_id and db:
+        user = db.query(models.User).filter(models.User.id == o.user_id).first()
+        if user:
+            if not buyer_name:
+                buyer_name = user.full_name or ""
+            if not buyer_email:
+                buyer_email = user.email or ""
+
     return {
         "id": o.id,
         "status": o.status or "pending",
@@ -211,9 +206,15 @@ def _order_to_response(o: models.Order) -> dict:
         "stripe_payment_id": getattr(o, "stripe_payment_id", None),
         "stripe_session_id": getattr(o, "stripe_session_id", None),
         "payment_url": None,
-        "customer_name": getattr(o, "customer_name", None),
-        "customer_email": getattr(o, "customer_email", None),
+        "customer_name": buyer_name,
+        "customer_email": buyer_email,
+        "customer_phone": getattr(o, "customer_phone", None),
+        "buyer_name": buyer_name,
+        "buyer_email": buyer_email,
+        "user_name": buyer_name,
+        "user_email": buyer_email,
         "coupon_code": getattr(o, "coupon_code", None),
         "discount_amount": getattr(o, "discount_amount", None),
+        "correios_label_url": getattr(o, "correios_label_url", None),
         "created_at": o.created_at,
     }

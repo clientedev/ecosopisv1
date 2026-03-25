@@ -170,12 +170,16 @@ async def stripe_webhook(
     try:
         event = verify_webhook_signature(payload, sig_header)
     except stripe.error.SignatureVerificationError as e:
+        print(f"❌ STRIPE WEBHOOK SIGNATURE ERROR: {e}")
+        print("💡 THE NEXT.JS PROXY REWRITE MIGHT BE CORRUPTING THE BODY. USE THE RAILWAY BACKEND URL DIRECTLY IN STRIPE DASHBOARD -> https://YOUR-BACKEND.up.railway.app/payment/webhook/stripe")
         logger.error(f"Stripe webhook signature error: {e}")
         raise HTTPException(status_code=400, detail=f"Signature verification failed: {str(e)}")
     except Exception as e:
+        print(f"❌ STRIPE WEBHOOK GENERAL ERROR: {e}")
         logger.error(f"Stripe webhook error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+    print(f"✅ Stripe webhook successfully verified: type={event['type']}")
     logger.info(f"Stripe webhook received: type={event['type']}")
 
     if event["type"] == "checkout.session.completed":

@@ -170,6 +170,9 @@ class Order(Base):
     customer_phone = Column(String, nullable=True)
     coupon_code = Column(String, nullable=True)
     discount_amount = Column(Float, default=0.0)
+    # Buyer info from Stripe webhook (customer_details)
+    buyer_name = Column(String, nullable=True)
+    buyer_email = Column(String, nullable=True)
     # Correios
     correios_label_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

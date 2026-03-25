@@ -51,8 +51,7 @@ const CATEGORIES: Category[] = [
     {
         label: "Vendas",
         items: [
-            { label: "Compras", path: "/admin/compras", icon: <ShoppingBag size={18} /> },
-            { label: "Pedidos MP", path: "/admin/pedidos", icon: <CreditCard size={18} /> },
+            { label: "Pedidos", path: "/admin/pedidos", icon: <ShoppingBag size={18} /> },
             { label: "Assinaturas", path: "/admin/subscriptions", icon: <ShieldCheck size={18} /> },
             { label: "Assinaturas Box", path: "/admin/dashboard/box", icon: <Package size={18} /> },
         ]

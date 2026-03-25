@@ -2,12 +2,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
-import { Package, CheckCircle, Truck, Clock, Download, FileText, ChevronDown, ChevronUp, XCircle, DollarSign, Eye, RefreshCw } from "lucide-react";
+import { Package, CheckCircle, Truck, Clock, Download, FileText, ChevronDown, ChevronUp, XCircle, Eye, RefreshCw } from "lucide-react";
 
 interface Order {
     id: number;
     buyer_name: string;
     buyer_email: string;
+    customer_name: string;
+    customer_email: string;
     customer_phone: string | null;
     status: string;
     total: number;
@@ -18,6 +20,7 @@ interface Order {
     shipping_price: number;
     stripe_session_id: string | null;
     stripe_payment_id: string | null;
+    payment_method: string | null;
     coupon_code: string | null;
     discount_amount: number;
     created_at: string;
@@ -32,7 +35,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }>
     payment_error: { label: "Erro", color: "#dc2626", icon: XCircle },
 };
 
-const STATUS_TRANSITIONS: Record<string, string[]> = {
+const NEXT_STATUS: Record<string, string[]> = {
     pending: ["paid", "cancelled"],
     paid: ["shipped", "cancelled"],
     shipped: ["delivered"],
@@ -49,17 +52,18 @@ export default function AdminPedidosPage() {
     const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
     const [generatingLabel, setGeneratingLabel] = useState<number | null>(null);
 
-    const apiUrl = "/api";
     const getToken = () => typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
+    const authHeaders = () => ({
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${getToken()}`
+    });
 
     useEffect(() => { fetchOrders(); }, []);
 
     const fetchOrders = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${apiUrl}/payment/admin/orders`, {
-                headers: { "Authorization": `Bearer ${getToken()}` }
-            });
+            const res = await fetch("/api/orders/admin/all", { headers: authHeaders() });
             if (res.status === 401 || res.status === 403) { router.push("/admin"); return; }
             if (res.ok) setOrders(await res.json());
         } catch (e) {
@@ -72,56 +76,60 @@ export default function AdminPedidosPage() {
     const updateStatus = async (orderId: number, newStatus: string) => {
         setUpdatingStatus(orderId);
         try {
-            const res = await fetch(`${apiUrl}/payment/admin/orders/${orderId}/status`, {
+            const res = await fetch(`/api/orders/${orderId}/status`, {
                 method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${getToken()}`
-                },
+                headers: authHeaders(),
                 body: JSON.stringify({ status: newStatus })
             });
-            if (res.ok) {
-                await fetchOrders();
-            } else {
+            if (res.ok) await fetchOrders();
+            else {
                 const err = await res.json();
-                alert(`Erro: ${err.detail || "Falha ao atualizar status"}`);
+                alert(`Erro: ${err.detail || "Falha ao atualizar"}`);
             }
-        } catch (e) {
-            console.error("Erro ao atualizar status:", e);
-            alert("Erro de conexão");
-        } finally {
-            setUpdatingStatus(null);
-        }
+        } catch { alert("Erro de conexão"); }
+        finally { setUpdatingStatus(null); }
     };
 
     const generateLabel = async (orderId: number) => {
         setGeneratingLabel(orderId);
         try {
-            const res = await fetch(`${apiUrl}/shipping/generate-label/${orderId}`, {
+            const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
+            const res = await fetch(`/api/shipping/generate-label/${orderId}`, {
                 method: "POST",
-                headers: { "Authorization": `Bearer ${getToken()}` }
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                }
             });
             if (res.ok) {
                 const data = await res.json();
                 await fetchOrders();
-                if (data.label_url) window.open(`${apiUrl}${data.label_url}`, "_blank");
+                if (data.label_url) window.open(data.label_url, "_blank");
             } else {
                 const err = await res.json();
                 alert(`Erro: ${err.detail || "Falha ao gerar etiqueta"}`);
             }
-        } catch (e) {
-            alert("Erro de conexão ao gerar etiqueta");
-        } finally {
-            setGeneratingLabel(null);
-        }
+        } catch { alert("Erro de conexão"); }
+        finally { setGeneratingLabel(null); }
     };
 
-    const downloadLabel = (orderId: number) => {
-        window.open(`${apiUrl}/shipping/label/${orderId}`, "_blank");
+    const printTicket = (orderId: number) => {
+        // Opens the order label/ticket PDF in a new tab using the Bearer auth via a trick:
+        // We fetch and create an object URL
+        fetch(`/api/orders/${orderId}/label`, { headers: authHeaders() })
+            .then(res => {
+                if (!res.ok) throw new Error("Falha ao gerar ticket");
+                return res.blob();
+            })
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                window.open(url, "_blank");
+            })
+            .catch(err => alert(err.message));
     };
 
-    const viewOrderLabel = (orderId: number) => {
-        window.open(`${apiUrl}/orders/${orderId}/label`, "_blank");
+    const downloadExistingLabel = (url: string) => {
+        window.open(url, "_blank");
     };
 
     const filteredOrders = filter === "all" ? orders : orders.filter(o => o.status === filter);
@@ -153,7 +161,7 @@ export default function AdminPedidosPage() {
                     </button>
                 </div>
                 <p style={{ color: "#888", marginBottom: "28px", fontSize: "0.9rem" }}>
-                    Gerencie pedidos, altere status e gere etiquetas
+                    Gerencie pedidos, altere status e gere etiquetas de envio
                 </p>
 
                 {/* Stats */}
@@ -202,48 +210,44 @@ export default function AdminPedidosPage() {
                             const statusInfo = STATUS_LABELS[order.status] || { label: order.status, color: "#6b7280", icon: Clock };
                             const StatusIcon = statusInfo.icon;
                             const isExpanded = expandedId === order.id;
-                            const transitions = STATUS_TRANSITIONS[order.status] || [];
+                            const transitions = NEXT_STATUS[order.status] || [];
                             const hasLabel = !!order.correios_label_url;
+                            const name = order.buyer_name || order.customer_name || "Cliente";
+                            const email = order.buyer_email || order.customer_email || "";
 
                             return (
                                 <div key={order.id} style={{
                                     background: "white", borderRadius: "14px",
                                     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
                                     border: isExpanded ? "2px solid #2d5a27" : "1px solid #f1f5f9",
-                                    transition: "border 0.2s",
                                     overflow: "hidden"
                                 }}>
-                                    {/* Row Header — always visible */}
+                                    {/* Row Header */}
                                     <div
                                         onClick={() => setExpandedId(isExpanded ? null : order.id)}
                                         style={{
                                             padding: "16px 20px", cursor: "pointer",
-                                            display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto auto",
+                                            display: "grid", gridTemplateColumns: "1.2fr 1fr 0.8fr auto auto",
                                             gap: "14px", alignItems: "center"
                                         }}
                                     >
-                                        {/* Order Info */}
                                         <div>
                                             <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#111" }}>
                                                 Pedido #{order.id}
                                             </div>
-                                            <div style={{ fontSize: "0.8rem", color: "#555", marginTop: "3px" }}>
-                                                {order.buyer_name || "Cliente"}
-                                            </div>
+                                            <div style={{ fontSize: "0.8rem", color: "#555", marginTop: "3px" }}>{name}</div>
                                             <div style={{ fontSize: "0.75rem", color: "#aaa", marginTop: "2px" }}>
-                                                {order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR") : "—"}
+                                                {order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
                                             </div>
                                         </div>
 
-                                        {/* Items Count */}
                                         <div style={{ fontSize: "0.82rem", color: "#555" }}>
-                                            {(order.items || []).length} produto(s)
+                                            {(order.items || []).length} item(s)
                                             <div style={{ fontWeight: 600, color: "#059669", marginTop: "4px" }}>
                                                 R$ {Number(order.total || 0).toFixed(2).replace(".", ",")}
                                             </div>
                                         </div>
 
-                                        {/* Status Badge */}
                                         <div>
                                             <span style={{
                                                 display: "inline-flex", alignItems: "center", gap: "5px",
@@ -256,29 +260,25 @@ export default function AdminPedidosPage() {
                                         </div>
 
                                         {/* Quick Actions */}
-                                        <div style={{ display: "flex", gap: "6px" }}>
-                                            {transitions.length > 0 && transitions.map(nextStatus => (
-                                                <button
-                                                    key={nextStatus}
-                                                    onClick={(e) => { e.stopPropagation(); updateStatus(order.id, nextStatus); }}
+                                        <div style={{ display: "flex", gap: "6px" }} onClick={(e) => e.stopPropagation()}>
+                                            {transitions.map(ns => (
+                                                <button key={ns}
+                                                    onClick={() => updateStatus(order.id, ns)}
                                                     disabled={updatingStatus === order.id}
                                                     style={{
                                                         padding: "5px 10px", borderRadius: "6px", border: "none",
                                                         cursor: "pointer", fontWeight: 600, fontSize: "0.72rem",
-                                                        background: nextStatus === "cancelled" ? "#fef2f2" : STATUS_LABELS[nextStatus]?.color + "15",
-                                                        color: nextStatus === "cancelled" ? "#dc2626" : STATUS_LABELS[nextStatus]?.color,
+                                                        background: ns === "cancelled" ? "#fef2f2" : STATUS_LABELS[ns]?.color + "15",
+                                                        color: ns === "cancelled" ? "#dc2626" : STATUS_LABELS[ns]?.color,
                                                         opacity: updatingStatus === order.id ? 0.5 : 1
                                                     }}
                                                 >
-                                                    {STATUS_LABELS[nextStatus]?.label}
+                                                    {STATUS_LABELS[ns]?.label}
                                                 </button>
                                             ))}
                                         </div>
 
-                                        {/* Expand */}
-                                        <div>
-                                            {isExpanded ? <ChevronUp size={18} color="#94a3b8" /> : <ChevronDown size={18} color="#94a3b8" />}
-                                        </div>
+                                        <div>{isExpanded ? <ChevronUp size={18} color="#94a3b8" /> : <ChevronDown size={18} color="#94a3b8" />}</div>
                                     </div>
 
                                     {/* Expanded Details */}
@@ -297,7 +297,7 @@ export default function AdminPedidosPage() {
                                                     <div key={i} style={{
                                                         display: "flex", justifyContent: "space-between",
                                                         padding: "6px 0", fontSize: "0.85rem",
-                                                        borderBottom: i < order.items.length - 1 ? "1px solid #f1f5f9" : "none"
+                                                        borderBottom: i < (order.items || []).length - 1 ? "1px solid #f1f5f9" : "none"
                                                     }}>
                                                         <span style={{ color: "#374151" }}>{item.quantity}x {item.product_name}</span>
                                                         <span style={{ fontWeight: 600 }}>R$ {(item.price * item.quantity).toFixed(2)}</span>
@@ -305,10 +305,10 @@ export default function AdminPedidosPage() {
                                                 ))}
                                                 <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid #e5e7eb" }}>
                                                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "#666" }}>
-                                                        <span>Frete</span>
+                                                        <span>Frete ({order.shipping_method?.toUpperCase() || "FIXO"})</span>
                                                         <span>R$ {Number(order.shipping_price || 0).toFixed(2)}</span>
                                                     </div>
-                                                    {order.discount_amount > 0 && (
+                                                    {(order.discount_amount || 0) > 0 && (
                                                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "#15803d" }}>
                                                             <span>Desconto {order.coupon_code ? `(${order.coupon_code})` : ""}</span>
                                                             <span>- R$ {Number(order.discount_amount).toFixed(2)}</span>
@@ -327,9 +327,10 @@ export default function AdminPedidosPage() {
                                                     👤 Cliente
                                                 </h4>
                                                 <div style={{ fontSize: "0.85rem", color: "#555", lineHeight: 1.8 }}>
-                                                    <p style={{ margin: 0 }}><strong>Nome:</strong> {order.buyer_name || "—"}</p>
-                                                    <p style={{ margin: 0 }}><strong>Email:</strong> {order.buyer_email || "—"}</p>
+                                                    <p style={{ margin: 0 }}><strong>Nome:</strong> {name}</p>
+                                                    <p style={{ margin: 0 }}><strong>Email:</strong> {email}</p>
                                                     {order.customer_phone && <p style={{ margin: 0 }}><strong>Tel:</strong> {order.customer_phone}</p>}
+                                                    <p style={{ margin: 0 }}><strong>Pagamento:</strong> {order.payment_method?.toUpperCase() || "STRIPE"}</p>
                                                 </div>
 
                                                 {order.address && order.address.street && (
@@ -338,15 +339,14 @@ export default function AdminPedidosPage() {
                                                             📍 Endereço
                                                         </h4>
                                                         <div style={{ fontSize: "0.82rem", color: "#555", lineHeight: 1.6 }}>
-                                                            <p style={{ margin: 0 }}>{order.address.street}, {order.address.number}</p>
+                                                            <p style={{ margin: 0 }}>{order.address.street}{order.address.number ? `, ${order.address.number}` : ""}</p>
                                                             {order.address.complement && <p style={{ margin: 0 }}>{order.address.complement}</p>}
-                                                            <p style={{ margin: 0 }}>{order.address.neighborhood} — {order.address.city}/{order.address.state}</p>
-                                                            {order.address.cep && <p style={{ margin: 0 }}>CEP: {order.address.cep}</p>}
+                                                            <p style={{ margin: 0 }}>{order.address.neighborhood || ""} — {order.address.city || ""}/{order.address.state || ""}</p>
+                                                            {(order.address.cep || order.address.zip) && <p style={{ margin: 0 }}>CEP: {order.address.cep || order.address.zip}</p>}
                                                         </div>
                                                     </>
                                                 )}
 
-                                                {/* Stripe IDs */}
                                                 {order.stripe_payment_id && (
                                                     <div style={{ marginTop: "16px" }}>
                                                         <h4 style={{ fontSize: "0.85rem", color: "#374151", marginBottom: "6px", fontWeight: 700 }}>
@@ -354,7 +354,7 @@ export default function AdminPedidosPage() {
                                                         </h4>
                                                         <div style={{ fontSize: "0.72rem", color: "#94a3b8", wordBreak: "break-all" }}>
                                                             <p style={{ margin: "0 0 2px" }}>Payment: {order.stripe_payment_id}</p>
-                                                            <p style={{ margin: 0 }}>Session: {order.stripe_session_id}</p>
+                                                            {order.stripe_session_id && <p style={{ margin: 0 }}>Session: {order.stripe_session_id}</p>}
                                                         </div>
                                                     </div>
                                                 )}
@@ -365,8 +365,19 @@ export default function AdminPedidosPage() {
                                                 gridColumn: "1 / -1", display: "flex", gap: "10px",
                                                 paddingTop: "16px", borderTop: "1px solid #e5e7eb", flexWrap: "wrap"
                                             }}>
+                                                {/* Ticket PDF */}
+                                                <button onClick={() => printTicket(order.id)} style={{
+                                                    display: "flex", alignItems: "center", gap: "6px",
+                                                    background: "#f1f5f9", color: "#374151", border: "1px solid #e2e8f0",
+                                                    padding: "8px 16px", borderRadius: "8px", cursor: "pointer",
+                                                    fontWeight: 600, fontSize: "0.8rem"
+                                                }}>
+                                                    <FileText size={14} /> Ticket do Pedido (PDF)
+                                                </button>
+
+                                                {/* Correios Label */}
                                                 {hasLabel ? (
-                                                    <button onClick={() => downloadLabel(order.id)} style={{
+                                                    <button onClick={() => downloadExistingLabel(order.correios_label_url!)} style={{
                                                         display: "flex", alignItems: "center", gap: "6px",
                                                         background: "#2563eb", color: "white", border: "none",
                                                         padding: "8px 16px", borderRadius: "8px", cursor: "pointer",
@@ -374,7 +385,7 @@ export default function AdminPedidosPage() {
                                                     }}>
                                                         <Download size={14} /> Baixar Etiqueta Correios
                                                     </button>
-                                                ) : order.status === "paid" ? (
+                                                ) : (order.status === "paid" || order.status === "shipped") && (
                                                     <button
                                                         onClick={() => generateLabel(order.id)}
                                                         disabled={generatingLabel === order.id}
@@ -387,35 +398,26 @@ export default function AdminPedidosPage() {
                                                             fontWeight: 600, fontSize: "0.8rem"
                                                         }}
                                                     >
-                                                        <FileText size={14} />
+                                                        <Truck size={14} />
                                                         {generatingLabel === order.id ? "Gerando..." : "Gerar Etiqueta Correios"}
                                                     </button>
-                                                ) : null}
+                                                )}
 
-                                                <button onClick={() => viewOrderLabel(order.id)} style={{
-                                                    display: "flex", alignItems: "center", gap: "6px",
-                                                    background: "#f1f5f9", color: "#374151", border: "1px solid #e2e8f0",
-                                                    padding: "8px 16px", borderRadius: "8px", cursor: "pointer",
-                                                    fontWeight: 600, fontSize: "0.8rem"
-                                                }}>
-                                                    <Eye size={14} /> Ticket do Pedido (PDF)
-                                                </button>
-
-                                                {transitions.map(nextStatus => (
-                                                    <button
-                                                        key={nextStatus}
-                                                        onClick={() => updateStatus(order.id, nextStatus)}
+                                                {/* Status Changes */}
+                                                {transitions.map(ns => (
+                                                    <button key={ns}
+                                                        onClick={() => updateStatus(order.id, ns)}
                                                         disabled={updatingStatus === order.id}
                                                         style={{
                                                             display: "flex", alignItems: "center", gap: "6px",
                                                             padding: "8px 16px", borderRadius: "8px", cursor: "pointer",
                                                             fontWeight: 600, fontSize: "0.8rem", border: "none",
-                                                            background: nextStatus === "cancelled" ? "#fef2f2" : STATUS_LABELS[nextStatus]?.color + "20",
-                                                            color: nextStatus === "cancelled" ? "#dc2626" : STATUS_LABELS[nextStatus]?.color,
+                                                            background: ns === "cancelled" ? "#fef2f2" : STATUS_LABELS[ns]?.color + "20",
+                                                            color: ns === "cancelled" ? "#dc2626" : STATUS_LABELS[ns]?.color,
                                                             opacity: updatingStatus === order.id ? 0.5 : 1
                                                         }}
                                                     >
-                                                        Marcar como {STATUS_LABELS[nextStatus]?.label}
+                                                        Marcar como {STATUS_LABELS[ns]?.label}
                                                     </button>
                                                 ))}
                                             </div>
