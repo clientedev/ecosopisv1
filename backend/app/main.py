@@ -37,19 +37,16 @@ def _apply_startup_migrations():
         ("discount_value", "DOUBLE PRECISION")
     ]
     ORDER_COLS = [
-        ("payment_method",      "VARCHAR DEFAULT 'pix'"),
+        ("payment_method",      "VARCHAR DEFAULT 'stripe'"),
         ("shipping_method",     "VARCHAR"),
         ("shipping_price",      "REAL DEFAULT 0"),
-        ("mp_payment_id",       "VARCHAR"),
-        ("mp_preference_id",    "VARCHAR"),
-        ("pix_qr_code",        "TEXT"),
-        ("pix_qr_code_base64", "TEXT"),
-        ("mp_init_point",      "VARCHAR"),
-        ("customer_name",      "VARCHAR"),
-        ("customer_email",     "VARCHAR"),
-        ("customer_phone",     "VARCHAR"),
-        ("coupon_code",        "VARCHAR"),
-        ("discount_amount",    "REAL DEFAULT 0"),
+        ("stripe_payment_id",   "VARCHAR"),
+        ("stripe_session_id",   "VARCHAR"),
+        ("customer_name",       "VARCHAR"),
+        ("customer_email",      "VARCHAR"),
+        ("customer_phone",      "VARCHAR"),
+        ("coupon_code",         "VARCHAR"),
+        ("discount_amount",     "REAL DEFAULT 0"),
     ]
     with engine.connect() as conn:
         for col, defn in ORDER_COLS:
@@ -89,12 +86,12 @@ def _apply_startup_migrations():
             conn.commit()
         except Exception: pass
 
-        # Add MercadoPago + Correios fields to orders
+        # Add Stripe + Correios fields to orders
         ORDER_COLS = [
             ("shipping_method",    "VARCHAR"),
             ("shipping_price",     "DOUBLE PRECISION DEFAULT 0"),
-            ("mp_preference_id",   "VARCHAR"),
-            ("mp_payment_id",      "VARCHAR"),
+            ("stripe_payment_id",  "VARCHAR"),
+            ("stripe_session_id",  "VARCHAR"),
             ("buyer_name",         "VARCHAR"),
             ("buyer_email",        "VARCHAR"),
             ("correios_label_url", "VARCHAR"),

@@ -109,7 +109,7 @@ export default function AdminPedidosPage() {
 
             <main style={{ flex: 1, padding: "32px", overflowX: "auto" }}>
                 <h1 style={{ fontFamily: "var(--font-playfair, serif)", fontSize: "1.8rem", marginBottom: "8px", color: "#1a1a1a" }}>
-                    📦 Pedidos Mercado Pago
+                    📦 Pedidos Stripe
                 </h1>
                 <p style={{ color: "#888", marginBottom: "28px", fontSize: "0.9rem" }}>
                     Gerencie pedidos pagos e gere etiquetas dos Correios

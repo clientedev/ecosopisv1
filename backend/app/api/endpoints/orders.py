@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
-from fastapi.responses import Response, StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Dict, Any, Optional
@@ -7,28 +7,25 @@ from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
 from app.api.endpoints.auth import get_current_user
-from app.core import mercadopago_service, pdf_service
+from app.core import pdf_service
 import io
 import os
 
 router = APIRouter()
 
 def _ensure_order_columns(db: Session):
-    """Ensure new MP columns exist (safe migration for SQLite)."""
+    """Ensure new Stripe columns exist (safe migration)."""
     new_cols = [
-        ("payment_method",      "VARCHAR DEFAULT 'pix'"),
-        ("shipping_method",     "VARCHAR"),
-        ("shipping_price",      "REAL DEFAULT 0"),
-        ("mp_payment_id",       "VARCHAR"),
-        ("mp_preference_id",    "VARCHAR"),
-        ("pix_qr_code",        "TEXT"),
-        ("pix_qr_code_base64", "TEXT"),
-        ("mp_init_point",      "VARCHAR"),
-        ("customer_name",      "VARCHAR"),
-        ("customer_email",     "VARCHAR"),
-        ("customer_phone",     "VARCHAR"),
-        ("coupon_code",        "VARCHAR"),
-        ("discount_amount",    "REAL DEFAULT 0"),
+        ("payment_method",       "VARCHAR DEFAULT 'stripe'"),
+        ("shipping_method",      "VARCHAR"),
+        ("shipping_price",       "REAL DEFAULT 0"),
+        ("stripe_payment_id",    "VARCHAR"),
+        ("stripe_session_id",    "VARCHAR"),
+        ("customer_name",        "VARCHAR"),
+        ("customer_email",       "VARCHAR"),
+        ("customer_phone",       "VARCHAR"),
+        ("coupon_code",          "VARCHAR"),
+        ("discount_amount",      "REAL DEFAULT 0"),
     ]
     for col, defn in new_cols:
         try:
@@ -53,9 +50,9 @@ def create_order(
         total=order_in.total,
         address=order_in.address,
         items=[item.dict() for item in order_in.items],
-        payment_method=order_in.payment_method,
-        shipping_method=order_in.shipping_method,
-        shipping_price=order_in.shipping_price or 0.0,
+        payment_method=order_in.payment_method or "stripe",
+        shipping_method=order_in.shipping_method or "fixo",
+        shipping_price=order_in.shipping_price or 20.0,
         customer_name=order_in.customer_name or current_user.full_name or "",
         customer_email=current_user.email,
         customer_phone=order_in.customer_phone or "",
@@ -66,100 +63,7 @@ def create_order(
     db.commit()
     db.refresh(db_order)
 
-    # Update roulette/purchase counters
-    current_user.total_compras = (current_user.total_compras or 0) + 1
-    config = db.query(models.RouletteConfig).first()
-    if config and config.ativa and config.regra_5_compras:
-        if current_user.total_compras >= 5:
-            current_user.pode_girar_roleta = True
-    db.commit()
-
-    order_items = [item.dict() for item in order_in.items]
-    customer_email = current_user.email
-    customer_name = order_in.customer_name or current_user.full_name or "Cliente"
-
-    try:
-        # Always create a Checkout Pro preference
-        # This allows the user to choice PIX, Credit Card, etc on MP site
-        mp_result = mercadopago_service.create_checkout_pro_preference(
-            order_id=db_order.id,
-            total=order_in.total,
-            customer_email=customer_email,
-            customer_name=customer_name,
-            items=order_items,
-        )
-        db_order.mp_preference_id = mp_result.get("preference_id", "")
-        db_order.mp_init_point = mp_result.get("init_point", "")
-
-        # If they specifically asked for PIX, we can still generate it, 
-        # but Checkout Pro is more robust for "official" feel like requested.
-        if order_in.payment_method == "pix":
-            try:
-                pix_result = mercadopago_service.create_pix_payment(
-                    order_id=db_order.id,
-                    total=order_in.total,
-                    customer_email=customer_email,
-                    customer_name=customer_name,
-                    items=order_items,
-                )
-                db_order.mp_payment_id = pix_result.get("payment_id", "")
-                db_order.pix_qr_code = pix_result.get("qr_code", "")
-                db_order.pix_qr_code_base64 = pix_result.get("qr_code_base64", "")
-            except Exception as e:
-                print(f"PIX generation failed but secondary preference is OK: {e}")
-
-        db.commit()
-        db.refresh(db_order)
-
-    except Exception as e:
-        # Don't fail the order — but record the error in status
-        db_order.status = "mp_error"
-        db.commit()
-        raise HTTPException(status_code=502, detail=f"Erro ao criar pagamento MP: {str(e)}")
-
     return _order_to_response(db_order)
-
-
-@router.post("/webhook")
-async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
-    """Receive payment notifications from Mercado Pago and update order status."""
-    try:
-        data = await request.json()
-        print(f"DEBUG MP Webhook: {data}")
-    except Exception:
-        return {"status": "ignored"}
-
-    # MP sends different types: payment, merchant_order, etc.
-    topic = data.get("type") or data.get("topic", "")
-    resource_id = None
-
-    if topic == "payment":
-        resource_id = str(data.get("data", {}).get("id") or data.get("id", ""))
-    elif topic == "merchant_order":
-        # Merchant orders track multiple payments, but for simple flows 'payment' is enough
-        return {"status": "ok"}
-
-    if not resource_id:
-        return {"status": "ignored"}
-
-    try:
-        payment_info = mercadopago_service.get_payment_status(resource_id)
-        mp_status = payment_info.get("status", "")
-        internal_status = mercadopago_service.MP_STATUS_MAP.get(mp_status, "pending")
-        external_ref = payment_info.get("external_reference", "")
-
-        if external_ref:
-            order = db.query(models.Order).filter(models.Order.id == int(external_ref)).first()
-            if order:
-                order.status = internal_status
-                order.mp_payment_id = resource_id
-                # Record payment method if available in info
-                # payment_info might need expanding in service
-                db.commit()
-    except Exception as e:
-        print(f"Webhook error processing {resource_id}: {e}")
-
-    return {"status": "ok"}
 
 
 @router.get("/admin/all")
@@ -304,12 +208,9 @@ def _order_to_response(o: models.Order) -> dict:
         "payment_method": getattr(o, "payment_method", None),
         "shipping_method": getattr(o, "shipping_method", None),
         "shipping_price": getattr(o, "shipping_price", None),
-        "mp_payment_id": getattr(o, "mp_payment_id", None),
-        "mp_preference_id": getattr(o, "mp_preference_id", None),
-        "pix_qr_code": getattr(o, "pix_qr_code", None),
-        "pix_qr_code_base64": getattr(o, "pix_qr_code_base64", None),
-        "mp_init_point": getattr(o, "mp_init_point", None),
-        "payment_url": getattr(o, "mp_init_point", None),  # legacy compat
+        "stripe_payment_id": getattr(o, "stripe_payment_id", None),
+        "stripe_session_id": getattr(o, "stripe_session_id", None),
+        "payment_url": None,
         "customer_name": getattr(o, "customer_name", None),
         "customer_email": getattr(o, "customer_email", None),
         "coupon_code": getattr(o, "coupon_code", None),

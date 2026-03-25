@@ -4,19 +4,10 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
 import Link from "next/link";
-import Script from "next/script";
 import { Trash2, ShoppingBag, ShieldCheck, Truck, CreditCard, ChevronRight, Loader2, Info, ShoppingCart } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const MP_PUBLIC_KEY = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "";
-
-// Add MP to Window interface
-declare global {
-    interface Window {
-        MercadoPago: any;
-    }
-}
 
 import { useAuth } from "@/context/AuthContext";
 
@@ -25,9 +16,6 @@ export default function CarrinhoPage() {
     const { user, token, refreshProfile } = useAuth();
     const [step, setStep] = useState<"cart" | "checkout">("cart");
     const [loading, setLoading] = useState(false);
-    const [shippingLoading, setShippingLoading] = useState(false);
-    const [shippingOptions, setShippingOptions] = useState<any[]>([]);
-    const [selectedShipping, setSelectedShipping] = useState<any>(null);
 
     // Form states
     const [cep, setCep] = useState("");
@@ -71,14 +59,12 @@ export default function CarrinhoPage() {
     }, [user, step]);
 
     // Payment/Coupon states
-    const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
     const [couponCode, setCouponCode] = useState("");
     const [couponError, setCouponError] = useState("");
 
     // Initialize/Check for coupons
     useEffect(() => {
-        // Check for roulette discount
         const rouletteDiscount = localStorage.getItem("active_roulette_discount");
         if (rouletteDiscount) {
             try {
@@ -95,69 +81,10 @@ export default function CarrinhoPage() {
         }
     }, []);
 
-    const [shippingError, setShippingError] = useState(false);
-
-    const fetchShippingRates = useCallback(async (targetCep: string) => {
-        if (targetCep.length !== 8) return;
-        setShippingLoading(true);
-        setShippingError(false);
-        setShippingOptions([]);
-
-        try {
-            const res = await fetch(`/api/shipping/calculate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    dest_cep: targetCep,
-                    items: cart.map(i => ({
-                        id: String(i.id),
-                        width: 15,
-                        height: 15,
-                        length: 15,
-                        weight: 0.25,
-                        price: i.price,
-                        quantity: i.quantity
-                    }))
-                })
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setShippingOptions(data);
-                
-                if (data.length > 0) {
-                    const stillAvailable = selectedShipping ? data.find((opt: any) => opt.id === selectedShipping.id) : null;
-                    if (stillAvailable) {
-                        setSelectedShipping(stillAvailable);
-                    } else {
-                        setSelectedShipping(data[0]);
-                    }
-                } else {
-                    setSelectedShipping(null);
-                }
-            } else {
-                setShippingError(true);
-            }
-        } catch (error) {
-            console.error("Shipping calculation error", error);
-            setShippingError(true);
-        } finally {
-            setShippingLoading(false);
-        }
-    }, [cart, selectedShipping]);
-
-    // Recalculate shipping whenever cart or CEP changes
-    useEffect(() => {
-        const cleanCep = cep.replace(/\D/g, "");
-        if (cleanCep.length === 8 && cart.length > 0) {
-            fetchShippingRates(cleanCep);
-        }
-    }, [cart.length, cart.map(i => i.quantity).join(',')]); // Watch cart changes
-
     const handleCepLookup = async () => {
         const cleanCep = cep.replace(/\D/g, "");
         if (cleanCep.length !== 8) return;
 
-        setShippingLoading(true); // Start loader early
         try {
             const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
             const data = await res.json();
@@ -169,15 +96,11 @@ export default function CarrinhoPage() {
                     city: data.localidade,
                     state: data.uf
                 });
-                fetchShippingRates(cleanCep);
             } else {
-                setShippingLoading(false);
-                setShippingOptions([]);
                 alert("CEP não encontrado.");
             }
         } catch (error) {
             console.error("CEP lookup error", error);
-            setShippingLoading(false);
         }
     };
 
@@ -190,7 +113,6 @@ export default function CarrinhoPage() {
 
         if (!token) {
             setShowAddressForm(false);
-            fetchShippingRates(cleanCep);
             return;
         }
 
@@ -222,7 +144,6 @@ export default function CarrinhoPage() {
         } finally {
             setSavingAddress(false);
             setShowAddressForm(false);
-            fetchShippingRates(cleanCep);
         }
     };
 
@@ -237,7 +158,6 @@ export default function CarrinhoPage() {
             state: addr.state
         });
         setShowAddressForm(false);
-        fetchShippingRates(addr.postal_code.replace(/\D/g, ""));
     };
 
     const handleApplyCoupon = async () => {
@@ -269,17 +189,12 @@ export default function CarrinhoPage() {
         }
     };
 
-    const shippingPrice = selectedShipping ? selectedShipping.price : 0;
+    // Fixed shipping price = R$20
+    const shippingPrice = 20.0;
     const discount = appliedCoupon ? (appliedCoupon.type === "fixed" ? appliedCoupon.value : (subtotal * appliedCoupon.value / 100)) : 0;
-    // Total is calculated in CartContext, but we might need to adjust it for shipping and coupons here
-    // Let's redefine total here to include shipping and discount
     const finalTotal = Math.max(0, subtotal + shippingPrice - discount);
 
     const handleCheckout = async () => {
-        if (!selectedShipping) {
-            alert("⚠️ Selecione uma opção de frete antes de continuar.");
-            return;
-        }
         if (!customerName || !cep) {
             alert("⚠️ Preencha seu nome e CEP.");
             return;
@@ -298,8 +213,7 @@ export default function CarrinhoPage() {
                     items: cart.map(i => ({ product_id: i.id, quantity: i.quantity, price: i.price, product_name: i.name })),
                     total: finalTotal,
                     address: { ...address, cep: cep.replace(/\D/g, "") },
-                    payment_method: paymentMethod,
-                    shipping_method: `${selectedShipping.company} (${selectedShipping.name})`,
+                    shipping_method: "fixo",
                     shipping_price: shippingPrice,
                     customer_name: customerName,
                     customer_phone: customerPhone,
@@ -309,27 +223,14 @@ export default function CarrinhoPage() {
             });
 
             if (res.ok) {
-                const orderData = await res.json();
+                const data = await res.json();
                 localStorage.removeItem("cart");
 
-                if (orderData.mp_preference_id) {
-                    if (window.MercadoPago) {
-                        try {
-                            const mp = new window.MercadoPago(MP_PUBLIC_KEY);
-                            mp.checkout({
-                                preference: {
-                                    id: orderData.mp_preference_id
-                                },
-                                autoOpen: true,
-                            });
-                        } catch (err) {
-                            window.location.href = orderData.mp_init_point;
-                        }
-                    } else {
-                        window.location.href = orderData.mp_init_point;
-                    }
+                // Redirect to Stripe Checkout
+                if (data.checkout_url) {
+                    window.location.href = data.checkout_url;
                 } else {
-                    window.location.href = `/pedido/${orderData.id}`;
+                    alert("Erro: URL de checkout não retornada.");
                 }
             } else {
                 const err = await res.json();
@@ -364,10 +265,6 @@ export default function CarrinhoPage() {
 
     return (
         <main>
-            <Script
-                src="https://sdk.mercadopago.com/js/v2"
-                strategy="afterInteractive"
-            />
             <Header />
             <div className={styles.carrinhoContainer}>
                 <div className={styles.stepsHeader}>
@@ -496,84 +393,41 @@ export default function CarrinhoPage() {
                                 </div>
 
                                 <div className={styles.detailSection}>
-                                    <h3>🚚 OPÇÕES DE FRETE</h3>
-                                    {shippingLoading ? (
-                                        <div style={{ textAlign: "center", padding: "30px", background: "#fff", borderRadius: "16px", border: "1px solid #f1f5f9" }}>
-                                            <Loader2 className="spin" style={{ margin: "0 auto", color: "#2d5a27" }} />
-                                            <p style={{ marginTop: "10px", fontSize: "0.9rem", color: "#64748b", fontWeight: 500 }}>Buscando as melhores ofertas de frete...</p>
-                                        </div>
-                                    ) : shippingError ? (
-                                        <div style={{ padding: "30px", background: "#fff1f2", borderRadius: "16px", border: "1px solid #fecdd3", textAlign: "center" }}>
-                                            <Info size={24} style={{ color: "#e11d48", marginBottom: "12px" }} />
-                                            <p style={{ margin: 0, fontSize: "0.9rem", color: "#9f1239", fontWeight: 600 }}>
-                                                Não foi possível calcular o frete para este CEP.
-                                            </p>
-                                            <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "#be123c" }}>Verifique o endereço ou tente novamente.</p>
-                                        </div>
-                                    ) : cep.replace(/\D/g, "").length === 8 && shippingOptions.length === 0 ? (
-                                        <div style={{ padding: "30px", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", textAlign: "center" }}>
-                                            <Truck size={32} style={{ color: "#94a3b8", marginBottom: "12px" }} />
-                                            <p style={{ margin: 0, fontSize: "0.9rem", color: "#475569", fontWeight: 600 }}>
-                                                Nenhuma transportadora disponível para este CEP.
+                                    <h3>🚚 FRETE</h3>
+                                    <div style={{ 
+                                        padding: "20px", background: "#f0f7ee", borderRadius: "12px", 
+                                        border: "1px solid #d4edda", display: "flex", alignItems: "center", gap: "12px" 
+                                    }}>
+                                        <Truck size={24} style={{ color: "#2d5a27" }} />
+                                        <div>
+                                            <strong style={{ color: "#1e293b" }}>Frete Fixo</strong>
+                                            <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "#64748b" }}>
+                                                Entrega padrão para todo o Brasil
                                             </p>
                                         </div>
-                                    ) : shippingOptions.length === 0 ? (
-                                        <div style={{ padding: "30px", background: "#f8fafc", borderRadius: "16px", border: "2px dashed #e2e8f0", textAlign: "center" }}>
-                                            <Truck size={32} style={{ color: "#cbd5e1", marginBottom: "12px" }} />
-                                            <p style={{ margin: 0, fontSize: "0.9rem", color: "#64748b", fontWeight: 500 }}>
-                                                Informe seu CEP para ver as opções de entrega.
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className={styles.shippingOptionsList}>
-                                            {shippingOptions.map(opt => (
-                                                <label
-                                                    key={opt.id}
-                                                    className={`${styles.shippingOption} ${selectedShipping?.id === opt.id ? styles.selectedOption : ""}`}
-                                                >
-                                                    <div style={{ display: "flex", alignItems: "center", gap: "15px", width: "100%" }}>
-                                                        <input 
-                                                            type="radio" 
-                                                            name="shipping" 
-                                                            checked={selectedShipping?.id === opt.id}
-                                                            onChange={() => setSelectedShipping(opt)}
-                                                            className={styles.radioInput}
-                                                        />
-                                                        <div style={{ flex: 1 }}>
-                                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                                                <div>
-                                                                    <span className={styles.carrierBadge}>{opt.company}</span>
-                                                                    <strong style={{ display: "block", fontSize: "1rem", color: "#1e293b" }}>{opt.name}</strong>
-                                                                    <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>
-                                                                        Entrega em até <strong>{opt.delivery_time} dias úteis</strong>
-                                                                    </p>
-                                                                </div>
-                                                                <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#2d5a27" }}>
-                                                                    R$ {opt.price.toFixed(2)}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    )}
+                                        <span style={{ marginLeft: "auto", fontSize: "1.1rem", fontWeight: 700, color: "#2d5a27" }}>
+                                            R$ {shippingPrice.toFixed(2)}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className={styles.detailSection}>
                                     <h3>💳 PAGAMENTO</h3>
-                                    <div className={styles.paymentMethods}>
-                                        <div className={`${styles.paymentCard} ${paymentMethod === "pix" ? styles.selectedPayment : ""}`} onClick={() => setPaymentMethod("pix")}>
-                                            <img src="https://logopng.com.br/logos/pix-106.png" alt="PIX" width={32} style={{ marginBottom: "8px" }} />
-                                            <strong>PIX</strong>
-                                            <span style={{ fontSize: "0.7rem", color: "#15803d" }}>Aprovação Instântanea</span>
-                                        </div>
-                                        <div className={`${styles.paymentCard} ${paymentMethod === "credit_card" ? styles.selectedPayment : ""}`} onClick={() => setPaymentMethod("credit_card")}>
-                                            <CreditCard size={32} color="#009EE3" style={{ marginBottom: "8px" }} />
-                                            <strong>Cartão</strong>
-                                            <span style={{ fontSize: "0.7rem", color: "#666" }}>Até 12x no Mercado Pago</span>
+                                    <div style={{
+                                        padding: "20px", background: "#f8fafc", borderRadius: "12px",
+                                        border: "2px solid #635bff", display: "flex", alignItems: "center", gap: "16px"
+                                    }}>
+                                        <CreditCard size={32} color="#635bff" />
+                                        <div>
+                                            <strong style={{ color: "#1e293b" }}>Stripe Checkout</strong>
+                                            <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "#64748b" }}>
+                                                Cartão de Crédito · Débito · Pix
+                                            </p>
                                         </div>
                                     </div>
+                                    <p style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "8px", textAlign: "center" }}>
+                                        Você será redirecionado para o checkout seguro da Stripe
+                                    </p>
                                 </div>
                             </div>
                         )}
@@ -609,7 +463,7 @@ export default function CarrinhoPage() {
                             </div>
                             <div className={styles.summaryRow}>
                                 <span>Frete</span>
-                                <span>{selectedShipping ? `R$ ${shippingPrice.toFixed(2)}` : "—"}</span>
+                                <span>R$ {shippingPrice.toFixed(2)}</span>
                             </div>
                             {discount > 0 && (
                                 <div className={styles.summaryRow} style={{ color: "#15803d" }}>
@@ -641,7 +495,7 @@ export default function CarrinhoPage() {
                                 <ShieldCheck size={24} color="#2d5a27" />
                                 <div>
                                     <strong>Pagamento Seguro</strong>
-                                    <p>Mercado Pago Criptografado</p>
+                                    <p>Stripe — Criptografia SSL</p>
                                 </div>
                             </div>
                         </div>
@@ -649,10 +503,6 @@ export default function CarrinhoPage() {
                 </div>
             </div>
             <Footer />
-            <style jsx>{`
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                .spin { animation: spin 1s linear infinite; }
-            `}</style>
         </main>
     );
 }

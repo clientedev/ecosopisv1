@@ -7,8 +7,8 @@ import Link from "next/link";
 
 function PaymentContent() {
     const searchParams = useSearchParams();
-    const status = searchParams.get("status") || searchParams.get("collection_status") || "pending";
-    const orderId = searchParams.get("order_id") || searchParams.get("external_reference");
+    const status = searchParams.get("status") || "pending";
+    const orderId = searchParams.get("order_id");
 
     const [orderStatus, setOrderStatus] = useState<string>(status);
     const [polling, setPolling] = useState(true);
@@ -31,7 +31,6 @@ function PaymentContent() {
                 const token = localStorage.getItem("token");
                 if (!token) { setPolling(false); return; }
 
-                // Use relative path for Next.js rewrites
                 const apiUrl = "/api";
                 const res = await fetch(`${apiUrl}/payment/status/${orderId}`, {
                     headers: { "Authorization": `Bearer ${token}` }
@@ -115,7 +114,7 @@ function PaymentContent() {
                             Pagamento não concluído
                         </h1>
                         <p style={{ color: "#555", fontSize: "1.1rem", marginBottom: "32px" }}>
-                            Não foi possível processar seu pagamento. Tente novamente.
+                            O pagamento foi cancelado ou não foi possível processá-lo. Tente novamente.
                         </p>
                         <Link href="/carrinho" style={{
                             background: "#2d5a27", color: "white", padding: "14px 28px",
@@ -134,7 +133,7 @@ function PaymentContent() {
                         </h1>
                         <p style={{ color: "#555", fontSize: "1.1rem", marginBottom: "8px" }}>
                             {polling && attempts < 8
-                                ? "Aguarde enquanto confirmamos seu pagamento com o Mercado Pago..."
+                                ? "Aguarde enquanto confirmamos seu pagamento..."
                                 : "Seu pagamento está sendo processado. Você receberá uma confirmação em breve."}
                         </p>
                         {polling && attempts < 8 && (

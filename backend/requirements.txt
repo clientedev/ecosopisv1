@@ -17,7 +17,7 @@ groq
 qrcode[pil]
 Pillow>=10.0.0
 starlette
-mercadopago
+stripe
 zeep
 requests
 reportlab

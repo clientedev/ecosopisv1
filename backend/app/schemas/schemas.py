@@ -65,7 +65,7 @@ class OrderCreate(BaseModel):
     items: List[OrderItem]
     total: float
     address: Dict[str, Any]
-    payment_method: str  # "pix", "credit_card", or "mercadopago"
+    payment_method: str = "stripe"  # "stripe"
     shipping_method: Optional[str] = None
     shipping_price: Optional[float] = 0.0
     customer_name: Optional[str] = None
@@ -81,12 +81,9 @@ class OrderResponse(BaseModel):
     payment_method: Optional[str] = None
     shipping_method: Optional[str] = None
     shipping_price: Optional[float] = None
-    # Mercado Pago
-    mp_payment_id: Optional[str] = None
-    mp_preference_id: Optional[str] = None
-    pix_qr_code: Optional[str] = None
-    pix_qr_code_base64: Optional[str] = None
-    mp_init_point: Optional[str] = None
+    # Stripe
+    stripe_payment_id: Optional[str] = None
+    stripe_session_id: Optional[str] = None
     # Legacy fields kept for compatibility
     payment_url: Optional[str] = None
     # Customer & Address

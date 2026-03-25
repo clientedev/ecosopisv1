@@ -148,17 +148,18 @@ export default function ProductDetailPage() {
             if (res.ok) {
                 const data = await res.json();
                 logClick("site");
-                // Redirect to MercadoPago Checkout Pro
-                const checkoutUrl = process.env.NODE_ENV === "production"
-                    ? data.init_point
-                    : data.sandbox_init_point;
-                window.location.href = checkoutUrl || data.init_point;
+                // Redirect to Stripe Checkout
+                if (data.checkout_url) {
+                    window.location.href = data.checkout_url;
+                } else {
+                    alert("Erro: URL de checkout não retornada.");
+                }
             } else {
                 const err = await res.json();
                 alert(`Erro ao iniciar pagamento: ${err.detail || "Tente novamente"}`);
             }
         } catch (error: any) {
-            console.error("Erro ao criar preference MP:", error);
+            console.error("Erro ao criar checkout Stripe:", error);
             setPaymentError(error.message || "Falha ao iniciar pagamento. Tente novamente.");
         } finally {
             setBuyingNow(false);

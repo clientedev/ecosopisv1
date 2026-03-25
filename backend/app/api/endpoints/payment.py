@@ -1,16 +1,17 @@
 """
-Payment module — Mercado Pago Checkout Pro integration
+Payment module — Stripe Checkout integration
 """
 import os
 import logging
 from typing import Any, Dict, List, Optional
 
-import mercadopago
-from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks
+import stripe
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.stripe_service import create_checkout_session, verify_webhook_signature
 from app.models import models
 from app.api.endpoints.auth import get_current_user
 
@@ -18,123 +19,49 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# ── SDK init ────────────────────────────────────────────────────────────────
-def get_mp_sdk() -> mercadopago.SDK:
-    token = os.getenv("MP_ACCESS_TOKEN") or os.getenv("ACCESS_TOKEN")
-    if not token:
-        raise HTTPException(
-            status_code=500,
-            detail="Mercado Pago Access Token não configurado (use MP_ACCESS_TOKEN ou ACCESS_TOKEN)"
-        )
-    return mercadopago.SDK(token)
-
-
 # ── Pydantic schemas ─────────────────────────────────────────────────────────
-class PreferenceItemIn(BaseModel):
+class CheckoutItemIn(BaseModel):
     product_id: int
     product_name: str
     quantity: int
     price: float
 
 
-class CreatePreferenceIn(BaseModel):
-    order_id: Optional[int] = None          # pedido já criado
-    items: List[PreferenceItemIn]
+class CreateCheckoutIn(BaseModel):
+    order_id: Optional[int] = None
+    items: List[CheckoutItemIn]
     total: float
     address: Optional[Dict[str, Any]] = None
-    shipping_method: Optional[str] = "pac"
-    shipping_price: Optional[float] = 0.0
+    shipping_method: Optional[str] = "fixo"
+    shipping_price: Optional[float] = 20.0
     coupon_code: Optional[str] = None
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    discount_amount: Optional[float] = 0.0
 
 
-class PreferenceResponse(BaseModel):
-    preference_id: str
-    init_point: str          # URL de checkout do MP (redirecionar usuário)
-    sandbox_init_point: str  # URL do sandbox para testes
+class CheckoutResponse(BaseModel):
+    checkout_url: str
+    session_id: str
     order_id: int
-
-
-# ── Helper ───────────────────────────────────────────────────────────────────
-def _build_preference_body(data: CreatePreferenceIn, order_id: int, base_url: Optional[str] = None) -> Dict[str, Any]:
-    # Use provided base_url (from request) or fallback to env
-    frontend_url = base_url or os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
-    backend_url  = os.getenv("BACKEND_URL",  "http://localhost:8000").rstrip("/")
-
-    # Mercado Pago requires absolute URLs with protocols
-    if not frontend_url.startswith("http"):
-        frontend_url = f"https://{frontend_url}"
-    if not backend_url.startswith("http"):
-        backend_url = f"https://{backend_url}"
-
-    # Force https for non-localhost production-like environments
-    if "localhost" not in frontend_url and not frontend_url.startswith("https"):
-        frontend_url = frontend_url.replace("http://", "https://")
-
-    items = [
-        {
-            "id": str(item.product_id),
-            "title": item.product_name,
-            "quantity": item.quantity,
-            "unit_price": round(float(item.price), 2),
-            "currency_id": "BRL",
-        }
-        for item in data.items
-    ]
-
-    # Add shipping as a separate item if applicable
-    if data.shipping_price and data.shipping_price > 0:
-        shipping_name = "SEDEX" if data.shipping_method == "sedex" else "PAC"
-        items.append({
-            "id": "shipping",
-            "title": f"Frete ({shipping_name})",
-            "quantity": 1,
-            "unit_price": round(float(data.shipping_price), 2),
-            "currency_id": "BRL",
-        })
-
-    return {
-        "items": items,
-        "back_urls": {
-            "success": f"{frontend_url}/pagamento?status=approved&order_id={order_id}",
-            "failure": f"{frontend_url}/pagamento?status=failure&order_id={order_id}",
-            "pending": f"{frontend_url}/pagamento?status=pending&order_id={order_id}",
-        },
-        "auto_return": "approved",
-        "notification_url": f"{backend_url}/payment/webhook",
-        "external_reference": str(order_id),
-        "statement_descriptor": "ECOSOPIS",
-        "payment_methods": {
-            "excluded_payment_types": [],
-            "installments": 12,
-        },
-    }
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
-@router.post("/create-payment", response_model=PreferenceResponse, include_in_schema=False)
-@router.post("/create-preference", response_model=PreferenceResponse)
-async def create_preference(
-    data: CreatePreferenceIn,
+@router.post("/create-payment", response_model=CheckoutResponse, include_in_schema=False)
+@router.post("/create-preference", response_model=CheckoutResponse)
+async def create_stripe_checkout(
+    data: CreateCheckoutIn,
     request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     """
-    Creates a MercadoPago preference and returns the checkout URL.
+    Creates a Stripe Checkout Session and returns the checkout URL.
     If order_id is not provided, a new Order is created first.
     """
-    # Try to determine frontend URL from request headers (origin or referer)
-    origin = request.headers.get("origin") or request.headers.get("referer")
-    if origin:
-        # Strip trailing slash and potential path from referer
-        from urllib.parse import urlparse
-        parsed = urlparse(origin)
-        base_url = f"{parsed.scheme}://{parsed.netloc}"
-    else:
-        base_url = None
-
-    sdk = get_mp_sdk()
+    # Fixed shipping price for now
+    shipping_price = data.shipping_price if data.shipping_price is not None else 20.0
 
     # ── Create order if not provided ─────────────────────────────────────────
     if data.order_id:
@@ -148,128 +75,91 @@ async def create_preference(
             total=data.total,
             address=data.address or {},
             items=[item.dict() for item in data.items],
-            shipping_method=data.shipping_method,
-            shipping_price=data.shipping_price,
+            payment_method="stripe",
+            shipping_method=data.shipping_method or "fixo",
+            shipping_price=shipping_price,
+            customer_name=data.customer_name or current_user.full_name or "",
+            customer_email=current_user.email,
+            customer_phone=data.customer_phone or "",
+            coupon_code=data.coupon_code or "",
+            discount_amount=data.discount_amount or 0.0,
         )
         db.add(order)
         db.commit()
         db.refresh(order)
         logger.info(f"Order created: id={order.id} user={current_user.email}")
 
-    # ── Create MP preference ─────────────────────────────────────────────────
-    pref_body = _build_preference_body(data, order.id, base_url=base_url)
-    logger.info(f"Creating MP preference for order {order.id}. Body: {pref_body}")
-
-    result = sdk.preference().create(pref_body)
-
-    if result["status"] not in (200, 201):
-        logger.error(f"MP preference error. Status: {result.get('status')}. Response: {result.get('response')}")
-        raise HTTPException(
-            status_code=502,
-            detail=f"Erro ao criar preference no MercadoPago: {result.get('response', {})}"
+    # ── Create Stripe Checkout Session ───────────────────────────────────────
+    try:
+        items_for_stripe = [item.dict() for item in data.items]
+        result = create_checkout_session(
+            order_id=order.id,
+            items=items_for_stripe,
+            shipping_price=shipping_price,
         )
+        order.stripe_session_id = result["session_id"]
+        db.commit()
 
-    pref = result["response"]
-    preference_id = pref["id"]
+        logger.info(f"Stripe session created: {result['session_id']} for order {order.id}")
 
-    # ── Persist preference_id in order ──────────────────────────────────────
-    order.mp_preference_id = preference_id
-    db.commit()
-
-    logger.info(f"MP preference created: {preference_id}")
-
-    return PreferenceResponse(
-        preference_id=preference_id,
-        init_point=pref["init_point"],
-        sandbox_init_point=pref["sandbox_init_point"],
-        order_id=order.id,
-    )
+        return CheckoutResponse(
+            checkout_url=result["checkout_url"],
+            session_id=result["session_id"],
+            order_id=order.id,
+        )
+    except Exception as e:
+        logger.error(f"Stripe checkout error: {e}", exc_info=True)
+        order.status = "payment_error"
+        db.commit()
+        raise HTTPException(status_code=502, detail=f"Erro ao criar sessão Stripe: {str(e)}")
 
 
-@router.post("/webhook/mercadopago", include_in_schema=False)
+@router.post("/webhook/stripe")
 @router.post("/webhook")
-async def mercadopago_webhook(
+async def stripe_webhook(
     request: Request,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     """
-    Receives MercadoPago payment notifications and updates order status.
+    Receives Stripe webhook events and updates order status.
     """
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
 
-    logger.info(f"MP Webhook received: {body}")
-
-    topic = body.get("type") or request.query_params.get("topic")
-    resource_id = (
-        body.get("data", {}).get("id")
-        or request.query_params.get("id")
-    )
-
-    # MercadoPago sends merchant_order or payment topics
-    if topic not in ("payment", "merchant_order") or not resource_id:
-        logger.info(f"MP Webhook: ignored topic={topic}")
-        return {"status": "ignored"}
-
-    background_tasks.add_task(_process_payment_notification, str(resource_id), topic, db)
-    return {"status": "received"}
-
-
-def _process_payment_notification(resource_id: str, topic: str, db: Session):
-    """Background task: fetch payment from MP and update order."""
-    sdk = get_mp_sdk()
+    if not sig_header:
+        logger.warning("Stripe webhook: missing stripe-signature header")
+        raise HTTPException(status_code=400, detail="Missing stripe-signature header")
 
     try:
-        if topic == "payment":
-            result = sdk.payment().get(resource_id)
-        else:
-            result = sdk.merchant_order().get(resource_id)
+        event = verify_webhook_signature(payload, sig_header)
+    except stripe.error.SignatureVerificationError as e:
+        logger.error(f"Stripe webhook signature error: {e}")
+        raise HTTPException(status_code=400, detail=f"Signature verification failed: {str(e)}")
+    except Exception as e:
+        logger.error(f"Stripe webhook error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
 
-        if result["status"] != 200:
-            logger.error(f"MP payment fetch error: {result}")
-            return
+    logger.info(f"Stripe webhook received: type={event['type']}")
 
-        data = result["response"]
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        pedido_id = session.get("metadata", {}).get("pedido_id")
 
-        # Extract info depending on topic
-        if topic == "payment":
-            mp_status        = data.get("status")
-            external_ref     = data.get("external_reference")
-            payment_id       = str(data.get("id"))
-            payer            = data.get("payer", {})
-            payer_email      = payer.get("email", "")
-            payer_first      = payer.get("first_name", "")
-            payer_last       = payer.get("last_name", "")
-            payer_name       = f"{payer_first} {payer_last}".strip()
-        else:  # merchant_order
-            payments = data.get("payments", [])
-            approved = [p for p in payments if p.get("status") == "approved"]
-            mp_status    = "approved" if approved else data.get("order_status")
-            external_ref = data.get("external_reference")
-            payment_id   = str(approved[0]["id"]) if approved else ""
-            payer_email  = ""
-            payer_name   = ""
+        if not pedido_id:
+            logger.warning("Stripe webhook: no pedido_id in metadata")
+            return {"status": "ignored"}
 
-        if not external_ref:
-            logger.warning("MP Webhook: no external_reference found")
-            return
-
-        order_id = int(external_ref)
-        order = db.query(models.Order).filter(models.Order.id == order_id).first()
+        order = db.query(models.Order).filter(models.Order.id == int(pedido_id)).first()
         if not order:
-            logger.warning(f"MP Webhook: order {order_id} not found")
-            return
+            logger.warning(f"Stripe webhook: order {pedido_id} not found")
+            return {"status": "ignored"}
 
-        logger.info(f"MP Webhook: order={order_id} status={mp_status}")
-
-        if mp_status == "approved" and order.status != "paid":
-            order.status      = "paid"
-            order.mp_payment_id = payment_id
-            order.buyer_email  = payer_email
-            order.buyer_name   = payer_name
+        if order.status != "paid":
+            order.status = "paid"
+            order.stripe_payment_id = session.get("payment_intent", "")
+            order.stripe_session_id = session.get("id", "")
+            order.buyer_email = session.get("customer_details", {}).get("email", "")
+            order.buyer_name = session.get("customer_details", {}).get("name", "")
 
             # Update user purchase count / roulette
             user = db.query(models.User).filter(models.User.id == order.user_id).first()
@@ -281,15 +171,19 @@ def _process_payment_notification(resource_id: str, topic: str, db: Session):
                         user.pode_girar_roleta = True
 
             db.commit()
-            logger.info(f"Order {order_id} marked as PAID by {payer_email}")
+            logger.info(f"Order {pedido_id} marked as PAID via Stripe")
 
-        elif mp_status in ("rejected", "cancelled"):
-            order.status = "cancelled"
-            db.commit()
-            logger.info(f"Order {order_id} marked as CANCELLED")
+    elif event["type"] == "checkout.session.expired":
+        session = event["data"]["object"]
+        pedido_id = session.get("metadata", {}).get("pedido_id")
+        if pedido_id:
+            order = db.query(models.Order).filter(models.Order.id == int(pedido_id)).first()
+            if order and order.status == "pending":
+                order.status = "cancelled"
+                db.commit()
+                logger.info(f"Order {pedido_id} cancelled (session expired)")
 
-    except Exception as e:
-        logger.error(f"Error processing MP notification: {e}", exc_info=True)
+    return {"status": "ok"}
 
 
 @router.get("/status/{order_id}")
@@ -331,12 +225,12 @@ async def list_admin_orders(
     result = []
     for o in orders:
         user_email = ""
-        user_name  = ""
+        user_name = ""
         if o.user_id:
             u = db.query(models.User).filter(models.User.id == o.user_id).first()
             if u:
                 user_email = u.email
-                user_name  = u.full_name or ""
+                user_name = u.full_name or ""
 
         result.append({
             "id": o.id,
@@ -348,8 +242,8 @@ async def list_admin_orders(
             "shipping_price": getattr(o, "shipping_price", 0),
             "buyer_name": getattr(o, "buyer_name", None) or user_name,
             "buyer_email": getattr(o, "buyer_email", None) or user_email,
-            "mp_preference_id": getattr(o, "mp_preference_id", None),
-            "mp_payment_id": getattr(o, "mp_payment_id", None),
+            "stripe_session_id": getattr(o, "stripe_session_id", None),
+            "stripe_payment_id": getattr(o, "stripe_payment_id", None),
             "correios_label_url": getattr(o, "correios_label_url", None),
             "created_at": o.created_at,
         })
