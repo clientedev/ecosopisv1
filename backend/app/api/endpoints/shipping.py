@@ -111,29 +111,107 @@ def _get_correios_token() -> str:
 
 def _simulate_label_pdf(order: models.Order) -> bytes:
     try:
-        from reportlab.pdfgen import canvas
         from reportlab.lib.pagesizes import A6
+        from reportlab.lib.units import mm
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.graphics.barcode import code128, qr
+        from reportlab.lib import colors
+        from datetime import datetime
+
         buf = io.BytesIO()
-        c = canvas.Canvas(buf, pagesize=A6)
-        w, h = A6
-        c.setFont("Helvetica-Bold", 14)
-        c.drawCentredString(w/2, h-30, "ECOSOPIS COSMÉTICA NATURAL")
-        c.setFont("Helvetica", 10)
-        c.drawCentredString(w/2, h-60, f"PEDIDO #{order.id}")
-        address = order.address or {}
+        doc = SimpleDocTemplate(
+            buf,
+            pagesize=A6,
+            rightMargin=8 * mm,
+            leftMargin=8 * mm,
+            topMargin=8 * mm,
+            bottomMargin=8 * mm,
+        )
+
+        styles = getSampleStyleSheet()
+        bold_style = ParagraphStyle("BoldStyle", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=8, leading=10)
+        normal_style = ParagraphStyle("NormalStyle", parent=styles["Normal"], fontName="Helvetica", fontSize=8, leading=10)
+        title_style = ParagraphStyle("TitleStyle", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=12, alignment=1) # centered
+        small_style = ParagraphStyle("SmallStyle", parent=styles["Normal"], fontName="Helvetica", fontSize=6, leading=8)
+
+        story = []
+
+        # Header Title
+        story.append(Paragraph("<b>⛟ MELHOR ENVIO / CORREIOS</b>", title_style))
+        story.append(Spacer(1, 4*mm))
+
+        # Determine shipping type
+        shipping_method = getattr(order, "shipping_method", "SEDEX").upper()
+        if not shipping_method or "PAC" not in shipping_method and "SEDEX" not in shipping_method:
+            shipping_method = "SEDEX"
+
+        # Tracking code simulation
+        tracking = f"BR{100000000 + order.id}BR"
+
+        # Top Table: Tracking + Service
+        barcode = code128.Code128(tracking, barHeight=15*mm, barWidth=1.2)
+        top_data = [
+            [barcode, Paragraph(f"<b>{shipping_method}</b>", ParagraphStyle("Svc", parent=title_style, fontSize=16))]
+        ]
+        top_table = Table(top_data, colWidths=[65*mm, 25*mm])
+        top_table.setStyle(TableStyle([
+            ('ALIGN', (0,0), (0,0), 'LEFT'),
+            ('ALIGN', (1,0), (1,0), 'RIGHT'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ]))
+        story.append(top_table)
+        story.append(Paragraph(f"<b>Rastreio:</b> {tracking}", small_style))
+        story.append(Spacer(1, 3*mm))
+
+        # Destinatario
         dest_name = getattr(order, "customer_name", None) or "Cliente"
-        c.drawString(20, h-100, f"DESTINATÁRIO: {dest_name}")
-        c.drawString(20, h-120, f"Rua: {address.get('street', '-')}")
-        c.drawString(20, h-140, f"Cidade: {address.get('city', '-')} - {address.get('state', '-')}")
-        c.drawString(20, h-160, f"CEP: {address.get('zip', '-')}")
-        c.drawString(20, h-200, "REMETENTE: ECOSOPIS")
-        c.drawString(20, h-220, os.getenv("STORE_LOGRADOURO", "Rua da Natureza, 100"))
-        c.save()
+        address = order.address or {}
+        dest_rows = [
+            Paragraph("<b>DESTINATÁRIO</b>", bold_style),
+            Paragraph(dest_name, normal_style),
+            Paragraph(f"{address.get('street', 'Rua não informada')}, {address.get('number', 'S/N')} {address.get('complement', '')}", normal_style),
+            Paragraph(f"{address.get('neighborhood', 'Bairro')} - {address.get('city', 'Cidade')} / {address.get('state', 'UF')}", normal_style),
+            Paragraph(f"<b>CEP: {address.get('zip', address.get('cep', '00000-000'))}</b>", bold_style),
+        ]
+        
+        # Remetente
+        remet_rows = [
+            Paragraph("<b>REMETENTE</b>", bold_style),
+            Paragraph(os.getenv("STORE_NAME", "ECOSOPIS COSMÉTICA NATURAL"), normal_style),
+            Paragraph(os.getenv("STORE_LOGRADOURO", "Rua da Natureza, 100"), normal_style),
+            Paragraph("São Paulo / SP", normal_style),
+            Paragraph("<b>CEP: 01000-000</b>", bold_style),
+        ]
+
+        # Addresses Table
+        address_table = Table([[
+            Table([[r] for r in dest_rows], colWidths=[88*mm]),
+        ], [
+            Table([[r] for r in remet_rows], colWidths=[88*mm]),
+        ]], colWidths=[90*mm])
+        
+        address_table.setStyle(TableStyle([
+            ('BOX', (0,0), (-1,-1), 0.5, colors.black),
+            ('INNERGRID', (0,0), (-1,-1), 0.5, colors.black),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        story.append(address_table)
+        story.append(Spacer(1, 4*mm))
+
+        # Bottom Info
+        story.append(Paragraph(f"Pedido: <b>#{order.id}</b> | Peso Estimado: 500g", small_style))
+        story.append(Paragraph(f"Emitido em: {datetime.now().strftime('%d/%m/%Y %H:%M')}", small_style))
+        story.append(Paragraph("Documento gerado eletronicamente.", small_style))
+
+        doc.build(story)
         buf.seek(0)
         return buf.read()
-    except Exception:
-        content = f"ETIQUETA — Pedido #{order.id}\nDestinatario: {getattr(order,'customer_name','')}"
-        return content.encode()
+    except Exception as e:
+        print(f"Error generating professional label: {e}")
+        content = f"ETIQUETA SIMULADA — Pedido #{order.id}\nDestinatario: {getattr(order,'customer_name','')}"
+        return content.encode("utf-8")
 
 @router.post("/generate-label/{order_id}")
 async def generate_label(
