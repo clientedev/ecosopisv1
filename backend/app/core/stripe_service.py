@@ -12,11 +12,18 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 
-def create_checkout_session(order_id: int, items: list, shipping_price: float = 20.0) -> dict:
+def create_checkout_session(
+    order_id: int,
+    items: list,
+    shipping_price: float = 20.0,
+    frontend_url: str | None = None,
+) -> dict:
     """
     Creates a Stripe Checkout Session.
     Returns dict with session_id and checkout_url.
     """
+    base_url = (frontend_url or FRONTEND_URL).rstrip("/")
+
     line_items = []
     for item in items:
         line_items.append({
@@ -43,14 +50,12 @@ def create_checkout_session(order_id: int, items: list, shipping_price: float = 
             "quantity": 1,
         })
 
-    frontend_url = FRONTEND_URL.rstrip("/")
-
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
         mode="payment",
         line_items=line_items,
-        success_url=f"{frontend_url}/pagamento?status=approved&order_id={order_id}",
-        cancel_url=f"{frontend_url}/pagamento?status=failure&order_id={order_id}",
+        success_url=f"{base_url}/pagamento?status=approved&order_id={order_id}",
+        cancel_url=f"{base_url}/pagamento?status=failure&order_id={order_id}",
         metadata={
             "pedido_id": str(order_id),
         },

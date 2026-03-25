@@ -91,17 +91,25 @@ function PaymentContent() {
                             Em breve você receberá uma confirmação por e-mail e acompanhará o envio.
                         </p>
                         <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}>
+                            {orderId && (
+                                <Link href={`/pedido/${orderId}`} style={{
+                                    background: "#2d5a27", color: "white", padding: "14px 28px",
+                                    borderRadius: "10px", textDecoration: "none", fontWeight: 700, fontSize: "1rem"
+                                }}>
+                                    Ver Detalhes do Pedido
+                                </Link>
+                            )}
                             <Link href="/produtos" style={{
-                                background: "#2d5a27", color: "white", padding: "14px 28px",
+                                border: "2px solid #2d5a27", color: "#2d5a27", padding: "14px 28px",
                                 borderRadius: "10px", textDecoration: "none", fontWeight: 700, fontSize: "1rem"
                             }}>
                                 Continuar Comprando
                             </Link>
                             <Link href="/conta" style={{
-                                border: "2px solid #2d5a27", color: "#2d5a27", padding: "14px 28px",
+                                border: "2px solid #64748b", color: "#64748b", padding: "14px 28px",
                                 borderRadius: "10px", textDecoration: "none", fontWeight: 700, fontSize: "1rem"
                             }}>
-                                Minha Conta
+                                Meus Pedidos
                             </Link>
                         </div>
                     </>

@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
+
 # ── Pydantic schemas ─────────────────────────────────────────────────────────
 class CheckoutItemIn(BaseModel):
     product_id: int
@@ -44,6 +46,36 @@ class CheckoutResponse(BaseModel):
     checkout_url: str
     session_id: str
     order_id: int
+
+
+class StatusUpdateIn(BaseModel):
+    status: str
+
+
+# ── Helper ────────────────────────────────────────────────────────────────────
+
+def _resolve_frontend_url(request: Request) -> str:
+    """Determine the frontend URL from request headers or env var."""
+    # 1. Explicit env var (highest priority)
+    if FRONTEND_URL:
+        return FRONTEND_URL.rstrip("/")
+
+    # 2. From Origin header (browser sends this on POST)
+    origin = request.headers.get("origin")
+    if origin and "localhost" not in origin:
+        return origin.rstrip("/")
+
+    # 3. From Referer header
+    referer = request.headers.get("referer")
+    if referer:
+        from urllib.parse import urlparse
+        parsed = urlparse(referer)
+        base = f"{parsed.scheme}://{parsed.netloc}"
+        if "localhost" not in base:
+            return base.rstrip("/")
+
+    # 4. Fallback
+    return "http://localhost:3000"
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -89,6 +121,10 @@ async def create_stripe_checkout(
         db.refresh(order)
         logger.info(f"Order created: id={order.id} user={current_user.email}")
 
+    # ── Dynamic frontend URL for Stripe redirects ────────────────────────────
+    frontend_url = _resolve_frontend_url(request)
+    logger.info(f"Using frontend URL for Stripe redirects: {frontend_url}")
+
     # ── Create Stripe Checkout Session ───────────────────────────────────────
     try:
         items_for_stripe = [item.dict() for item in data.items]
@@ -96,6 +132,7 @@ async def create_stripe_checkout(
             order_id=order.id,
             items=items_for_stripe,
             shipping_price=shipping_price,
+            frontend_url=frontend_url,
         )
         order.stripe_session_id = result["session_id"]
         db.commit()
@@ -208,6 +245,10 @@ async def get_payment_status(
         "buyer_email": getattr(order, "buyer_email", None),
         "total": order.total,
         "items": order.items,
+        "address": order.address,
+        "shipping_method": getattr(order, "shipping_method", None),
+        "shipping_price": getattr(order, "shipping_price", None),
+        "stripe_payment_id": getattr(order, "stripe_payment_id", None),
         "created_at": order.created_at,
     }
 
@@ -242,9 +283,39 @@ async def list_admin_orders(
             "shipping_price": getattr(o, "shipping_price", 0),
             "buyer_name": getattr(o, "buyer_name", None) or user_name,
             "buyer_email": getattr(o, "buyer_email", None) or user_email,
+            "customer_phone": getattr(o, "customer_phone", None),
             "stripe_session_id": getattr(o, "stripe_session_id", None),
             "stripe_payment_id": getattr(o, "stripe_payment_id", None),
             "correios_label_url": getattr(o, "correios_label_url", None),
+            "coupon_code": getattr(o, "coupon_code", None),
+            "discount_amount": getattr(o, "discount_amount", 0),
             "created_at": o.created_at,
         })
     return result
+
+
+@router.patch("/admin/orders/{order_id}/status")
+async def update_order_status(
+    order_id: int,
+    body: StatusUpdateIn,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Admin endpoint: update order status (paid → shipped → delivered)."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    valid_statuses = {"pending", "paid", "shipped", "delivered", "cancelled"}
+    if body.status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Status inválido. Use: {', '.join(valid_statuses)}")
+
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+    order.status = body.status
+    db.commit()
+    db.refresh(order)
+
+    logger.info(f"Admin updated order {order_id} status to '{body.status}'")
+    return {"id": order.id, "status": order.status, "message": "Status atualizado com sucesso"}

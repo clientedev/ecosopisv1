@@ -2,18 +2,24 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
-import { Package, CheckCircle, Truck, Clock, Download, FileText } from "lucide-react";
+import { Package, CheckCircle, Truck, Clock, Download, FileText, ChevronDown, ChevronUp, XCircle, DollarSign, Eye, RefreshCw } from "lucide-react";
 
 interface Order {
     id: number;
     buyer_name: string;
     buyer_email: string;
+    customer_phone: string | null;
     status: string;
     total: number;
     items: any[];
     address: any;
     correios_label_url: string | null;
     shipping_method: string | null;
+    shipping_price: number;
+    stripe_session_id: string | null;
+    stripe_payment_id: string | null;
+    coupon_code: string | null;
+    discount_amount: number;
     created_at: string;
 }
 
@@ -22,23 +28,31 @@ const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }>
     paid: { label: "Pago", color: "#059669", icon: CheckCircle },
     shipped: { label: "Enviado", color: "#2563eb", icon: Truck },
     delivered: { label: "Entregue", color: "#7c3aed", icon: Package },
-    cancelled: { label: "Cancelado", color: "#dc2626", icon: Clock },
+    cancelled: { label: "Cancelado", color: "#dc2626", icon: XCircle },
+    payment_error: { label: "Erro", color: "#dc2626", icon: XCircle },
+};
+
+const STATUS_TRANSITIONS: Record<string, string[]> = {
+    pending: ["paid", "cancelled"],
+    paid: ["shipped", "cancelled"],
+    shipped: ["delivered"],
+    delivered: [],
+    cancelled: [],
 };
 
 export default function AdminPedidosPage() {
     const router = useRouter();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
-    const [generatingLabel, setGeneratingLabel] = useState<number | null>(null);
     const [filter, setFilter] = useState("all");
+    const [expandedId, setExpandedId] = useState<number | null>(null);
+    const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
+    const [generatingLabel, setGeneratingLabel] = useState<number | null>(null);
 
     const apiUrl = "/api";
-
     const getToken = () => typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
 
-    useEffect(() => {
-        fetchOrders();
-    }, []);
+    useEffect(() => { fetchOrders(); }, []);
 
     const fetchOrders = async () => {
         setLoading(true);
@@ -46,18 +60,37 @@ export default function AdminPedidosPage() {
             const res = await fetch(`${apiUrl}/payment/admin/orders`, {
                 headers: { "Authorization": `Bearer ${getToken()}` }
             });
-            if (res.status === 401 || res.status === 403) {
-                router.push("/admin");
-                return;
-            }
-            if (res.ok) {
-                const data = await res.json();
-                setOrders(data);
-            }
+            if (res.status === 401 || res.status === 403) { router.push("/admin"); return; }
+            if (res.ok) setOrders(await res.json());
         } catch (e) {
             console.error("Erro ao carregar pedidos:", e);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const updateStatus = async (orderId: number, newStatus: string) => {
+        setUpdatingStatus(orderId);
+        try {
+            const res = await fetch(`${apiUrl}/payment/admin/orders/${orderId}/status`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${getToken()}`
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (res.ok) {
+                await fetchOrders();
+            } else {
+                const err = await res.json();
+                alert(`Erro: ${err.detail || "Falha ao atualizar status"}`);
+            }
+        } catch (e) {
+            console.error("Erro ao atualizar status:", e);
+            alert("Erro de conexão");
+        } finally {
+            setUpdatingStatus(null);
         }
     };
 
@@ -70,18 +103,13 @@ export default function AdminPedidosPage() {
             });
             if (res.ok) {
                 const data = await res.json();
-                // Refresh orders list
                 await fetchOrders();
-                // Open label in new tab
-                if (data.label_url) {
-                    window.open(`${apiUrl}${data.label_url}`, "_blank");
-                }
+                if (data.label_url) window.open(`${apiUrl}${data.label_url}`, "_blank");
             } else {
                 const err = await res.json();
                 alert(`Erro: ${err.detail || "Falha ao gerar etiqueta"}`);
             }
         } catch (e) {
-            console.error("Erro ao gerar etiqueta:", e);
             alert("Erro de conexão ao gerar etiqueta");
         } finally {
             setGeneratingLabel(null);
@@ -92,15 +120,19 @@ export default function AdminPedidosPage() {
         window.open(`${apiUrl}/shipping/label/${orderId}`, "_blank");
     };
 
-    const filteredOrders = filter === "all"
-        ? orders
-        : orders.filter(o => o.status === filter);
+    const viewOrderLabel = (orderId: number) => {
+        window.open(`${apiUrl}/orders/${orderId}/label`, "_blank");
+    };
+
+    const filteredOrders = filter === "all" ? orders : orders.filter(o => o.status === filter);
 
     const stats = {
         total: orders.length,
+        pending: orders.filter(o => o.status === "pending").length,
         paid: orders.filter(o => o.status === "paid").length,
         shipped: orders.filter(o => o.status === "shipped").length,
-        pending: orders.filter(o => o.status === "pending").length,
+        delivered: orders.filter(o => o.status === "delivered").length,
+        revenue: orders.filter(o => ["paid", "shipped", "delivered"].includes(o.status)).reduce((sum, o) => sum + (o.total || 0), 0),
     };
 
     return (
@@ -108,154 +140,287 @@ export default function AdminPedidosPage() {
             <AdminSidebar activePath="/admin/pedidos" />
 
             <main style={{ flex: 1, padding: "32px", overflowX: "auto" }}>
-                <h1 style={{ fontFamily: "var(--font-playfair, serif)", fontSize: "1.8rem", marginBottom: "8px", color: "#1a1a1a" }}>
-                    📦 Pedidos Stripe
-                </h1>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                    <h1 style={{ fontFamily: "var(--font-playfair, serif)", fontSize: "1.8rem", color: "#1a1a1a" }}>
+                        📦 Gestão de Pedidos
+                    </h1>
+                    <button onClick={fetchOrders} style={{
+                        display: "flex", alignItems: "center", gap: "6px",
+                        padding: "8px 18px", borderRadius: "8px", border: "1.5px solid #2d5a27",
+                        background: "white", color: "#2d5a27", cursor: "pointer", fontWeight: 600, fontSize: "0.85rem"
+                    }}>
+                        <RefreshCw size={14} /> Atualizar
+                    </button>
+                </div>
                 <p style={{ color: "#888", marginBottom: "28px", fontSize: "0.9rem" }}>
-                    Gerencie pedidos pagos e gere etiquetas dos Correios
+                    Gerencie pedidos, altere status e gere etiquetas
                 </p>
 
                 {/* Stats */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "16px", marginBottom: "28px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: "14px", marginBottom: "28px" }}>
                     {[
-                        { label: "Total", value: stats.total, color: "#6b7280" },
-                        { label: "Aguardando Pagto", value: stats.pending, color: "#d97706" },
-                        { label: "Pagos", value: stats.paid, color: "#059669" },
-                        { label: "Enviados", value: stats.shipped, color: "#2563eb" },
+                        { label: "Total", value: stats.total, color: "#6b7280", icon: "📊" },
+                        { label: "Pendentes", value: stats.pending, color: "#d97706", icon: "⏳" },
+                        { label: "Pagos", value: stats.paid, color: "#059669", icon: "✅" },
+                        { label: "Enviados", value: stats.shipped, color: "#2563eb", icon: "🚚" },
+                        { label: "Entregues", value: stats.delivered, color: "#7c3aed", icon: "📦" },
+                        { label: "Receita", value: `R$ ${stats.revenue.toFixed(2).replace(".", ",")}`, color: "#059669", icon: "💰" },
                     ].map(stat => (
                         <div key={stat.label} style={{
-                            background: "white", borderRadius: "12px", padding: "20px",
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.08)", textAlign: "center"
+                            background: "white", borderRadius: "12px", padding: "18px",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.06)", textAlign: "center"
                         }}>
-                            <div style={{ fontSize: "2rem", fontWeight: 700, color: stat.color }}>{stat.value}</div>
-                            <div style={{ fontSize: "0.78rem", color: "#888", marginTop: "4px" }}>{stat.label}</div>
+                            <div style={{ fontSize: "1.2rem", marginBottom: "4px" }}>{stat.icon}</div>
+                            <div style={{ fontSize: typeof stat.value === "string" ? "1.1rem" : "1.8rem", fontWeight: 700, color: stat.color }}>{stat.value}</div>
+                            <div style={{ fontSize: "0.72rem", color: "#888", marginTop: "2px" }}>{stat.label}</div>
                         </div>
                     ))}
                 </div>
 
                 {/* Filter */}
-                <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
-                    {["all", "pending", "paid", "shipped", "delivered"].map(f => (
+                <div style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
+                    {["all", "pending", "paid", "shipped", "delivered", "cancelled"].map(f => (
                         <button key={f} onClick={() => setFilter(f)} style={{
-                            padding: "8px 18px", borderRadius: "20px", border: "none", cursor: "pointer",
+                            padding: "7px 16px", borderRadius: "20px", border: "none", cursor: "pointer",
                             background: filter === f ? "#2d5a27" : "#e5e7eb",
                             color: filter === f ? "white" : "#374151",
-                            fontWeight: filter === f ? 700 : 400, fontSize: "0.85rem"
+                            fontWeight: filter === f ? 700 : 400, fontSize: "0.82rem",
+                            transition: "all 0.2s"
                         }}>
-                            {f === "all" ? "Todos" : STATUS_LABELS[f]?.label || f}
+                            {f === "all" ? `Todos (${stats.total})` : `${STATUS_LABELS[f]?.label || f} (${orders.filter(o => o.status === f).length})`}
                         </button>
                     ))}
-                    <button onClick={fetchOrders} style={{
-                        padding: "8px 18px", borderRadius: "20px", border: "1.5px solid #2d5a27",
-                        background: "transparent", color: "#2d5a27", cursor: "pointer", fontSize: "0.85rem"
-                    }}>
-                        🔄 Atualizar
-                    </button>
                 </div>
 
                 {loading ? (
-                    <div style={{ textAlign: "center", padding: "60px", color: "#888" }}>
-                        Carregando pedidos...
-                    </div>
+                    <div style={{ textAlign: "center", padding: "60px", color: "#888" }}>Carregando pedidos...</div>
                 ) : filteredOrders.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "60px", color: "#888" }}>
-                        Nenhum pedido encontrado.
-                    </div>
+                    <div style={{ textAlign: "center", padding: "60px", color: "#888" }}>Nenhum pedido encontrado.</div>
                 ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                         {filteredOrders.map(order => {
                             const statusInfo = STATUS_LABELS[order.status] || { label: order.status, color: "#6b7280", icon: Clock };
                             const StatusIcon = statusInfo.icon;
-                            const canGenerate = order.status === "paid";
+                            const isExpanded = expandedId === order.id;
+                            const transitions = STATUS_TRANSITIONS[order.status] || [];
                             const hasLabel = !!order.correios_label_url;
 
                             return (
                                 <div key={order.id} style={{
-                                    background: "white", borderRadius: "14px", padding: "20px 24px",
-                                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                                    display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto",
-                                    gap: "16px", alignItems: "center"
+                                    background: "white", borderRadius: "14px",
+                                    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                                    border: isExpanded ? "2px solid #2d5a27" : "1px solid #f1f5f9",
+                                    transition: "border 0.2s",
+                                    overflow: "hidden"
                                 }}>
-                                    {/* Order Info */}
-                                    <div>
-                                        <div style={{ fontWeight: 700, fontSize: "1rem", color: "#111" }}>
-                                            Pedido #{order.id}
+                                    {/* Row Header — always visible */}
+                                    <div
+                                        onClick={() => setExpandedId(isExpanded ? null : order.id)}
+                                        style={{
+                                            padding: "16px 20px", cursor: "pointer",
+                                            display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto auto",
+                                            gap: "14px", alignItems: "center"
+                                        }}
+                                    >
+                                        {/* Order Info */}
+                                        <div>
+                                            <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#111" }}>
+                                                Pedido #{order.id}
+                                            </div>
+                                            <div style={{ fontSize: "0.8rem", color: "#555", marginTop: "3px" }}>
+                                                {order.buyer_name || "Cliente"}
+                                            </div>
+                                            <div style={{ fontSize: "0.75rem", color: "#aaa", marginTop: "2px" }}>
+                                                {order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR") : "—"}
+                                            </div>
                                         </div>
-                                        <div style={{ fontSize: "0.82rem", color: "#555", marginTop: "4px" }}>
-                                            {order.buyer_name || "Cliente"}
-                                        </div>
-                                        <div style={{ fontSize: "0.78rem", color: "#888" }}>
-                                            {order.buyer_email}
-                                        </div>
-                                        <div style={{ fontSize: "0.75rem", color: "#aaa", marginTop: "4px" }}>
-                                            {order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR") : "-"}
-                                        </div>
-                                    </div>
 
-                                    {/* Address & Items */}
-                                    <div>
+                                        {/* Items Count */}
                                         <div style={{ fontSize: "0.82rem", color: "#555" }}>
-                                            {order.address?.street && (
-                                                <>{order.address.street}, {order.address.city} – {order.address.zip}</>
-                                            )}
+                                            {(order.items || []).length} produto(s)
+                                            <div style={{ fontWeight: 600, color: "#059669", marginTop: "4px" }}>
+                                                R$ {Number(order.total || 0).toFixed(2).replace(".", ",")}
+                                            </div>
                                         </div>
-                                        <div style={{ fontSize: "0.78rem", color: "#888", marginTop: "4px" }}>
-                                            {(order.items || []).length} produto(s) · {order.shipping_method?.toUpperCase() || "PAC"}
+
+                                        {/* Status Badge */}
+                                        <div>
+                                            <span style={{
+                                                display: "inline-flex", alignItems: "center", gap: "5px",
+                                                background: `${statusInfo.color}12`, color: statusInfo.color,
+                                                padding: "5px 12px", borderRadius: "20px",
+                                                fontWeight: 600, fontSize: "0.8rem"
+                                            }}>
+                                                <StatusIcon size={13} /> {statusInfo.label}
+                                            </span>
                                         </div>
-                                        <div style={{ fontWeight: 600, color: "#059669", marginTop: "4px" }}>
-                                            R$ {Number(order.total || 0).toFixed(2).replace(".", ",")}
+
+                                        {/* Quick Actions */}
+                                        <div style={{ display: "flex", gap: "6px" }}>
+                                            {transitions.length > 0 && transitions.map(nextStatus => (
+                                                <button
+                                                    key={nextStatus}
+                                                    onClick={(e) => { e.stopPropagation(); updateStatus(order.id, nextStatus); }}
+                                                    disabled={updatingStatus === order.id}
+                                                    style={{
+                                                        padding: "5px 10px", borderRadius: "6px", border: "none",
+                                                        cursor: "pointer", fontWeight: 600, fontSize: "0.72rem",
+                                                        background: nextStatus === "cancelled" ? "#fef2f2" : STATUS_LABELS[nextStatus]?.color + "15",
+                                                        color: nextStatus === "cancelled" ? "#dc2626" : STATUS_LABELS[nextStatus]?.color,
+                                                        opacity: updatingStatus === order.id ? 0.5 : 1
+                                                    }}
+                                                >
+                                                    {STATUS_LABELS[nextStatus]?.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Expand */}
+                                        <div>
+                                            {isExpanded ? <ChevronUp size={18} color="#94a3b8" /> : <ChevronDown size={18} color="#94a3b8" />}
                                         </div>
                                     </div>
 
-                                    {/* Status */}
-                                    <div>
-                                        <span style={{
-                                            display: "inline-flex", alignItems: "center", gap: "6px",
-                                            background: `${statusInfo.color}15`, color: statusInfo.color,
-                                            padding: "6px 14px", borderRadius: "20px",
-                                            fontWeight: 600, fontSize: "0.82rem"
+                                    {/* Expanded Details */}
+                                    {isExpanded && (
+                                        <div style={{
+                                            borderTop: "1px solid #f1f5f9", padding: "20px 24px",
+                                            display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px",
+                                            background: "#fafbfc"
                                         }}>
-                                            <StatusIcon size={14} />
-                                            {statusInfo.label}
-                                        </span>
-                                    </div>
+                                            {/* Items */}
+                                            <div>
+                                                <h4 style={{ fontSize: "0.85rem", color: "#374151", marginBottom: "10px", fontWeight: 700 }}>
+                                                    🛒 Itens do Pedido
+                                                </h4>
+                                                {(order.items || []).map((item: any, i: number) => (
+                                                    <div key={i} style={{
+                                                        display: "flex", justifyContent: "space-between",
+                                                        padding: "6px 0", fontSize: "0.85rem",
+                                                        borderBottom: i < order.items.length - 1 ? "1px solid #f1f5f9" : "none"
+                                                    }}>
+                                                        <span style={{ color: "#374151" }}>{item.quantity}x {item.product_name}</span>
+                                                        <span style={{ fontWeight: 600 }}>R$ {(item.price * item.quantity).toFixed(2)}</span>
+                                                    </div>
+                                                ))}
+                                                <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid #e5e7eb" }}>
+                                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "#666" }}>
+                                                        <span>Frete</span>
+                                                        <span>R$ {Number(order.shipping_price || 0).toFixed(2)}</span>
+                                                    </div>
+                                                    {order.discount_amount > 0 && (
+                                                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "#15803d" }}>
+                                                            <span>Desconto {order.coupon_code ? `(${order.coupon_code})` : ""}</span>
+                                                            <span>- R$ {Number(order.discount_amount).toFixed(2)}</span>
+                                                        </div>
+                                                    )}
+                                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.95rem", fontWeight: 700, marginTop: "6px", color: "#2d5a27" }}>
+                                                        <span>Total</span>
+                                                        <span>R$ {Number(order.total || 0).toFixed(2)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                    {/* Actions */}
-                                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
-                                        {hasLabel ? (
-                                            <button
-                                                onClick={() => downloadLabel(order.id)}
-                                                style={{
+                                            {/* Customer & Address */}
+                                            <div>
+                                                <h4 style={{ fontSize: "0.85rem", color: "#374151", marginBottom: "10px", fontWeight: 700 }}>
+                                                    👤 Cliente
+                                                </h4>
+                                                <div style={{ fontSize: "0.85rem", color: "#555", lineHeight: 1.8 }}>
+                                                    <p style={{ margin: 0 }}><strong>Nome:</strong> {order.buyer_name || "—"}</p>
+                                                    <p style={{ margin: 0 }}><strong>Email:</strong> {order.buyer_email || "—"}</p>
+                                                    {order.customer_phone && <p style={{ margin: 0 }}><strong>Tel:</strong> {order.customer_phone}</p>}
+                                                </div>
+
+                                                {order.address && order.address.street && (
+                                                    <>
+                                                        <h4 style={{ fontSize: "0.85rem", color: "#374151", marginTop: "16px", marginBottom: "8px", fontWeight: 700 }}>
+                                                            📍 Endereço
+                                                        </h4>
+                                                        <div style={{ fontSize: "0.82rem", color: "#555", lineHeight: 1.6 }}>
+                                                            <p style={{ margin: 0 }}>{order.address.street}, {order.address.number}</p>
+                                                            {order.address.complement && <p style={{ margin: 0 }}>{order.address.complement}</p>}
+                                                            <p style={{ margin: 0 }}>{order.address.neighborhood} — {order.address.city}/{order.address.state}</p>
+                                                            {order.address.cep && <p style={{ margin: 0 }}>CEP: {order.address.cep}</p>}
+                                                        </div>
+                                                    </>
+                                                )}
+
+                                                {/* Stripe IDs */}
+                                                {order.stripe_payment_id && (
+                                                    <div style={{ marginTop: "16px" }}>
+                                                        <h4 style={{ fontSize: "0.85rem", color: "#374151", marginBottom: "6px", fontWeight: 700 }}>
+                                                            💳 Stripe
+                                                        </h4>
+                                                        <div style={{ fontSize: "0.72rem", color: "#94a3b8", wordBreak: "break-all" }}>
+                                                            <p style={{ margin: "0 0 2px" }}>Payment: {order.stripe_payment_id}</p>
+                                                            <p style={{ margin: 0 }}>Session: {order.stripe_session_id}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Actions Bar */}
+                                            <div style={{
+                                                gridColumn: "1 / -1", display: "flex", gap: "10px",
+                                                paddingTop: "16px", borderTop: "1px solid #e5e7eb", flexWrap: "wrap"
+                                            }}>
+                                                {hasLabel ? (
+                                                    <button onClick={() => downloadLabel(order.id)} style={{
+                                                        display: "flex", alignItems: "center", gap: "6px",
+                                                        background: "#2563eb", color: "white", border: "none",
+                                                        padding: "8px 16px", borderRadius: "8px", cursor: "pointer",
+                                                        fontWeight: 600, fontSize: "0.8rem"
+                                                    }}>
+                                                        <Download size={14} /> Baixar Etiqueta Correios
+                                                    </button>
+                                                ) : order.status === "paid" ? (
+                                                    <button
+                                                        onClick={() => generateLabel(order.id)}
+                                                        disabled={generatingLabel === order.id}
+                                                        style={{
+                                                            display: "flex", alignItems: "center", gap: "6px",
+                                                            background: generatingLabel === order.id ? "#94a3b8" : "#2d5a27",
+                                                            color: "white", border: "none",
+                                                            padding: "8px 16px", borderRadius: "8px",
+                                                            cursor: generatingLabel === order.id ? "not-allowed" : "pointer",
+                                                            fontWeight: 600, fontSize: "0.8rem"
+                                                        }}
+                                                    >
+                                                        <FileText size={14} />
+                                                        {generatingLabel === order.id ? "Gerando..." : "Gerar Etiqueta Correios"}
+                                                    </button>
+                                                ) : null}
+
+                                                <button onClick={() => viewOrderLabel(order.id)} style={{
                                                     display: "flex", alignItems: "center", gap: "6px",
-                                                    background: "#2563eb", color: "white", border: "none",
+                                                    background: "#f1f5f9", color: "#374151", border: "1px solid #e2e8f0",
                                                     padding: "8px 16px", borderRadius: "8px", cursor: "pointer",
                                                     fontWeight: 600, fontSize: "0.8rem"
-                                                }}
-                                            >
-                                                <Download size={14} /> Baixar Etiqueta
-                                            </button>
-                                        ) : canGenerate ? (
-                                            <button
-                                                onClick={() => generateLabel(order.id)}
-                                                disabled={generatingLabel === order.id}
-                                                style={{
-                                                    display: "flex", alignItems: "center", gap: "6px",
-                                                    background: generatingLabel === order.id ? "#94a3b8" : "#2d5a27",
-                                                    color: "white", border: "none",
-                                                    padding: "8px 16px", borderRadius: "8px",
-                                                    cursor: generatingLabel === order.id ? "not-allowed" : "pointer",
-                                                    fontWeight: 600, fontSize: "0.8rem"
-                                                }}
-                                            >
-                                                <FileText size={14} />
-                                                {generatingLabel === order.id ? "Gerando..." : "Gerar Etiqueta"}
-                                            </button>
-                                        ) : (
-                                            <span style={{ fontSize: "0.75rem", color: "#aaa" }}>
-                                                {order.status === "pending" ? "Aguardando pagto" : "Já enviado"}
-                                            </span>
-                                        )}
-                                    </div>
+                                                }}>
+                                                    <Eye size={14} /> Ticket do Pedido (PDF)
+                                                </button>
+
+                                                {transitions.map(nextStatus => (
+                                                    <button
+                                                        key={nextStatus}
+                                                        onClick={() => updateStatus(order.id, nextStatus)}
+                                                        disabled={updatingStatus === order.id}
+                                                        style={{
+                                                            display: "flex", alignItems: "center", gap: "6px",
+                                                            padding: "8px 16px", borderRadius: "8px", cursor: "pointer",
+                                                            fontWeight: 600, fontSize: "0.8rem", border: "none",
+                                                            background: nextStatus === "cancelled" ? "#fef2f2" : STATUS_LABELS[nextStatus]?.color + "20",
+                                                            color: nextStatus === "cancelled" ? "#dc2626" : STATUS_LABELS[nextStatus]?.color,
+                                                            opacity: updatingStatus === order.id ? 0.5 : 1
+                                                        }}
+                                                    >
+                                                        Marcar como {STATUS_LABELS[nextStatus]?.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
