@@ -196,6 +196,14 @@ app.include_router(shipping.router, prefix="/shipping", tags=["shipping"])
 app.include_router(crm.router, prefix="/crm", tags=["crm"])
 app.include_router(addresses.router, prefix="/addresses", tags=["addresses"])
 
+# Novos routers com Arquitetura Limpa (Routes/Services/Repositories)
+try:
+    from app.routes import checkout, freight
+    app.include_router(checkout.router, tags=["checkout_v2"])
+    app.include_router(freight.router, tags=["freight_v2"])
+except ImportError as e:
+    print(f"Skipping v2 routes import: {e}")
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
