@@ -95,6 +95,7 @@ def _apply_startup_migrations():
             ("buyer_name",         "VARCHAR"),
             ("buyer_email",        "VARCHAR"),
             ("correios_label_url", "VARCHAR"),
+            ("codigo_rastreio",    "VARCHAR"),
         ]
         for col, defn in ORDER_COLS:
             try:
