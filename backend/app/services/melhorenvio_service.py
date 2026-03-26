@@ -85,12 +85,14 @@ class MelhorEnvioV2Service:
         payload = {
             "from": {"postal_code": STORE_CEP},
             "to": {"postal_code": clean_cep},
-            "package": {
-                "weight": peso,
-                "width": largura,
-                "height": altura,
-                "length": comprimento
-            },
+            "volumes": [
+                {
+                    "weight": peso,
+                    "width": largura,
+                    "height": altura,
+                    "length": comprimento
+                }
+            ],
             "options": {
                 "receipt": False,
                 "own_hand": False
@@ -122,6 +124,16 @@ class MelhorEnvioV2Service:
         """
         # 1. Adicionar ao carrinho
         total_value = sum([item["price"] * item["quantity"] for item in items])
+        # Lógica básica de caixas (Mesma usada para orçar, baseada no pedido)
+        total_quantity = sum([item["quantity"] for item in items])
+        # Calculate dynamic physical volume
+        v_width, v_height, v_length = 16, 12, 20
+        v_weight = max(total_quantity * 0.25, 0.3)
+        if total_quantity > 2 and total_quantity <= 5:
+            v_width, v_height, v_length = 20, 20, 20
+        elif total_quantity > 5:
+            v_width, v_height, v_length = 30, 25, 25
+            
         cart_payload = {
             "service": shipping_service_id,
             "agency": 1, # ID da agencia de preferência se Jadlog ou outro
@@ -157,10 +169,10 @@ class MelhorEnvioV2Service:
             ],
             "volumes": [
                 {
-                    "height": 10,
-                    "width": 15,
-                    "length": 20,
-                    "weight": 0.5
+                    "height": v_height,
+                    "width": v_width,
+                    "length": v_length,
+                    "weight": v_weight
                 }
             ],
             "options": {
