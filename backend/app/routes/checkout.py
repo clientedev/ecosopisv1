@@ -122,7 +122,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         
-        pedido_id_str = session.get("metadata", {}).get("pedido_id")
+        pedido_id_str = session.metadata.get("pedido_id")
         if not pedido_id_str:
             print("Webhook sem pedido_id no metadata")
             return {"status": "ignored", "reason": "no pedido_id"}

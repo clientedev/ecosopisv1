@@ -41,8 +41,8 @@ class StripeService:
             payment_method_types=["card"],
             mode="payment",
             line_items=line_items,
-            success_url=f"{base_url}/pagamento/sucesso?pedido_id={pedido_id}",
-            cancel_url=f"{base_url}/pagamento/falha?pedido_id={pedido_id}",
+            success_url=f"{base_url}/pagamento?status=approved&order_id={pedido_id}",
+            cancel_url=f"{base_url}/pagamento?status=failure&order_id={pedido_id}",
             metadata={
                 "pedido_id": str(pedido_id),
             },
