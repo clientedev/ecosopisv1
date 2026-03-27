@@ -184,7 +184,9 @@ async def stripe_webhook(
 
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
-        pedido_id = session.metadata.get("pedido_id")
+        
+        metadata = getattr(session, "metadata", None)
+        pedido_id = metadata.get("pedido_id") if isinstance(metadata, dict) else getattr(metadata, "pedido_id", None) if metadata else None
 
         if not pedido_id:
             logger.warning("Stripe webhook: no pedido_id in metadata")
@@ -199,8 +201,14 @@ async def stripe_webhook(
             order.status = "paid"
             order.stripe_payment_id = getattr(session, "payment_intent", "")
             order.stripe_session_id = getattr(session, "id", "")
-            order.buyer_email = session.customer_details.get("email", "") if session.customer_details else ""
-            order.buyer_name = session.customer_details.get("name", "") if session.customer_details else ""
+            
+            customer_details = getattr(session, "customer_details", None)
+            if isinstance(customer_details, dict):
+                order.buyer_email = customer_details.get("email", "")
+                order.buyer_name = customer_details.get("name", "")
+            else:
+                order.buyer_email = getattr(customer_details, "email", "") if customer_details else ""
+                order.buyer_name = getattr(customer_details, "name", "") if customer_details else ""
 
             # Update user purchase count / roulette
             user = db.query(models.User).filter(models.User.id == order.user_id).first()

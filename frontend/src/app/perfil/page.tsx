@@ -288,7 +288,11 @@ export default function UserProfile() {
                                         <h2>Meus Dados</h2>
                                     </div>
                                     {!isEditing && (
-                                        <button className={styles.editBtn} onClick={() => setIsEditing(true)}>
+                                        <button className={styles.editBtn} onClick={() => {
+                                            setIsEditing(true);
+                                            setEditName(profile.full_name || "");
+                                            setEditPhoto(profile.profile_picture || "");
+                                        }}>
                                             <Pencil size={18} /> Editar Perfil
                                         </button>
                                     )}
