@@ -77,7 +77,7 @@ class OrderResponse(BaseModel):
     id: int
     status: str
     total: float
-    items: List[OrderItem]
+    items: Optional[List[OrderItem]] = []
     payment_method: Optional[str] = None
     shipping_method: Optional[str] = None
     shipping_price: Optional[float] = None
