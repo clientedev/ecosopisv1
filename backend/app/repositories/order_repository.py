@@ -6,14 +6,16 @@ class OrderRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_order(self, user_id: int, total: float, shipping_price: float, shipping_method: str, address: Optional[dict] = None, status: str = "pending") -> Order:
+    def create_order(self, user_id: int, total: float, shipping_price: float, shipping_method: str, address: Optional[dict] = None, status: str = "pending", coupon_code: str = None, discount_amount: float = 0.0) -> Order:
         db_order = Order(
             user_id=user_id,
             status=status,
             total=total,
             shipping_price=shipping_price,
             shipping_method=shipping_method,
-            address=address
+            address=address,
+            coupon_code=coupon_code,
+            discount_amount=discount_amount
         )
         self.db.add(db_order)
         self.db.flush() # flush to get the ID without committing

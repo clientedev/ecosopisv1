@@ -7,7 +7,7 @@ class OrderService:
     def __init__(self, repo: OrderRepository):
         self.repo = repo
 
-    def create_checkout(self, user_id: int, items: List[dict], shipping_price: float, shipping_method_id: str, address_info: dict, return_url: str = None):
+    def create_checkout(self, user_id: int, items: List[dict], shipping_price: float, shipping_method_id: str, address_info: dict, return_url: str = None, coupon_code: str = None, discount_amount: float = 0.0):
         """
         1. Calcula o total
         2. Cria o pedido "pending"
@@ -15,16 +15,20 @@ class OrderService:
         4. Cria Stripe Checkout Session
         5. Atualiza Pedido com Session ID
         """
-        total_items = sum([item["price"] * item["quantity"] for item in items])
+        product_total = sum([item["price"] * item["quantity"] for item in items])
+        final_product_total = max(0.0, product_total - discount_amount)
+        order_total = final_product_total + shipping_price
         
         # 1. & 2. Create Order
         order = self.repo.create_order(
             user_id=user_id,
-            total=total_items + shipping_price,
+            total=order_total,
             shipping_price=shipping_price,
             shipping_method=shipping_method_id,
             address=address_info,
-            status="pending"
+            status="pending",
+            coupon_code=coupon_code,
+            discount_amount=discount_amount
         )
         
         # Save custom properties like address
@@ -37,7 +41,7 @@ class OrderService:
         # 4. Stripe Checkout Session
         stripe_res = StripeService.criar_checkout_session(
             pedido_id=order.id,
-            total_value=total_items,
+            total_value=final_product_total,
             shipping_price=shipping_price,
             return_url=return_url
         )

@@ -273,22 +273,24 @@ export default function CarrinhoPage() {
         setLoading(true);
         const token = localStorage.getItem("token");
         try {
-            const res = await fetch(`/api/payment/create-preference`, {
+            const res = await fetch(`/api/payment/checkout`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    items: cart.map(i => ({ product_id: i.id, quantity: i.quantity, price: i.price, product_name: i.name })),
-                    total: finalTotal,
-                    address: { ...address, cep: cep.replace(/\D/g, "") },
-                    shipping_method: `${selectedShipping.company} - ${selectedShipping.name}`,
+                    items: cart.map(i => ({ product_id: i.id, quantity: i.quantity, price: i.price })),
                     shipping_price: shippingPrice,
-                    customer_name: customerName,
-                    customer_phone: customerPhone,
-                    coupon_code: appliedCoupon?.code,
-                    discount_amount: discount
+                    shipping_method_id: selectedShipping.id.toString(),
+                    address_info: { 
+                        ...address, 
+                        postal_code: cep.replace(/\D/g, ""),
+                        customer_name: customerName,
+                        customer_phone: customerPhone
+                    },
+                    return_url: window.location.origin,
+                    coupon_code: appliedCoupon?.code
                 }),
             });
 

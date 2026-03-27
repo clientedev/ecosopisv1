@@ -24,6 +24,7 @@ class CheckoutRequestModel(BaseModel):
     shipping_method_id: str
     address_info: dict # dict with keys: postal_code, street, number, etc
     return_url: str = "http://localhost:3000"
+    coupon_code: Optional[str] = None
 
 @router.post("/checkout")
 async def checkout(
@@ -33,15 +34,52 @@ async def checkout(
 ):
     """
     1. Recebe itens do carrinho
-    2. Cria pedido pending e order_items
-    3. Cria Stripe Checkout Session (salvando pedido_id na metadata)
-    4. Retorna URL do checkout
+    2. Valida cupom se houver
+    3. Cria pedido pending e order_items
+    4. Cria Stripe Checkout Session (salvando pedido_id na metadata)
+    5. Retorna URL do checkout
     """
     if not checkout_data.items:
         raise HTTPException(status_code=400, detail="Carrinho vazio.")
         
     repo = OrderRepository(db)
     service = OrderService(repo)
+    
+    # 2. Validação de Cupom
+    coupon_code = None
+    discount_amount = 0.0
+    
+    if checkout_data.coupon_code:
+        from app.models import models as app_models
+        from datetime import datetime
+        
+        coupon = db.query(app_models.Coupon).filter(
+            app_models.Coupon.code == checkout_data.coupon_code.upper(),
+            app_models.Coupon.is_active == True
+        ).first()
+        
+        if not coupon:
+            raise HTTPException(status_code=400, detail="Cupom inválido ou inativo")
+            
+        if coupon.valid_until and coupon.valid_until < datetime.now():
+            raise HTTPException(status_code=400, detail="Este cupom já expirou")
+            
+        if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
+            raise HTTPException(status_code=400, detail="Este cupom atingiu o limite de uso")
+            
+        subtotal = sum(item.price * item.quantity for item in checkout_data.items)
+        if coupon.min_purchase_value > subtotal:
+            raise HTTPException(status_code=400, detail=f"Compra mínima de R$ {coupon.min_purchase_value} necessária para este cupom")
+            
+        coupon_code = coupon.code
+        if coupon.discount_type == "percentage":
+            discount_amount = (subtotal * coupon.discount_value) / 100
+        else:
+            discount_amount = coupon.discount_value
+            
+        # Increment usage count
+        coupon.usage_count += 1
+        db.add(coupon)
     
     # map items to dict as expected by service
     items_list = [item.dict() for item in checkout_data.items]
@@ -53,7 +91,9 @@ async def checkout(
             shipping_price=checkout_data.shipping_price,
             shipping_method_id=checkout_data.shipping_method_id,
             address_info=checkout_data.address_info,
-            return_url=checkout_data.return_url
+            return_url=checkout_data.return_url,
+            coupon_code=coupon_code,
+            discount_amount=discount_amount
         )
         # SQLAlchemy flush is handled, but we need to commit the transaction
         db.commit()

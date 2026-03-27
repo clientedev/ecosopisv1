@@ -57,13 +57,17 @@ export default function CouponManagement() {
         e.preventDefault();
         try {
             const token = localStorage.getItem("token");
+            const payload = {
+                ...formData,
+                valid_until: formData.valid_until || null
+            };
             const res = await fetch(`/api/coupons/`, {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
             if (res.ok) {
                 setIsAdding(false);
