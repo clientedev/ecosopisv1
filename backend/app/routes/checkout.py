@@ -51,7 +51,7 @@ async def checkout(
     
     if checkout_data.coupon_code:
         from app.models import models as app_models
-        from datetime import datetime
+        from datetime import datetime, timezone
         
         coupon = db.query(app_models.Coupon).filter(
             app_models.Coupon.code == checkout_data.coupon_code.upper(),
@@ -61,7 +61,7 @@ async def checkout(
         if not coupon:
             raise HTTPException(status_code=400, detail="Cupom inválido ou inativo")
             
-        if coupon.valid_until and coupon.valid_until < datetime.now():
+        if coupon.valid_until and coupon.valid_until < datetime.now(timezone.utc):
             raise HTTPException(status_code=400, detail="Este cupom já expirou")
             
         if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:

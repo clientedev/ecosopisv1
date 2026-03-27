@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
@@ -50,7 +50,7 @@ def validate_coupon(code: str, db: Session = Depends(get_db)):
     if not coupon:
         raise HTTPException(status_code=404, detail="Cupom inválido ou expirado")
     
-    if coupon.valid_until and coupon.valid_until < datetime.now():
+    if coupon.valid_until and coupon.valid_until < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Este cupom já expirou")
     
     if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:

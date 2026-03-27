@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.core.database import get_db
 from app.models import models
 from app.api.endpoints.auth import get_current_user
@@ -27,7 +27,7 @@ async def get_crm_summary(
     orders_by_status = {status: count for status, count in status_counts}
 
     # Revenue last 30 days (simplified)
-    today = datetime.now()
+    today = datetime.now(timezone.utc)
     last_30_days = today - timedelta(days=30)
     daily_revenue = db.query(
         func.date(models.Order.created_at).label('date'),
