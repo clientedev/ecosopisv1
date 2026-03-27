@@ -55,9 +55,9 @@ export default function CarouselAdmin() {
     };
 
     return (
-        <div className={styles.dashboard}>
+        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/dashboard/carousel" />
-            <main className={styles.mainContent}>
+            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
                     <h1>Gerenciar Banner Principal</h1>
                     <button className="btn-primary" onClick={() => setIsCreateModalOpen(true)}>+ Novo Slide</button>

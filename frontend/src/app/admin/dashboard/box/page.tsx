@@ -62,9 +62,9 @@ export default function AdminBoxPage() {
     };
 
     return (
-        <div className={styles.dashboard}>
+        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/dashboard/box" />
-            <main className={styles.mainContent}>
+            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
                     <h1>Gerenciar Box Surpresa</h1>
                 </header>

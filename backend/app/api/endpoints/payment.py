@@ -11,9 +11,10 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.api.endpoints.auth import get_current_user
+from app.repositories.order_repository import OrderRepository
 from app.core.stripe_service import create_checkout_session, verify_webhook_signature
 from app.models import models
-from app.api.endpoints.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -96,27 +97,32 @@ async def create_stripe_checkout(
     shipping_price = data.shipping_price if data.shipping_price is not None else 20.0
 
     # ── Create order if not provided ─────────────────────────────────────────
+    repo = OrderRepository(db)
     if data.order_id:
-        order = db.query(models.Order).filter(models.Order.id == data.order_id).first()
+        order = repo.get_order_by_id(data.order_id)
         if not order:
-            raise HTTPException(status_code=404, detail="Pedido não encontrado")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado")
     else:
-        order = models.Order(
+        # Create order in both JSON field and relational table for maximum compatibility
+        order = repo.create_order(
             user_id=current_user.id,
-            status="pending",
             total=data.total,
-            address=data.address or {},
-            items=[item.dict() for item in data.items],
-            payment_method="stripe",
-            shipping_method=data.shipping_method or "fixo",
             shipping_price=shipping_price,
-            customer_name=data.customer_name or current_user.full_name or "",
-            customer_email=current_user.email,
-            customer_phone=data.customer_phone or "",
+            shipping_method=data.shipping_method or "fixo",
+            items=[item.dict() for item in data.items],
+            address=data.address or {},
+            status="pending",
             coupon_code=data.coupon_code or "",
-            discount_amount=data.discount_amount or 0.0,
+            discount_amount=data.discount_amount or 0.0
         )
-        db.add(order)
+        # Populate relational order_items table
+        repo.add_order_items(order.id, [item.dict() for item in data.items])
+        
+        # Set customer details
+        order.customer_name = data.customer_name or current_user.full_name or ""
+        order.customer_email = current_user.email
+        order.customer_phone = data.customer_phone or ""
+        
         db.commit()
         db.refresh(order)
         logger.info(f"Order created: id={order.id} user={current_user.email}")

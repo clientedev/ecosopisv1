@@ -175,9 +175,9 @@ export default function NovidadesAdmin() {
     };
 
     return (
-        <div className={styles.dashboard}>
+        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/dashboard/novidades" />
-            <main className={styles.mainContent}>
+            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
                     <h1>Gerenciar Novidades</h1>
                     <button

@@ -118,9 +118,9 @@ export default function AdminRoulettePage() {
     if (loading) return <div>Carregando...</div>;
 
     return (
-        <div style={{ display: 'flex' }}>
+        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
             <AdminSidebar activePath="/admin/dashboard/roleta" />
-            <main className={styles.container}>
+            <main className={styles.container} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
                     <h1>⚙️ Gerenciar Roleta Promocional</h1>
                     <button className="btn-primary" onClick={() => setIsAddingPrize(true)}>

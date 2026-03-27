@@ -280,7 +280,12 @@ export default function CarrinhoPage() {
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    items: cart.map(i => ({ product_id: i.id, quantity: i.quantity, price: i.price })),
+                    items: cart.map(i => ({ 
+                        product_id: i.id, 
+                        product_name: i.name, 
+                        quantity: i.quantity, 
+                        price: i.price 
+                    })),
                     shipping_price: shippingPrice,
                     shipping_method_id: selectedShipping.id.toString(),
                     address_info: { 

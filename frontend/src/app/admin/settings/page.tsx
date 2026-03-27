@@ -50,9 +50,9 @@ export default function AdminSettings() {
     };
 
     return (
-        <div className={styles.dashboard}>
+        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/settings" />
-            <main className={styles.mainContent}>
+            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
                     <h1>Configurações do Sistema</h1>
                 </header>

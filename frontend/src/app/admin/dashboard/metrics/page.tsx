@@ -32,9 +32,9 @@ export default function AdminMetricsPage() {
     if (loading) return <div className="container">Carregando métricas...</div>;
 
     return (
-        <div className={styles.dashboard}>
+        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/dashboard/metrics" />
-            <main className={styles.mainContent}>
+            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
                     <h1>Métricas e Engajamento</h1>
                 </header>

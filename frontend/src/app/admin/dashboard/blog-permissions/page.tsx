@@ -88,9 +88,9 @@ export default function BlogPermissions() {
     const admins = users.filter(u => u.role === "admin");
 
     return (
-        <div className={styles.dashboard}>
+        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/dashboard/blog-permissions" />
-            <main className={styles.mainContent}>
+            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
                     <h1>Permissões de Blog</h1>
                     <p style={{ color: "#888", fontWeight: 400, fontSize: "0.95rem", marginTop: 4 }}>

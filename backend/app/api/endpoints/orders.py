@@ -24,22 +24,30 @@ def create_order(
     current_user: models.User = Depends(get_current_user),
 ):
 
-    db_order = models.Order(
+    repo = OrderRepository(db)
+    items_json = [item.dict() for item in order_in.items]
+    
+    db_order = repo.create_order(
         user_id=current_user.id,
         status="pending",
         total=order_in.total,
-        address=order_in.address,
-        items=[item.dict() for item in order_in.items],
-        payment_method=order_in.payment_method or "stripe",
-        shipping_method=order_in.shipping_method or "fixo",
         shipping_price=order_in.shipping_price or 20.0,
-        customer_name=order_in.customer_name or current_user.full_name or "",
-        customer_email=current_user.email,
-        customer_phone=order_in.customer_phone or "",
+        shipping_method=order_in.shipping_method or "fixo",
+        items=items_json,
+        address=order_in.address,
         coupon_code=order_in.coupon_code or "",
-        discount_amount=order_in.discount_amount or 0.0,
+        discount_amount=order_in.discount_amount or 0.0
     )
-    db.add(db_order)
+    
+    # Also populate relational table
+    repo.add_order_items(db_order.id, items_json)
+    
+    # Extra customer info
+    db_order.customer_name = order_in.customer_name or current_user.full_name or ""
+    db_order.customer_email = current_user.email
+    db_order.customer_phone = order_in.customer_phone or ""
+    db_order.payment_method = order_in.payment_method or "stripe"
+    
     db.commit()
     db.refresh(db_order)
 
@@ -212,6 +220,18 @@ def list_all_subscriptions(
 def _order_to_response(o: models.Order, db: Session = None) -> dict:
     """Convert an Order model to a dict (handles missing columns gracefully)."""
     items = o.items or []
+    
+    # Fallback for orders created via v2 architecture that didn't populate the JSON column
+    if not items and hasattr(o, 'order_items') and o.order_items:
+        items = [
+            {
+                "product_id": item.product_id,
+                "product_name": item.product_name, # uses the @property
+                "quantity": item.quantity,
+                "price": item.price
+            }
+            for item in o.order_items
+        ]
 
     # Get user info for buyer fields
     buyer_name = getattr(o, "buyer_name", None) or getattr(o, "customer_name", None) or ""

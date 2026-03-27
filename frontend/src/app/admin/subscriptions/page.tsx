@@ -32,7 +32,7 @@ export default function AdminSubscriptionsPage() {
     return (
         <div className={styles.dashboard}>
             <AdminSidebar activePath="/admin/subscriptions" />
-            <main className={styles.mainContent} style={{ padding: '2rem' }}>
+            <main className={styles.mainContent} style={{ padding: '2rem', flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
                     <h1>Gerenciamento de Assinaturas</h1>
                 </header>

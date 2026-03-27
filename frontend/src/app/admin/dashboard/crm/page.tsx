@@ -54,9 +54,9 @@ export default function AdminCRMPage() {
     }, []);
 
     if (loading) return (
-        <div className={styles.dashboard}>
+        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/dashboard/crm" />
-            <main className={styles.mainContent} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <main className={styles.mainContent} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ fontSize: '1.2rem', color: '#64748b' }}>Carregando Inteligência de Vendas...</div>
             </main>
         </div>
@@ -66,16 +66,19 @@ export default function AdminCRMPage() {
         { label: 'Receita Total (Pagos)', value: `R$ ${data?.total_revenue?.toFixed(2).replace('.', ',') || '0,00'}`, icon: <DollarSign size={24} />, color: '#10b981' },
         { label: 'Total de Pedidos', value: data?.total_orders || 0, icon: <ShoppingBag size={24} />, color: '#3b82f6' },
         { label: 'Ticket Médio (Pagos)', value: `R$ ${data?.avg_ticket?.toFixed(2).replace('.', ',') || '0,00'}`, icon: <TrendingUp size={24} />, color: '#f59e0b' },
-        { label: 'Variedades Vendidas', value: data?.top_products?.length || 0, icon: <Package size={24} />, color: '#8b5cf6' },
+        { label: 'Novos Clientes (30d)', value: data?.user_growth?.reduce((acc: number, cur: any) => acc + cur.count, 0) || 0, icon: <Users size={24} />, color: '#8b5cf6' },
     ];
 
     // Format data for charts
-    const revenueData = data?.revenue_series?.map((item: any) => {
+    const dailyVolumeData = data?.revenue_series?.map((item: any) => {
         const d = new Date(item.date);
-        d.setUTCHours(12); // Fix timezone offset visually
+        d.setUTCHours(12);
+        const growth = data.user_growth.find((u: any) => u.date === item.date);
         return {
             date: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-            revenue: item.revenue
+            receita: item.revenue,
+            pedidos: item.orders,
+            clientes: growth ? growth.count : 0
         };
     }) || [];
 
@@ -91,9 +94,9 @@ export default function AdminCRMPage() {
     })) || [];
 
     return (
-        <div className={styles.dashboard}>
+        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/dashboard/crm" />
-            <main className={styles.mainContent}>
+            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
                     <h1>Inteligência de Vendas - CRM</h1>
                 </header>
@@ -112,18 +115,18 @@ export default function AdminCRMPage() {
                     ))}
                 </div>
 
-                {/* Dashboard Charts Row 1 */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr', gap: '24px', marginBottom: '32px' }}>
+                {/* Dashboard Charts Row 1: Core Sales Performance */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', marginBottom: '32px' }}>
                     
-                    {/* Revenue Area Chart */}
+                    {/* Revenue and Orders Chart */}
                     <div style={{ background: '#fff', padding: '28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
                         <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', fontSize: '1.2rem', fontWeight: 700 }}>
-                            <TrendingUp size={22} color="#10b981" /> Receita dos Últimos 30 Dias (Pedidos Pagos)
+                            <TrendingUp size={22} color="#10b981" /> Volume de Vendas e Pedidos (30 dias)
                         </h3>
-                        {revenueData.length > 0 ? (
-                            <div style={{ width: '100%', height: 320 }}>
+                        {dailyVolumeData.length > 0 ? (
+                            <div style={{ width: '100%', height: 350 }}>
                                 <ResponsiveContainer>
-                                    <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+                                    <AreaChart data={dailyVolumeData}>
                                         <defs>
                                             <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
@@ -132,125 +135,160 @@ export default function AdminCRMPage() {
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                         <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 13}} dy={10} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 13}} tickFormatter={(val) => `R$ ${val}`} />
+                                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 13}} tickFormatter={(val) => `R$ ${val}`} />
+                                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill: '#3b82f6', fontSize: 13}} />
                                         <Tooltip 
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
-                                            formatter={(value: any) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Receita']}
-                                            labelStyle={{ color: '#1e293b', fontWeight: 700, marginBottom: '4px' }}
+                                            formatter={(value: any, name: any) => [
+                                                name === 'receita' ? `R$ ${Number(value).toFixed(2).replace('.', ',')}` : value,
+                                                typeof name === 'string' ? name.charAt(0).toUpperCase() + name.slice(1) : name
+                                            ]}
                                         />
-                                        <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                                        <Legend verticalAlign="top" height={36}/>
+                                        <Area yAxisId="left" type="monotone" dataKey="receita" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                                        <Bar yAxisId="right" dataKey="pedidos" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>
                         ) : (
-                            <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                                Nenhum volume de receita registrado nos últimos 30 dias.
+                            <div style={{ height: 350, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                                Sem dados históricos suficientes.
                             </div>
                         )}
                     </div>
 
-                    {/* Order Status Pie Chart */}
+                    {/* Status Pie Chart */}
                     <div style={{ background: '#fff', padding: '28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
                         <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', fontSize: '1.2rem', fontWeight: 700 }}>
-                            <Clock size={22} color="#f59e0b" /> Demografia de Status
+                            <Clock size={22} color="#f59e0b" /> Status de Pedidos
                         </h3>
                         {statusData.length > 0 ? (
-                            <div style={{ width: '100%', height: 320 }}>
+                            <div style={{ width: '100%', height: 350 }}>
                                 <ResponsiveContainer>
                                     <PieChart>
-                                        <Pie
-                                            data={statusData}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={70}
-                                            outerRadius={100}
-                                            paddingAngle={4}
-                                            dataKey="value"
-                                        >
-                                            {statusData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
-                                            ))}
+                                        <Pie data={statusData} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={4} dataKey="value">
+                                            {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                                         </Pie>
-                                        <Tooltip 
-                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight: 600 }}
-                                            formatter={(value: any) => [value, 'Pedidos']}
-                                        />
-                                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '0.9rem', color: '#475569' }} />
+                                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight: 600 }} />
+                                        <Legend verticalAlign="bottom" align="center" iconType="circle" />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </div>
                         ) : (
-                            <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                                Nenhum pedido registrado.
-                            </div>
+                            <div style={{ height: 350, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Nenhum pedido registrado.</div>
                         )}
                     </div>
-
                 </div>
 
-                {/* Dashboard Charts Row 2 */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                {/* Dashboard Charts Row 2: Customer Growth and Payments */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
                     
-                    {/* Top Products Bar Chart */}
+                    {/* User Growth Chart */}
                     <div style={{ background: '#fff', padding: '28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
                         <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', fontSize: '1.2rem', fontWeight: 700 }}>
-                            <Package size={22} color="#3b82f6" /> Top 5 Produtos Mais Vendidos
+                            <Users size={22} color="#8b5cf6" /> Novos Clientes Diários
                         </h3>
-                        {topProductsData.length > 0 ? (
-                            <div style={{ width: '100%', height: 320 }}>
-                                <ResponsiveContainer>
-                                    <BarChart data={topProductsData} layout="vertical" margin={{ top: 5, right: 30, left: 30, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                                        <XAxis type="number" hide />
-                                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 12, fontWeight: 500}} width={140} />
-                                        <Tooltip 
-                                            cursor={{fill: '#f1f5f9'}}
-                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
-                                            formatter={(value: any) => [value, 'Unidades Vendidas']}
-                                        />
-                                        <Bar dataKey="vendas" fill="#3b82f6" radius={[0, 6, 6, 0]} barSize={28} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        ) : (
-                            <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                                Dados insuficientes de venda.
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Detailed List of Top Products */}
-                    <div style={{ background: '#fff', padding: '28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
-                        <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', fontSize: '1.2rem', fontWeight: 700 }}>
-                            <CheckCircle size={22} color="#8b5cf6" /> Relação e Classificação
-                        </h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', height: '320px', overflowY: 'auto', paddingRight: '8px' }}>
-                            {data?.top_products?.length > 0 ? (
-                                data.top_products.map((p: any, i: number) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9', transition: 'all 0.2s' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                            <div style={{ 
-                                                width: '40px', height: '40px', 
-                                                background: i === 0 ? '#fef3c7' : i === 1 ? '#f1f5f9' : i === 2 ? '#ffedd5' : '#f1f5f9', 
-                                                color: i === 0 ? '#d97706' : i === 1 ? '#64748b' : i === 2 ? '#c2410c' : '#94a3b8', 
-                                                borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem',
-                                                boxShadow: i < 3 ? '0 2px 5px rgba(0,0,0,0.05)' : 'none'
-                                            }}>
-                                                {i + 1}º
-                                            </div>
-                                            <span style={{ fontWeight: 700, color: '#334155', fontSize: '1rem' }}>{p.name}</span>
-                                        </div>
-                                        <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 800 }}>
-                                            {p.count} und.
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <p style={{ color: '#94a3b8', textAlign: 'center', marginTop: '60px' }}>Nenhuma venda confirmada listada.</p>
-                            )}
+                        <div style={{ width: '100%', height: 300 }}>
+                            <ResponsiveContainer>
+                                <AreaChart data={dailyVolumeData}>
+                                    <defs>
+                                        <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 13}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 13}} />
+                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }} />
+                                    <Area type="step" dataKey="clientes" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
 
+                    {/* Payment Method Distribution */}
+                    <div style={{ background: '#fff', padding: '28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+                        <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', fontSize: '1.2rem', fontWeight: 700 }}>
+                            <DollarSign size={22} color="#10b981" /> Métodos de Pagamento (Pedidos Pagos)
+                        </h3>
+                        {(() => {
+                            const paymentData = Object.entries(data?.payment_distribution || {}).map(([key, value], idx) => ({
+                                name: key.toUpperCase(),
+                                value: value,
+                                color: PIE_COLORS[idx % PIE_COLORS.length]
+                            }));
+                            return paymentData.length > 0 ? (
+                                <div style={{ width: '100%', height: 300 }}>
+                                    <ResponsiveContainer>
+                                        <PieChart>
+                                            <Pie data={paymentData} cx="50%" cy="50%" outerRadius={80} dataKey="value" labelLine={false} label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                                                {paymentData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                            </Pie>
+                                            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Sem dados de pagamento.</div>
+                            );
+                        })()}
+                    </div>
+                </div>
+
+                {/* Dashboard Charts Row 3: Product Channels and Top Sellers */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                    
+                    {/* Channel Clicks Bar Chart */}
+                    <div style={{ background: '#fff', padding: '28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+                        <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', fontSize: '1.2rem', fontWeight: 700 }}>
+                            <ShoppingBag size={22} color="#3b82f6" /> Performance por Canal de Venda (Cliques)
+                        </h3>
+                        {(() => {
+                            const clickData = [
+                                { name: 'Site', value: data?.click_stats?.site || 0, color: '#10b981' },
+                                { name: 'Shopee', value: data?.click_stats?.shopee || 0, color: '#ee4d2d' },
+                                { name: 'MercadoLivre', value: data?.click_stats?.mercadolivre || 0, color: '#ffe600' }
+                            ];
+                            return (
+                                <div style={{ width: '100%', height: 320 }}>
+                                    <ResponsiveContainer>
+                                        <BarChart data={clickData}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 13, fontWeight: 600}} />
+                                            <YAxis axisLine={false} tickLine={false} />
+                                            <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                                            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50}>
+                                                {clickData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            );
+                        })()}
+                    </div>
+
+                    {/* Top Products Rank */}
+                    <div style={{ background: '#fff', padding: '28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+                        <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', fontSize: '1.2rem', fontWeight: 700 }}>
+                            <CheckCircle size={22} color="#10b981" /> Top 10 Produtos Mais Vendidos
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '320px', overflowY: 'auto' }}>
+                            {data?.top_products?.map((p: any, i: number) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{ width: '32px', height: '32px', background: i < 3 ? '#2d5a27' : '#e2e8f0', color: i < 3 ? '#fff' : '#64748b', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: i < 3 ? 800 : 600, fontSize: '0.9rem' }}>
+                                            {i + 1}
+                                        </div>
+                                        <span style={{ fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>{p.name}</span>
+                                    </div>
+                                    <div style={{ background: '#fff', border: '1px solid #e2e8f0', color: '#2d5a27', padding: '4px 12px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 700 }}>
+                                        {p.count} und.
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>

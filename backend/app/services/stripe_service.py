@@ -10,22 +10,22 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 class StripeService:
     @classmethod
-    def criar_checkout_session(cls, pedido_id: int, total_value: float, shipping_price: float, return_url: str = None) -> dict:
+    def criar_checkout_session(cls, pedido_id: int, items: list, total_value: float, shipping_price: float, return_url: str = None) -> dict:
         total_cents = int(round(total_value * 100))
         shipping_cents = int(round(shipping_price * 100))
         
         base_url = (return_url or FRONTEND_URL).rstrip("/")
         
-        line_items = [
-            {
+        line_items = []
+        for item in items:
+            line_items.append({
                 "price_data": {
                     "currency": "brl",
-                    "product_data": {"name": "Produtos ECOSOPIS"},
-                    "unit_amount": total_cents,
+                    "product_data": {"name": item.get("product_name", "Produto ECOSOPIS")},
+                    "unit_amount": int(round(float(item.get("price", 0)) * 100)),
                 },
-                "quantity": 1,
-            }
-        ]
+                "quantity": int(item.get("quantity", 1)),
+            })
         
         if shipping_cents > 0:
             line_items.append({

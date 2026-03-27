@@ -23,6 +23,7 @@ class OrderService:
         order = self.repo.create_order(
             user_id=user_id,
             total=order_total,
+            items=items,
             shipping_price=shipping_price,
             shipping_method=shipping_method_id,
             address=address_info,
@@ -41,6 +42,7 @@ class OrderService:
         # 4. Stripe Checkout Session
         stripe_res = StripeService.criar_checkout_session(
             pedido_id=order.id,
+            items=items,
             total_value=final_product_total,
             shipping_price=shipping_price,
             return_url=return_url
