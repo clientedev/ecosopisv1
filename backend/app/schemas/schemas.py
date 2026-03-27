@@ -16,7 +16,7 @@ class UserResponse(UserBase):
     total_compras: int = 0
     pode_girar_roleta: bool = False
     tentativas_roleta: int = 0
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -50,7 +50,7 @@ class AddressUpdate(BaseModel):
 class AddressResponse(AddressBase):
     id: int
     user_id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -95,7 +95,7 @@ class OrderResponse(BaseModel):
     discount_amount: Optional[float] = None
     # Shipping Extras
     correios_label_url: Optional[str] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -142,7 +142,7 @@ class CouponUpdate(BaseModel):
 class CouponResponse(CouponBase):
     id: int
     usage_count: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -184,8 +184,8 @@ class ProductDetailResponse(ProductDetailBase):
     product_id: int
     slug: str
     qr_code_path: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -240,14 +240,14 @@ class CarouselItemCreate(CarouselItemBase):
 
 class CarouselItemResponse(CarouselItemBase):
     id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
 class ProductResponse(ProductBase):
     id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
     details: Optional[ProductDetailResponse] = None
 
     class Config:

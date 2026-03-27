@@ -4,6 +4,7 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
 import Image from "next/image";
+import { useCart } from "@/context/CartContext";
 
 const questionsPele = [
   {
@@ -209,6 +210,7 @@ export default function QuizPage() {
   const [result, setResult] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [resultLabel, setResultLabel] = useState("");
+  const { addToCart: contextAddToCart } = useCart();
 
   const activeQuestions = quizType === "pele" ? questionsPele : questionsCabelo;
   const progress = (step / activeQuestions.length) * 100;
@@ -283,47 +285,23 @@ export default function QuizPage() {
   };
 
   const addToCart = (product: any) => {
-    const savedCart = localStorage.getItem("cart");
-    let cart = savedCart ? JSON.parse(savedCart) : [];
-    
-    const existingItem = cart.find((item: any) => item.id === product.id);
-    if (existingItem) {
-      existingItem.quantity += 1;
-    } else {
-      cart.push({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        quantity: 1,
-        image_url: product.image_url
-      });
-    }
-    
-    localStorage.setItem("cart", JSON.stringify(cart));
-    alert(`${product.name} adicionado ao carrinho!`);
+    contextAddToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image_url: product.image_url
+    });
   };
 
   const addAllToCart = () => {
-    const savedCart = localStorage.getItem("cart");
-    let cart = savedCart ? JSON.parse(savedCart) : [];
-    
     result.forEach((product: any) => {
-      const existingItem = cart.find((item: any) => item.id === product.id);
-      if (existingItem) {
-        existingItem.quantity += 1;
-      } else {
-        cart.push({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          quantity: 1,
-          image_url: product.image_url
-        });
-      }
+      contextAddToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image_url: product.image_url
+      });
     });
-    
-    localStorage.setItem("cart", JSON.stringify(cart));
-    alert("Todos os produtos foram adicionados ao carrinho!");
   };
 
   if (!quizType) {

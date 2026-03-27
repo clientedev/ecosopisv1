@@ -41,12 +41,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const userData = await response.json();
             setUser(userData);
             localStorage.setItem('user', JSON.stringify(userData));
-          } else {
-            // Token invalid or expired
+          } else if (response.status === 401 || response.status === 403) {
+            // Only clear token if it's explicitly unauthorized/forbidden
             setUser(null);
             setToken(null);
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+          } else {
+            // For 500 or other errors, try to use stored user as fallback
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) setUser(JSON.parse(storedUser));
           }
         } catch (error) {
           console.error("Initial auth fetch error:", error);
