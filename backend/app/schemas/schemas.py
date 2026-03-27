@@ -10,6 +10,10 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    profile_picture: Optional[str] = None
+
 class UserResponse(UserBase):
     id: int
     role: str
@@ -78,6 +82,7 @@ class OrderResponse(BaseModel):
     status: str
     total: float
     items: Optional[List[OrderItem]] = []
+    order_items: Optional[List[OrderItem]] = []
     payment_method: Optional[str] = None
     shipping_method: Optional[str] = None
     shipping_price: Optional[float] = None

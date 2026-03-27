@@ -28,6 +28,8 @@ class User(Base):
     tentativas_roleta = Column(Integer, default=0)
     ultimo_premio_id = Column(Integer, ForeignKey("roulette_prizes.id"), nullable=True)
     
+    profile_picture = Column(String, nullable=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     orders = relationship("Order", back_populates="user")

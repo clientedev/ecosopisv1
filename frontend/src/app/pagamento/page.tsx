@@ -105,7 +105,7 @@ function PaymentContent() {
                             }}>
                                 Continuar Comprando
                             </Link>
-                            <Link href="/conta" style={{
+                            <Link href="/perfil?tab=orders" style={{
                                 border: "2px solid #64748b", color: "#64748b", padding: "14px 28px",
                                 borderRadius: "10px", textDecoration: "none", fontWeight: 700, fontSize: "1rem"
                             }}>

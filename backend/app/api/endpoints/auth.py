@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -8,6 +8,7 @@ from app.models import models
 from app.schemas import schemas
 from jose import jwt, JWTError
 import os
+import uuid
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -98,6 +99,45 @@ def get_user_profile(user_id: int, db: Session = Depends(get_db), current_admin:
 
 @router.get("/me", response_model=schemas.UserProfileResponse)
 def get_my_profile(current_user: models.User = Depends(get_current_user)):
+    return current_user
+
+@router.put("/me/profile", response_model=schemas.UserResponse)
+def update_my_profile(
+    profile_data: schemas.UserProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if profile_data.full_name is not None:
+        current_user.full_name = profile_data.full_name
+    if profile_data.profile_picture is not None:
+        current_user.profile_picture = profile_data.profile_picture
+    
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@router.post("/me/profile-picture", response_model=schemas.UserResponse)
+async def upload_profile_picture(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    content = await file.read()
+    content_type = file.content_type or "image/jpeg"
+    
+    stored_image = models.StoredImage(
+        filename=file.filename or f"profile_{uuid.uuid4()}.jpg",
+        content_type=content_type,
+        data=content
+    )
+    db.add(stored_image)
+    db.commit()
+    db.refresh(stored_image)
+    
+    current_user.profile_picture = f"/api/images/{stored_image.id}"
+    db.commit()
+    db.refresh(current_user)
+    
     return current_user
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

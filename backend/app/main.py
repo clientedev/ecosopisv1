@@ -30,7 +30,8 @@ def _apply_startup_migrations():
         ("total_compras",      "INTEGER DEFAULT 0"),
         ("pode_girar_roleta",  "BOOLEAN DEFAULT FALSE"),
         ("tentativas_roleta",  "INTEGER DEFAULT 0"),
-        ("ultimo_premio_id",   "INTEGER")
+        ("ultimo_premio_id",   "INTEGER"),
+        ("profile_picture",    "VARCHAR")
     ]
     PRIZE_COLS = [
         ("discount_type", "VARCHAR"),
