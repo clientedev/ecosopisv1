@@ -150,7 +150,30 @@
     font-weight: 500;
 }
 
-/* Orders List */
+/* Orders List & Filters */
+.filterBar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.filterSelect {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    font-size: 0.9rem;
+    color: #475569;
+    outline: none;
+    cursor: pointer;
+}
+
+.filterSelect:focus {
+    border-color: var(--primary-color, #10b981);
+}
+
 .ordersList {
     display: flex;
     flex-direction: column;

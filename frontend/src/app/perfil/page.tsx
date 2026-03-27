@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import styles from "./perfil.module.css";
 import { 
     User, Package, MapPin, LogOut, FileText, 
-    CheckCircle, Truck, Clock, XCircle, Map
+    CheckCircle, Truck, Clock, XCircle, Map, Filter
 } from "lucide-react";
 
 export default function UserProfile() {
@@ -15,7 +15,72 @@ export default function UserProfile() {
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("overview");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [isPaying, setIsPaying] = useState<number | null>(null);
     const router = useRouter();
+
+    const filteredAndSortedOrders = profile?.orders
+        ? profile.orders
+            .filter((order: any) => {
+                if (statusFilter === "all") return true;
+                const status = order.status || "pending";
+                if (statusFilter === "pending") return status === "pending";
+                if (statusFilter === "paid") return status === "paid";
+                if (statusFilter === "shipped") return status === "shipped";
+                if (statusFilter === "delivered") return status === "delivered";
+                if (statusFilter === "cancelled") return status === "cancelled" || status === "payment_error";
+                return true;
+            })
+            .sort((a: any, b: any) => {
+                const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                return dateB - dateA; // Descending (Newest first)
+            })
+        : [];
+
+    const handleResumePayment = async (order: any) => {
+        setIsPaying(order.id);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch("/api/payment/create-preference", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    order_id: order.id,
+                    items: order.items?.map((i: any) => ({
+                        product_id: 0,
+                        product_name: i.product_name || "Produto",
+                        quantity: i.quantity || 1,
+                        price: i.price || 0
+                    })) || [],
+                    total: order.total || 0,
+                    address: order.address || {},
+                    shipping_method: order.shipping_method || "fixo",
+                    shipping_price: order.shipping_price || 0,
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.checkout_url) {
+                    window.location.href = data.checkout_url;
+                } else {
+                    alert("Erro ao recuperar link de pagamento.");
+                }
+            } else {
+                const err = await res.json();
+                alert(`Erro ao gerar pagamento: ${err.detail || 'Tente novamente.'}`);
+            }
+        } catch (error) {
+            console.error("Erro ao retomar pagamento:", error);
+            alert("Erro de comunicação com o servidor.");
+        } finally {
+            setIsPaying(null);
+        }
+    };
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -161,10 +226,26 @@ export default function UserProfile() {
                                     <Package />
                                     <h2>Meus Pedidos</h2>
                                 </div>
+
+                                <div className={styles.filterBar}>
+                                    <Filter size={18} color="#64748b" />
+                                    <select 
+                                        className={styles.filterSelect}
+                                        value={statusFilter}
+                                        onChange={(e) => setStatusFilter(e.target.value)}
+                                    >
+                                        <option value="all">Todos os Pedidos</option>
+                                        <option value="pending">Aguardando Pagamento</option>
+                                        <option value="paid">Pagamento Confirmado</option>
+                                        <option value="shipped">Enviados</option>
+                                        <option value="delivered">Entregues</option>
+                                        <option value="cancelled">Cancelados / Erro</option>
+                                    </select>
+                                </div>
                                 
                                 <div className={styles.ordersList}>
-                                    {profile.orders && profile.orders.length > 0 ? (
-                                        profile.orders.map((order: any) => {
+                                    {filteredAndSortedOrders && filteredAndSortedOrders.length > 0 ? (
+                                        filteredAndSortedOrders.map((order: any) => {
                                             const statusInfo = getStatusInfo(order.status || 'pending');
                                             return (
                                                 <div key={order.id} className={styles.orderCard}>
@@ -180,6 +261,15 @@ export default function UserProfile() {
                                                                 {statusInfo.icon}
                                                                 {statusInfo.label}
                                                             </div>
+                                                            {order.status === 'pending' && (
+                                                                <button 
+                                                                    onClick={() => handleResumePayment(order)}
+                                                                    disabled={isPaying === order.id}
+                                                                    className={styles.checkoutBtn}
+                                                                >
+                                                                    {isPaying === order.id ? 'Aguarde...' : 'Pagar Agora'}
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     
@@ -224,7 +314,7 @@ export default function UserProfile() {
                                     ) : (
                                         <div className={styles.noOrders}>
                                             <Package size={48} style={{ opacity: 0.2, marginBottom: '1rem', display: 'block', margin: '0 auto' }} />
-                                            <p>Você ainda não realizou nenhuma compra.</p>
+                                            <p>Nenhum pedido encontrado com este filtro.</p>
                                         </div>
                                     )}
                                 </div>
