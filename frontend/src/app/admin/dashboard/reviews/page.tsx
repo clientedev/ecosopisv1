@@ -72,10 +72,10 @@ export default function AdminReviewsPage() {
     };
 
     return (
-        <div className={styles.dashboard} style={{ display: 'flex', minHeight: '100vh' }}>
+        <div className={styles.dashboard} style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
             <AdminSidebar activePath="/admin/dashboard/reviews" />
 
-            <main className={styles.mainContent}>
+            <main className={styles.mainContent} style={{ flex: 1, padding: '32px', overflowY: 'auto', overflowX: 'hidden', height: '100%' }}>
                 <header className={styles.header}>
                     <div>
                         <h1>Moderação de Avaliações</h1>

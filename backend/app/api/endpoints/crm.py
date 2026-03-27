@@ -42,7 +42,7 @@ async def get_crm_summary(
     # Top Selling Products (extracting from JSON items)
     # Note: In a real SQL db, this might be a complex JSON query. 
     # For now, we'll fetch recent orders and aggregate in Python for simplicity/compatibility.
-    all_paid_orders = db.query(models.Order.items).filter(models.Order.status == "paid").limit(100).all()
+    all_paid_orders = db.query(models.Order).filter(models.Order.status == "paid").limit(100).all()
     product_stats = {}
     for order in all_paid_orders:
         items = order.items if isinstance(order.items, list) else []

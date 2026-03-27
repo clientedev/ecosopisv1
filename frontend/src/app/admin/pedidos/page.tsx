@@ -144,10 +144,10 @@ export default function AdminPedidosPage() {
     };
 
     return (
-        <div style={{ display: "flex", minHeight: "100vh", background: "#f9fafb" }}>
+        <div style={{ display: "flex", height: "100vh", background: "#f9fafb", overflow: "hidden" }}>
             <AdminSidebar activePath="/admin/pedidos" />
 
-            <main style={{ flex: 1, padding: "32px", overflowX: "auto" }}>
+            <main style={{ flex: 1, padding: "32px", overflowY: "auto", overflowX: "hidden", height: "100%" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                     <h1 style={{ fontFamily: "var(--font-playfair, serif)", fontSize: "1.8rem", color: "#1a1a1a" }}>
                         📦 Gestão de Pedidos
