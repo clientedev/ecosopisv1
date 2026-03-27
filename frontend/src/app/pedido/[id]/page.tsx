@@ -205,7 +205,7 @@ function OrderContent() {
 
                         {/* Actions */}
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                            <Link href="/conta" style={{
+                            <Link href="/perfil?tab=orders" style={{
                                 flex: 1, textAlign: "center", padding: "12px 20px",
                                 background: "#2d5a27", color: "white", borderRadius: 10,
                                 textDecoration: "none", fontWeight: 700, fontSize: "0.9rem"
