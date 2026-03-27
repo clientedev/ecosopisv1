@@ -20,6 +20,7 @@ class UserResponse(UserBase):
     total_compras: int = 0
     pode_girar_roleta: bool = False
     tentativas_roleta: int = 0
+    profile_picture: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:
