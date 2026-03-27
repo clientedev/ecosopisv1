@@ -30,6 +30,11 @@ class MelhorEnvioService:
         if cls._cached_token:
             return cls._cached_token
 
+        # O token pessoal (Token do Painel) tem todas as permissões de usuário (cálculo real, checkout, etc.)
+        # O token via `client_credentials` apenas autoriza a aplicação na API, mas não representa a loja.
+        if MELHORENVIO_TOKEN:
+            return MELHORENVIO_TOKEN
+
         if MELHORENVIO_CLIENT_ID and MELHORENVIO_CLIENT_SECRET:
             try:
                 url = f"{MELHORENVIO_URL}/oauth/token"
