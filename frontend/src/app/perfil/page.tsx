@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 export default function UserProfile() {
-    const { user, loading: authLoading, logout, checkAuth } = useAuth();
+    const { user, loading: authLoading, logout, refreshProfile } = useAuth();
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("overview");
@@ -48,7 +48,7 @@ export default function UserProfile() {
                 const updatedUser = await res.json();
                 setProfile((prev: any) => ({ ...prev, profile_picture: updatedUser.profile_picture }));
                 setEditPhoto(updatedUser.profile_picture);
-                checkAuth();
+                refreshProfile();
             } else {
                 alert("Erro ao fazer upload da imagem.");
             }
@@ -157,7 +157,7 @@ export default function UserProfile() {
                 const updatedUser = await res.json();
                 setProfile({ ...profile, full_name: updatedUser.full_name, profile_picture: updatedUser.profile_picture });
                 setIsEditing(false);
-                checkAuth(); // update AuthContext state
+                refreshProfile(); // update AuthContext state
             } else {
                 alert("Erro ao salvar dados.");
             }
