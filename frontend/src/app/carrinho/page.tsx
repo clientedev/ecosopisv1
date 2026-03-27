@@ -17,6 +17,11 @@ export default function CarrinhoPage() {
     const [step, setStep] = useState<"cart" | "checkout">("cart");
     const [loading, setLoading] = useState(false);
 
+    // Shipping states
+    const [shippingOptions, setShippingOptions] = useState<any[]>([]);
+    const [selectedShipping, setSelectedShipping] = useState<any>(null);
+    const [loadingShipping, setLoadingShipping] = useState(false);
+
     // Form states
     const [cep, setCep] = useState("");
     const [customerName, setCustomerName] = useState("");
@@ -80,6 +85,67 @@ export default function CarrinhoPage() {
             }
         }
     }, []);
+
+    // Calculate shipping whenever valid CEP and cart changes
+    useEffect(() => {
+        const cleanCep = cep.replace(/\D/g, "");
+        if (cleanCep.length === 8 && cart.length > 0 && step === "checkout") {
+            const calculateShipping = async () => {
+                setLoadingShipping(true);
+                try {
+                    const reqBody = {
+                        dest_cep: cleanCep,
+                        items: cart.map(item => ({
+                            id: item.id.toString(),
+                            width: 16,
+                            height: 12,
+                            length: 20,
+                            weight: 0.3,
+                            price: item.price,
+                            quantity: item.quantity
+                        }))
+                    };
+                    const res = await fetch(`/api/shipping/calculate`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(reqBody)
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        setShippingOptions(data);
+                        if (data.length > 0) {
+                            setSelectedShipping((prev: any) => {
+                                if (prev && data.find((o: any) => o.id === prev.id)) {
+                                    return data.find((o: any) => o.id === prev.id);
+                                }
+                                return data[0];
+                            });
+                        } else {
+                            setSelectedShipping(null);
+                        }
+                    } else {
+                        setShippingOptions([]);
+                        setSelectedShipping(null);
+                    }
+                } catch (error) {
+                    console.error("Shipping calc error:", error);
+                    setShippingOptions([]);
+                    setSelectedShipping(null);
+                } finally {
+                    setLoadingShipping(false);
+                }
+            };
+            
+            const timeoutId = setTimeout(() => {
+                calculateShipping();
+            }, 500);
+            
+            return () => clearTimeout(timeoutId);
+        } else if (cleanCep.length !== 8) {
+            setShippingOptions([]);
+            setSelectedShipping(null);
+        }
+    }, [cep, cart, step]);
 
     const handleCepLookup = async () => {
         const cleanCep = cep.replace(/\D/g, "");
@@ -189,14 +255,18 @@ export default function CarrinhoPage() {
         }
     };
 
-    // Fixed shipping price = R$20
-    const shippingPrice = 20.0;
+    const shippingPrice = selectedShipping ? selectedShipping.price : 0;
     const discount = appliedCoupon ? (appliedCoupon.type === "fixed" ? appliedCoupon.value : (subtotal * appliedCoupon.value / 100)) : 0;
     const finalTotal = Math.max(0, subtotal + shippingPrice - discount);
 
     const handleCheckout = async () => {
         if (!customerName || !cep) {
             alert("⚠️ Preencha seu nome e CEP.");
+            return;
+        }
+        
+        if (!selectedShipping) {
+            alert("⚠️ Selecione uma opção de frete para continuar.");
             return;
         }
 
@@ -213,7 +283,7 @@ export default function CarrinhoPage() {
                     items: cart.map(i => ({ product_id: i.id, quantity: i.quantity, price: i.price, product_name: i.name })),
                     total: finalTotal,
                     address: { ...address, cep: cep.replace(/\D/g, "") },
-                    shipping_method: "fixo",
+                    shipping_method: `${selectedShipping.company} - ${selectedShipping.name}`,
                     shipping_price: shippingPrice,
                     customer_name: customerName,
                     customer_phone: customerPhone,
@@ -394,21 +464,50 @@ export default function CarrinhoPage() {
 
                                 <div className={styles.detailSection}>
                                     <h3>🚚 FRETE</h3>
-                                    <div style={{ 
-                                        padding: "20px", background: "#f0f7ee", borderRadius: "12px", 
-                                        border: "1px solid #d4edda", display: "flex", alignItems: "center", gap: "12px" 
-                                    }}>
-                                        <Truck size={24} style={{ color: "#2d5a27" }} />
-                                        <div>
-                                            <strong style={{ color: "#1e293b" }}>Frete Fixo</strong>
-                                            <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "#64748b" }}>
-                                                Entrega padrão para todo o Brasil
-                                            </p>
+                                    {loadingShipping ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b' }}>
+                                            <Loader2 size={18} className="spin" /> Calculando frete...
                                         </div>
-                                        <span style={{ marginLeft: "auto", fontSize: "1.1rem", fontWeight: 700, color: "#2d5a27" }}>
-                                            R$ {shippingPrice.toFixed(2)}
-                                        </span>
-                                    </div>
+                                    ) : shippingOptions.length > 0 ? (
+                                        <div className={styles.shippingOptions}>
+                                            {shippingOptions.map((opt: any) => (
+                                                <div 
+                                                    key={opt.id}
+                                                    style={{ 
+                                                        padding: "16px", background: selectedShipping?.id === opt.id ? "#f0f7ee" : "#fff", 
+                                                        borderRadius: "12px", border: selectedShipping?.id === opt.id ? "1px solid #d4edda" : "1px solid #e2e8f0", 
+                                                        display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px", cursor: "pointer",
+                                                        transition: "all 0.2s"
+                                                    }}
+                                                    onClick={() => setSelectedShipping(opt)}
+                                                >
+                                                    <div style={{
+                                                        width: "20px", height: "20px", borderRadius: "50%",
+                                                        border: selectedShipping?.id === opt.id ? "6px solid #2d5a27" : "2px solid #cbd5e1",
+                                                        background: "#fff"
+                                                    }} />
+                                                    <Truck size={24} style={{ color: selectedShipping?.id === opt.id ? "#2d5a27" : "#64748b" }} />
+                                                    <div style={{ flex: 1 }}>
+                                                        <strong style={{ color: "#1e293b", display: "block" }}>{opt.company} - {opt.name}</strong>
+                                                        <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
+                                                            Entrega em até {opt.delivery_time} dias úteis
+                                                        </span>
+                                                    </div>
+                                                    <span style={{ fontSize: "1.1rem", fontWeight: 700, color: selectedShipping?.id === opt.id ? "#2d5a27" : "#334155" }}>
+                                                        R$ {opt.price.toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : cep.replace(/\D/g, "").length === 8 ? (
+                                        <div style={{ color: "#ef4444", fontSize: "0.9rem" }}>
+                                            Nenhuma opção de frete disponível para este CEP.
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: "#64748b", fontSize: "0.9rem" }}>
+                                            Insira o CEP de entrega para calcular o frete.
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className={styles.detailSection}>
@@ -463,7 +562,7 @@ export default function CarrinhoPage() {
                             </div>
                             <div className={styles.summaryRow}>
                                 <span>Frete</span>
-                                <span>R$ {shippingPrice.toFixed(2)}</span>
+                                <span>{shippingPrice > 0 ? `R$ ${shippingPrice.toFixed(2)}` : (step === "cart" ? "Calculado a seguir" : "A calcular")}</span>
                             </div>
                             {discount > 0 && (
                                 <div className={styles.summaryRow} style={{ color: "#15803d" }}>
