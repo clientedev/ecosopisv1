@@ -5,9 +5,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MELHORENVIO_URL = os.getenv("MELHOR_ENVIO_BASE_URL", "https://api.melhorenvio.com.br")
-CLIENT_ID = os.getenv("MELHOR_ENVIO_CLIENT_ID", "23449")
-CLIENT_SECRET = os.getenv("MELHOR_ENVIO_CLIENT_SECRET", "")
+MELHORENVIO_URL = os.getenv("MELHOR_ENVIO_BASE_URL", os.getenv("MELHORENVIO_URL", "https://www.melhorenvio.com.br"))
+if "api.melhorenvio.com.br" in MELHORENVIO_URL:
+    MELHORENVIO_URL = MELHORENVIO_URL.replace("api.melhorenvio.com.br", "www.melhorenvio.com.br")
+
+CLIENT_ID = os.getenv("MELHOR_ENVIO_CLIENT_ID", os.getenv("MELHORENVIO_CLIENT_ID", "23449"))
+CLIENT_SECRET = os.getenv("MELHOR_ENVIO_CLIENT_SECRET", os.getenv("MELHORENVIO_CLIENT_SECRET", ""))
 STORE_CEP = "02969000"  # fixed CEP requested by user
 
 class MelhorEnvioV2Service:
@@ -151,7 +154,7 @@ class MelhorEnvioV2Service:
                 "phone": user_info.get("phone", "11999999999"),
                 "email": user_info.get("email", "cliente@email.com"),
                 "document": user_info.get("document", "00000000000"),
-                "postal_code": user_info.get("postal_code").replace("-", ""),
+                "postal_code": user_info.get("postal_code", "").replace("-", "") if user_info.get("postal_code") else "00000000",
                 "address": user_info.get("address", "Endereço"),
                 "number": user_info.get("number", "S/N"),
                 "complement": user_info.get("complement", ""),
