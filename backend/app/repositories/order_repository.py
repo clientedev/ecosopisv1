@@ -6,7 +6,7 @@ class OrderRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_order(self, user_id: int, total: float, shipping_price: float, shipping_method: str, address: Optional[dict] = None, status: str = "aguardando_pagamento") -> Order:
+    def create_order(self, user_id: int, total: float, shipping_price: float, shipping_method: str, address: Optional[dict] = None, status: str = "pending") -> Order:
         db_order = Order(
             user_id=user_id,
             status=status,

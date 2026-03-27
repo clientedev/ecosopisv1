@@ -64,3 +64,11 @@ class StripeService:
             raise ValueError("Invalid payload")
         except stripe.error.SignatureVerificationError as e:
             raise ValueError("Invalid signature")
+
+    @classmethod
+    def get_checkout_session(cls, session_id: str):
+        try:
+            return stripe.checkout.Session.retrieve(session_id)
+        except Exception as e:
+            print(f"Erro ao recuperar sessão Stripe: {e}")
+            return None

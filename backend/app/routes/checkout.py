@@ -33,7 +33,7 @@ async def checkout(
 ):
     """
     1. Recebe itens do carrinho
-    2. Cria pedido aguardando_pagamento e order_items
+    2. Cria pedido pending e order_items
     3. Cria Stripe Checkout Session (salvando pedido_id na metadata)
     4. Retorna URL do checkout
     """

@@ -10,7 +10,7 @@ class OrderService:
     def create_checkout(self, user_id: int, items: List[dict], shipping_price: float, shipping_method_id: str, address_info: dict, return_url: str = None):
         """
         1. Calcula o total
-        2. Cria o pedido "aguardando_pagamento"
+        2. Cria o pedido "pending"
         3. Cria os itens do pedido
         4. Cria Stripe Checkout Session
         5. Atualiza Pedido com Session ID
@@ -24,7 +24,7 @@ class OrderService:
             shipping_price=shipping_price,
             shipping_method=shipping_method_id,
             address=address_info,
-            status="aguardando_pagamento"
+            status="pending"
         )
         
         # Save custom properties like address
@@ -56,7 +56,7 @@ class OrderService:
         2. Chamar ME criar envio
         3. Atualizar codigo rastreio
         """
-        order = self.repo.update_order_status(pedido_id, "pago")
+        order = self.repo.update_order_status(pedido_id, "paid")
         if not order:
             return None
             
@@ -99,4 +99,20 @@ class OrderService:
         except Exception as e:
             print(f"Erro ao criar envio ME: {e}")
             
+        return order
+
+    def sync_order_status(self, order_id: int):
+        """
+        Sincroniza proativamente o status do pedido com a Stripe.
+        Útil para quando o webhook atrasa ou falha.
+        """
+        order = self.repo.get_order_by_id(order_id)
+        if not order or order.status != "pending" or not order.stripe_session_id:
+            return order
+
+        session = StripeService.get_checkout_session(order.stripe_session_id)
+        if session and session.payment_status == "paid":
+            print(f"Sincronização: Pedido {order_id} detectado como pago na Stripe.")
+            return self.handle_payment_success(order_id)
+        
         return order

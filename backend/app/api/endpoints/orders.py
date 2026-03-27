@@ -8,6 +8,8 @@ from app.models import models
 from app.schemas import schemas
 from app.api.endpoints.auth import get_current_user
 from app.core import pdf_service
+from app.repositories.order_repository import OrderRepository
+from app.services.order_service import OrderService
 import io
 import os
 
@@ -52,6 +54,16 @@ def list_all_orders(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
     orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
+    
+    # Proactive sync for pending orders
+    repo = OrderRepository(db)
+    service = OrderService(repo)
+    for o in orders:
+        if o.status == "pending" and o.stripe_session_id:
+            service.sync_order_status(o.id)
+            db.commit()
+            db.refresh(o)
+
     result = []
     for o in orders:
         r = _order_to_response(o, db)
@@ -120,6 +132,16 @@ def list_orders(
         ).order_by(models.Order.created_at.desc()).all()
     else:
         orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
+    
+    # Proactive sync for pending orders
+    repo = OrderRepository(db)
+    service = OrderService(repo)
+    for o in orders:
+        if o.status == "pending" and o.stripe_session_id:
+            service.sync_order_status(o.id)
+            db.commit()
+            db.refresh(o)
+
     return [_order_to_response(o, db) for o in orders]
 
 
@@ -138,6 +160,15 @@ def get_order(
         ).first()
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    
+    # Proactive sync
+    if order.status == "pending" and order.stripe_session_id:
+        repo = OrderRepository(db)
+        service = OrderService(repo)
+        service.sync_order_status(order.id)
+        db.commit()
+        db.refresh(order)
+
     return _order_to_response(order, db)
 
 
