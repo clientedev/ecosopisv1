@@ -5,11 +5,12 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Header() {
     const { cartCount } = useCart();
-    const [isAdmin, setIsAdmin] = useState(false);
-    const [user, setUser] = useState<{ name: string, email: string, role: string } | null>(null);
+    const { user, logout } = useAuth();
+    const isAdmin = user?.role === 'admin';
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [announcement, setAnnouncement] = useState<{
@@ -35,63 +36,10 @@ export default function Header() {
             }
         };
         fetchAnnouncement();
-
-        const token = localStorage.getItem("token");
-        if (token) {
-            try {
-                const base64Url = token.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-
-                const payload = JSON.parse(jsonPayload);
-                // The token payload contains 'sub' (user_id), but we need the name.
-                // For now, let's fetch the user profile or parse name if available.
-                // Ideally, the token should include the name or we fetch it.
-
-                const fetchProfile = async () => {
-                    try {
-                        const response = await fetch('/api/auth/me', {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (response.status === 401) {
-                            localStorage.removeItem("token");
-                            setUser(null);
-                            setIsAdmin(false);
-                            return;
-                        }
-                        if (response.ok) {
-                            const userData = await response.json();
-                            setUser({
-                                name: userData.full_name,
-                                email: userData.email,
-                                role: userData.role
-                            });
-                            if (userData.role === 'admin') {
-                                setIsAdmin(true);
-                            }
-                        } else if (response.status === 401) {
-                            // Clear invalid token
-                            localStorage.removeItem("token");
-                            setUser(null);
-                            setIsAdmin(false);
-                        }
-                    } catch (err) {
-                        console.error("Error fetching profile", err);
-                    }
-                };
-                fetchProfile();
-            } catch (e) {
-                console.error("Error parsing token", e);
-            }
-        }
     }, []);
 
     const handleLogout = () => {
-        localStorage.removeItem("token");
-        setUser(null);
-        setIsAdmin(false);
+        logout();
         setIsMenuOpen(false);
         window.location.href = "/";
     };
@@ -189,17 +137,23 @@ export default function Header() {
                                 className={styles.userButton}
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                             >
-                                <div className={styles.avatar}>
-                                    {user.name.charAt(0).toUpperCase()}
+                                <div className={styles.avatar} style={{ overflow: 'hidden' }}>
+                                    {/* @ts-ignore */}
+                                    {user.profile_picture ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={user.profile_picture} alt={user.full_name || "User"} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        (user.full_name || user.email || "U").charAt(0).toUpperCase()
+                                    )}
                                 </div>
-                                <span className={styles.userName}>{user.name.split(' ')[0]}</span>
+                                <span className={styles.userName}>{(user.full_name || user.email || "User").split(' ')[0]}</span>
                                 <ChevronDown size={16} className={`${styles.chevron} ${isMenuOpen ? styles.chevronOpen : ''}`} />
                             </button>
 
                             {isMenuOpen && (
                                 <div className={styles.dropdown}>
                                     <div className={styles.dropdownHeader}>
-                                        <strong>{user.name}</strong>
+                                        <strong>{user.full_name || "Membro Ecosopis"}</strong>
                                         <span>{user.email}</span>
                                     </div>
                                     <hr className={styles.divider} />
