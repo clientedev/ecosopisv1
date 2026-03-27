@@ -578,7 +578,13 @@ export default function CarrinhoPage() {
                             </div>
 
                             {step === "cart" ? (
-                                <button className="btn-primary" style={{ width: "100%", marginTop: "24px", height: "56px" }} onClick={() => setStep("checkout")}>
+                                <button className="btn-primary" style={{ width: "100%", marginTop: "24px", height: "56px" }} onClick={() => {
+                                    if (!token) {
+                                        window.location.href = "/conta";
+                                    } else {
+                                        setStep("checkout");
+                                    }
+                                }}>
                                     CONTINUAR <ChevronRight size={18} />
                                 </button>
                             ) : (
