@@ -241,20 +241,22 @@
 
 .promoCode {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 20px;
-    padding: 15px;
+    padding: 12px;
     background: #f8fafc;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    border: 1.5px solid #e2e8f0;
 }
 
 .couponInput {
     flex: 1;
+    min-width: 0;
     border: 1.5px solid #cbd5e1;
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 0.9rem;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
     font-weight: 600;
     color: #1a3a16;
     background: white;
@@ -268,17 +270,18 @@
 }
 
 .promoCode button {
-    padding: 10px 20px;
+    padding: 10px 16px;
     background: #1a3a16;
     color: white;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     cursor: pointer;
     transition: all 0.2s;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
 .promoCode button:hover {

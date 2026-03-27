@@ -30,7 +30,7 @@ export default function CouponManagement() {
     const fetchCoupons = async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`/api/coupons/`, {
+            const res = await fetch(`/api/coupons`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (res.ok) {
@@ -61,7 +61,7 @@ export default function CouponManagement() {
                 ...formData,
                 valid_until: formData.valid_until || null
             };
-            const res = await fetch(`/api/coupons/`, {
+            const res = await fetch(`/api/coupons`, {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${token}`,
@@ -170,8 +170,8 @@ export default function CouponManagement() {
                                         <label>Valor</label>
                                         <input
                                             type="number"
-                                            value={formData.discount_value}
-                                            onChange={(e) => setFormData({ ...formData, discount_value: parseFloat(e.target.value) })}
+                                            value={formData.discount_value || ""}
+                                            onChange={(e) => setFormData({ ...formData, discount_value: e.target.value === "" ? 0 : parseFloat(e.target.value) })}
                                             required
                                         />
                                     </div>
@@ -181,14 +181,15 @@ export default function CouponManagement() {
                                         <label>Compra Mínima (R$)</label>
                                         <input
                                             type="number"
-                                            value={formData.min_purchase_value}
-                                            onChange={(e) => setFormData({ ...formData, min_purchase_value: parseFloat(e.target.value) })}
+                                            value={formData.min_purchase_value || ""}
+                                            onChange={(e) => setFormData({ ...formData, min_purchase_value: e.target.value === "" ? 0 : parseFloat(e.target.value) })}
                                         />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>Limite de Uso</label>
                                         <input
                                             type="number"
+                                            value={formData.usage_limit || ""}
                                             placeholder="Deixe vazio para ilimitado"
                                             onChange={(e) => setFormData({ ...formData, usage_limit: e.target.value ? parseInt(e.target.value) : null })}
                                         />

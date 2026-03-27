@@ -9,11 +9,11 @@ from app.api.endpoints.auth import get_current_admin
 
 router = APIRouter()
 
-@router.get("/", response_model=List[schemas.CouponResponse])
+@router.get("", response_model=List[schemas.CouponResponse])
 def list_coupons(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     return db.query(models.Coupon).all()
 
-@router.post("/", response_model=schemas.CouponResponse)
+@router.post("", response_model=schemas.CouponResponse)
 def create_coupon(coupon_in: schemas.CouponCreate, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     db_coupon = models.Coupon(**coupon_in.dict())
     db.add(db_coupon)
