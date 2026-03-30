@@ -59,6 +59,12 @@ export default function NewProductModal({ onClose, onSave }: Props) {
     const [tagInput, setTagInput] = useState("");
     const [showTechnicalInfo, setShowTechnicalInfo] = useState(false);
 
+    const toNumberOrZero = (value: string) => {
+        if (value.trim() === "") return 0;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+
     const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' || e.key === ',') {
             e.preventDefault();
@@ -231,7 +237,7 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                                 type="number"
                                 step="0.01"
                                 value={formData.price}
-                                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                                onChange={(e) => setFormData({ ...formData, price: toNumberOrZero(e.target.value) })}
                                 required
                             />
                         </div>
@@ -240,7 +246,7 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                             <input
                                 type="number"
                                 value={formData.stock}
-                                onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) })}
+                                onChange={(e) => setFormData({ ...formData, stock: Math.max(0, Math.trunc(toNumberOrZero(e.target.value))) })}
                                 required
                             />
                         </div>

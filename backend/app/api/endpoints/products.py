@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Request
+from fastapi.responses import Response
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.core.database import get_db
@@ -124,6 +125,9 @@ def generate_qr_code(slug: str, base_url: str = None):
 
     img = qr.make_image(fill_color="black", back_color="white")
     
+    # Ensure directory exists in all environments (Railway/local).
+    os.makedirs("static/qrcodes", exist_ok=True)
+
     # Filename is just the slug to ensure permanence
     file_path = f"static/qrcodes/{slug}.png"
     img.save(file_path)
@@ -141,7 +145,8 @@ def create_product(
     if existing:
         raise HTTPException(status_code=400, detail="Slug already exists")
 
-    product_data = product_in.dict(exclude={"details"})
+    # `origin` is used only for QR URL generation and is not a Product column.
+    product_data = product_in.dict(exclude={"details", "origin"})
     db_product = models.Product(**product_data)
     db.add(db_product)
     db.commit()
@@ -181,6 +186,58 @@ def create_product(
     
     db.refresh(db_product)
     return db_product
+
+@router.get("/{product_id}/label.zpl")
+def export_product_label_zpl(
+    product_id: int,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    details = db.query(models.ProductDetail).filter(models.ProductDetail.product_id == db_product.id).first()
+    qr_target = f"/produto/{db_product.slug}/info"
+    if details and details.slug:
+        qr_target = f"/produto/{details.slug}/info"
+
+    safe_name = (db_product.name or "").replace("^", " ").replace("~", " ")
+    safe_slug = (db_product.slug or "").replace("^", "-").replace("~", "-")
+    safe_price = f"R$ {float(db_product.price or 0):.2f}"
+    safe_stock = f"Estoque: {int(db_product.stock or 0)}"
+
+    zpl = (
+        "^XA\n"
+        "^CI28\n"
+        "^PW800\n"
+        "^LL500\n"
+        "^FO40,40^A0N,42,42^FD"
+        + safe_name[:40]
+        + "^FS\n"
+        "^FO40,95^A0N,28,28^FDSKU: "
+        + safe_slug[:48]
+        + "^FS\n"
+        "^FO40,140^A0N,34,34^FD"
+        + safe_price
+        + "^FS\n"
+        "^FO40,185^A0N,28,28^FD"
+        + safe_stock
+        + "^FS\n"
+        "^FO40,235^A0N,24,24^FD"
+        + qr_target[:64]
+        + "^FS\n"
+        "^FO560,80^BQN,2,6^FDLA,"
+        + qr_target[:120]
+        + "^FS\n"
+        "^XZ\n"
+    )
+
+    return Response(
+        content=zpl,
+        media_type="application/zpl",
+        headers={"Content-Disposition": f'attachment; filename="label-{db_product.slug}.zpl"'},
+    )
 
 @router.get("/{slug}/info", response_model=schemas.ProductDetailResponse)
 def get_product_info(slug: str, db: Session = Depends(get_db)):

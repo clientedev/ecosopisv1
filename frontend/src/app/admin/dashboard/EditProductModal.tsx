@@ -66,6 +66,12 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
         }
     );
 
+    const toNumberOrZero = (value: string) => {
+        if (value.trim() === "") return 0;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+
     const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' || e.key === ',') {
             e.preventDefault();
@@ -178,6 +184,39 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
             alert("Erro ao regenerar QR Code");
         } finally {
             setRegeneratingQR(false);
+        }
+    };
+
+    const handleExportZpl = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Sessão expirada. Por favor, faça login novamente.");
+                window.location.href = "/admin";
+                return;
+            }
+
+            const res = await fetch(`/api/products/${product.id}/label.zpl`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                throw new Error("Falha ao exportar etiqueta ZPL");
+            }
+
+            const zplText = await res.text();
+            const blob = new Blob([zplText], { type: "application/zpl" });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `label-${product.slug}.zpl`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao exportar etiqueta ZPL");
         }
     };
 
@@ -380,7 +419,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                 step="0.01"
                                 min="0"
                                 value={formData.price}
-                                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                                onChange={(e) => setFormData({ ...formData, price: toNumberOrZero(e.target.value) })}
                                 required
                             />
                         </div>
@@ -390,7 +429,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                 type="number"
                                 min="0"
                                 value={formData.stock}
-                                onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) })}
+                                onChange={(e) => setFormData({ ...formData, stock: Math.max(0, Math.trunc(toNumberOrZero(e.target.value))) })}
                                 required
                             />
                         </div>
@@ -548,6 +587,15 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                         title="Baixar QR Code da Ficha Técnica"
                                     >
                                         <Download size={16} /> QR Code
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleExportZpl}
+                                        className={styles.editBtn}
+                                        style={{ backgroundColor: '#374151', color: 'white', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, height: 'auto' }}
+                                        title="Exportar etiqueta para impressoras Zebra (.zpl)"
+                                    >
+                                        <Download size={16} /> Exportar ZPL
                                     </button>
                                     <button
                                         type="button"

@@ -27,10 +27,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const isTokenExpired = (jwt: string) => {
+    try {
+      const payloadPart = jwt.split('.')[1];
+      if (!payloadPart) return true;
+      const payload = JSON.parse(atob(payloadPart.replace(/-/g, '+').replace(/_/g, '/')));
+      if (!payload?.exp) return false;
+      return Date.now() >= payload.exp * 1000;
+    } catch {
+      return true;
+    }
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       const storedToken = localStorage.getItem('token');
       if (storedToken) {
+        if (isTokenExpired(storedToken)) {
+          setUser(null);
+          setToken(null);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsLoading(false);
+          return;
+        }
         setToken(storedToken);
         try {
           // Verify token and fetch fresh user profile
@@ -68,6 +88,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = async () => {
     const storedToken = localStorage.getItem('token');
     if (!storedToken) return;
+    if (isTokenExpired(storedToken)) {
+      logout();
+      return;
+    }
 
     try {
       const response = await fetch('/api/auth/me', {
