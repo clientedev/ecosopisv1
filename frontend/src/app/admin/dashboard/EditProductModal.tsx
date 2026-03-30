@@ -548,8 +548,8 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                         </h3>
 
                         <div style={{ background: '#f9f9f9', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                                <div style={{ display: 'flex', gap: '10px' }}>
+                            <div className={styles.detailsHeader}>
+                                <div className={styles.detailsMainActions}>
                                     <button
                                         type="button"
                                         className={styles.editBtn}
@@ -560,62 +560,64 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                     </button>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
-                                    <div style={{ background: '#eee', padding: '10px', borderRadius: '8px', fontSize: '0.8rem', color: '#555', display: 'flex', alignItems: 'center' }}>
-                                        <strong>URL Fixa:</strong>&nbsp;{typeof window !== 'undefined' ? `${window.location.origin}/produto/${product.slug}/info` : `/produto/${product.slug}/info`}
+                                <div className={styles.detailsTools}>
+                                    <div className={styles.fixedUrlBox}>
+                                        <strong>URL Fixa:</strong>{" "}
+                                        {typeof window !== 'undefined' ? `${window.location.origin}/produto/${product.slug}/info` : `/produto/${product.slug}/info`}
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={async () => {
-                                            try {
-                                                const response = await fetch(`/api/static/qrcodes/${product.slug}.png`);
-                                                const blob = await response.blob();
-                                                const url = window.URL.createObjectURL(blob);
-                                                const link = document.createElement('a');
-                                                link.href = url;
-                                                link.download = `qrcode-${product.slug}.png`;
-                                                document.body.appendChild(link);
-                                                link.click();
-                                                document.body.removeChild(link);
-                                            } catch (err) {
-                                                console.error("Erro ao baixar", err);
-                                                alert("Houve um erro ao baixar o QR Code.");
-                                            }
-                                        }}
-                                        className={styles.editBtn}
-                                        style={{ backgroundColor: '#b8860b', color: 'white', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, height: 'auto' }}
-                                        title="Baixar QR Code da Ficha Técnica"
-                                    >
-                                        <Download size={16} /> QR Code
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleExportZpl}
-                                        className={styles.editBtn}
-                                        style={{ backgroundColor: '#374151', color: 'white', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, height: 'auto' }}
-                                        title="Exportar etiqueta para impressoras Zebra (.zpl)"
-                                    >
-                                        <Download size={16} /> Exportar ZPL
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleRegenerateQR}
-                                        disabled={regeneratingQR}
-                                        className={styles.editBtn}
-                                        style={{ backgroundColor: '#1a3a16', color: 'white', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, height: 'auto' }}
-                                        title="Atualizar link do QR Code"
-                                    >
-                                        <RefreshCw size={16} className={regeneratingQR ? "spin-animation" : ""} />
-                                        {regeneratingQR ? "Atualizando..." : "Regenerar QR"}
-                                    </button>
+                                    <div className={styles.actionRowWrap}>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                try {
+                                                    const response = await fetch(`/api/static/qrcodes/${product.slug}.png`);
+                                                    const blob = await response.blob();
+                                                    const url = window.URL.createObjectURL(blob);
+                                                    const link = document.createElement('a');
+                                                    link.href = url;
+                                                    link.download = `qrcode-${product.slug}.png`;
+                                                    document.body.appendChild(link);
+                                                    link.click();
+                                                    document.body.removeChild(link);
+                                                } catch (err) {
+                                                    console.error("Erro ao baixar", err);
+                                                    alert("Houve um erro ao baixar o QR Code.");
+                                                }
+                                            }}
+                                            className={styles.editBtn}
+                                            style={{ backgroundColor: '#b8860b', color: 'white', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, height: 'auto' }}
+                                            title="Baixar QR Code da Ficha Técnica"
+                                        >
+                                            <Download size={16} /> QR Code
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleExportZpl}
+                                            className={styles.editBtn}
+                                            style={{ backgroundColor: '#374151', color: 'white', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, height: 'auto' }}
+                                            title="Exportar etiqueta para impressoras Zebra (.zpl)"
+                                        >
+                                            <Download size={16} /> Exportar ZPL
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleRegenerateQR}
+                                            disabled={regeneratingQR}
+                                            className={styles.editBtn}
+                                            style={{ backgroundColor: '#1a3a16', color: 'white', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, height: 'auto' }}
+                                            title="Atualizar link do QR Code"
+                                        >
+                                            <RefreshCw size={16} className={regeneratingQR ? "spin-animation" : ""} />
+                                            {regeneratingQR ? "Atualizando..." : "Regenerar QR"}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {formData.details?.qr_code_path && (
-                                    <div style={{ textAlign: 'center' }}>
+                                    <div className={styles.qrPreviewMini}>
                                         <img
                                             src={getImageUrl(formData.details.qr_code_path)}
                                             alt="QR Code"
-                                            style={{ width: '60px', height: '60px', border: '1px solid #ddd', borderRadius: '4px' }}
                                         />
                                         <div style={{ fontSize: '0.6rem', color: '#666', marginTop: '2px' }}>QR ATIVO</div>
                                     </div>

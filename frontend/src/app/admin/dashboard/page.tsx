@@ -71,6 +71,47 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleExportZpl = async (productId: number, slug: string) => {
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Sessão expirada. Por favor, faça login novamente.");
+                router.push("/admin");
+                return;
+            }
+
+            const res = await fetch(`/api/products/${productId}/label.zpl`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+
+            if (res.status === 401) {
+                alert("Sessão expirada. Por favor, faça login novamente.");
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                router.push("/admin");
+                return;
+            }
+
+            if (!res.ok) {
+                throw new Error("Falha ao exportar ZPL");
+            }
+
+            const zplText = await res.text();
+            const blob = new Blob([zplText], { type: "application/zpl" });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `label-${slug}.zpl`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("Erro ao exportar ZPL", err);
+            alert("Erro ao exportar ZPL");
+        }
+    };
+
     return (
         <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/dashboard" />
@@ -165,6 +206,14 @@ export default function AdminDashboard() {
                                                 title="Baixar QR Code da Ficha Técnica"
                                             >
                                                 <Download size={14} /> QR
+                                            </button>
+                                            <button
+                                                onClick={() => handleExportZpl(p.id, p.slug)}
+                                                className={styles.editBtn}
+                                                style={{ backgroundColor: '#374151', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
+                                                title="Exportar etiqueta ZPL"
+                                            >
+                                                <Download size={14} /> ZPL
                                             </button>
                                             <button
                                                 className={styles.editBtn}
