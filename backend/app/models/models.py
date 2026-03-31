@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, JSON, DateTime, Text, LargeBinary
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -11,6 +11,12 @@ class StoredImage(Base):
     content_type = Column(String, nullable=False)
     data = Column(LargeBinary, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    @validates('content_type')
+    def validate_content_type(self, key, value):
+        if not value or value == "None":
+            return "application/octet-stream"
+        return str(value)
 
 class User(Base):
     __tablename__ = "users"

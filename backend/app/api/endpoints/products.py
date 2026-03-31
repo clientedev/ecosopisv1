@@ -76,11 +76,10 @@ async def upload_image(
     admin: models.User = Depends(get_current_admin)
 ):
     content = await file.read()
-    content_type = file.content_type or "image/jpeg"
     
     stored_image = models.StoredImage(
         filename=file.filename or f"{uuid.uuid4()}.jpg",
-        content_type=content_type,
+        content_type=file.content_type or "application/octet-stream",
         data=content
     )
     db.add(stored_image)

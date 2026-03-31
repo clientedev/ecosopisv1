@@ -127,7 +127,7 @@ async def upload_profile_picture(
     
     stored_image = models.StoredImage(
         filename=file.filename or f"profile_{uuid.uuid4()}.jpg",
-        content_type=content_type,
+        content_type=file.content_type or "image/jpeg",
         data=content
     )
     db.add(stored_image)

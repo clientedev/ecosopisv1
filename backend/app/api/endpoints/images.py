@@ -18,8 +18,8 @@ async def upload_image(
     content_type = file.content_type or "image/jpeg"
     
     stored_image = models.StoredImage(
-        filename=file.filename or f"{uuid.uuid4()}.jpg",
-        content_type=content_type,
+        filename=file.filename or f"upload_{uuid.uuid4()}.jpg",
+        content_type=file.content_type or "image/jpeg",
         data=content
     )
     db.add(stored_image)
