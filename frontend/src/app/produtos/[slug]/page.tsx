@@ -1,5 +1,5 @@
 "use client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
@@ -11,6 +11,7 @@ import { useCart } from "@/context/CartContext";
 
 export default function ProductDetailPage() {
     const params = useParams();
+    const router = useRouter();
     const [product, setProduct] = useState<any>(null);
     const [activeImage, setActiveImage] = useState("");
     const [selectedFaq, setSelectedFaq] = useState<any>(null);
@@ -114,56 +115,25 @@ export default function ProductDetailPage() {
         logClick("site");
     };
 
-    const handleBuyNow = async () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            window.location.href = `/conta?redirect=/produtos/${params.slug}`;
+    const handleBuyNow = () => {
+        if (!product) {
+            showToast("Erro ao carregar produto", "error");
             return;
         }
-        if (!product) return;
+
         setBuyingNow(true);
         setPaymentError("");
-        try {
-            // Use relative path for Next.js rewrites
-            const apiUrl = "/api";
-            const res = await fetch(`${apiUrl}/payment/create-preference`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    items: [{
-                        product_id: product.id,
-                        product_name: product.name,
-                        quantity: 1,
-                        price: product.price
-                    }],
-                    total: product.price,
-                    address: {},
-                    shipping_method: "pac",
-                    shipping_price: 0
-                })
-            });
-            if (res.ok) {
-                const data = await res.json();
-                logClick("site");
-                // Redirect to Stripe Checkout
-                if (data.checkout_url) {
-                    window.location.href = data.checkout_url;
-                } else {
-                    alert("Erro: URL de checkout não retornada.");
-                }
-            } else {
-                const err = await res.json();
-                alert(`Erro ao iniciar pagamento: ${err.detail || "Tente novamente"}`);
-            }
-        } catch (error: any) {
-            console.error("Erro ao criar checkout Stripe:", error);
-            setPaymentError(error.message || "Falha ao iniciar pagamento. Tente novamente.");
-        } finally {
-            setBuyingNow(false);
-        }
+
+        const cartItem = {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image_url: product.image_url
+        };
+
+        addToCart(cartItem);
+        logClick("site");
+        router.push("/carrinho");
     };
 
     const submitReview = async () => {
