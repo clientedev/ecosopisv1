@@ -85,8 +85,10 @@ async def create_news(
 
     if file:
         try:
-            filename = file.filename or "uploaded_file"
-            content_type = file.content_type or "application/octet-stream"
+            filename = getattr(file, "filename", "uploaded_file") or "uploaded_file"
+            original_ct = getattr(file, "content_type", None)
+            content_type = str(original_ct) if original_ct else "application/octet-stream"
+            if content_type == "None": content_type = "application/octet-stream"
             print(f"Processing file: {filename} ({content_type})")
             
             # More robust media type detection
