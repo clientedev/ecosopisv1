@@ -25,6 +25,10 @@ def _apply_startup_migrations():
         ("repeat_text",  "BOOLEAN DEFAULT TRUE"),
         ("scroll_speed", "INTEGER DEFAULT 20"),
     ]
+    NEWS_COLS = [
+        ("media_url", "VARCHAR"),
+        ("media_type", "VARCHAR"),
+    ]
     USER_COLS = [
         ("can_post_news",      "BOOLEAN DEFAULT FALSE"),
         ("total_compras",      "INTEGER DEFAULT 0"),
@@ -66,6 +70,12 @@ def _apply_startup_migrations():
         for col, defn in ANNOUNCEMENT_COLS:
             try:
                 conn.execute(text(f"ALTER TABLE announcement_bar ADD COLUMN IF NOT EXISTS {col} {defn}"))
+                conn.commit()
+            except Exception: pass
+
+        for col, defn in NEWS_COLS:
+            try:
+                conn.execute(text(f"ALTER TABLE news ADD COLUMN IF NOT EXISTS {col} {defn}"))
                 conn.commit()
             except Exception: pass
 
