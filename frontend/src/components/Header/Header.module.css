@@ -51,11 +51,13 @@
 
 .logoImage {
     object-fit: contain;
-    margin-right: 15px;
+    margin-right: 0px;
     mix-blend-mode: multiply;
     /* Perfect for removing white backgrounds */
     filter: contrast(1.1) saturate(1.1);
     /* Enhance the green details */
+    height: auto;
+    max-height: 80px;
 }
 
 .actions {

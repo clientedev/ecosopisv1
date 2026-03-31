@@ -80,14 +80,13 @@ export default function Header() {
                     <Link href="/">
                         <div className={styles.logoContainer}>
                             <Image
-                                src="/logo_final.png"
+                                src="/logo_nova_transparent.png"
                                 alt="ECOSOPIS Logo"
-                                width={100}
-                                height={100}
+                                width={240}
+                                height={80}
                                 className={styles.logoImage}
                                 priority
                             />
-                            <span className={styles.logoText}>ECOSOPIS</span>
                         </div>
                     </Link>
                 </div>
