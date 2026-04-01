@@ -185,7 +185,9 @@ export default function Home() {
                         bottom: 90
                     };
 
-                    const activeImageUrl = (isMobile && slide.mobile_image_url) ? slide.mobile_image_url : slide.image_url;
+                    const activeImageUrl = isMobile
+                        ? (slide.mobile_image_url || "")
+                        : (slide.image_url || "");
                     const activeHeight = isMobile ? (slide.mobile_carousel_height || '400px') : (slide.carousel_height || '700px');
 
                     return (

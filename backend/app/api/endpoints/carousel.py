@@ -143,7 +143,8 @@ async def update_carousel_item(
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    final_image_url = (image_url if image_url else None) or db_item.image_url
+    # "" means user cleared the image; non-empty string means keep/use that URL; new file overrides all
+    final_image_url = (image_url if image_url else None) if image_url is not None else db_item.image_url
     if file and file.filename:
         content = await file.read()
         fn = file.filename or f"carousel_{uuid.uuid4()}.jpg"
@@ -154,9 +155,7 @@ async def update_carousel_item(
         db.refresh(stored_image)
         final_image_url = f"/api/images/{stored_image.id}"
 
-    final_mobile_image_url = db_item.mobile_image_url
-    if mobile_image_url is not None and mobile_image_url != "":
-        final_mobile_image_url = mobile_image_url
+    final_mobile_image_url = (mobile_image_url if mobile_image_url else None) if mobile_image_url is not None else db_item.mobile_image_url
     if mobile_file and mobile_file.filename:
         content = await mobile_file.read()
         fn = mobile_file.filename or f"carousel_mobile_{uuid.uuid4()}.jpg"
@@ -170,7 +169,7 @@ async def update_carousel_item(
     if badge is not None: db_item.badge = str(badge)
     if title is not None: db_item.title = str(title)
     if description is not None: db_item.description = str(description)
-    if final_image_url is not None: db_item.image_url = str(final_image_url)
+    db_item.image_url = final_image_url
     db_item.mobile_image_url = final_mobile_image_url
     if cta_primary_text is not None: db_item.cta_primary_text = str(cta_primary_text)
     if cta_primary_link is not None: db_item.cta_primary_link = str(cta_primary_link)

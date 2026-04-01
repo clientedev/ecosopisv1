@@ -291,7 +291,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                             {activeTab === 'mobile' && (
                                 <div className={styles.formGrid} style={{ gridTemplateColumns: '1fr' }}>
                                     <div style={{ padding: '14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', fontSize: '0.84rem', color: '#166534', lineHeight: 1.6 }}>
-                                        📱 Configure aqui a <strong>imagem específica para celular</strong> e a altura do carousel em cada dispositivo. Se não enviar uma imagem mobile, será usada a imagem desktop.
+                                        📱 Configure aqui a <strong>imagem específica para celular</strong> e a altura do carousel em cada dispositivo. A imagem mobile exibe apenas em celulares, e a imagem desktop apenas em telas maiores.
                                     </div>
 
                                     <div className={styles.formGroup}>
@@ -329,7 +329,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                             </div>
                                         ) : (
                                             <div style={{ marginTop: 8, padding: '20px', textAlign: 'center', background: '#f5f5f5', borderRadius: 8, color: '#999', fontSize: '0.82rem', border: '2px dashed #ddd' }}>
-                                                Sem imagem mobile — usará a imagem desktop
+                                                Sem imagem mobile — banner não exibirá imagem em celulares
                                             </div>
                                         )}
                                     </div>
