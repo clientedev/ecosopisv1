@@ -43,7 +43,7 @@
 
 .topBarLogo {
     object-fit: contain;
-    width: clamp(240px, 28vw, 370px);
+    width: clamp(180px, 21vw, 278px);
     height: auto;
     display: block;
 }
