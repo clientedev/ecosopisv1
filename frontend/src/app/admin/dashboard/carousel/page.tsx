@@ -105,9 +105,9 @@ export default function CarouselAdmin() {
                                 }}>
                                     {/* Image Thumbnail */}
                                     <div style={{ width: '160px', minWidth: '160px', height: '90px', position: 'relative', overflow: 'hidden', background: '#f3f4f6' }}>
-                                        {item.image_url ? (
+                                        {(item.image_url || item.mobile_image_url) ? (
                                             <img
-                                                src={item.image_url}
+                                                src={item.image_url || item.mobile_image_url}
                                                 alt={item.title || 'Banner'}
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                                                 onError={(e) => {

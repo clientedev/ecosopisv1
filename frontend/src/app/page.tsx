@@ -77,6 +77,10 @@ export default function Home() {
     const [slides, setSlides] = useState<any[]>([]);
     const [currentSlide, setCurrentSlide] = useState(0);
 
+    const deviceSlides = isMobile
+        ? slides.filter(s => s.mobile_image_url)
+        : slides.filter(s => s.image_url);
+
     const getImageUrl = (url: string) => {
         if (!url) return "";
         if (url.startsWith("http")) return url;
@@ -136,12 +140,16 @@ export default function Home() {
 
     useEffect(() => {
         const timer = setInterval(() => {
-            if (slides.length > 0) {
-                setCurrentSlide((prev) => (prev + 1) % slides.length);
+            if (deviceSlides.length > 0) {
+                setCurrentSlide((prev) => (prev + 1) % deviceSlides.length);
             }
         }, 8000);
         return () => clearInterval(timer);
-    }, [slides.length]);
+    }, [deviceSlides.length]);
+
+    useEffect(() => {
+        setCurrentSlide(0);
+    }, [isMobile]);
 
     useEffect(() => {
         const fetchRecent = async () => {
@@ -164,7 +172,7 @@ export default function Home() {
 
             {/* Hero Carousel */}
             <section className={styles.heroCarousel}>
-                {slides.map((slide, index) => {
+                {deviceSlides.map((slide, index) => {
                     // Helper to convert hex to rgba for overlay
                     const hexToRgba = (hex: string, opacity: number) => {
                         const r = parseInt(hex.slice(1, 3), 16);
@@ -286,7 +294,7 @@ export default function Home() {
                     );
                 })}
                 <div className={styles.carouselDots}>
-                    {slides.map((_, index) => (
+                    {deviceSlides.map((_, index) => (
                         <button
                             key={index}
                             className={`${styles.dot} ${index === currentSlide ? styles.activeDot : ''}`}
