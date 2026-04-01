@@ -28,6 +28,20 @@
     color: #2d5a27;
 }
 
+/* ── TOP BAR ── */
+.topBar {
+    background: #ffffff;
+    border-bottom: 1px solid #eaede9;
+    padding: 14px 40px;
+    display: flex;
+    align-items: center;
+}
+
+.topBarLogo {
+    object-fit: contain;
+    display: block;
+}
+
 /* ═══════════════════════════════════════════
    HERO — SPLIT LAYOUT
 ═══════════════════════════════════════════ */
@@ -594,6 +608,10 @@
    RESPONSIVE — MOBILE
 ═══════════════════════════════════════════ */
 @media (max-width: 640px) {
+    .topBar {
+        padding: 12px 20px;
+    }
+
     /* Hero stacks vertically */
     .hero {
         grid-template-columns: 1fr;

@@ -180,6 +180,20 @@ export default function ProductTechnicalPage() {
     return (
         <div className={styles.pageContainer}>
 
+            {/* ── TOP NAV BAR ── */}
+            <div className={styles.topBar}>
+                <Link href="/">
+                    <Image
+                        src="/logo_nova_transparent.png"
+                        alt="Ecosopis Logo"
+                        width={160}
+                        height={52}
+                        priority
+                        className={styles.topBarLogo}
+                    />
+                </Link>
+            </div>
+
             {/* ── HERO SPLIT ── */}
             <section className={styles.hero}>
                 {/* Left – image panel */}
@@ -231,9 +245,6 @@ export default function ProductTechnicalPage() {
                         <span className={styles.skuTag}>SKU: {product.slug}</span>
                     </div>
 
-                    <Link href={`/produtos/${product.slug}`} className={styles.buyBtn}>
-                        <ShoppingBag size={18} /> COMPRAR AGORA
-                    </Link>
                 </div>
             </section>
 
@@ -329,10 +340,10 @@ export default function ProductTechnicalPage() {
             <footer className={styles.footer}>
                 <div className={styles.footerLogoWrap}>
                     <Image
-                        src="/logo_final.png"
+                        src="/logo_nova_transparent.png"
                         alt="Ecosopis Logo"
-                        width={140}
-                        height={45}
+                        width={160}
+                        height={52}
                         className={styles.footerLogo}
                     />
                 </div>
