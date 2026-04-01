@@ -18,6 +18,7 @@ export default function ProductDetailPage() {
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [reviewData, setReviewData] = useState({ rating: 5, comment: "", user_name: "" });
     const [submittingReview, setSubmittingReview] = useState(false);
+    const [approvedReviews, setApprovedReviews] = useState<any[]>([]);
     const [buyingNow, setBuyingNow] = useState(false);
     const [paymentError, setPaymentError] = useState("");
 
@@ -36,9 +37,22 @@ export default function ProductDetailPage() {
                     setProduct(data);
                     setActiveImage(data.image_url || (data.images && data.images[0]) || "");
                     logVisit(`/produtos/${params.slug}`);
+                    fetchApprovedReviews(data.id);
                 }
             } catch (error) {
                 console.error("Error fetching product:", error);
+            }
+        };
+
+        const fetchApprovedReviews = async (productId: number) => {
+            try {
+                const res = await fetch(`/api/reviews/approved`, { cache: "no-store" });
+                if (!res.ok) return;
+                const allReviews = await res.json();
+                const filtered = (allReviews || []).filter((rev: any) => rev.product_id === productId);
+                setApprovedReviews(filtered);
+            } catch (error) {
+                console.error("Error fetching approved reviews:", error);
             }
         };
 
@@ -358,8 +372,8 @@ export default function ProductDetailPage() {
                     )}
 
                     <div className={styles.reviewsList}>
-                        {product.reviews && product.reviews.length > 0 ? (
-                            product.reviews.map((rev: any) => (
+                        {approvedReviews.length > 0 ? (
+                            approvedReviews.map((rev: any) => (
                                 <div key={rev.id} className={styles.reviewCard}>
                                     <div className={styles.reviewMeta}>
                                         <span className={styles.reviewerName}>{rev.user_name}</span>

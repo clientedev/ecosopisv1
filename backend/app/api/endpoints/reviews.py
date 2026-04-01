@@ -13,6 +13,7 @@ class ReviewCreate(BaseModel):
     user_name: str
     comment: str
     rating: int
+    product_id: int | None = None
 
 class ReviewUpdate(BaseModel):
     is_approved: bool
@@ -20,10 +21,16 @@ class ReviewUpdate(BaseModel):
 @router.post("")
 def create_review(data: ReviewCreate, db: Session = Depends(get_db)):
     """Public endpoint to submit a review for approval."""
+    if data.product_id is not None:
+        product = db.query(models.Product).filter(models.Product.id == data.product_id).first()
+        if not product:
+            raise HTTPException(status_code=404, detail="Produto não encontrado para avaliação")
+
     review = models.Review(
         user_name=data.user_name,
         comment=data.comment,
         rating=data.rating,
+        product_id=data.product_id,
         is_approved=False
     )
     db.add(review)
