@@ -52,8 +52,6 @@ const CATEGORIES: Category[] = [
         label: "Vendas",
         items: [
             { label: "Pedidos", path: "/admin/pedidos", icon: <ShoppingBag size={18} /> },
-            { label: "Assinaturas", path: "/admin/subscriptions", icon: <ShieldCheck size={18} /> },
-            { label: "Assinaturas Box", path: "/admin/dashboard/box", icon: <Package size={18} /> },
         ]
     },
     {
@@ -72,7 +70,6 @@ const CATEGORIES: Category[] = [
             { label: "Permissões Blog", path: "/admin/dashboard/blog-permissions", icon: <ShieldCheck size={18} /> },
             { label: "Métricas", path: "/admin/dashboard/metrics", icon: <BarChart3 size={18} /> },
             { label: "CRM de Vendas", path: "/admin/dashboard/crm", icon: <TrendingUp size={18} /> },
-            { label: "Configurações", path: "/admin/settings", icon: <Settings size={18} /> },
         ]
     }
 ];
