@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
+
 const nextConfig = {
   output: 'standalone',
   allowedDevOrigins: ['*.replit.dev', '*.spock.replit.dev'],
@@ -6,7 +8,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8000/:path*',
+        destination: `${BACKEND_URL}/:path*`,
       },
     ];
   },
@@ -14,7 +16,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'http',
-        hostname: 'localhost',
+        hostname: '127.0.0.1',
         port: '8000',
         pathname: '/static/**',
       },
