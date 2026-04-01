@@ -144,17 +144,17 @@ export default function ProductTechnicalPage() {
     return (
         <div className={styles.pageContainer}>
             <header className={styles.hero}>
-                <Link href={`/produtos/${product.slug}`} style={{
-                    position: 'absolute', top: '25px', left: '25px', color: 'white',
-                    display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none',
-                    fontSize: '0.9rem', fontWeight: 600, opacity: '0.9', zIndex: 100
-                }}>
+                <Link href={`/produtos/${product.slug}`} className={styles.backLink}>
                     <ArrowLeft size={18} /> Voltar ao Produto
                 </Link>
 
                 <div className={styles.badge}>Ficha Técnica Premium</div>
                 <h1>{product.name}</h1>
                 <p>Equilíbrio botânico, consciência e pureza em cada detalhe.</p>
+                <div className={styles.heroMeta}>
+                    {product.price ? <span>R$ {product.price.toFixed(2).replace(".", ",")}</span> : <span>Sem preço exibido</span>}
+                    <span>SKU: {product.slug}</span>
+                </div>
             </header>
 
             {/* Image Gallery Section */}
@@ -312,13 +312,13 @@ export default function ProductTechnicalPage() {
                 </div>
 
                 <footer className={styles.footer}>
-                    <div style={{ marginBottom: '20px' }}>
+                    <div className={styles.footerLogoWrap}>
                         <Image
                             src="/logo_final.png"
                             alt="Ecosopis Logo"
                             width={140}
                             height={45}
-                            style={{ opacity: 0.4, filter: 'grayscale(1)' }}
+                            className={styles.footerLogo}
                         />
                     </div>
                     &copy; {new Date().getFullYear()} Ecosopis Cosmética Natural. Todos os direitos reservados.<br />
