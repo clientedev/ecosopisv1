@@ -1,0 +1,142 @@
+==============
+Using Nixpacks
+==============
+
+context: jwj9-Kaoo
+╔═══════════════════════ Nixpacks v1.38.0 ══════════════════════╗
+║ setup      │ nodejs_18                                        ║
+║───────────────────────────────────────────────────────────────║
+║ install    │ npm ci                                           ║
+║───────────────────────────────────────────────────────────────║
+║ build      │ npm run build                                    ║
+║            │ cp -r .next/static .next/standalone/.next/static ║
+║            │ cp -r public .next/standalone/public             ║
+║───────────────────────────────────────────────────────────────║
+║ start      │ HOSTNAME=0.0.0.0 node .next/standalone/server.js ║
+╚═══════════════════════════════════════════════════════════════╝
+
+internal
+load build definition from Dockerfile
+0ms
+
+internal
+load metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
+506ms
+
+internal
+load .dockerignore
+0ms
+
+[ 1/12] FROM ghcr.io/railwayapp/nixpacks:ubuntu-1745885067@sha256:d45c89d80e13d7ad0fd555b5130f22a866d9dd10e861f589932303ef2314c7de
+7ms
+
+internal
+load build context
+0ms
+
+[ 2/12] WORKDIR /app/ cached
+0ms
+
+[ 3/12] COPY .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix
+51ms
+
+[ 4/12] RUN nix-env -if .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix && nix-collect-garbage -d
+41s
+29 store paths deleted, 247.84 MiB freed
+
+[ 5/12] COPY . /app/.
+145ms
+
+[ 6/12] RUN  npm ci
+1m 42s
+npm warn config production Use `--omit=dev` instead.
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm error code ECONNRESET
+npm error syscall read
+npm error errno -104
+npm error network read ECONNRESET
+npm error network This is a problem related to network connectivity.
+npm error network In most cases you are behind a proxy or have bad network settings.
+npm error network
+npm error network If you are behind a proxy, please make sure that the
+npm error network 'proxy' config is set properly.  See: 'npm help config'
+npm error A complete log of this run can be found in: /root/.npm/_logs/2026-04-01T18_18_54_075Z-debug-0.log
+Dockerfile:20
+-------------------
+18 |     ENV NIXPACKS_PATH=/app/node_modules/.bin:$NIXPACKS_PATH
+19 |     COPY . /app/.
+20 | >>> RUN  npm ci
+21 |
+22 |     # build phase
+-------------------
+ERROR: failed to build: failed to solve: process "/bin/bash -ol pipefail -c npm ci" did not complete successfully: exit code: 152
+Error: Docker build failed
+ECONNRESET encountered, Retrying build image
+
+[Region: us-east4]
+==============
+Using Nixpacks
+==============
+
+context: jwj9-Kaoo
+╔═══════════════════════ Nixpacks v1.38.0 ══════════════════════╗
+║ setup      │ nodejs_18                                        ║
+║───────────────────────────────────────────────────────────────║
+║ install    │ npm ci                                           ║
+║───────────────────────────────────────────────────────────────║
+║ build      │ npm run build                                    ║
+║            │ cp -r .next/static .next/standalone/.next/static ║
+║            │ cp -r public .next/standalone/public             ║
+║───────────────────────────────────────────────────────────────║
+║ start      │ HOSTNAME=0.0.0.0 node .next/standalone/server.js ║
+╚═══════════════════════════════════════════════════════════════╝
+
+internal
+load build definition from Dockerfile
+0ms
+
+internal
+load .dockerignore
+0ms
+
+internal
+load build context
+0ms
+
+[ 5/12] COPY . /app/. cached
+0ms
+
+[ 4/12] RUN nix-env -if .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix && nix-collect-garbage -d cached
+0ms
+
+[ 3/12] COPY .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix cached
+0ms
+
+[ 6/12] RUN  npm ci
+52s
+Run `npm audit` for details.
+
+[ 7/12] COPY . /app/.
+323ms
+
+[ 8/12] RUN  npm run build
+39s
+ƒ (Dynamic) server-rendered on demand
+
+[ 9/12] RUN  cp -r .next/static .next/standalone/.next/static
+111ms
+cp: cannot create directory '.next/standalone/.next/static': No such file or directory
+Dockerfile:25
+-------------------
+23 |     COPY . /app/.
+24 |     RUN  npm run build
+25 | >>> RUN  cp -r .next/static .next/standalone/.next/static
+26 |     RUN  cp -r public .next/standalone/public
+27 |
+-------------------
+ERROR: failed to build: failed to solve: process "/bin/bash -ol pipefail -c cp -r .next/static .next/standalone/.next/static" did not complete successfully: exit code: 1
+Error: Docker build failed
