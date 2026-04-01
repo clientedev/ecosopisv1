@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import json
 from app.api.endpoints import auth
@@ -14,34 +14,64 @@ router = APIRouter()
 
 @router.get("", response_model=List[schemas.NewsResponse])
 def list_news(db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(auth.get_current_user_optional)):
-    news_list = db.query(models.News).order_by(models.News.created_at.desc()).all()
-    
+    news_list = (
+        db.query(models.News)
+        .options(
+            joinedload(models.News.user),
+            joinedload(models.News.likes),
+            joinedload(models.News.comments).joinedload(models.NewsComment.user),
+        )
+        .order_by(models.News.created_at.desc())
+        .all()
+    )
+
     results = []
     for news in news_list:
-        news_data = schemas.NewsResponse.from_orm(news)
-        news_data.likes_count = len(news.likes)
-        if current_user:
-            news_data.is_liked = any(like.user_id == current_user.id for like in news.likes)
+        news_data = schemas.NewsResponse.model_validate(news)
+        def _comment_sort_key(c: models.NewsComment) -> float:
+            if c.created_at is None:
+                return 0.0
+            return c.created_at.timestamp()
+
+        sorted_comments = sorted(news.comments, key=_comment_sort_key)
+        news_data = news_data.model_copy(
+            update={
+                "likes_count": len(news.likes),
+                "comments_count": len(news.comments),
+                "comments": [schemas.NewsCommentResponse.model_validate(c) for c in sorted_comments],
+                "is_liked": (
+                    any(like.user_id == current_user.id for like in news.likes)
+                    if current_user
+                    else False
+                ),
+            }
+        )
         results.append(news_data)
-    
+
     return results
 
 @router.post("/{news_id}/like")
 def like_news(news_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    news = db.query(models.News).filter(models.News.id == news_id).first()
+    if not news:
+        raise HTTPException(status_code=404, detail="Post não encontrado")
+
     existing_like = db.query(models.NewsLike).filter(
         models.NewsLike.news_id == news_id,
         models.NewsLike.user_id == current_user.id
     ).first()
-    
+
     if existing_like:
         db.delete(existing_like)
         db.commit()
-        return {"liked": False}
-    
-    new_like = models.NewsLike(news_id=news_id, user_id=current_user.id)
-    db.add(new_like)
-    db.commit()
-    return {"liked": True}
+    else:
+        db.add(models.NewsLike(news_id=news_id, user_id=current_user.id))
+        db.commit()
+
+    likes_count = (
+        db.query(models.NewsLike).filter(models.NewsLike.news_id == news_id).count()
+    )
+    return {"liked": existing_like is None, "likes_count": likes_count}
 
 @router.post("/{news_id}/comment", response_model=schemas.NewsCommentResponse)
 def comment_news(
@@ -50,15 +80,29 @@ def comment_news(
     db: Session = Depends(get_db), 
     current_user: models.User = Depends(get_current_user)
 ):
+    news = db.query(models.News).filter(models.News.id == news_id).first()
+    if not news:
+        raise HTTPException(status_code=404, detail="Post não encontrado")
+
+    text = (comment_in.content or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Comentário não pode ser vazio")
+
     new_comment = models.NewsComment(
-        news_id=news_id, 
-        user_id=current_user.id, 
-        content=comment_in.content
+        news_id=news_id,
+        user_id=current_user.id,
+        content=text,
     )
     db.add(new_comment)
     db.commit()
     db.refresh(new_comment)
-    return new_comment
+    c = (
+        db.query(models.NewsComment)
+        .options(joinedload(models.NewsComment.user))
+        .filter(models.NewsComment.id == new_comment.id)
+        .first()
+    )
+    return schemas.NewsCommentResponse.model_validate(c)
 
 @router.post("", response_model=schemas.NewsResponse)
 async def create_news(

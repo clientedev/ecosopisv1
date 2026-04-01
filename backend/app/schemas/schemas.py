@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Any, Dict
 from datetime import datetime
 
@@ -260,10 +260,20 @@ class ProductResponse(ProductBase):
         from_attributes = True
 
 # News Schemas
+class NewsCommentAuthorPublic(BaseModel):
+    """Autor do comentário no blog (sem expor e-mail)."""
+    id: int
+    full_name: Optional[str] = None
+    profile_picture: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class NewsCommentResponse(BaseModel):
     id: int
     content: str
-    user: UserResponse
+    user: NewsCommentAuthorPublic
     created_at: datetime
 
     class Config:
@@ -284,6 +294,7 @@ class NewsResponse(NewsBase):
     created_at: datetime
     user: Optional[UserResponse] = None
     likes_count: int = 0
+    comments_count: int = 0
     is_liked: bool = False
     comments: List[NewsCommentResponse] = []
 
@@ -291,7 +302,7 @@ class NewsResponse(NewsBase):
         from_attributes = True
 
 class NewsCommentCreate(BaseModel):
-    content: str
+    content: str = Field(..., min_length=1, max_length=2000)
 
 # Metrics Schemas
 class SiteVisitLog(BaseModel):

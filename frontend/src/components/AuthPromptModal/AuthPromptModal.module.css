@@ -1,0 +1,132 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  background: rgba(17, 24, 39, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.card {
+  position: relative;
+  background: #fff;
+  border-radius: 18px;
+  padding: 1.75rem 1.5rem 1.5rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow:
+    0 24px 48px rgba(45, 90, 39, 0.18),
+    0 0 0 1px rgba(45, 90, 39, 0.06);
+  animation: slideUp 0.28s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.closeBtn {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  background: #f3f4f6;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #4b5563;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.closeBtn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #2d5a27;
+  background: linear-gradient(135deg, #e8f0e0, #dce8d4);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  margin-bottom: 0.75rem;
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  padding-right: 2rem;
+}
+
+.text {
+  margin: 0 0 1.35rem;
+  font-size: 0.9375rem;
+  color: #4b5563;
+  line-height: 1.55;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.primary {
+  text-align: center;
+  background: linear-gradient(135deg, #2d5a27, #3d7340);
+  color: #fff !important;
+  font-weight: 700;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.primary:hover {
+  filter: brightness(1.06);
+}
+
+.secondary {
+  background: #f3f4f6;
+  border: none;
+  padding: 0.7rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #374151;
+  cursor: pointer;
+}
+
+.secondary:hover {
+  background: #e5e7eb;
+}
