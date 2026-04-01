@@ -71,10 +71,6 @@ async def create_carousel_item(
         db.refresh(stored_image)
         final_mobile_image_url = f"/api/images/{stored_image.id}"
 
-    # If no desktop image provided but mobile image exists, use mobile as desktop fallback
-    if not final_image_url and final_mobile_image_url:
-        final_image_url = final_mobile_image_url
-
     db_item = models.CarouselItem(
         badge=badge,
         title=title,
@@ -170,10 +166,6 @@ async def update_carousel_item(
         db.commit()
         db.refresh(stored_image)
         final_mobile_image_url = f"/api/images/{stored_image.id}"
-
-    # If no desktop image but mobile image exists, use mobile as desktop fallback
-    if not final_image_url and final_mobile_image_url:
-        final_image_url = final_mobile_image_url
 
     if badge is not None: db_item.badge = str(badge)
     if title is not None: db_item.title = str(title)
