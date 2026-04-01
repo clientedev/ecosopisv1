@@ -53,7 +53,7 @@
     object-fit: contain;
     width: clamp(170px, 20vw, 260px);
     height: auto;
-    max-height: 72px;
+    max-height: 92px;
     margin-right: 0;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: high-quality;
