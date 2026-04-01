@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from app.core.database import get_db
+from app.core.upload_content_type import resolve_stored_image_content_type
 from app.models import models
 from app.api.endpoints.auth import get_current_admin
 import uuid
@@ -15,11 +16,14 @@ async def upload_image(
     admin: models.User = Depends(get_current_admin)
 ):
     content = await file.read()
-    content_type = file.content_type or "image/jpeg"
-    
+    fn = file.filename or f"upload_{uuid.uuid4()}.jpg"
+    content_type = resolve_stored_image_content_type(
+        filename=fn, declared=file.content_type, fallback="image/jpeg"
+    )
+
     stored_image = models.StoredImage(
-        filename=file.filename or f"upload_{uuid.uuid4()}.jpg",
-        content_type=file.content_type or "image/jpeg",
+        filename=fn,
+        content_type=content_type,
         data=content
     )
     db.add(stored_image)
@@ -36,7 +40,7 @@ def get_image(image_id: int, db: Session = Depends(get_db)):
     
     return Response(
         content=image.data,
-        media_type=image.content_type,
+        media_type=image.content_type or "application/octet-stream",
         headers={
             "Cache-Control": "public, max-age=31536000",
             "Accept-Ranges": "bytes"

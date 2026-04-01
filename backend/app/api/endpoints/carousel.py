@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
+from app.core.upload_content_type import resolve_stored_image_content_type
 from app.models import models
 from app.schemas import schemas
 from app.api.endpoints.auth import get_current_admin
@@ -45,10 +46,13 @@ async def create_carousel_item(
     final_image_url = image_url
     if file and file.filename:
         content = await file.read()
-        content_type = file.content_type or "image/jpeg"
+        fn = file.filename or f"carousel_{uuid.uuid4()}.jpg"
+        content_type = resolve_stored_image_content_type(
+            filename=fn, declared=file.content_type, fallback="image/jpeg"
+        )
         stored_image = models.StoredImage(
-            filename=file.filename or f"carousel_{uuid.uuid4()}.jpg",
-            content_type=file.content_type or "image/jpeg",
+            filename=fn,
+            content_type=content_type,
             data=content
         )
         db.add(stored_image)
@@ -122,10 +126,13 @@ async def update_carousel_item(
     final_image_url = image_url or db_item.image_url
     if file and file.filename:
         content = await file.read()
-        content_type = file.content_type or "image/jpeg"
+        fn = file.filename or f"carousel_{uuid.uuid4()}.jpg"
+        content_type = resolve_stored_image_content_type(
+            filename=fn, declared=file.content_type, fallback="image/jpeg"
+        )
         stored_image = models.StoredImage(
-            filename=file.filename or f"carousel_{uuid.uuid4()}.jpg",
-            content_type=file.content_type or "image/jpeg",
+            filename=fn,
+            content_type=content_type,
             data=content
         )
         db.add(stored_image)

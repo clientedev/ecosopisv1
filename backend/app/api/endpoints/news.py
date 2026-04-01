@@ -4,6 +4,7 @@ from typing import List, Optional
 import json
 from app.api.endpoints import auth
 from app.core.database import get_db
+from app.core.upload_content_type import resolve_stored_image_content_type
 from app.models import models
 from app.schemas import schemas
 from app.api.endpoints.auth import get_current_user
@@ -87,8 +88,9 @@ async def create_news(
         try:
             filename = getattr(file, "filename", "uploaded_file") or "uploaded_file"
             original_ct = getattr(file, "content_type", None)
-            content_type = str(original_ct) if original_ct else "application/octet-stream"
-            if content_type == "None": content_type = "application/octet-stream"
+            content_type = resolve_stored_image_content_type(
+                filename=filename, declared=original_ct, fallback="application/octet-stream"
+            )
             print(f"Processing file: {filename} ({content_type})")
             
             # More robust media type detection

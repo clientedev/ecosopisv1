@@ -3,6 +3,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.core.database import get_db
+from app.core.upload_content_type import resolve_stored_image_content_type
 from app.models import models
 from app.schemas import schemas
 from app.api.endpoints.auth import get_current_admin
@@ -76,10 +77,13 @@ async def upload_image(
     admin: models.User = Depends(get_current_admin)
 ):
     content = await file.read()
-    
+    fn = file.filename or f"{uuid.uuid4()}.jpg"
+
     stored_image = models.StoredImage(
-        filename=file.filename or f"{uuid.uuid4()}.jpg",
-        content_type=file.content_type or "application/octet-stream",
+        filename=fn,
+        content_type=resolve_stored_image_content_type(
+            filename=fn, declared=file.content_type, fallback="application/octet-stream"
+        ),
         data=content
     )
     db.add(stored_image)

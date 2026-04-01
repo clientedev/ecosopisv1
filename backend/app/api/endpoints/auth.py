@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core import security
+from app.core.upload_content_type import resolve_stored_image_content_type
 from app.models import models
 from app.schemas import schemas
 from jose import jwt, JWTError
@@ -123,11 +124,14 @@ async def upload_profile_picture(
     current_user: models.User = Depends(get_current_user)
 ):
     content = await file.read()
-    content_type = file.content_type or "image/jpeg"
-    
+    fn = file.filename or f"profile_{uuid.uuid4()}.jpg"
+    content_type = resolve_stored_image_content_type(
+        filename=fn, declared=file.content_type, fallback="image/jpeg"
+    )
+
     stored_image = models.StoredImage(
-        filename=file.filename or f"profile_{uuid.uuid4()}.jpg",
-        content_type=file.content_type or "image/jpeg",
+        filename=fn,
+        content_type=content_type,
         data=content
     )
     db.add(stored_image)
