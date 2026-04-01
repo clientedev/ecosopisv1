@@ -15,6 +15,7 @@
     background: #f7f5f0;
     color: #243126;
     font-family: 'Inter', sans-serif;
+    position: relative;
 }
 
 .emptyState {
@@ -30,16 +31,24 @@
 
 /* ── TOP BAR ── */
 .topBar {
-    background: #ffffff;
-    border-bottom: 1px solid #eaede9;
-    padding: 14px 40px;
+    padding: 10px 40px;
     display: flex;
     align-items: center;
+    background: transparent;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 100;
 }
 
 .topBarLogo {
     object-fit: contain;
+    width: clamp(170px, 20vw, 260px);
+    height: auto;
+    max-height: 92px;
     display: block;
+    transform: scale(1.43);
+    transform-origin: left center;
 }
 
 /* ═══════════════════════════════════════════
@@ -58,7 +67,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 48px 40px 32px;
+    padding: 120px 40px 32px;
     gap: 20px;
     position: relative;
 }
@@ -583,12 +592,19 @@
 }
 
 .footerLogoWrap {
-    margin-bottom: 18px;
+    margin-bottom: 32px;
+    display: flex;
+    justify-content: center;
+    overflow: visible;
 }
 
 .footerLogo {
-    opacity: 0.4;
-    filter: grayscale(1);
+    object-fit: contain;
+    width: clamp(170px, 20vw, 260px);
+    height: auto;
+    max-height: 92px;
+    transform: scale(1.43);
+    transform-origin: center center;
 }
 
 /* ═══════════════════════════════════════════
@@ -609,7 +625,12 @@
 ═══════════════════════════════════════════ */
 @media (max-width: 640px) {
     .topBar {
-        padding: 12px 20px;
+        padding: 8px 20px;
+    }
+
+    .topBarLogo {
+        width: 170px;
+        transform: scale(1.43);
     }
 
     /* Hero stacks vertically */
@@ -619,7 +640,7 @@
     }
 
     .heroLeft {
-        padding: 40px 24px 24px;
+        padding: 100px 24px 24px;
         min-height: 320px;
     }
 
