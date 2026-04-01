@@ -23,6 +23,8 @@ def resolve_stored_image_content_type(
             return s
     if filename:
         guessed, _ = mimetypes.guess_type(filename)
+        if not guessed:
+            guessed, _ = mimetypes.guess_type(filename.lower())
         if guessed:
             return guessed
     return fallback

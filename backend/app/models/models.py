@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, JSON, DateTime, Text, LargeBinary, event
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Session
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -13,7 +13,7 @@ class StoredImage(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-def _ensure_stored_image_content_type(mapper, connection, target):
+def coerce_stored_image_content_type(target: "StoredImage") -> None:
     from app.core.upload_content_type import resolve_stored_image_content_type
 
     target.content_type = resolve_stored_image_content_type(
@@ -22,8 +22,21 @@ def _ensure_stored_image_content_type(mapper, connection, target):
     )
 
 
-event.listen(StoredImage, "before_insert", _ensure_stored_image_content_type)
-event.listen(StoredImage, "before_update", _ensure_stored_image_content_type)
+def _ensure_stored_image_content_type(mapper, connection, target):
+    coerce_stored_image_content_type(target)
+
+
+# Mapper hooks (cover normal ORM inserts)
+event.listen(StoredImage, "before_insert", _ensure_stored_image_content_type, propagate=True)
+event.listen(StoredImage, "before_update", _ensure_stored_image_content_type, propagate=True)
+
+
+@event.listens_for(Session, "before_flush")
+def _stored_image_coerce_on_flush(session, flush_context, instances) -> None:
+    """Guarantee content_type before any INSERT/UPDATE hits the DB (Railway/Postgres)."""
+    for obj in set(session.new).union(session.dirty):
+        if isinstance(obj, StoredImage):
+            coerce_stored_image_content_type(obj)
 
 class User(Base):
     __tablename__ = "users"
