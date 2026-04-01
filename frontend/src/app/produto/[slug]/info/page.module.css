@@ -43,12 +43,9 @@
 
 .topBarLogo {
     object-fit: contain;
-    width: clamp(170px, 20vw, 260px);
+    width: clamp(240px, 28vw, 370px);
     height: auto;
-    max-height: 92px;
     display: block;
-    transform: scale(1.43);
-    transform-origin: left center;
 }
 
 /* ═══════════════════════════════════════════
@@ -600,11 +597,10 @@
 
 .footerLogo {
     object-fit: contain;
-    width: clamp(170px, 20vw, 260px);
+    width: clamp(200px, 22vw, 300px);
     height: auto;
-    max-height: 92px;
-    transform: scale(1.43);
-    transform-origin: center center;
+    display: block;
+    margin: 0 auto;
 }
 
 /* ═══════════════════════════════════════════
@@ -629,8 +625,7 @@
     }
 
     .topBarLogo {
-        width: 170px;
-        transform: scale(1.43);
+        width: 220px;
     }
 
     /* Hero stacks vertically */
