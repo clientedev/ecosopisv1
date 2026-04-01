@@ -23,7 +23,9 @@ async def create_carousel_item(
     description: Optional[str] = Form(None),
     order: int = Form(0),
     file: Optional[UploadFile] = File(None),
+    mobile_file: Optional[UploadFile] = File(None),
     image_url: Optional[str] = Form(None),
+    mobile_image_url: Optional[str] = Form(None),
     cta_primary_text: Optional[str] = Form(None),
     cta_primary_link: Optional[str] = Form(None),
     cta_secondary_text: Optional[str] = Form(None),
@@ -40,6 +42,9 @@ async def create_carousel_item(
     overlay_opacity: float = Form(0.3),
     offset_x: str = Form("0px"),
     offset_y: str = Form("0px"),
+    carousel_height: str = Form("600px"),
+    mobile_carousel_height: str = Form("400px"),
+    image_fit: str = Form("cover"),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -47,24 +52,30 @@ async def create_carousel_item(
     if file and file.filename:
         content = await file.read()
         fn = file.filename or f"carousel_{uuid.uuid4()}.jpg"
-        content_type = resolve_stored_image_content_type(
-            filename=fn, declared=file.content_type, fallback="image/jpeg"
-        )
-        stored_image = models.StoredImage(
-            filename=fn,
-            content_type=content_type,
-            data=content
-        )
+        content_type = resolve_stored_image_content_type(filename=fn, declared=file.content_type, fallback="image/jpeg")
+        stored_image = models.StoredImage(filename=fn, content_type=content_type, data=content)
         db.add(stored_image)
         db.commit()
         db.refresh(stored_image)
         final_image_url = f"/api/images/{stored_image.id}"
+
+    final_mobile_image_url = mobile_image_url
+    if mobile_file and mobile_file.filename:
+        content = await mobile_file.read()
+        fn = mobile_file.filename or f"carousel_mobile_{uuid.uuid4()}.jpg"
+        content_type = resolve_stored_image_content_type(filename=fn, declared=mobile_file.content_type, fallback="image/jpeg")
+        stored_image = models.StoredImage(filename=fn, content_type=content_type, data=content)
+        db.add(stored_image)
+        db.commit()
+        db.refresh(stored_image)
+        final_mobile_image_url = f"/api/images/{stored_image.id}"
 
     db_item = models.CarouselItem(
         badge=badge,
         title=title,
         description=description,
         image_url=final_image_url,
+        mobile_image_url=final_mobile_image_url,
         cta_primary_text=cta_primary_text,
         cta_primary_link=cta_primary_link,
         cta_secondary_text=cta_secondary_text,
@@ -81,13 +92,15 @@ async def create_carousel_item(
         badge_color=badge_color,
         badge_bg_color=badge_bg_color,
         overlay_color=overlay_color,
-        overlay_opacity=overlay_opacity
+        overlay_opacity=overlay_opacity,
+        carousel_height=carousel_height,
+        mobile_carousel_height=mobile_carousel_height,
+        image_fit=image_fit,
     )
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
     db.expire_all()
-    
     return db_item
 
 @router.put("/{item_id}", response_model=schemas.CarouselItemResponse)
@@ -98,7 +111,9 @@ async def update_carousel_item(
     description: Optional[str] = Form(None),
     order: int = Form(0),
     file: Optional[UploadFile] = File(None),
+    mobile_file: Optional[UploadFile] = File(None),
     image_url: Optional[str] = Form(None),
+    mobile_image_url: Optional[str] = Form(None),
     cta_primary_text: Optional[str] = Form(None),
     cta_primary_link: Optional[str] = Form(None),
     cta_secondary_text: Optional[str] = Form(None),
@@ -116,6 +131,9 @@ async def update_carousel_item(
     alignment: Optional[str] = Form(None),
     offset_x: Optional[str] = Form(None),
     offset_y: Optional[str] = Form(None),
+    carousel_height: str = Form("600px"),
+    mobile_carousel_height: str = Form("400px"),
+    image_fit: str = Form("cover"),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -127,31 +145,38 @@ async def update_carousel_item(
     if file and file.filename:
         content = await file.read()
         fn = file.filename or f"carousel_{uuid.uuid4()}.jpg"
-        content_type = resolve_stored_image_content_type(
-            filename=fn, declared=file.content_type, fallback="image/jpeg"
-        )
-        stored_image = models.StoredImage(
-            filename=fn,
-            content_type=content_type,
-            data=content
-        )
+        content_type = resolve_stored_image_content_type(filename=fn, declared=file.content_type, fallback="image/jpeg")
+        stored_image = models.StoredImage(filename=fn, content_type=content_type, data=content)
         db.add(stored_image)
         db.commit()
         db.refresh(stored_image)
         final_image_url = f"/api/images/{stored_image.id}"
 
+    final_mobile_image_url = db_item.mobile_image_url
+    if mobile_image_url is not None and mobile_image_url != "":
+        final_mobile_image_url = mobile_image_url
+    if mobile_file and mobile_file.filename:
+        content = await mobile_file.read()
+        fn = mobile_file.filename or f"carousel_mobile_{uuid.uuid4()}.jpg"
+        content_type = resolve_stored_image_content_type(filename=fn, declared=mobile_file.content_type, fallback="image/jpeg")
+        stored_image = models.StoredImage(filename=fn, content_type=content_type, data=content)
+        db.add(stored_image)
+        db.commit()
+        db.refresh(stored_image)
+        final_mobile_image_url = f"/api/images/{stored_image.id}"
+
     if badge is not None: db_item.badge = str(badge)
     if title is not None: db_item.title = str(title)
     if description is not None: db_item.description = str(description)
     if final_image_url is not None: db_item.image_url = str(final_image_url)
+    db_item.mobile_image_url = final_mobile_image_url
     if cta_primary_text is not None: db_item.cta_primary_text = str(cta_primary_text)
     if cta_primary_link is not None: db_item.cta_primary_link = str(cta_primary_link)
     if cta_secondary_text is not None: db_item.cta_secondary_text = str(cta_secondary_text)
     if cta_secondary_link is not None: db_item.cta_secondary_link = str(cta_secondary_link)
     db_item.order = int(order)
     db_item.is_active = is_active
-    
-    # Update customization fields
+
     if alignment: db_item.alignment = alignment
     if vertical_alignment: db_item.vertical_alignment = vertical_alignment
     if content_max_width: db_item.content_max_width = content_max_width
@@ -164,7 +189,10 @@ async def update_carousel_item(
     if badge_bg_color: db_item.badge_bg_color = badge_bg_color
     if overlay_color: db_item.overlay_color = overlay_color
     if overlay_opacity is not None: db_item.overlay_opacity = overlay_opacity
-    
+    db_item.carousel_height = carousel_height
+    db_item.mobile_carousel_height = mobile_carousel_height
+    db_item.image_fit = image_fit
+
     db.commit()
     db.refresh(db_item)
     return db_item

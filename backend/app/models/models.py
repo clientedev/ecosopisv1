@@ -173,7 +173,11 @@ class CarouselItem(Base):
     badge_bg_color = Column(String, default="#4a7c59")
     overlay_color = Column(String, default="#000000")
     overlay_opacity = Column(Float, default=0.3)
-    
+    mobile_image_url = Column(String, nullable=True)
+    carousel_height = Column(String, default="600px")
+    mobile_carousel_height = Column(String, default="400px")
+    image_fit = Column(String, default="cover")
+
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

@@ -101,6 +101,7 @@ export default function Home() {
                             title: item.title && item.title !== "-" ? item.title : null,
                             description: item.description && item.description !== "-" ? item.description : null,
                             image_url: getImageUrl(item.image_url),
+                            mobile_image_url: item.mobile_image_url ? getImageUrl(item.mobile_image_url) : null,
                             alignment: item.alignment || "center",
                             vertical_alignment: item.vertical_alignment || "center",
                             content_max_width: item.content_max_width || "500px",
@@ -113,6 +114,9 @@ export default function Home() {
                             overlay_opacity: item.overlay_opacity,
                             offset_x: item.offset_x || "0%",
                             offset_y: item.offset_y || "0%",
+                            carousel_height: item.carousel_height || "600px",
+                            mobile_carousel_height: item.mobile_carousel_height || "400px",
+                            image_fit: item.image_fit || "cover",
                             ctaPrimary: item.cta_primary_text && item.cta_primary_text !== "-" ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
                             ctaSecondary: item.cta_secondary_text && item.cta_secondary_text !== "-" ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null
                         }));
@@ -177,18 +181,21 @@ export default function Home() {
                         bottom: 90
                     };
 
+                    const activeImageUrl = (isMobile && slide.mobile_image_url) ? slide.mobile_image_url : slide.image_url;
+                    const activeHeight = isMobile ? (slide.mobile_carousel_height || '400px') : (slide.carousel_height || '600px');
+
                     return (
                         <div
                             key={index}
                             className={`${styles.carouselSlide} ${index === currentSlide ? styles.activeSlide : ''}`}
                             style={{
-                                backgroundImage: slide.image_url ? `linear-gradient(${overlay}, ${overlay}), url(${slide.image_url})` : 'none',
-                                backgroundSize: 'cover',
+                                backgroundImage: activeImageUrl ? `linear-gradient(${overlay}, ${overlay}), url(${activeImageUrl})` : 'none',
+                                backgroundSize: slide.image_fit || 'cover',
                                 backgroundPosition: 'center',
-                                minHeight: '500px',
+                                backgroundRepeat: 'no-repeat',
                                 display: index === currentSlide ? 'block' : 'none',
                                 width: '100%',
-                                height: '600px',
+                                height: activeHeight,
                                 position: 'relative',
                                 transition: 'opacity 0.8s ease-in-out'
                             }}

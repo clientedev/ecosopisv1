@@ -240,6 +240,10 @@ class CarouselItemBase(BaseModel):
     badge_bg_color: Optional[str] = "#4a7c59"
     overlay_color: Optional[str] = "#000000"
     overlay_opacity: Optional[float] = 0.3
+    mobile_image_url: Optional[str] = None
+    carousel_height: Optional[str] = "600px"
+    mobile_carousel_height: Optional[str] = "400px"
+    image_fit: Optional[str] = "cover"
     is_active: bool = True
 
 class CarouselItemCreate(CarouselItemBase):
