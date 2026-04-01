@@ -36,7 +36,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         badge_bg_color: item?.badge_bg_color || "#4a7c59",
         overlay_color: item?.overlay_color || "#000000",
         overlay_opacity: item?.overlay_opacity ?? 0.3,
-        carousel_height: item?.carousel_height || "600px",
+        carousel_height: item?.carousel_height || "700px",
         mobile_carousel_height: item?.mobile_carousel_height || "400px",
         image_fit: item?.image_fit || "cover",
     });

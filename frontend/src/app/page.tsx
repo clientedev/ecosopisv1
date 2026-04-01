@@ -114,7 +114,7 @@ export default function Home() {
                             overlay_opacity: item.overlay_opacity,
                             offset_x: item.offset_x || "0%",
                             offset_y: item.offset_y || "0%",
-                            carousel_height: item.carousel_height || "600px",
+                            carousel_height: item.carousel_height || "700px",
                             mobile_carousel_height: item.mobile_carousel_height || "400px",
                             image_fit: item.image_fit || "cover",
                             ctaPrimary: item.cta_primary_text && item.cta_primary_text !== "-" ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
@@ -182,7 +182,7 @@ export default function Home() {
                     };
 
                     const activeImageUrl = (isMobile && slide.mobile_image_url) ? slide.mobile_image_url : slide.image_url;
-                    const activeHeight = isMobile ? (slide.mobile_carousel_height || '400px') : (slide.carousel_height || '600px');
+                    const activeHeight = isMobile ? (slide.mobile_carousel_height || '400px') : (slide.carousel_height || '700px');
 
                     return (
                         <div

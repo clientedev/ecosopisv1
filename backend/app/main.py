@@ -20,7 +20,7 @@ def _apply_startup_migrations():
         ("offset_x",               "VARCHAR DEFAULT '0px'"),
         ("offset_y",               "VARCHAR DEFAULT '0px'"),
         ("mobile_image_url",       "VARCHAR"),
-        ("carousel_height",        "VARCHAR DEFAULT '600px'"),
+        ("carousel_height",        "VARCHAR DEFAULT '700px'"),
         ("mobile_carousel_height", "VARCHAR DEFAULT '400px'"),
         ("image_fit",              "VARCHAR DEFAULT 'cover'"),
         ("is_active",              "BOOLEAN DEFAULT TRUE"),
