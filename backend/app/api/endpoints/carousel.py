@@ -22,6 +22,7 @@ async def create_carousel_item(
     title: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     order: int = Form(0),
+    is_active: bool = Form(True),
     file: Optional[UploadFile] = File(None),
     mobile_file: Optional[UploadFile] = File(None),
     image_url: Optional[str] = Form(None),
@@ -48,7 +49,7 @@ async def create_carousel_item(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
-    final_image_url = image_url
+    final_image_url = image_url or None
     if file and file.filename:
         content = await file.read()
         fn = file.filename or f"carousel_{uuid.uuid4()}.jpg"
@@ -59,7 +60,7 @@ async def create_carousel_item(
         db.refresh(stored_image)
         final_image_url = f"/api/images/{stored_image.id}"
 
-    final_mobile_image_url = mobile_image_url
+    final_mobile_image_url = mobile_image_url or None
     if mobile_file and mobile_file.filename:
         content = await mobile_file.read()
         fn = mobile_file.filename or f"carousel_mobile_{uuid.uuid4()}.jpg"
@@ -69,6 +70,10 @@ async def create_carousel_item(
         db.commit()
         db.refresh(stored_image)
         final_mobile_image_url = f"/api/images/{stored_image.id}"
+
+    # If no desktop image provided but mobile image exists, use mobile as desktop fallback
+    if not final_image_url and final_mobile_image_url:
+        final_image_url = final_mobile_image_url
 
     db_item = models.CarouselItem(
         badge=badge,
@@ -81,6 +86,7 @@ async def create_carousel_item(
         cta_secondary_text=cta_secondary_text,
         cta_secondary_link=cta_secondary_link,
         order=order,
+        is_active=is_active,
         alignment=alignment,
         vertical_alignment=vertical_alignment,
         content_max_width=content_max_width,
@@ -141,7 +147,7 @@ async def update_carousel_item(
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    final_image_url = image_url or db_item.image_url
+    final_image_url = (image_url if image_url else None) or db_item.image_url
     if file and file.filename:
         content = await file.read()
         fn = file.filename or f"carousel_{uuid.uuid4()}.jpg"
@@ -164,6 +170,10 @@ async def update_carousel_item(
         db.commit()
         db.refresh(stored_image)
         final_mobile_image_url = f"/api/images/{stored_image.id}"
+
+    # If no desktop image but mobile image exists, use mobile as desktop fallback
+    if not final_image_url and final_mobile_image_url:
+        final_image_url = final_mobile_image_url
 
     if badge is not None: db_item.badge = str(badge)
     if title is not None: db_item.title = str(title)

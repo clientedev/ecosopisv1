@@ -78,14 +78,12 @@ export default function Home() {
     const [currentSlide, setCurrentSlide] = useState(0);
 
     const getImageUrl = (url: string) => {
-        if (!url) return "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
+        if (!url) return "";
         if (url.startsWith("http")) return url;
         if (url.startsWith("/api/")) return url;
         if (url.startsWith("/static/")) return url;
         if (url.startsWith("/images/")) return `/api${url}`;
         if (url.startsWith("images/")) return `/api/${url}`;
-        if (url.startsWith("/attached_assets/")) return `/static${url}`;
-        if (url.startsWith("attached_assets/")) return `/static/${url}`;
         return url;
     };
 
@@ -96,12 +94,17 @@ export default function Home() {
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.length > 0) {
-                        const dbSlides = data.map((item: any) => ({
+                        const dbSlides = data
+                          .filter((item: any) => item.is_active !== false)
+                          .map((item: any) => {
+                            const desktopUrl = item.image_url ? getImageUrl(item.image_url) : "";
+                            const mobileUrl = item.mobile_image_url ? getImageUrl(item.mobile_image_url) : "";
+                            return {
                             badge: item.badge && item.badge !== "-" ? item.badge : null,
                             title: item.title && item.title !== "-" ? item.title : null,
                             description: item.description && item.description !== "-" ? item.description : null,
-                            image_url: getImageUrl(item.image_url),
-                            mobile_image_url: item.mobile_image_url ? getImageUrl(item.mobile_image_url) : null,
+                            image_url: desktopUrl || mobileUrl,
+                            mobile_image_url: mobileUrl || desktopUrl,
                             alignment: item.alignment || "center",
                             vertical_alignment: item.vertical_alignment || "center",
                             content_max_width: item.content_max_width || "500px",
@@ -119,7 +122,8 @@ export default function Home() {
                             image_fit: item.image_fit || "cover",
                             ctaPrimary: item.cta_primary_text && item.cta_primary_text !== "-" ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
                             ctaSecondary: item.cta_secondary_text && item.cta_secondary_text !== "-" ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null
-                        }));
+                            };
+                          });
                         setSlides(dbSlides);
                     }
                 }

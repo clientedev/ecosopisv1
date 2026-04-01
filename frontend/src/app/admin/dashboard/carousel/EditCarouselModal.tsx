@@ -22,7 +22,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         cta_primary_link: item?.cta_primary_link || "",
         cta_secondary_text: item?.cta_secondary_text || "",
         cta_secondary_link: item?.cta_secondary_link || "",
-        order: item?.order || 0,
+        order: item?.order ?? 0,
         is_active: item?.is_active ?? true,
         alignment: item?.alignment || "left",
         vertical_alignment: item?.vertical_alignment || "center",
@@ -36,29 +36,22 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         badge_bg_color: item?.badge_bg_color || "#4a7c59",
         overlay_color: item?.overlay_color || "#000000",
         overlay_opacity: item?.overlay_opacity ?? 0.3,
-        carousel_height: item?.carousel_height || "700px",
+        carousel_height: item?.carousel_height || "600px",
         mobile_carousel_height: item?.mobile_carousel_height || "400px",
         image_fit: item?.image_fit || "cover",
     });
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedMobileFile, setSelectedMobileFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(item?.image_url || null);
-    const [mobilePreviewUrl, setMobilePreviewUrl] = useState<string | null>(item?.mobile_image_url || null);
+    const [desktopPreviewUrl, setDesktopPreviewUrl] = useState<string>(item?.image_url || "");
+    const [mobilePreviewUrl, setMobilePreviewUrl] = useState<string>(item?.mobile_image_url || "");
     const [loading, setLoading] = useState(false);
-
-    const getImageUrl = (url?: string) => {
-        if (!url) return null;
-        if (url.startsWith("http")) return url;
-        if (url.startsWith("/api/")) return url;
-        if (url.startsWith("/static/")) return url;
-        return url;
-    };
+    const [error, setError] = useState<string>("");
 
     useEffect(() => {
         if (selectedFile) {
             const reader = new FileReader();
-            reader.onloadend = () => setPreviewUrl(reader.result as string);
+            reader.onloadend = () => setDesktopPreviewUrl(reader.result as string);
             reader.readAsDataURL(selectedFile);
         }
     }, [selectedFile]);
@@ -74,15 +67,15 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError("");
         try {
             const url = item ? `/api/carousel/${item.id}` : `/api/carousel`;
             const method = item ? "PUT" : "POST";
             const data = new FormData();
 
-            Object.keys(formData).forEach(key => {
-                const value = formData[key as keyof typeof formData];
+            Object.entries(formData).forEach(([key, value]) => {
                 if (value !== null && value !== undefined) {
-                    data.append(key, value.toString());
+                    data.append(key, String(value));
                 }
             });
 
@@ -97,13 +90,12 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
 
             const responseData = await res.json();
             if (res.ok) {
-                onClose();
-                setTimeout(() => onSave(responseData), 100);
+                onSave(responseData);
             } else {
-                alert(`Erro ao salvar: ${JSON.stringify(responseData.detail || responseData)}`);
+                setError(`Erro: ${JSON.stringify(responseData.detail || responseData)}`);
             }
-        } catch (error) {
-            alert("Erro de conexão ao salvar.");
+        } catch {
+            setError("Erro de conexão. Verifique sua internet e tente novamente.");
         } finally {
             setLoading(false);
         }
@@ -114,8 +106,8 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
     };
 
     const currentPreviewUrl = previewDevice === "mobile"
-        ? (mobilePreviewUrl || previewUrl)
-        : previewUrl;
+        ? (mobilePreviewUrl || desktopPreviewUrl)
+        : desktopPreviewUrl;
 
     const currentHeight = previewDevice === "mobile"
         ? formData.mobile_carousel_height
@@ -138,6 +130,8 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         { id: 'design', label: '🎨 Design' },
         { id: 'actions', label: '🔗 Botões' },
     ];
+
+    const overlayColor = hexToRgba(formData.overlay_color, formData.overlay_opacity);
 
     return (
         <div className={styles.modalOverlay}>
@@ -170,6 +164,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                             {tabs.map(tab => (
                                 <button
                                     key={tab.id}
+                                    type="button"
                                     onClick={() => setActiveTab(tab.id)}
                                     style={{
                                         flex: 1,
@@ -198,29 +193,96 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                 <div className={styles.formGrid} style={{ gridTemplateColumns: '1fr' }}>
                                     <div className={styles.formGroup}>
                                         <label>Título do Banner</label>
-                                        <input type="text" placeholder="Ex: Transformação com a Natureza" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: Transformação com a Natureza"
+                                            value={formData.title}
+                                            onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                        />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>Subtítulo / Descrição</label>
-                                        <textarea style={{ height: '80px' }} placeholder="Texto de apoio para o banner..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                                        <textarea
+                                            style={{ height: '80px' }}
+                                            placeholder="Texto de apoio para o banner..."
+                                            value={formData.description}
+                                            onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                        />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>Selo (Badge)</label>
-                                        <input type="text" placeholder="Ex: NOVIDADE ✨" value={formData.badge} onChange={e => setFormData({ ...formData, badge: e.target.value })} />
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: NOVIDADE ✨"
+                                            value={formData.badge}
+                                            onChange={e => setFormData({ ...formData, badge: e.target.value })}
+                                        />
                                     </div>
 
                                     <div className={styles.formGroup}>
                                         <label>🖥️ Imagem Desktop</label>
-                                        <input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={e => {
+                                                const f = e.target.files?.[0] || null;
+                                                setSelectedFile(f);
+                                            }}
+                                        />
                                         <p className={styles.helpText}>Recomendado: 1920×600px — exibida em telas &gt; 768px</p>
-                                        {previewUrl && (
-                                            <img src={previewUrl} alt="Preview desktop" style={{ marginTop: 8, width: '100%', maxHeight: 100, objectFit: 'cover', borderRadius: 8, border: '1px solid #eee' }} />
+                                        {desktopPreviewUrl ? (
+                                            <div style={{ marginTop: 8, position: 'relative' }}>
+                                                <img
+                                                    src={desktopPreviewUrl}
+                                                    alt="Preview desktop"
+                                                    style={{ width: '100%', maxHeight: 110, objectFit: 'cover', borderRadius: 8, border: '2px solid #10b981', display: 'block' }}
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setDesktopPreviewUrl("");
+                                                        setFormData(f => ({ ...f, image_url: "" }));
+                                                        setSelectedFile(null);
+                                                    }}
+                                                    style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ marginTop: 8, padding: '16px', textAlign: 'center', background: '#f5f5f5', borderRadius: 8, color: '#999', fontSize: '0.82rem', border: '2px dashed #ddd' }}>
+                                                Clique acima para adicionar imagem desktop
+                                            </div>
                                         )}
                                     </div>
 
-                                    <div className={styles.formGroup}>
-                                        <label>Ordem de Exibição</label>
-                                        <input type="number" value={formData.order} onChange={e => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })} />
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div className={styles.formGroup}>
+                                            <label>Ordem de Exibição</label>
+                                            <input
+                                                type="number"
+                                                value={formData.order}
+                                                onChange={e => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Status</label>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    id="is_active_check"
+                                                    checked={formData.is_active}
+                                                    onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
+                                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                                />
+                                                <label htmlFor="is_active_check" style={{ cursor: 'pointer', color: formData.is_active ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                                    {formData.is_active ? 'Ativo' : 'Inativo'}
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -234,18 +296,40 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
 
                                     <div className={styles.formGroup}>
                                         <label>📱 Imagem Mobile</label>
-                                        <input type="file" accept="image/*" onChange={e => setSelectedMobileFile(e.target.files?.[0] || null)} />
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={e => {
+                                                const f = e.target.files?.[0] || null;
+                                                setSelectedMobileFile(f);
+                                            }}
+                                        />
                                         <p className={styles.helpText}>Recomendado: 768×500px — exibida em telas ≤ 768px</p>
-                                        {(mobilePreviewUrl || item?.mobile_image_url) && (
-                                            <img
-                                                src={mobilePreviewUrl || getImageUrl(item?.mobile_image_url) || ''}
-                                                alt="Preview mobile"
-                                                style={{ marginTop: 8, width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 8, border: '2px solid #10b981' }}
-                                            />
-                                        )}
-                                        {!mobilePreviewUrl && !item?.mobile_image_url && (
-                                            <div style={{ marginTop: 8, padding: '20px', textAlign: 'center', background: '#f5f5f5', borderRadius: 8, color: '#999', fontSize: '0.82rem' }}>
-                                                Nenhuma imagem mobile — usará a imagem desktop
+                                        {mobilePreviewUrl ? (
+                                            <div style={{ marginTop: 8, position: 'relative' }}>
+                                                <img
+                                                    src={mobilePreviewUrl}
+                                                    alt="Preview mobile"
+                                                    style={{ width: '100%', maxHeight: 130, objectFit: 'cover', borderRadius: 8, border: '2px solid #10b981', display: 'block' }}
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setMobilePreviewUrl("");
+                                                        setFormData(f => ({ ...f, mobile_image_url: "" }));
+                                                        setSelectedMobileFile(null);
+                                                    }}
+                                                    style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ marginTop: 8, padding: '20px', textAlign: 'center', background: '#f5f5f5', borderRadius: 8, color: '#999', fontSize: '0.82rem', border: '2px dashed #ddd' }}>
+                                                Sem imagem mobile — usará a imagem desktop
                                             </div>
                                         )}
                                     </div>
@@ -259,7 +343,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                                 onChange={e => setFormData({ ...formData, carousel_height: e.target.value })}
                                                 placeholder="Ex: 600px ou 70vh"
                                             />
-                                            <p className={styles.helpText}>Altura do carousel no desktop</p>
+                                            <p className={styles.helpText}>Altura no desktop</p>
                                         </div>
                                         <div className={styles.formGroup}>
                                             <label>Altura Mobile</label>
@@ -269,17 +353,17 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                                 onChange={e => setFormData({ ...formData, mobile_carousel_height: e.target.value })}
                                                 placeholder="Ex: 400px ou 50vh"
                                             />
-                                            <p className={styles.helpText}>Altura do carousel no celular</p>
+                                            <p className={styles.helpText}>Altura no celular</p>
                                         </div>
                                     </div>
 
                                     <div className={styles.formGroup}>
-                                        <label>Ajuste da Imagem (Proporção)</label>
+                                        <label>Ajuste da Imagem</label>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '8px' }}>
                                             {[
-                                                { value: 'cover', label: '🔲 Cobrir', desc: 'Preenche tudo (pode cortar)' },
-                                                { value: 'contain', label: '⬜ Conter', desc: 'Imagem inteira visível' },
-                                                { value: '100% 100%', label: '↔️ Esticar', desc: 'Estica para preencher' },
+                                                { value: 'cover', label: '🔲 Cobrir', desc: 'Preenche tudo' },
+                                                { value: 'contain', label: '⬜ Conter', desc: 'Imagem inteira' },
+                                                { value: '100% 100%', label: '↔️ Esticar', desc: 'Preenche tudo' },
                                             ].map(opt => (
                                                 <button
                                                     key={opt.value}
@@ -312,8 +396,8 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                     <div className={styles.formGroup}>
                                         <label>Posicionamento do Conteúdo</label>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', width: '150px', margin: '10px 0' }}>
-                                            {['top', 'center', 'bottom'].map(v =>
-                                                ['left', 'center', 'right'].map(h => (
+                                            {(['top', 'center', 'bottom'] as const).map(v =>
+                                                (['left', 'center', 'right'] as const).map(h => (
                                                     <button
                                                         key={`${v}-${h}`}
                                                         type="button"
@@ -337,34 +421,50 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                         <div className={styles.formGroup}>
                                             <label>Glassmorphism</label>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
-                                                <input type="checkbox" checked={formData.glassmorphism} onChange={e => setFormData({ ...formData, glassmorphism: e.target.checked })} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
-                                                <span>Ativar fundo desfocado</span>
+                                                <input
+                                                    type="checkbox"
+                                                    id="glass_check"
+                                                    checked={formData.glassmorphism}
+                                                    onChange={e => setFormData({ ...formData, glassmorphism: e.target.checked })}
+                                                    style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                                                />
+                                                <label htmlFor="glass_check">Ativar fundo desfocado</label>
                                             </div>
                                         </div>
                                         <div className={styles.formGroup}>
                                             <label>Largura Máxima Texto</label>
-                                            <input type="text" value={formData.content_max_width} onChange={e => setFormData({ ...formData, content_max_width: e.target.value })} placeholder="500px ou 60%" />
+                                            <input
+                                                type="text"
+                                                value={formData.content_max_width}
+                                                onChange={e => setFormData({ ...formData, content_max_width: e.target.value })}
+                                                placeholder="500px ou 60%"
+                                            />
                                         </div>
                                     </div>
 
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                                         <div className={styles.formGroup}>
                                             <label>Cor Título</label>
-                                            <input type="color" value={formData.title_color} onChange={e => setFormData({ ...formData, title_color: e.target.value })} style={{ height: '40px', padding: '2px' }} />
+                                            <input type="color" value={formData.title_color} onChange={e => setFormData({ ...formData, title_color: e.target.value })} style={{ height: '40px', padding: '2px', width: '100%' }} />
                                         </div>
                                         <div className={styles.formGroup}>
                                             <label>Cor Texto</label>
-                                            <input type="color" value={formData.description_color} onChange={e => setFormData({ ...formData, description_color: e.target.value })} style={{ height: '40px', padding: '2px' }} />
+                                            <input type="color" value={formData.description_color} onChange={e => setFormData({ ...formData, description_color: e.target.value })} style={{ height: '40px', padding: '2px', width: '100%' }} />
                                         </div>
                                         <div className={styles.formGroup}>
                                             <label>Sobreposição</label>
-                                            <input type="color" value={formData.overlay_color} onChange={e => setFormData({ ...formData, overlay_color: e.target.value })} style={{ height: '40px', padding: '2px' }} />
+                                            <input type="color" value={formData.overlay_color} onChange={e => setFormData({ ...formData, overlay_color: e.target.value })} style={{ height: '40px', padding: '2px', width: '100%' }} />
                                         </div>
                                     </div>
 
                                     <div className={styles.formGroup}>
                                         <label>Opacidade da Sobreposição ({Math.round(formData.overlay_opacity * 100)}%)</label>
-                                        <input type="range" min="0" max="1" step="0.05" value={formData.overlay_opacity} onChange={e => setFormData({ ...formData, overlay_opacity: parseFloat(e.target.value) })} />
+                                        <input
+                                            type="range" min="0" max="1" step="0.05"
+                                            value={formData.overlay_opacity}
+                                            onChange={e => setFormData({ ...formData, overlay_opacity: parseFloat(e.target.value) })}
+                                            style={{ width: '100%' }}
+                                        />
                                     </div>
 
                                     <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
@@ -397,21 +497,21 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                                         <div className={styles.formGroup}>
                                             <label>Botão 1 (Texto)</label>
-                                            <input type="text" value={formData.cta_primary_text} onChange={e => setFormData({ ...formData, cta_primary_text: e.target.value })} />
+                                            <input type="text" value={formData.cta_primary_text} onChange={e => setFormData({ ...formData, cta_primary_text: e.target.value })} placeholder="Ex: Ver Produtos" />
                                         </div>
                                         <div className={styles.formGroup}>
                                             <label>Botão 1 (Link)</label>
-                                            <input type="text" value={formData.cta_primary_link} onChange={e => setFormData({ ...formData, cta_primary_link: e.target.value })} />
+                                            <input type="text" value={formData.cta_primary_link} onChange={e => setFormData({ ...formData, cta_primary_link: e.target.value })} placeholder="/produtos" />
                                         </div>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                                         <div className={styles.formGroup}>
                                             <label>Botão 2 (Texto)</label>
-                                            <input type="text" value={formData.cta_secondary_text} onChange={e => setFormData({ ...formData, cta_secondary_text: e.target.value })} />
+                                            <input type="text" value={formData.cta_secondary_text} onChange={e => setFormData({ ...formData, cta_secondary_text: e.target.value })} placeholder="Ex: Fazer Quiz" />
                                         </div>
                                         <div className={styles.formGroup}>
                                             <label>Botão 2 (Link)</label>
-                                            <input type="text" value={formData.cta_secondary_link} onChange={e => setFormData({ ...formData, cta_secondary_link: e.target.value })} />
+                                            <input type="text" value={formData.cta_secondary_link} onChange={e => setFormData({ ...formData, cta_secondary_link: e.target.value })} placeholder="/quizz" />
                                         </div>
                                     </div>
                                     <div style={{ marginTop: '10px' }}>
@@ -419,30 +519,36 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                                             <div className={styles.formGroup}>
                                                 <label>Texto Selo</label>
-                                                <input type="color" value={formData.badge_color} onChange={e => setFormData({ ...formData, badge_color: e.target.value })} style={{ height: '40px', padding: '2px' }} />
+                                                <input type="color" value={formData.badge_color} onChange={e => setFormData({ ...formData, badge_color: e.target.value })} style={{ height: '40px', padding: '2px', width: '100%' }} />
                                             </div>
                                             <div className={styles.formGroup}>
                                                 <label>Fundo Selo</label>
-                                                <input type="color" value={formData.badge_bg_color} onChange={e => setFormData({ ...formData, badge_bg_color: e.target.value })} style={{ height: '40px', padding: '2px' }} />
+                                                <input type="color" value={formData.badge_bg_color} onChange={e => setFormData({ ...formData, badge_bg_color: e.target.value })} style={{ height: '40px', padding: '2px', width: '100%' }} />
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
+                            {error && (
+                                <div style={{ margin: '12px 0', padding: '12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626', fontSize: '0.85rem' }}>
+                                    {error}
+                                </div>
+                            )}
+
                             <div className={styles.formActions} style={{ margin: '24px -28px -28px -28px', padding: '18px 28px', background: '#f8fafc', borderTop: '1px solid #eee' }}>
-                                <button type="button" onClick={onClose} className={styles.cancelBtn}>Cancelar</button>
+                                <button type="button" onClick={onClose} className={styles.cancelBtn} disabled={loading}>Cancelar</button>
                                 <button type="submit" className="btn-primary" disabled={loading} style={{ flex: 2 }}>
-                                    {loading ? "Processando..." : (item ? "Atualizar Banner" : "Criar Banner")}
+                                    {loading ? "Salvando..." : (item ? "Atualizar Banner" : "Criar Banner")}
                                 </button>
                             </div>
                         </form>
                     </div>
 
                     {/* ── LIVE PREVIEW ── */}
-                    <div style={{ background: '#f0f2f5', padding: '28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{ background: '#f0f2f5', padding: '28px', display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h2 style={{ margin: 0 }}>Visualização</h2>
+                            <h2 style={{ margin: 0 }}>Pré-visualização</h2>
                             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                 <button
                                     type="button"
@@ -470,20 +576,19 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                 >
                                     📱 Mobile
                                 </button>
-                                <span style={{ fontSize: '0.75rem', background: '#e2e8f0', padding: '4px 10px', borderRadius: '15px', fontWeight: 600 }}>LIVE PREVIEW</span>
+                                <span style={{ fontSize: '0.75rem', background: '#e2e8f0', padding: '4px 10px', borderRadius: '15px', fontWeight: 600 }}>AO VIVO</span>
                             </div>
                         </div>
 
-                        {/* Height indicator */}
-                        <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', gap: '16px' }}>
+                        <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                             <span>📐 Altura: <strong style={{ color: '#10b981' }}>{currentHeight}</strong></span>
                             <span>🖼️ Ajuste: <strong style={{ color: '#10b981' }}>{formData.image_fit}</strong></span>
-                            {previewDevice === 'mobile' && !mobilePreviewUrl && !item?.mobile_image_url && (
-                                <span style={{ color: '#f59e0b' }}>⚠️ Sem imagem mobile — usando desktop</span>
+                            {previewDevice === 'mobile' && !mobilePreviewUrl && (
+                                <span style={{ color: '#f59e0b' }}>⚠️ Usando imagem desktop como mobile</span>
                             )}
                         </div>
 
-                        {/* Preview box */}
+                        {/* Preview Box */}
                         <div style={{
                             width: previewDevice === 'mobile' ? '320px' : '100%',
                             margin: previewDevice === 'mobile' ? '0 auto' : '0',
@@ -493,12 +598,11 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                             overflow: 'hidden',
                             backgroundColor: '#1a1a1a',
                             backgroundImage: currentPreviewUrl
-                                ? `${hexToRgba(formData.overlay_color, formData.overlay_opacity) !== 'rgba(0,0,0,0)' ? `linear-gradient(${hexToRgba(formData.overlay_color, formData.overlay_opacity)}, ${hexToRgba(formData.overlay_color, formData.overlay_opacity)}), ` : ''}url(${currentPreviewUrl})`
+                                ? `linear-gradient(${overlayColor}, ${overlayColor}), url(${currentPreviewUrl})`
                                 : 'none',
                             backgroundSize: formData.image_fit,
                             backgroundPosition: 'center',
                             backgroundRepeat: 'no-repeat',
-                            display: 'block',
                             height: previewDevice === 'mobile' ? formData.mobile_carousel_height : formData.carousel_height,
                             boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
                             transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -530,7 +634,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                 flexDirection: 'column'
                             }}>
                                 {formData.badge && (
-                                    <span className="scientific-badge" style={{ marginBottom: '12px', display: 'inline-block', backgroundColor: formData.badge_bg_color, color: formData.badge_color, alignSelf: previewDevice === 'mobile' ? 'center' : (formData.alignment === 'right' ? 'flex-end' : formData.alignment === 'center' ? 'center' : 'flex-start') }}>
+                                    <span style={{ marginBottom: '12px', display: 'inline-block', backgroundColor: formData.badge_bg_color, color: formData.badge_color, padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', alignSelf: previewDevice === 'mobile' ? 'center' : (formData.alignment === 'right' ? 'flex-end' : formData.alignment === 'center' ? 'center' : 'flex-start') }}>
                                         {formData.badge}
                                     </span>
                                 )}
@@ -555,6 +659,16 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                     )}
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Preview tips */}
+                        <div style={{ padding: '12px 16px', background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.6 }}>
+                            <strong style={{ color: '#374151', display: 'block', marginBottom: '4px' }}>💡 Dicas</strong>
+                            <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                                <li>Imagem desktop: proporção <strong>3:1</strong> (ex: 1920×640px)</li>
+                                <li>Imagem mobile: proporção <strong>4:3</strong> (ex: 768×576px)</li>
+                                <li>Formatos aceitos: JPG, PNG, WebP, AVIF</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
