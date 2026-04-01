@@ -55,6 +55,8 @@
     height: auto;
     max-height: 92px;
     margin-right: 0;
+    transform: scale(1.43);
+    transform-origin: left center;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: high-quality;
     image-rendering: crisp-edges;
