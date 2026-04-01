@@ -82,8 +82,10 @@ export default function Header() {
                             <Image
                                 src="/logo_nova_transparent.png"
                                 alt="ECOSOPIS Logo"
-                                width={240}
-                                height={80}
+                                width={669}
+                                height={373}
+                                sizes="(max-width: 900px) 170px, (max-width: 1200px) 220px, 260px"
+                                quality={100}
                                 className={styles.logoImage}
                                 priority
                             />
