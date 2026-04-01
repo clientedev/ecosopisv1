@@ -9,6 +9,7 @@ import {
   SendHorizontal,
   MessageCircle,
   LogIn,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import type { NewsComment, NewsPostEngagement } from '@/types/news';
@@ -48,6 +49,7 @@ export default function NewsCommentModal({
   const [likeBusy, setLikeBusy] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authReason, setAuthReason] = useState<'like' | 'comment'>('comment');
+  const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -167,6 +169,39 @@ export default function NewsCommentModal({
     if (e.target === e.currentTarget) onClose();
   };
 
+  const handleDeleteComment = async (commentId: number) => {
+    if (!post) return;
+    const raw = token();
+    if (!raw) {
+      setAuthReason('comment');
+      setAuthOpen(true);
+      return;
+    }
+    if (deletingCommentId) return;
+    setDeletingCommentId(commentId);
+    setError('');
+    try {
+      const res = await fetch(`/api/news/${post.id}/comment/${commentId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${raw}` },
+      });
+      if (!res.ok) {
+        const errBody = (await res.json().catch(() => ({}))) as { detail?: string };
+        setError(errBody.detail || 'Não foi possível excluir o comentário.');
+        return;
+      }
+      const nextComments = post.comments.filter((c) => c.id !== commentId);
+      onEngagementUpdate(post.id, {
+        comments: nextComments,
+        comments_count: Math.max(0, (post.comments_count ?? post.comments.length) - 1),
+      });
+    } catch {
+      setError('Erro de conexão ao excluir comentário.');
+    } finally {
+      setDeletingCommentId(null);
+    }
+  };
+
   if (!isOpen || !post) return null;
 
   const mediaSrc = resolveMediaUrl(post.media_url);
@@ -259,6 +294,21 @@ export default function NewsCommentModal({
                           </span>
                         </div>
                         <p className={styles.commentBody}>{c.content}</p>
+                        {user?.role === 'admin' && (
+                          <button
+                            type="button"
+                            className={styles.deleteCommentBtn}
+                            onClick={() => handleDeleteComment(c.id)}
+                            disabled={deletingCommentId === c.id}
+                          >
+                            {deletingCommentId === c.id ? (
+                              <Loader2 size={14} className={styles.spin} />
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
+                            Excluir
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

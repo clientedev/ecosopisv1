@@ -9,6 +9,7 @@ from app.models import models
 from app.schemas import schemas
 from app.api.endpoints.auth import get_current_user
 from pydantic import BaseModel
+from sqlalchemy import func
 
 router = APIRouter()
 
@@ -88,6 +89,21 @@ def comment_news(
     if not text:
         raise HTTPException(status_code=400, detail="Comentário não pode ser vazio")
 
+    if current_user.role != "admin":
+        paid_orders_count = (
+            db.query(models.Order)
+            .filter(
+                models.Order.user_id == current_user.id,
+                func.lower(models.Order.status).in_(["paid", "pago"]),
+            )
+            .count()
+        )
+        if paid_orders_count == 0:
+            raise HTTPException(
+                status_code=403,
+                detail="Somente clientes com pelo menos uma compra paga podem comentar.",
+            )
+
     new_comment = models.NewsComment(
         news_id=news_id,
         user_id=current_user.id,
@@ -103,6 +119,31 @@ def comment_news(
         .first()
     )
     return schemas.NewsCommentResponse.model_validate(c)
+
+@router.delete("/{news_id}/comment/{comment_id}")
+def delete_news_comment(
+    news_id: int,
+    comment_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    comment = (
+        db.query(models.NewsComment)
+        .filter(
+            models.NewsComment.id == comment_id,
+            models.NewsComment.news_id == news_id,
+        )
+        .first()
+    )
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comentário não encontrado")
+
+    if current_user.role != "admin" and comment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Não autorizado a excluir este comentário")
+
+    db.delete(comment)
+    db.commit()
+    return {"message": "Comentário excluído"}
 
 @router.post("", response_model=schemas.NewsResponse)
 async def create_news(

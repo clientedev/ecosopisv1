@@ -17,6 +17,7 @@ class UserProfileUpdate(BaseModel):
 class UserResponse(UserBase):
     id: int
     role: str
+    can_post_news: bool = False
     total_compras: int = 0
     pode_girar_roleta: bool = False
     tentativas_roleta: int = 0

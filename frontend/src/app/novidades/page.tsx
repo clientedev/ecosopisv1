@@ -10,6 +10,7 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  Plus,
 } from 'lucide-react';
 import Header from '@/components/Header/Header';
 import Footer from '@/components/Footer/Footer';
@@ -74,6 +75,15 @@ export default function NewsPage() {
   const [authModalReason, setAuthModalReason] = useState<'like' | 'comment'>(
     'like'
   );
+  const [showCreateBox, setShowCreateBox] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newContent, setNewContent] = useState('');
+  const [newMediaUrl, setNewMediaUrl] = useState('');
+  const [newMediaType, setNewMediaType] = useState<'image' | 'video'>('image');
+  const [newFile, setNewFile] = useState<File | null>(null);
+  const [newPreviewUrl, setNewPreviewUrl] = useState('');
+  const [creatingPost, setCreatingPost] = useState(false);
+  const [createError, setCreateError] = useState('');
 
   const authHeaders = useCallback((): HeadersInit => {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -207,6 +217,56 @@ export default function NewsPage() {
     ? posts.find((p) => p.id === commentModalPostId) ?? null
     : null;
 
+  const canCreateNews = Boolean(user && (user.role === 'admin' || user.can_post_news));
+
+  const handleCreatePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = localStorage.getItem('token')?.trim();
+    if (!raw) {
+      openAuthModal('comment');
+      return;
+    }
+    if (!newTitle.trim() || !newContent.trim()) {
+      setCreateError('Preencha título e conteúdo para publicar.');
+      return;
+    }
+
+    setCreatingPost(true);
+    setCreateError('');
+    try {
+      const formData = new FormData();
+      formData.append('title', newTitle.trim());
+      formData.append('content', newContent.trim());
+      formData.append('media_type', newMediaType);
+      if (newFile) formData.append('file', newFile);
+      else if (newMediaUrl.trim()) formData.append('media_url', newMediaUrl.trim());
+
+      const res = await fetch('/api/news', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${raw}` },
+        body: formData,
+      });
+      if (!res.ok) {
+        const errBody = (await res.json().catch(() => ({}))) as { detail?: string };
+        setCreateError(errBody.detail || 'Não foi possível criar a postagem.');
+        return;
+      }
+
+      setNewTitle('');
+      setNewContent('');
+      setNewMediaUrl('');
+      setNewFile(null);
+      setNewPreviewUrl('');
+      setNewMediaType('image');
+      setShowCreateBox(false);
+      await fetchPosts();
+    } catch {
+      setCreateError('Erro de conexão ao publicar.');
+    } finally {
+      setCreatingPost(false);
+    }
+  };
+
   return (
     <div className={styles.pageWrapper}>
       <Header />
@@ -223,6 +283,83 @@ export default function NewsPage() {
         </div>
 
         <div className={styles.contentContainer}>
+          {canCreateNews && (
+            <section className={styles.createSection}>
+              <div className={styles.createHeaderRow}>
+                <div>
+                  <h2 className={styles.createTitle}>Publicar no blog</h2>
+                  <p className={styles.createSubtitle}>
+                    Escreva e publique com o mesmo padrão da área de novidades.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className={styles.createToggleBtn}
+                  onClick={() => setShowCreateBox((s) => !s)}
+                >
+                  <Plus size={18} />
+                  {showCreateBox ? 'Fechar editor' : 'Nova postagem'}
+                </button>
+              </div>
+
+              {showCreateBox && (
+                <form className={styles.createForm} onSubmit={handleCreatePost}>
+                  <input
+                    type="text"
+                    placeholder="Título da postagem"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    required
+                  />
+                  <textarea
+                    placeholder="Conteúdo da postagem..."
+                    value={newContent}
+                    onChange={(e) => setNewContent(e.target.value)}
+                    rows={5}
+                    required
+                  />
+                  <div className={styles.createGrid}>
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={(e) => {
+                        const selected = e.target.files?.[0] || null;
+                        setNewFile(selected);
+                        if (!selected) return;
+                        const objectUrl = URL.createObjectURL(selected);
+                        setNewPreviewUrl(objectUrl);
+                        if (selected.type.startsWith('video/')) setNewMediaType('video');
+                        else setNewMediaType('image');
+                      }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Ou URL da mídia (https://...)"
+                      value={newMediaUrl}
+                      onChange={(e) => {
+                        setNewMediaUrl(e.target.value);
+                        if (e.target.value.trim()) setNewPreviewUrl(e.target.value.trim());
+                      }}
+                    />
+                  </div>
+                  {newPreviewUrl && (
+                    <div className={styles.createPreview}>
+                      {newMediaType === 'video' ? (
+                        <video src={newPreviewUrl} controls />
+                      ) : (
+                        <img src={newPreviewUrl} alt="Pré-visualização da postagem" />
+                      )}
+                    </div>
+                  )}
+                  {createError && <p className={styles.createError}>{createError}</p>}
+                  <button type="submit" className={styles.publishBtn} disabled={creatingPost}>
+                    {creatingPost ? 'Publicando...' : 'Publicar novidade'}
+                  </button>
+                </form>
+              )}
+            </section>
+          )}
+
           {loading ? (
             <div className={styles.postsGrid}>
               {[1, 2].map((i) => (

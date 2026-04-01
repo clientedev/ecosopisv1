@@ -267,6 +267,30 @@
   word-break: break-word;
 }
 
+.deleteCommentBtn {
+  margin-top: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 0.55rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.deleteCommentBtn:hover:not(:disabled) {
+  background: #ffe4e6;
+}
+
+.deleteCommentBtn:disabled {
+  opacity: 0.8;
+  cursor: wait;
+}
+
 .footer {
   flex-shrink: 0;
   padding: 1rem 1.15rem 1.15rem;
