@@ -95,6 +95,9 @@ Images are stored directly in PostgreSQL using the `stored_images` table. This e
 - Seed script available at `backend/seed.py` for initial data
 
 ### Deployment
-- Configured for Railway deployment
-- Frontend runs on port 5000
-- Backend runs via uvicorn with PORT environment variable
+- Configured for Replit environment
+- Frontend runs on port 5000 (Next.js dev server)
+- Backend runs on port 8000 via uvicorn
+- Frontend proxies `/api/*` requests to the backend via `next.config.js` rewrites
+- Database defaults to SQLite (`sql_app.db`) when no `DATABASE_URL` is set
+- Admin credentials: `admin@admin.com` / `admin123` (created automatically on startup)
