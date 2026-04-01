@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 export default function UserProfile() {
-    const { user, loading: authLoading, logout, refreshProfile } = useAuth();
+    const { user, isLoading: authLoading, logout, refreshProfile } = useAuth();
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("overview");

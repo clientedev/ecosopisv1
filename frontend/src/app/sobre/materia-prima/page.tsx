@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 export default function MateriaPrimaPage() {
-  const [selectedIngredient, setSelectedIngredient] = useState(null);
+  const [selectedIngredient, setSelectedIngredient] = useState<any>(null);
 
   const materiasPrimas = [
     {

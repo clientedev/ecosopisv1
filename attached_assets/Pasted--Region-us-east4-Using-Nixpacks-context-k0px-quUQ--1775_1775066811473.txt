@@ -1,0 +1,137 @@
+[Region: us-east4]
+==============
+Using Nixpacks
+==============
+
+context: k0px-quUQ
+╔═══════════════════════ Nixpacks v1.38.0 ══════════════════════╗
+║ setup      │ nodejs_18                                        ║
+║───────────────────────────────────────────────────────────────║
+║ install    │ npm ci                                           ║
+║───────────────────────────────────────────────────────────────║
+║ build      │ npm run build                                    ║
+║            │ cp -r .next/static .next/standalone/.next/static ║
+║            │ cp -r public .next/standalone/public             ║
+║───────────────────────────────────────────────────────────────║
+║ start      │ HOSTNAME=0.0.0.0 node .next/standalone/server.js ║
+╚═══════════════════════════════════════════════════════════════╝
+
+internal
+load build definition from Dockerfile
+0ms
+
+internal
+load metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
+245ms
+
+internal
+load .dockerignore
+0ms
+
+internal
+load build context
+1ms
+
+[ 4/12] RUN nix-env -if .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix && nix-collect-garbage -d cached
+0ms
+
+[ 3/12] COPY .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix cached
+0ms
+
+[ 2/12] WORKDIR /app/ cached
+0ms
+
+[ 5/12] COPY . /app/.
+322ms
+
+[ 6/12] RUN  npm ci
+53s
+Run `npm audit` for details.
+
+[ 7/12] COPY . /app/.
+317ms
+
+[ 8/12] RUN  npm run build
+30s
+npm warn config production Use `--omit=dev` instead.
+> ecosopis-frontend@0.1.0 build
+> next build
+⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+  ▲ Next.js 14.2.35
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+./src/app/admin/compras/page.tsx
+7:60  Warning: React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+./src/app/admin/dashboard/EditProductModal.tsx
+457:41  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+618:41  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+./src/app/admin/dashboard/NewProductModal.tsx
+317:37  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+./src/app/admin/dashboard/blog-permissions/page.tsx
+85:8  Warning: React Hook useEffect has a missing dependency: 'fetchUsers'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+./src/app/admin/dashboard/carousel/EditCarouselModal.tsx
+217:45  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+240:45  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+./src/app/admin/dashboard/carousel/page.tsx
+81:41  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+./src/app/admin/dashboard/novidades/page.tsx
+236:75  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+236:89  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+257:53  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+280:53  Warning: Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images.  jsx-a11y/alt-text
+421:45  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+./src/app/admin/dashboard/page.tsx
+151:41  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+./src/app/admin/dashboard/roleta/page.tsx
+42:8  Warning: React Hook useEffect has a missing dependency: 'fetchAll'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+./src/app/admin/dashboard/usuarios/page.tsx
+42:8  Warning: React Hook useEffect has a missing dependency: 'fetchUsers'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+./src/app/admin/pedidos/page.tsx
+61:41  Warning: React Hook useEffect has a missing dependency: 'fetchOrders'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+./src/app/carrinho/page.tsx
+64:8  Warning: React Hook useEffect has missing dependencies: 'cep' and 'customerName'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+365:49  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+./src/app/conta/page.tsx
+37:8  Warning: React Hook useEffect has a missing dependency: 'refreshProfile'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+./src/app/novidades/page.tsx
+350:25  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+428:27  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+./src/app/page.tsx
+352:73  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+352:87  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+./src/app/pedido/[id]/page.tsx
+48:8  Warning: React Hook useEffect has a missing dependency: 'fetchOrder'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+./src/app/perfil/page.tsx
+306:53  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+./src/app/produtos/[slug]/page.tsx
+112:27  Error: React Hook "useToast" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+113:27  Error: React Hook "useCart" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+./src/app/sobre/page.tsx
+82:33  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+83:81  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+./src/components/AdminSidebar/AdminSidebar.tsx
+108:8  Warning: React Hook useEffect has a missing dependency: 'openCategories'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+./src/components/NewsCommentModal/NewsCommentModal.tsx
+232:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+284:27  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+./src/components/NewsSection/NewsSection.tsx
+199:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+./src/components/RouletteModal/RouletteModal.tsx
+217:8  Warning: React Hook useEffect has a missing dependency: 'drawRoulette'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+Dockerfile:24
+-------------------
+22 |     # build phase
+23 |     COPY . /app/.
+24 | >>> RUN  npm run build
+25 |     RUN  cp -r .next/static .next/standalone/.next/static
+26 |     RUN  cp -r public .next/standalone/public
+-------------------
+ERROR: failed to build: failed to solve: process "/bin/bash -ol pipefail -c npm run build" did not complete successfully: exit code: 1
+Error: Docker build failed

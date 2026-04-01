@@ -87,6 +87,9 @@ export default function ProductDetailPage() {
         }
     };
 
+    const { showToast } = useToast();
+    const { addToCart } = useCart();
+
     if (!product) return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'var(--font-karla)' }}>
             <p>Carregando produto...</p>
@@ -108,9 +111,6 @@ export default function ProductDetailPage() {
         if (url.startsWith("uploads/")) return `/static/${url}`;
         return url;
     };
-
-    const { showToast } = useToast();
-    const { addToCart } = useCart();
 
     const handleAddToCart = () => {
         if (!product) {

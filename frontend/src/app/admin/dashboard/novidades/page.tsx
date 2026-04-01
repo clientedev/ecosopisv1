@@ -233,7 +233,7 @@ export default function NovidadesAdmin() {
                             ) : posts.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} style={{ textAlign: 'center', padding: '3rem' }}>
-                                        Nenhuma postagem ainda. Clique em "Nova Postagem" para criar.
+                                        Nenhuma postagem ainda. Clique em &quot;Nova Postagem&quot; para criar.
                                     </td>
                                 </tr>
                             ) : (

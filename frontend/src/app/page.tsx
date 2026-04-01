@@ -349,7 +349,7 @@ export default function Home() {
                                     <div className={styles.reviewStars}>
                                         {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
                                     </div>
-                                    <p className={styles.reviewComment}>"{rev.comment}"</p>
+                                    <p className={styles.reviewComment}>&quot;{rev.comment}&quot;</p>
                                     <span className={styles.reviewAuthor}>— {rev.user_name}</span>
                                 </div>
                             ))

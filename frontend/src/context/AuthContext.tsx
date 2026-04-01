@@ -10,6 +10,10 @@ interface User {
   can_post_news?: boolean;
   pode_girar_roleta: boolean;
   addresses?: any[];
+  profile_picture?: string;
+  total_compras?: number;
+  tentativas_roleta?: number;
+  ultimo_premio_id?: number;
 }
 
 interface AuthContextType {

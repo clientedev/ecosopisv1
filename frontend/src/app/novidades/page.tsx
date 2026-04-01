@@ -548,7 +548,7 @@ export default function NewsPage() {
       <NewsCommentModal
         isOpen={commentModalPostId !== null}
         onClose={() => setCommentModalPostId(null)}
-        post={commentModalPost}
+        post={commentModalPost as any}
         onEngagementUpdate={handleEngagementUpdate}
       />
 

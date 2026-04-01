@@ -79,8 +79,8 @@ export default function AboutPage() {
                         <div className={styles.missionBox}>
                             <h2>Nossa Missão</h2>
                             <p>
-                                "Democratizar o acesso a cosméticos de alta performance que sejam gentis com a pele e com o mundo, 
-                                promovendo um consumo consciente e regenerativo."
+                                &ldquo;Democratizar o acesso a cosméticos de alta performance que sejam gentis com a pele e com o mundo, 
+                                promovendo um consumo consciente e regenerativo.&rdquo;
                             </p>
                         </div>
                     </div>

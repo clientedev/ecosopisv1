@@ -26,7 +26,7 @@ interface NewsPost {
   created_at: string;
   user?: { full_name: string };
   likes_count: number;
-  comments_count?: number;
+  comments_count: number;
   is_liked: boolean;
   comments: NewsComment[];
 }
