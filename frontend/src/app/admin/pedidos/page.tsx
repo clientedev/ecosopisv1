@@ -74,6 +74,25 @@ export default function AdminPedidosPage() {
         }
     };
 
+    const handleClearAll = async () => {
+        if (!confirm("⚠️ ATENÇÃO: Esta ação irá EXCLUIR PERMANENTEMENTE todos os pedidos do sistema. Tem certeza que deseja continuar?")) return;
+        if (!confirm("Confirmação final: Deseja realmente zerar todo o histórico de testes?")) return;
+
+        try {
+            const res = await fetch("/api/orders/admin/clear-all", {
+                method: "DELETE",
+                headers: authHeaders()
+            });
+            if (res.ok) {
+                alert("Histórico zerado com sucesso!");
+                await fetchOrders();
+            } else {
+                const err = await res.json();
+                alert(`Erro ao zerar: ${err.detail || "Falha desconhecida"}`);
+            }
+        } catch { alert("Erro de conexão"); }
+    };
+
     const updateStatus = async (orderId: number, newStatus: string) => {
         setUpdatingStatus(orderId);
         try {
@@ -115,8 +134,6 @@ export default function AdminPedidosPage() {
     };
 
     const printTicket = (orderId: number) => {
-        // Opens the order label/ticket PDF in a new tab using the Bearer auth via a trick:
-        // We fetch and create an object URL
         fetch(`/api/orders/${orderId}/label`, { headers: authHeaders() })
             .then(res => {
                 if (!res.ok) throw new Error("Falha ao gerar ticket");
@@ -127,10 +144,6 @@ export default function AdminPedidosPage() {
                 window.open(url, "_blank");
             })
             .catch(err => alert(err.message));
-    };
-
-    const downloadExistingLabel = (url: string) => {
-        window.open(url, "_blank");
     };
 
     const filteredOrders = filter === "all" ? orders : orders.filter(o => o.status === filter);
@@ -145,68 +158,57 @@ export default function AdminPedidosPage() {
     };
 
     return (
-        <div style={{ display: "flex", height: "100vh", background: "#f9fafb", overflow: "hidden" }}>
+        <div style={{ display: "flex", height: "100vh", background: "#fdfdfd", overflow: "hidden" }}>
             <AdminSidebar activePath="/admin/pedidos" />
 
-            <main style={{ flex: 1, padding: "32px", overflowY: "auto", overflowX: "hidden", height: "100%" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                    <h1 style={{ fontFamily: "var(--font-playfair, serif)", fontSize: "1.8rem", color: "#1a1a1a" }}>
-                        📦 Gestão de Pedidos
-                    </h1>
-                    <button onClick={fetchOrders} style={{
-                        display: "flex", alignItems: "center", gap: "6px",
-                        padding: "8px 18px", borderRadius: "8px", border: "1.5px solid #2d5a27",
-                        background: "white", color: "#2d5a27", cursor: "pointer", fontWeight: 600, fontSize: "0.85rem"
-                    }}>
+            <main style={{ flex: 1, padding: "2rem", overflowY: "auto", height: "100%" }}>
+                <header className={pedidoStyles.headerRow}>
+                    <div className={pedidoStyles.titleSection}>
+                        <h1>Gestão de Pedidos</h1>
+                        <p>Acompanhe e gerencie as vendas do sistema.</p>
+                    </div>
+                    <button onClick={fetchOrders} className={pedidoStyles.btnAction + " " + pedidoStyles.btnSecondary}>
                         <RefreshCw size={14} /> Atualizar
                     </button>
-                </div>
-                <p style={{ color: "#888", marginBottom: "28px", fontSize: "0.9rem" }}>
-                    Gerencie pedidos, altere status e gere etiquetas de envio
-                </p>
+                </header>
 
-                {/* Stats */}
-                <div className={pedidoStyles.statsGrid}>
+                <section className={pedidoStyles.statsGrid}>
                     {[
-                        { label: "Total", value: stats.total, color: "#6b7280", icon: "📊" },
-                        { label: "Pendentes", value: stats.pending, color: "#d97706", icon: "⏳" },
-                        { label: "Pagos", value: stats.paid, color: "#059669", icon: "✅" },
-                        { label: "Enviados", value: stats.shipped, color: "#2563eb", icon: "🚚" },
-                        { label: "Entregues", value: stats.delivered, color: "#7c3aed", icon: "📦" },
-                        { label: "Receita", value: `R$ ${stats.revenue.toFixed(2).replace(".", ",")}`, color: "#059669", icon: "💰" },
+                        { label: "Total", value: stats.total, icon: "📊", color: "#111827" },
+                        { label: "Pendentes", value: stats.pending, icon: "⏳", color: "#d97706" },
+                        { label: "Pagos", value: stats.paid, icon: "✅", color: "#059669" },
+                        { label: "Enviados", value: stats.shipped, icon: "🚚", color: "#2563eb" },
+                        { label: "Receita", value: `R$ ${stats.revenue.toFixed(2).replace(".", ",")}`, icon: "💰", color: "#111827" },
                     ].map(stat => (
-                        <div key={stat.label} style={{
-                            background: "white", borderRadius: "12px", padding: "18px",
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.06)", textAlign: "center"
-                        }}>
-                            <div style={{ fontSize: "1.2rem", marginBottom: "4px" }}>{stat.icon}</div>
-                            <div style={{ fontSize: typeof stat.value === "string" ? "1.1rem" : "1.8rem", fontWeight: 700, color: stat.color }}>{stat.value}</div>
-                            <div style={{ fontSize: "0.72rem", color: "#888", marginTop: "2px" }}>{stat.label}</div>
+                        <div key={stat.label} className={pedidoStyles.statCard}>
+                            <div className={pedidoStyles.statIcon}>{stat.icon}</div>
+                            <div className={pedidoStyles.statValue} style={{ color: stat.color }}>{stat.value}</div>
+                            <div className={pedidoStyles.statLabel}>{stat.label}</div>
                         </div>
                     ))}
-                </div>
+                </section>
 
-                {/* Filter */}
                 <div className={pedidoStyles.filtersRow}>
                     {["all", "pending", "paid", "shipped", "delivered", "cancelled"].map(f => (
-                        <button key={f} onClick={() => setFilter(f)} style={{
-                            padding: "7px 16px", borderRadius: "20px", border: "none", cursor: "pointer",
-                            background: filter === f ? "#2d5a27" : "#e5e7eb",
-                            color: filter === f ? "white" : "#374151",
-                            fontWeight: filter === f ? 700 : 400, fontSize: "0.82rem",
-                            transition: "all 0.2s"
-                        }}>
-                            {f === "all" ? `Todos (${stats.total})` : `${STATUS_LABELS[f]?.label || f} (${orders.filter(o => o.status === f).length})`}
+                        <button
+                            key={f}
+                            onClick={() => setFilter(f)}
+                            className={`${pedidoStyles.filterBtn} ${filter === f ? pedidoStyles.filterBtnActive : pedidoStyles.filterBtnInactive}`}
+                        >
+                            {f === "all" ? `Todos` : (STATUS_LABELS[f]?.label || f)}
+                            <span style={{ opacity: 0.6, marginLeft: "6px", fontSize: "0.75rem" }}>
+                                {f === "all" ? stats.total : orders.filter(o => o.status === f).length}
+                            </span>
                         </button>
                     ))}
                 </div>
 
                 {loading ? (
-                    <div style={{ textAlign: "center", padding: "60px", color: "#888" }}>Carregando pedidos...</div>
+                    <div style={{ textAlign: "center", padding: "4rem", color: "#6b7280" }}>Carregando...</div>
                 ) : filteredOrders.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "60px", color: "#888" }}>Nenhum pedido encontrado.</div>
+                    <div style={{ textAlign: "center", padding: "4rem", color: "#6b7280" }}>Nenhum pedido encontrado.</div>
                 ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <div className={pedidoStyles.ordersList}>
                         {filteredOrders.map(order => {
                             const statusInfo = STATUS_LABELS[order.status] || { label: order.status, color: "#6b7280", icon: Clock };
                             const StatusIcon = statusInfo.icon;
@@ -217,57 +219,37 @@ export default function AdminPedidosPage() {
                             const email = order.buyer_email || order.customer_email || "";
 
                             return (
-                                <div key={order.id} style={{
-                                    background: "white", borderRadius: "14px",
-                                    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-                                    border: isExpanded ? "2px solid #2d5a27" : "1px solid #f1f5f9",
-                                    overflow: "hidden"
-                                }}>
-                                    {/* Row Header */}
-                                    <div
-                                        onClick={() => setExpandedId(isExpanded ? null : order.id)}
-                                        className={pedidoStyles.orderRowHeader}
-                                    >
+                                <div key={order.id} className={`${pedidoStyles.orderCard} ${isExpanded ? pedidoStyles.orderCardExpanded : ""}`}>
+                                    <div className={pedidoStyles.orderRowHeader} onClick={() => setExpandedId(isExpanded ? null : order.id)}>
                                         <div className={pedidoStyles.orderInfo}>
-                                            <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#111" }}>
-                                                Pedido #{order.id}
-                                            </div>
-                                            <div style={{ fontSize: "0.8rem", color: "#555", marginTop: "3px" }}>{name}</div>
-                                            <div style={{ fontSize: "0.75rem", color: "#aaa", marginTop: "2px" }}>
+                                            <h3>Pedido #{order.id}</h3>
+                                            <p>{name}</p>
+                                            <div className={pedidoStyles.orderDate}>
                                                 {order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
                                             </div>
                                         </div>
 
-                                        <div className={pedidoStyles.orderItems} style={{ fontSize: "0.82rem", color: "#555" }}>
+                                        <div className={pedidoStyles.orderDetailsSummary}>
                                             {(order.items || []).length} item(s)
-                                            <div style={{ fontWeight: 600, color: "#059669", marginTop: "4px" }}>
+                                            <div className={pedidoStyles.orderPrice}>
                                                 R$ {Number(order.total || 0).toFixed(2).replace(".", ",")}
                                             </div>
                                         </div>
 
-                                        <div className={pedidoStyles.orderStatus}>
-                                            <span style={{
-                                                display: "inline-flex", alignItems: "center", gap: "5px",
-                                                background: `${statusInfo.color}12`, color: statusInfo.color,
-                                                padding: "5px 12px", borderRadius: "20px",
-                                                fontWeight: 600, fontSize: "0.8rem"
-                                            }}>
-                                                <StatusIcon size={13} /> {statusInfo.label}
-                                            </span>
+                                        <div className={pedidoStyles.badge} style={{ background: `${statusInfo.color}15`, color: statusInfo.color }}>
+                                            <StatusIcon size={14} /> {statusInfo.label}
                                         </div>
 
-                                        {/* Quick Actions */}
-                                        <div className={pedidoStyles.orderQuickActions} onClick={(e) => e.stopPropagation()}>
-                                            {transitions.map(ns => (
+                                        <div className={pedidoStyles.orderQuickActions} onClick={e => e.stopPropagation()}>
+                                            {transitions.slice(0, 2).map(ns => (
                                                 <button key={ns}
                                                     onClick={() => updateStatus(order.id, ns)}
                                                     disabled={updatingStatus === order.id}
+                                                    className={pedidoStyles.btnAction}
                                                     style={{
-                                                        padding: "5px 10px", borderRadius: "6px", border: "none",
-                                                        cursor: "pointer", fontWeight: 600, fontSize: "0.72rem",
-                                                        background: ns === "cancelled" ? "#fef2f2" : STATUS_LABELS[ns]?.color + "15",
-                                                        color: ns === "cancelled" ? "#dc2626" : STATUS_LABELS[ns]?.color,
-                                                        opacity: updatingStatus === order.id ? 0.5 : 1
+                                                        background: ns === "cancelled" ? "#fee2e2" : STATUS_LABELS[ns]?.color + "15",
+                                                        color: ns === "cancelled" ? "#991b1b" : STATUS_LABELS[ns]?.color,
+                                                        padding: "4px 8px", fontSize: "0.7rem"
                                                     }}
                                                 >
                                                     {STATUS_LABELS[ns]?.label}
@@ -275,138 +257,72 @@ export default function AdminPedidosPage() {
                                             ))}
                                         </div>
 
-                                        <div className={pedidoStyles.orderChevron}>{isExpanded ? <ChevronUp size={18} color="#94a3b8" /> : <ChevronDown size={18} color="#94a3b8" />}</div>
+                                        <div style={{ color: "#9ca3af" }}>{isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</div>
                                     </div>
 
-                                    {/* Expanded Details */}
                                     {isExpanded && (
-                                        <div className={pedidoStyles.expandedDetails}>
-                                            {/* Items */}
+                                        <div className={pedidoStyles.expandedContent}>
                                             <div>
-                                                <h4 style={{ fontSize: "0.85rem", color: "#374151", marginBottom: "10px", fontWeight: 700 }}>
-                                                    🛒 Itens do Pedido
-                                                </h4>
-                                                {(order.items || []).map((item: any, i: number) => (
-                                                    <div key={i} style={{
-                                                        display: "flex", justifyContent: "space-between",
-                                                        padding: "6px 0", fontSize: "0.85rem",
-                                                        borderBottom: i < (order.items || []).length - 1 ? "1px solid #f1f5f9" : "none"
-                                                    }}>
-                                                        <span style={{ color: "#374151" }}>{item.quantity}x {item.product_name}</span>
-                                                        <span style={{ fontWeight: 600 }}>R$ {(item.price * item.quantity).toFixed(2)}</span>
-                                                    </div>
-                                                ))}
-                                                <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid #e5e7eb" }}>
-                                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "#666" }}>
-                                                        <span>Frete ({order.shipping_method?.toUpperCase() || "FIXO"})</span>
+                                                <h4 className={pedidoStyles.sectionTitle}>🛒 Itens do Pedido</h4>
+                                                <div className={pedidoStyles.itemList}>
+                                                    {(order.items || []).map((item: any, i: number) => (
+                                                        <div key={i} className={pedidoStyles.itemRow}>
+                                                            <span>{item.quantity}x {item.product_name}</span>
+                                                            <span style={{ fontWeight: 600 }}>R$ {(item.price * item.quantity).toFixed(2)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className={pedidoStyles.summarySection}>
+                                                    <div className={pedidoStyles.summaryRow}>
+                                                        <span>Frete ({order.shipping_method || "Fixo"})</span>
                                                         <span>R$ {Number(order.shipping_price || 0).toFixed(2)}</span>
                                                     </div>
                                                     {(order.discount_amount || 0) > 0 && (
-                                                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "#15803d" }}>
+                                                        <div className={pedidoStyles.summaryRow} style={{ color: "#059669" }}>
                                                             <span>Desconto {order.coupon_code ? `(${order.coupon_code})` : ""}</span>
                                                             <span>- R$ {Number(order.discount_amount).toFixed(2)}</span>
                                                         </div>
                                                     )}
-                                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.95rem", fontWeight: 700, marginTop: "6px", color: "#2d5a27" }}>
+                                                    <div className={pedidoStyles.summaryTotal}>
                                                         <span>Total</span>
                                                         <span>R$ {Number(order.total || 0).toFixed(2)}</span>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* Customer & Address */}
-                                            <div>
-                                                <h4 style={{ fontSize: "0.85rem", color: "#374151", marginBottom: "10px", fontWeight: 700 }}>
-                                                    👤 Cliente
-                                                </h4>
-                                                <div style={{ fontSize: "0.85rem", color: "#555", lineHeight: 1.8 }}>
-                                                    <p style={{ margin: 0 }}><strong>Nome:</strong> {name}</p>
-                                                    <p style={{ margin: 0 }}><strong>Email:</strong> {email}</p>
-                                                    {order.customer_phone && <p style={{ margin: 0 }}><strong>Tel:</strong> {order.customer_phone}</p>}
-                                                    <p style={{ margin: 0 }}><strong>Pagamento:</strong> {order.payment_method?.toUpperCase() || "STRIPE"}</p>
-                                                </div>
+                                            <div className={pedidoStyles.customerInfo}>
+                                                <h4 className={pedidoStyles.sectionTitle}>👤 Informações de Entrega</h4>
+                                                <p><strong>Nome:</strong> {name}</p>
+                                                <p><strong>Email:</strong> {email}</p>
+                                                {order.customer_phone && <p><strong>Telefone:</strong> {order.customer_phone}</p>}
 
-                                                {order.address && order.address.street && (
-                                                    <>
-                                                        <h4 style={{ fontSize: "0.85rem", color: "#374151", marginTop: "16px", marginBottom: "8px", fontWeight: 700 }}>
-                                                            📍 Endereço
-                                                        </h4>
-                                                        <div style={{ fontSize: "0.82rem", color: "#555", lineHeight: 1.6 }}>
-                                                            <p style={{ margin: 0 }}>{order.address.street}{order.address.number ? `, ${order.address.number}` : ""}</p>
-                                                            {order.address.complement && <p style={{ margin: 0 }}>{order.address.complement}</p>}
-                                                            <p style={{ margin: 0 }}>{order.address.neighborhood || ""} — {order.address.city || ""}/{order.address.state || ""}</p>
-                                                            {(order.address.cep || order.address.zip) && <p style={{ margin: 0 }}>CEP: {order.address.cep || order.address.zip}</p>}
-                                                        </div>
-                                                    </>
-                                                )}
-
-                                                {order.stripe_payment_id && (
-                                                    <div style={{ marginTop: "16px" }}>
-                                                        <h4 style={{ fontSize: "0.85rem", color: "#374151", marginBottom: "6px", fontWeight: 700 }}>
-                                                            💳 Stripe
-                                                        </h4>
-                                                        <div style={{ fontSize: "0.72rem", color: "#94a3b8", wordBreak: "break-all" }}>
-                                                            <p style={{ margin: "0 0 2px" }}>Payment: {order.stripe_payment_id}</p>
-                                                            {order.stripe_session_id && <p style={{ margin: 0 }}>Session: {order.stripe_session_id}</p>}
-                                                        </div>
+                                                {order.address && (
+                                                    <div style={{ marginTop: "1rem", color: "#6b7280" }}>
+                                                        <p style={{ margin: 0 }}>{order.address.street}, {order.address.number}</p>
+                                                        <p style={{ margin: 0 }}>{order.address.neighborhood} - {order.address.city}/{order.address.state}</p>
+                                                        <p style={{ margin: 0 }}>CEP: {order.address.cep || order.address.zip}</p>
                                                     </div>
                                                 )}
                                             </div>
 
-                                            {/* Actions Bar */}
-                                            <div className={pedidoStyles.expandedActions}>
-                                                {/* Ticket PDF */}
-                                                <button onClick={() => printTicket(order.id)} style={{
-                                                    display: "flex", alignItems: "center", gap: "6px",
-                                                    background: "#f1f5f9", color: "#374151", border: "1px solid #e2e8f0",
-                                                    padding: "8px 16px", borderRadius: "8px", cursor: "pointer",
-                                                    fontWeight: 600, fontSize: "0.8rem"
-                                                }}>
-                                                    <FileText size={14} /> Ticket do Pedido (PDF)
+                                            <div className={pedidoStyles.actionFooter}>
+                                                <button onClick={() => printTicket(order.id)} className={pedidoStyles.btnAction + " " + pedidoStyles.btnSecondary}>
+                                                    <FileText size={14} /> Ticket PDF
                                                 </button>
 
-                                                {/* Correios Label */}
                                                 {hasLabel ? (
-                                                    <button onClick={() => downloadExistingLabel(order.correios_label_url!)} style={{
-                                                        display: "flex", alignItems: "center", gap: "6px",
-                                                        background: "#2563eb", color: "white", border: "none",
-                                                        padding: "8px 16px", borderRadius: "8px", cursor: "pointer",
-                                                        fontWeight: 600, fontSize: "0.8rem"
-                                                    }}>
-                                                        <Download size={14} /> Baixar Etiqueta Correios
+                                                    <button onClick={() => window.open(order.correios_label_url!, "_blank")} className={pedidoStyles.btnAction + " " + pedidoStyles.btnPrimary}>
+                                                        <Download size={14} /> Etiqueta Correios
                                                     </button>
                                                 ) : (order.status === "paid" || order.status === "shipped") && (
-                                                    <button
-                                                        onClick={() => generateLabel(order.id)}
-                                                        disabled={generatingLabel === order.id}
-                                                        style={{
-                                                            display: "flex", alignItems: "center", gap: "6px",
-                                                            background: generatingLabel === order.id ? "#94a3b8" : "#2d5a27",
-                                                            color: "white", border: "none",
-                                                            padding: "8px 16px", borderRadius: "8px",
-                                                            cursor: generatingLabel === order.id ? "not-allowed" : "pointer",
-                                                            fontWeight: 600, fontSize: "0.8rem"
-                                                        }}
-                                                    >
-                                                        <Truck size={14} />
-                                                        {generatingLabel === order.id ? "Gerando..." : "Gerar Etiqueta Correios"}
+                                                    <button onClick={() => generateLabel(order.id)} disabled={generatingLabel === order.id} className={pedidoStyles.btnAction + " " + pedidoStyles.btnPrimary}>
+                                                        <Truck size={14} /> {generatingLabel === order.id ? "Gerando..." : "Gerar Etiqueta"}
                                                     </button>
                                                 )}
 
-                                                {/* Status Changes */}
                                                 {transitions.map(ns => (
-                                                    <button key={ns}
-                                                        onClick={() => updateStatus(order.id, ns)}
-                                                        disabled={updatingStatus === order.id}
-                                                        style={{
-                                                            display: "flex", alignItems: "center", gap: "6px",
-                                                            padding: "8px 16px", borderRadius: "8px", cursor: "pointer",
-                                                            fontWeight: 600, fontSize: "0.8rem", border: "none",
-                                                            background: ns === "cancelled" ? "#fef2f2" : STATUS_LABELS[ns]?.color + "20",
-                                                            color: ns === "cancelled" ? "#dc2626" : STATUS_LABELS[ns]?.color,
-                                                            opacity: updatingStatus === order.id ? 0.5 : 1
-                                                        }}
-                                                    >
+                                                    <button key={ns} onClick={() => updateStatus(order.id, ns)} className={pedidoStyles.btnAction + " " + pedidoStyles.btnSecondary} style={{ color: STATUS_LABELS[ns]?.color }}>
                                                         Marcar como {STATUS_LABELS[ns]?.label}
                                                     </button>
                                                 ))}
@@ -418,6 +334,16 @@ export default function AdminPedidosPage() {
                         })}
                     </div>
                 )}
+
+                <footer className={pedidoStyles.clearSection}>
+                    <p style={{ fontSize: "0.875rem", color: "#ef4444" }}>Zona de Perigo</p>
+                    <button onClick={handleClearAll} className={pedidoStyles.btnClear}>
+                        <XCircle size={16} /> Zerar Histórico de Pedidos
+                    </button>
+                    <p style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.5rem" }}>
+                        Esta ação removerá todos os pedidos permanentemente. Use apenas para limpeza de testes.
+                    </p>
+                </footer>
             </main>
         </div>
     );

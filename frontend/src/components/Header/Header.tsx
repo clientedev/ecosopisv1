@@ -3,7 +3,7 @@ import Link from "next/link";
 import styles from "./Header.module.css";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart } from "lucide-react";
+import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart, Package, Newspaper, Zap, Info } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
@@ -94,31 +94,94 @@ export default function Header() {
                 </div>
 
                 <nav className={`${styles.nav} ${isMobileMenuOpen ? styles.navOpen : ''}`}>
-                    <Link href="/produtos" onClick={() => setIsMobileMenuOpen(false)}>PRODUTOS</Link>
-                    <Link href="/novidades" onClick={() => setIsMobileMenuOpen(false)}>NOVIDADES</Link>
-                    <Link href="/quizz" onClick={() => setIsMobileMenuOpen(false)}>QUIZZ</Link>
-                    <Link href="/sobre" onClick={() => setIsMobileMenuOpen(false)}>SOBRE</Link>
-                    {/* Mobile-only action buttons inside overlay */}
-                    <div className={styles.mobileActions}>
-                        <Link href="/carrinho" className={styles.actionIcon} onClick={() => setIsMobileMenuOpen(false)}>
-                            <div className={styles.cartLinkContent}>
-                                🛒 CARRINHO
-                                {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
+                    <div className={styles.mobileMenuInner}>
+                        <div className={styles.mobileMenuHeader}>
+                            <div className={styles.logoContainer}>
+                                <Image
+                                    src="/logo_nova_transparent.png"
+                                    alt="ECOSOPIS Logo"
+                                    width={120}
+                                    height={50}
+                                    className={styles.mobileMenuLogo}
+                                />
                             </div>
-                        </Link>
-                        {user ? (
-                            <>
-                                <Link href="/perfil" className={styles.actionIcon} onClick={() => setIsMobileMenuOpen(false)}>👤 MINHA CONTA</Link>
-                                {isAdmin && (
-                                    <Link href="/admin/dashboard" className={styles.actionIcon} onClick={() => setIsMobileMenuOpen(false)}>⚙️ ADMIN</Link>
+                            <button 
+                                className={styles.mobileMenuButton} 
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                style={{ display: 'flex' }}
+                            >
+                                <X size={28} />
+                            </button>
+                        </div>
+
+                        <div className={styles.mobileMenuContent}>
+                            <Link href="/produtos" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                <Package size={22} />
+                                PRODUTOS
+                            </Link>
+                            <Link href="/novidades" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                <Newspaper size={22} />
+                                NOVIDADES
+                            </Link>
+                            <Link href="/quizz" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                <Zap size={22} />
+                                QUIZZ
+                            </Link>
+                            <Link href="/sobre" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                <Info size={22} />
+                                SO BRE
+                            </Link>
+                        </div>
+
+                        <div className={styles.mobileMenuFooter}>
+                            <div className={styles.mobileActions}>
+                                <Link href="/carrinho" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                    <ShoppingCart size={22} />
+                                    CARRINHO
+                                    {cartCount > 0 && <span className={styles.cartBadge} style={{ position: 'static', marginLeft: 'auto' }}>{cartCount}</span>}
+                                </Link>
+                                {user ? (
+                                    <>
+                                        <Link href="/perfil" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                            <User size={22} />
+                                            MINHA CONTA
+                                        </Link>
+                                        {isAdmin && (
+                                            <Link href="/admin/dashboard" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                                <LayoutDashboard size={22} />
+                                                PAINEL ADMIN
+                                            </Link>
+                                        )}
+                                        <button 
+                                            onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} 
+                                            style={{ 
+                                                marginTop: '10px',
+                                                background: 'none', 
+                                                border: '1px solid #ef4444', 
+                                                color: '#ef4444', 
+                                                padding: '14px 24px', 
+                                                borderRadius: '12px', 
+                                                cursor: 'pointer', 
+                                                fontWeight: 700, 
+                                                fontSize: '1rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '10px'
+                                            }}
+                                        >
+                                            <LogOut size={20} />
+                                            Sair da Conta
+                                        </button>
+                                    </>
+                                ) : (
+                                    <Link href="/conta" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                        <User size={22} />
+                                        ENTRAR / CADASTRAR
+                                    </Link>
                                 )}
-                                <button onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>
-                                    Sair
-                                </button>
-                            </>
-                        ) : (
-                            <Link href="/conta" className={styles.actionIcon} onClick={() => setIsMobileMenuOpen(false)}>ENTRAR</Link>
-                        )}
+                            </div>
+                        </div>
                     </div>
                 </nav>
 

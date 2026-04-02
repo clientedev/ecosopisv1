@@ -129,6 +129,22 @@ def update_order_status(
     return _order_to_response(order, db)
 
 
+@router.delete("/admin/clear-all", status_code=204)
+def clear_all_orders(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Delete all orders. Relational order_items should cascade delete if configured, 
+    # but we can also do it explicitly to be safe if needed.
+    # Base on models.py, order_items has cascade="all, delete-orphan".
+    db.query(models.Order).delete()
+    db.commit()
+    return None
+
+
 @router.get("/", response_model=List[schemas.OrderResponse])
 def list_orders(
     db: Session = Depends(get_db),

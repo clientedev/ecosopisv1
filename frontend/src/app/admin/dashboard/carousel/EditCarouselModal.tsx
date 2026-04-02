@@ -90,17 +90,26 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
             if (selectedFile) data.append("file", selectedFile);
             if (selectedMobileFile) data.append("mobile_file", selectedMobileFile);
 
+            const token = localStorage.getItem("token");
+            if (!token) {
+                setError("Sessão expirada ou não encontrada. Por favor, saia e entre novamente no sistema.");
+                setLoading(false);
+                return;
+            }
+
             const res = await fetch(url, {
                 method,
-                headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+                headers: { "Authorization": `Bearer ${token}` },
                 body: data,
             });
 
             const responseData = await res.json();
             if (res.ok) {
                 onSave(responseData);
+            } else if (res.status === 401) {
+                setError("Sua sessão expirou (Could not validate credentials). Por favor, saia e faça login novamente.");
             } else {
-                setError(`Erro: ${JSON.stringify(responseData.detail || responseData)}`);
+                setError(`Erro: ${responseData.detail || JSON.stringify(responseData)}`);
             }
         } catch {
             setError("Erro de conexão. Verifique sua internet e tente novamente.");

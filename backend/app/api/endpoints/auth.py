@@ -42,16 +42,13 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    secret_key = os.getenv("SECRET_KEY")
-    algorithm = os.getenv("ALGORITHM")
-    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
+        payload = jwt.decode(token, security.SECRET_KEY, algorithms=[security.ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
@@ -71,9 +68,7 @@ async def get_current_user_optional(
     if not token:
         return None
     try:
-        secret_key = os.getenv("SECRET_KEY")
-        algorithm = os.getenv("ALGORITHM")
-        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
+        payload = jwt.decode(token, security.SECRET_KEY, algorithms=[security.ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
             return None
