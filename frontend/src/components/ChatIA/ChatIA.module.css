@@ -101,12 +101,29 @@
     gap: 12px;
 }
 
+.avatarContainer {
+    position: relative;
+    width: 40px;
+    height: 40px;
+}
+
+.miniAvatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
 .onlineStatus {
+    position: absolute;
+    bottom: 0;
+    right: 0;
     width: 10px;
     height: 10px;
     background-color: #4cd137;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: 2px solid var(--primary-green);
     box-shadow: 0 0 8px #4cd137;
 }
 

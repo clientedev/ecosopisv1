@@ -2,7 +2,9 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #fafbfc;
+    background-color: #f0f7ed;
+    background-image: radial-gradient(at 0% 0%, rgba(75, 132, 17, 0.05) 0px, transparent 50%),
+                      radial-gradient(at 100% 100%, rgba(75, 132, 17, 0.03) 0px, transparent 50%);
 }
 
 .mainContent {
@@ -37,16 +39,51 @@
 }
 
 .liaAvatar {
-    width: 70px;
-    height: 70px;
+    width: 85px;
+    height: 85px;
     background-color: var(--primary-green);
-    border-radius: 24px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 20px;
-    color: white;
+    position: relative;
     box-shadow: 0 8px 20px rgba(75, 132, 17, 0.3);
+    border: 3px solid white;
+    overflow: visible;
+}
+
+.avatarImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.onlineBadge {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 14px;
+    height: 14px;
+    background-color: #4ade80;
+    border: 2px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+}
+
+.natureTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: rgba(75, 132, 17, 0.1);
+    color: var(--primary-green);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-top: 15px;
 }
 
 .liaBranding h1 {
@@ -257,4 +294,30 @@
     .chatWrapper {
         height: 600px;
     }
+
+    .decorLeaf1, .decorLeaf2 {
+        display: none;
+    }
+}
+
+.decorLeaf1 {
+    position: absolute;
+    bottom: -40px;
+    left: -40px;
+    color: var(--primary-green);
+    opacity: 0.05;
+    z-index: -1;
+    transform: rotate(45deg);
+    pointer-events: none;
+}
+
+.decorLeaf2 {
+    position: absolute;
+    top: 100px;
+    right: -20px;
+    color: var(--primary-green);
+    opacity: 0.03;
+    z-index: -1;
+    transform: rotate(-15deg);
+    pointer-events: none;
 }

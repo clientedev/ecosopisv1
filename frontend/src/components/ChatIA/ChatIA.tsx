@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import styles from "./ChatIA.module.css";
+import Image from "next/image";
 
 export default function ChatIA() {
     const [isOpen, setIsOpen] = useState(false);
@@ -79,7 +80,16 @@ export default function ChatIA() {
                 <div className={styles.chatWindow}>
                     <div className={styles.chatHeader}>
                         <div className={styles.headerInfo}>
-                            <div className={styles.onlineStatus}></div>
+                            <div className={styles.avatarContainer}>
+                                <Image 
+                                    src="/lia.png" 
+                                    alt="Lia" 
+                                    width={40} 
+                                    height={40} 
+                                    className={styles.miniAvatar}
+                                />
+                                <div className={styles.onlineStatus}></div>
+                            </div>
                             <div className={styles.headerTitles}>
                                 <h3>Lia</h3>
                                 <span>Consultora ECOSOPIS</span>

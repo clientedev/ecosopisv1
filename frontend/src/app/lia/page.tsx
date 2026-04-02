@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import styles from "./lia.module.css";
+import Image from "next/image";
 import { Send, Sparkles, MessageCircle, Info, Zap, Leaf } from "lucide-react";
 
 const SUGGESTIONS = [
@@ -70,10 +71,21 @@ export default function LiaPage() {
                         <div className={styles.liaSidebar}>
                             <div className={styles.liaBranding}>
                                 <div className={styles.liaAvatar}>
-                                    <Sparkles size={32} className={styles.sparkleIcon} />
+                                    <Image 
+                                        src="/lia.png" 
+                                        alt="LIA AI" 
+                                        width={80} 
+                                        height={80} 
+                                        className={styles.avatarImg}
+                                    />
+                                    <div className={styles.onlineBadge}></div>
                                 </div>
                                 <h1>Lia AI</h1>
-                                <p>Sua consultora especializada em cosmética natural, vegana e sustentável.</p>
+                                <p>Sua guia especializada na interseção entre o poder da botânica e a alta tecnologia cosmética.</p>
+                                <div className={styles.natureTag}>
+                                    <Leaf size={14} />
+                                    <span>Ciência Natural Ativa</span>
+                                </div>
                             </div>
 
                             <div className={styles.suggestionsSection}>
@@ -140,6 +152,10 @@ export default function LiaPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Decorative Elements */}
+                <div className={styles.decorLeaf1}><Leaf size={120} /></div>
+                <div className={styles.decorLeaf2}><Leaf size={80} /></div>
             </main>
 
             <Footer />
