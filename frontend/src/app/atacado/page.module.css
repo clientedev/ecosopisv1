@@ -4,7 +4,7 @@
 }
 
 .hero {
-    background: linear-gradient(135deg, #1a3a16 0%, #2d5a27 100%);
+    background: linear-gradient(rgba(26, 58, 22, 0.6), rgba(26, 58, 22, 0.4)), url('/wholesale_bg.png') center/cover no-repeat;
     padding: 120px 0 60px;
     color: white;
     text-align: center;
@@ -398,6 +398,11 @@
 .summaryDesktop {
     width: 340px;
     flex-shrink: 0;
+    position: sticky;
+    top: 110px;
+    align-self: flex-start;
+    height: max-content;
+    z-index: 10;
 }
 
 .summaryCard {
@@ -405,10 +410,7 @@
     border: 1px solid #e2e8f0;
     border-radius: 20px;
     padding: 30px;
-    position: sticky;
-    top: 110px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-    z-index: 10;
     transition: transform 0.3s ease;
 }
 
