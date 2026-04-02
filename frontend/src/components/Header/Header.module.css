@@ -214,7 +214,7 @@
 }
 
 /* Hide mobile-only sections on desktop */
-.mobileActions {
+.mobileNav, .mobileActions {
     display: none;
 }
 
