@@ -110,18 +110,19 @@ def get_product(slug: str, db: Session = Depends(get_db)):
 def generate_qr_code(slug: str, base_url: Optional[str] = None):
     """Generate a permanent QR code for the product technical page."""
     if not base_url:
-        base_url = os.getenv("FRONTEND_URL") or os.getenv("EXTERNAL_URL") or "http://localhost:3000"
+        base_url = os.getenv("FRONTEND_URL") or os.getenv("EXTERNAL_URL") or "http://ecosopis.com.br"
     
     # Heuristic to avoid localhost in production-like environments
-    if "localhost" in base_url or "127.0.0.1" in base_url:
-        # Check for Replit domain or Railway
+    is_cloud = os.getenv("REPLIT_DEV_DOMAIN") or os.getenv("RAILWAY_STATIC_URL") or os.getenv("REPL_ID")
+    
+    if is_cloud and ("localhost" in base_url or "127.0.0.1" in base_url):
         replit_domain = os.getenv("REPLIT_DEV_DOMAIN")
         if replit_domain:
             base_url = f"https://{replit_domain}"
         elif os.getenv("RAILWAY_STATIC_URL"):
             base_url = f"https://{os.getenv('RAILWAY_STATIC_URL')}"
-        elif os.getenv("NODE_ENV") == "production":
-            # If we know it's production but still have localhost, use the branding domain
+        else:
+            # Absolute fallback for production to ensure usable QR codes
             base_url = "https://ecosopis.com.br"
     
     # Remove trailing slash if present
@@ -341,52 +342,56 @@ def regenerate_product_qr(
     admin: models.User = Depends(get_current_admin)
 ):
     """Regenerate QR code using provided origin or current request origin."""
-    db_product = db.query(models.Product).filter(models.Product.slug == slug).first()
-    if not db_product:
-        raise HTTPException(status_code=404, detail="Product not found")
+    try:
+        db_product = db.query(models.Product).filter(models.Product.slug == slug).first()
+        if not db_product:
+            raise HTTPException(status_code=404, detail="Product not found")
 
-    db_details = db.query(models.ProductDetail).filter(models.ProductDetail.product_id == db_product.id).first()
-    
-    # Identify origin - Prioritize body, then FRONTEND_URL, then EXTERNAL_URL, then Headers
-    origin = None
-    if data and data.origin:
-        origin = data.origin
-    
-    if not origin:
-        origin = os.getenv("FRONTEND_URL") or os.getenv("EXTERNAL_URL")
+        db_details = db.query(models.ProductDetail).filter(models.ProductDetail.product_id == db_product.id).first()
         
-    if not origin:
-        # Fallback to headers (very useful for Railway/Nixpacks/Replit)
-        forwarded_host = request.headers.get("x-forwarded-host")
-        forwarded_proto = request.headers.get("x-forwarded-proto", "https")
-        if forwarded_host:
-            main_host = forwarded_host.split(',')[0].strip()
-            origin = f"{forwarded_proto}://{main_host}"
+        # Identify origin - Prioritize body, then env vars, then Headers
+        origin = data.origin if data else None
+        
+        if not origin:
+            origin = os.getenv("FRONTEND_URL") or os.getenv("EXTERNAL_URL")
+            
+        if not origin:
+            forwarded_host = request.headers.get("x-forwarded-host")
+            forwarded_proto = request.headers.get("x-forwarded-proto", "https")
+            if forwarded_host:
+                main_host = forwarded_host.split(',')[0].strip()
+                origin = f"{forwarded_proto}://{main_host}"
+            else:
+                origin = f"{request.url.scheme}://{request.url.netloc}"
+        
+        # Final safety check for cloud environments (Replit/Railway/Prod)
+        is_cloud = os.getenv("REPLIT_DEV_DOMAIN") or os.getenv("RAILWAY_STATIC_URL") or os.getenv("REPL_ID")
+        
+        if is_cloud and ("localhost" in origin or "127.0.0.1" in origin):
+            replit_domain = os.getenv("REPLIT_DEV_DOMAIN")
+            if replit_domain:
+                origin = f"https://{replit_domain}"
+            elif os.getenv("RAILWAY_STATIC_URL"):
+                origin = f"https://{os.getenv('RAILWAY_STATIC_URL')}"
+            else:
+                origin = "https://ecosopis.com.br"
+
+        qr_path = generate_qr_code(slug, base_url=origin)
+        
+        if not db_details:
+            db_details = models.ProductDetail(
+                product_id=db_product.id,
+                slug=db_product.slug,
+                qr_code_path=qr_path
+            )
+            db.add(db_details)
         else:
-            origin = f"{request.url.scheme}://{request.url.netloc}"
-    
-    # Final safety check for cloud environments (Replit/Railway)
-    replit_domain = os.getenv("REPLIT_DEV_DOMAIN")
-    if "localhost" in origin or "127.0.0.1" in origin:
-        if replit_domain:
-            origin = f"https://{replit_domain}"
-        elif os.getenv("RAILWAY_STATIC_URL"):
-            origin = f"https://{os.getenv('RAILWAY_STATIC_URL')}"
-        elif os.getenv("NODE_ENV") == "production":
-            origin = "https://ecosopis.com.br"
-
-    qr_path = generate_qr_code(slug, base_url=origin)
-    
-    if not db_details:
-        db_details = models.ProductDetail(
-            product_id=db_product.id,
-            slug=db_product.slug,
-            qr_code_path=qr_path
-        )
-        db.add(db_details)
-    else:
-        db_details.qr_code_path = qr_path
-        
-    db.commit()
-    db.refresh(db_details)
-    return {"message": "QR Code regenerated", "path": qr_path, "url": origin}
+            db_details.qr_code_path = qr_path
+            
+        db.commit()
+        db.refresh(db_details)
+        return {"message": "QR Code regenerated", "path": qr_path, "url": origin}
+    except Exception as e:
+        print(f"Error regenerating QR code: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao regenerar QR Code: {str(e)}")
