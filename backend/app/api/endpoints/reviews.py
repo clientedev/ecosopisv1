@@ -56,6 +56,22 @@ def get_pending_reviews(db: Session = Depends(get_db), admin: models.User = Depe
         "product_name": r.product.name if r.product else "Geral"
     } for r in reviews]
 
+
+@router.get("/admin/all", response_model=List[dict])
+def get_all_reviews(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    """Admin endpoint to list all reviews (pending and approved)."""
+    reviews = db.query(models.Review).order_by(models.Review.created_at.desc()).all()
+    return [{
+        "id": r.id, 
+        "user_name": r.user_name, 
+        "comment": r.comment, 
+        "rating": r.rating,
+        "is_approved": r.is_approved,
+        "product_id": r.product_id,
+        "product_name": r.product.name if r.product else "Geral",
+        "created_at": r.created_at
+    } for r in reviews]
+
 @router.post("/approve/{review_id}")
 def approve_review(review_id: int, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     """Admin endpoint to approve a review."""

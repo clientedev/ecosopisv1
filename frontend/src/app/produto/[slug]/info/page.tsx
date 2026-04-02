@@ -180,19 +180,7 @@ export default function ProductTechnicalPage() {
     return (
         <div className={styles.pageContainer}>
 
-            {/* ── TOP NAV BAR ── */}
-            <div className={styles.topBar}>
-                <Link href="/">
-                    <Image
-                        src="/logo_nova_transparent.png"
-                        alt="Ecosopis Logo"
-                        width={160}
-                        height={52}
-                        priority
-                        className={styles.topBarLogo}
-                    />
-                </Link>
-            </div>
+
 
             {/* ── HERO SPLIT ── */}
             <section className={styles.hero}>

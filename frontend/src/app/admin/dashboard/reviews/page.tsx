@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import styles from "@/app/admin/dashboard/dashboard.module.css";
 import reviewStyles from "./reviews.module.css";
-import { Search, Filter, CheckCircle2, Layers, Inbox, RefreshCw, Trash2 } from "lucide-react";
+import { Search, Filter, CheckCircle2, Layers, Inbox, RefreshCw, Trash2, Clock } from "lucide-react";
 
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
@@ -13,8 +13,10 @@ interface ReviewItem {
     user_name: string;
     comment: string;
     rating: number;
+    is_approved: boolean;
     product_id?: number | null;
     product_name?: string | null;
+    created_at?: string;
 }
 
 export default function AdminReviewsPage() {
@@ -22,6 +24,7 @@ export default function AdminReviewsPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [productFilter, setProductFilter] = useState<string>("all");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
     const [actionMsg, setActionMsg] = useState<string>("");
     const router = useRouter();
 
@@ -32,9 +35,9 @@ export default function AdminReviewsPage() {
             return;
         }
 
-        const fetchReviews = async () => {
+        const fetchInitialReviews = async () => {
             try {
-                const res = await fetch(`/api/reviews/pending`, {
+                const res = await fetch(`/api/reviews/admin/all`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -47,14 +50,14 @@ export default function AdminReviewsPage() {
                 setLoading(false);
             }
         };
-        fetchReviews();
+        fetchInitialReviews();
     }, [router]);
 
     const fetchReviews = async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`/api/reviews/pending`, {
+            const res = await fetch(`/api/reviews/admin/all`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -81,14 +84,15 @@ export default function AdminReviewsPage() {
         const term = searchTerm.trim().toLowerCase();
         return reviews.filter((rev) => {
             const matchesProduct = productFilter === "all" || String(rev.product_id ?? 0) === productFilter;
+            const matchesStatus = statusFilter === "all" || (statusFilter === "approved" ? rev.is_approved : !rev.is_approved);
             const matchesSearch = !term || [
                 rev.user_name,
                 rev.comment,
                 rev.product_name || "Geral"
             ].some((value) => value?.toLowerCase().includes(term));
-            return matchesProduct && matchesSearch;
+            return matchesProduct && matchesStatus && matchesSearch;
         });
-    }, [reviews, productFilter, searchTerm]);
+    }, [reviews, productFilter, statusFilter, searchTerm]);
 
     const groupedReviews = useMemo(() => {
         const grouped = new Map<string, ReviewItem[]>();
@@ -106,8 +110,9 @@ export default function AdminReviewsPage() {
             .sort((a, b) => b.items.length - a.items.length || a.productName.localeCompare(b.productName));
     }, [filteredReviews]);
 
-    const totalPending = reviews.length;
-    const visiblePending = filteredReviews.length;
+    const totalReviews = reviews.length;
+    const pendingCount = reviews.filter(r => !r.is_approved).length;
+    const approvedCount = reviews.filter(r => r.is_approved).length;
     const distinctProducts = productOptions.length;
 
     const handleApprove = async (id: number) => {
@@ -120,7 +125,7 @@ export default function AdminReviewsPage() {
                 }
             });
             if (res.ok) {
-                setReviews(prev => prev.filter(r => r.id !== id));
+                setReviews(prev => prev.map(r => r.id === id ? { ...r, is_approved: true } : r));
                 setActionMsg("✅ Avaliação aprovada com sucesso!");
                 setTimeout(() => setActionMsg(""), 3000);
             }
@@ -182,29 +187,37 @@ export default function AdminReviewsPage() {
                     <article className={reviewStyles.statCard}>
                         <Inbox size={18} />
                         <div>
-                            <p className={reviewStyles.statLabel}>Pendentes (Total)</p>
-                            <strong className={reviewStyles.statValue}>{totalPending}</strong>
+                            <p className={reviewStyles.statLabel}>Total de Avaliações</p>
+                            <strong className={reviewStyles.statValue}>{totalReviews}</strong>
                         </div>
                     </article>
                     <article className={reviewStyles.statCard}>
-                        <Filter size={18} />
+                        <Clock size={18} />
                         <div>
-                            <p className={reviewStyles.statLabel}>Pendentes (Filtro Atual)</p>
-                            <strong className={reviewStyles.statValue}>{visiblePending}</strong>
+                            <p className={reviewStyles.statLabel}>Pendentes</p>
+                            <strong className={reviewStyles.statValue} style={{ color: "#d97706" }}>{pendingCount}</strong>
                         </div>
                     </article>
                     <article className={reviewStyles.statCard}>
-                        <Layers size={18} />
+                        <CheckCircle2 size={18} />
                         <div>
-                            <p className={reviewStyles.statLabel}>Produtos com Pendências</p>
-                            <strong className={reviewStyles.statValue}>{distinctProducts}</strong>
+                            <p className={reviewStyles.statLabel}>Aprovadas</p>
+                            <strong className={reviewStyles.statValue} style={{ color: "#059669" }}>{approvedCount}</strong>
                         </div>
                     </article>
                 </section>
 
                 <section className={reviewStyles.filtersCard}>
                     <div className={reviewStyles.filterItem}>
-                        <label>Filtrar por produto</label>
+                        <label>Status</label>
+                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                            <option value="all">Todas</option>
+                            <option value="pending">Pendentes</option>
+                            <option value="approved">Aprovadas</option>
+                        </select>
+                    </div>
+                    <div className={reviewStyles.filterItem}>
+                        <label>Produto</label>
                         <select value={productFilter} onChange={(e) => setProductFilter(e.target.value)}>
                             <option value="all">Todos os produtos</option>
                             {productOptions.map((p) => (
@@ -214,7 +227,7 @@ export default function AdminReviewsPage() {
                             ))}
                         </select>
                     </div>
-                    <div className={reviewStyles.filterItem}>
+                    <div className={reviewStyles.filterItem} style={{ flex: 2 }}>
                         <label>Buscar por nome/comentário</label>
                         <div className={reviewStyles.searchWrap}>
                             <Search size={16} />
@@ -222,7 +235,7 @@ export default function AdminReviewsPage() {
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Ex.: Joana, hidratante, cheiro..."
+                                placeholder="Busque por cliente ou conteúdo..."
                             />
                         </div>
                     </div>
@@ -245,15 +258,22 @@ export default function AdminReviewsPage() {
                                     <table>
                                         <thead>
                                             <tr>
+                                                <th>Data</th>
                                                 <th>Usuário</th>
                                                 <th>Avaliação</th>
                                                 <th>Comentário</th>
+                                                <th>Status</th>
                                                 <th>Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {group.items.map((rev) => (
-                                                <tr key={rev.id}>
+                                                <tr key={rev.id} style={{ opacity: rev.is_approved ? 0.8 : 1 }}>
+                                                    <td>
+                                                        <span className={reviewStyles.dateText}>
+                                                            {rev.created_at ? new Date(rev.created_at).toLocaleDateString("pt-BR") : "—"}
+                                                        </span>
+                                                    </td>
                                                     <td><strong>{rev.user_name}</strong></td>
                                                     <td>
                                                         <div className={reviewStyles.stars}>
@@ -262,20 +282,27 @@ export default function AdminReviewsPage() {
                                                     </td>
                                                     <td className={reviewStyles.commentCell}>{rev.comment}</td>
                                                     <td>
+                                                        <span className={rev.is_approved ? reviewStyles.statusApproved : reviewStyles.statusPending}>
+                                                            {rev.is_approved ? "Aprovada" : "Pendente"}
+                                                        </span>
+                                                    </td>
+                                                    <td>
                                                         <div className={styles.actions}>
-                                                            <button
-                                                                className={reviewStyles.approveBtn}
-                                                                onClick={() => handleApprove(rev.id)}
-                                                            >
-                                                                <CheckCircle2 size={14} />
-                                                                Aprovar
-                                                            </button>
+                                                            {!rev.is_approved && (
+                                                                <button
+                                                                    className={reviewStyles.approveBtn}
+                                                                    onClick={() => handleApprove(rev.id)}
+                                                                >
+                                                                    <CheckCircle2 size={14} />
+                                                                    Aprovar
+                                                                </button>
+                                                            )}
                                                             <button
                                                                 className={styles.deleteBtn}
                                                                 onClick={() => handleDelete(rev.id)}
                                                                 title="Excluir permanentemente"
                                                             >
-                                                                <Trash2 size={13} />
+                                                                 <Trash2 size={13} />
                                                                 Excluir
                                                             </button>
                                                         </div>

@@ -82,7 +82,7 @@ export default function ChatIA() {
                         <div className={styles.headerInfo}>
                             <div className={styles.avatarContainer}>
                                 <Image 
-                                    src="/lia.png" 
+                                    src="/lia.jpg" 
                                     alt="Lia" 
                                     width={40} 
                                     height={40} 

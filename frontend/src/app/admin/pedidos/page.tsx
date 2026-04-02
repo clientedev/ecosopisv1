@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
-import { Package, CheckCircle, Truck, Clock, Download, FileText, ChevronDown, ChevronUp, XCircle, Eye, RefreshCw } from "lucide-react";
+import { Package, CheckCircle, Truck, Clock, Download, FileText, ChevronDown, ChevronUp, XCircle, Eye, RefreshCw, Search, User } from "lucide-react";
 import pedidoStyles from "./pedidos.module.css";
 
 interface Order {
@@ -49,6 +49,7 @@ export default function AdminPedidosPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState("all");
+    const [searchTerm, setSearchTerm] = useState("");
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
     const [generatingLabel, setGeneratingLabel] = useState<number | null>(null);
@@ -146,7 +147,15 @@ export default function AdminPedidosPage() {
             .catch(err => alert(err.message));
     };
 
-    const filteredOrders = filter === "all" ? orders : orders.filter(o => o.status === filter);
+    const filteredOrders = orders.filter(o => {
+        const matchesStatus = filter === "all" || o.status === filter;
+        const term = searchTerm.toLowerCase();
+        const matchesSearch = !term || 
+            String(o.id).includes(term) ||
+            (o.buyer_name || o.customer_name || "").toLowerCase().includes(term) ||
+            (o.buyer_email || o.customer_email || "").toLowerCase().includes(term);
+        return matchesStatus && matchesSearch;
+    });
 
     const stats = {
         total: orders.length,
@@ -165,7 +174,7 @@ export default function AdminPedidosPage() {
                 <header className={pedidoStyles.headerRow}>
                     <div className={pedidoStyles.titleSection}>
                         <h1>Gestão de Pedidos</h1>
-                        <p>Acompanhe e gerencie as vendas do sistema.</p>
+                        <p>Acompanhe e gerencie as vendas do sistema de forma profissional.</p>
                     </div>
                     <button onClick={fetchOrders} className={pedidoStyles.btnAction + " " + pedidoStyles.btnSecondary}>
                         <RefreshCw size={14} /> Atualizar
@@ -174,11 +183,11 @@ export default function AdminPedidosPage() {
 
                 <section className={pedidoStyles.statsGrid}>
                     {[
-                        { label: "Total", value: stats.total, icon: "📊", color: "#111827" },
+                        { label: "Total", value: stats.total, icon: "📊", color: "#1a1a1a" },
                         { label: "Pendentes", value: stats.pending, icon: "⏳", color: "#d97706" },
                         { label: "Pagos", value: stats.paid, icon: "✅", color: "#059669" },
                         { label: "Enviados", value: stats.shipped, icon: "🚚", color: "#2563eb" },
-                        { label: "Receita", value: `R$ ${stats.revenue.toFixed(2).replace(".", ",")}`, icon: "💰", color: "#111827" },
+                        { label: "Faturamento", value: `R$ ${stats.revenue.toFixed(2).replace(".", ",")}`, icon: "💰", color: "#2d5a27" },
                     ].map(stat => (
                         <div key={stat.label} className={pedidoStyles.statCard}>
                             <div className={pedidoStyles.statIcon}>{stat.icon}</div>
@@ -189,18 +198,26 @@ export default function AdminPedidosPage() {
                 </section>
 
                 <div className={pedidoStyles.filtersRow}>
-                    {["all", "pending", "paid", "shipped", "delivered", "cancelled"].map(f => (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`${pedidoStyles.filterBtn} ${filter === f ? pedidoStyles.filterBtnActive : pedidoStyles.filterBtnInactive}`}
-                        >
-                            {f === "all" ? `Todos` : (STATUS_LABELS[f]?.label || f)}
-                            <span style={{ opacity: 0.6, marginLeft: "6px", fontSize: "0.75rem" }}>
-                                {f === "all" ? stats.total : orders.filter(o => o.status === f).length}
-                            </span>
-                        </button>
-                    ))}
+                    <div className={pedidoStyles.searchSection}>
+                        <Search className={pedidoStyles.searchIcon} size={18} />
+                        <input 
+                            className={pedidoStyles.searchInput}
+                            placeholder="Buscar por ID, nome ou email..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div className={pedidoStyles.filterTabs}>
+                        {["all", "pending", "paid", "shipped", "delivered", "cancelled"].map(f => (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                className={`${pedidoStyles.filterBtn} ${filter === f ? pedidoStyles.filterBtnActive : pedidoStyles.filterBtnInactive}`}
+                            >
+                                {f === "all" ? `Todos` : (STATUS_LABELS[f]?.label || f)}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {loading ? (
@@ -221,80 +238,106 @@ export default function AdminPedidosPage() {
                             return (
                                 <div key={order.id} className={`${pedidoStyles.orderCard} ${isExpanded ? pedidoStyles.orderCardExpanded : ""}`}>
                                     <div className={pedidoStyles.orderRowHeader} onClick={() => setExpandedId(isExpanded ? null : order.id)}>
-                                        <div className={pedidoStyles.orderInfo}>
-                                            <h3>Pedido #{order.id}</h3>
-                                            <p>{name}</p>
-                                            <div className={pedidoStyles.orderDate}>
-                                                {order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                                        <div className={pedidoStyles.orderMainInfo}>
+                                            <div className={pedidoStyles.orderIdBox}>
+                                                <span>Pedido</span>
+                                                <strong>#{order.id}</strong>
+                                            </div>
+                                            <div className={pedidoStyles.customerBrief}>
+                                                <h3 title={name}>{name}</h3>
+                                                <p>{email}</p>
+                                                <div className={pedidoStyles.orderDate}>
+                                                    {order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className={pedidoStyles.orderDetailsSummary}>
-                                            {(order.items || []).length} item(s)
-                                            <div className={pedidoStyles.orderPrice}>
-                                                R$ {Number(order.total || 0).toFixed(2).replace(".", ",")}
+                                        <div className={pedidoStyles.orderRightSide}>
+                                            <div className={pedidoStyles.orderValueTotal}>
+                                                <span>Total</span>
+                                                <strong>R$ {Number(order.total || 0).toFixed(2).replace(".", ",")}</strong>
+                                            </div>
+                                            
+                                            <div className={pedidoStyles.badge} style={{ background: `${statusInfo.color}10`, color: statusInfo.color, border: `1px solid ${statusInfo.color}30` }}>
+                                                <StatusIcon size={14} /> {statusInfo.label}
+                                            </div>
+
+                                            <div style={{ color: "#cbd5e1" }}>
+                                                {isExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
                                             </div>
                                         </div>
-
-                                        <div className={pedidoStyles.badge} style={{ background: `${statusInfo.color}15`, color: statusInfo.color }}>
-                                            <StatusIcon size={14} /> {statusInfo.label}
-                                        </div>
-
-                                        <div className={pedidoStyles.orderQuickActions} onClick={e => e.stopPropagation()}>
-                                            {transitions.slice(0, 2).map(ns => (
-                                                <button key={ns}
-                                                    onClick={() => updateStatus(order.id, ns)}
-                                                    disabled={updatingStatus === order.id}
-                                                    className={pedidoStyles.btnAction}
-                                                    style={{
-                                                        background: ns === "cancelled" ? "#fee2e2" : STATUS_LABELS[ns]?.color + "15",
-                                                        color: ns === "cancelled" ? "#991b1b" : STATUS_LABELS[ns]?.color,
-                                                        padding: "4px 8px", fontSize: "0.7rem"
-                                                    }}
-                                                >
-                                                    {STATUS_LABELS[ns]?.label}
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        <div style={{ color: "#9ca3af" }}>{isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</div>
                                     </div>
 
                                     {isExpanded && (
                                         <div className={pedidoStyles.expandedContent}>
-                                            <div>
-                                                <h4 className={pedidoStyles.sectionTitle}>🛒 Itens do Pedido</h4>
-                                                <div className={pedidoStyles.itemList}>
-                                                    {(order.items || []).map((item: any, i: number) => (
-                                                        <div key={i} className={pedidoStyles.itemRow}>
-                                                            <span>{item.quantity}x {item.product_name}</span>
-                                                            <span style={{ fontWeight: 600 }}>R$ {(item.price * item.quantity).toFixed(2)}</span>
-                                                        </div>
-                                                    ))}
+                                            <div className={pedidoStyles.orderDetailGrid}>
+                                                <div className={pedidoStyles.orderTimelineSection}>
+                                                    <h4 className={pedidoStyles.sectionTitle}>📍 Status do Pedido</h4>
+                                                    <div className={pedidoStyles.timeline}>
+                                                        {["pending", "paid", "shipped", "delivered"].map((s, i, arr) => {
+                                                            const currentIdx = ["pending", "paid", "shipped", "delivered"].indexOf(order.status);
+                                                            const isActive = i <= currentIdx && order.status !== 'cancelled';
+                                                            const isLast = i === arr.length - 1;
+                                                            const SIcon = STATUS_LABELS[s].icon;
+                                                            
+                                                            return (
+                                                                <div key={s} className={`${pedidoStyles.timelineItem} ${isActive ? pedidoStyles.timelineActive : ""}`}>
+                                                                    <div className={pedidoStyles.timelineNode}>
+                                                                        <SIcon size={14} />
+                                                                    </div>
+                                                                    <div className={pedidoStyles.timelineLabel}>{STATUS_LABELS[s].label}</div>
+                                                                    {!isLast && <div className={pedidoStyles.timelineConnector}></div>}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                        {order.status === 'cancelled' && (
+                                                            <div className={`${pedidoStyles.timelineItem} ${pedidoStyles.timelineCancelled}`}>
+                                                                <div className={pedidoStyles.timelineNode}><XCircle size={14} /></div>
+                                                                <div className={pedidoStyles.timelineLabel}>Cancelado</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
 
-                                                <div className={pedidoStyles.summarySection}>
-                                                    <div className={pedidoStyles.summaryRow}>
-                                                        <span>Frete ({order.shipping_method || "Fixo"})</span>
-                                                        <span>R$ {Number(order.shipping_price || 0).toFixed(2)}</span>
+                                                <div className={pedidoStyles.itemsSection}>
+                                                    <h4 className={pedidoStyles.sectionTitle}>🛒 Itens do Pedido</h4>
+                                                    <div className={pedidoStyles.itemList}>
+                                                        {(order.items || []).map((item: any, i: number) => (
+                                                            <div key={i} className={pedidoStyles.itemRow}>
+                                                                <span>{item.quantity}x {item.product_name}</span>
+                                                                <span style={{ fontWeight: 600 }}>R$ {(item.price * item.quantity).toFixed(2)}</span>
+                                                            </div>
+                                                        ))}
                                                     </div>
-                                                    {(order.discount_amount || 0) > 0 && (
-                                                        <div className={pedidoStyles.summaryRow} style={{ color: "#059669" }}>
-                                                            <span>Desconto {order.coupon_code ? `(${order.coupon_code})` : ""}</span>
-                                                            <span>- R$ {Number(order.discount_amount).toFixed(2)}</span>
+
+                                                    <div className={pedidoStyles.summarySection}>
+                                                        <h5 className={pedidoStyles.miniSectionTitle}>Resumo Financeiro</h5>
+                                                        <div className={pedidoStyles.summaryRow}>
+                                                            <span>Subtotal</span>
+                                                            <span>R$ {(order.total - order.shipping_price + order.discount_amount).toFixed(2)}</span>
                                                         </div>
-                                                    )}
-                                                    <div className={pedidoStyles.summaryTotal}>
-                                                        <span>Total</span>
-                                                        <span>R$ {Number(order.total || 0).toFixed(2)}</span>
+                                                        <div className={pedidoStyles.summaryRow}>
+                                                            <span>Frete ({order.shipping_method || "Fixo"})</span>
+                                                            <span>R$ {Number(order.shipping_price || 0).toFixed(2)}</span>
+                                                        </div>
+                                                        {(order.discount_amount || 0) > 0 && (
+                                                            <div className={pedidoStyles.summaryRow} style={{ color: "#059669" }}>
+                                                                <span>Desconto {order.coupon_code ? `(${order.coupon_code})` : ""}</span>
+                                                                <span>- R$ {Number(order.discount_amount).toFixed(2)}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className={pedidoStyles.summaryTotal}>
+                                                            <span>Total Final</span>
+                                                            <span>R$ {Number(order.total || 0).toFixed(2)}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <div className={pedidoStyles.customerInfo}>
                                                 <h4 className={pedidoStyles.sectionTitle}>👤 Informações de Entrega</h4>
-                                                <p><strong>Nome:</strong> {name}</p>
-                                                <p><strong>Email:</strong> {email}</p>
+                                                <p><strong>Nome completo:</strong> {name}</p>
+                                                <p><strong>E-mail:</strong> {email}</p>
                                                 {order.customer_phone && <p><strong>Telefone:</strong> {order.customer_phone}</p>}
 
                                                 {order.address && (

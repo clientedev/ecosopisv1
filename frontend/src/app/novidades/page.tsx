@@ -20,6 +20,10 @@ import NewsCommentModal, {
 } from '@/components/NewsCommentModal/NewsCommentModal';
 import AuthPromptModal from '@/components/AuthPromptModal/AuthPromptModal';
 import type { NewsComment } from '@/types/news';
+import {
+  resolveMediaUrl as modalResolveMediaUrl,
+  resolveAvatarUrl,
+} from '@/components/NewsCommentModal/newsModalUtils';
 import styles from './page.module.css';
 
 interface NewsPost {
@@ -33,6 +37,7 @@ interface NewsPost {
   user?: {
     full_name?: string | null;
     email?: string;
+    profile_picture?: string | null;
   };
   likes_count: number;
   comments_count: number;
@@ -399,7 +404,15 @@ export default function NewsPage() {
                   >
                     <div className={styles.postTopBar}>
                       <div className={styles.avatar}>
-                        <User size={18} strokeWidth={2} />
+                        {post.user?.profile_picture ? (
+                          <img 
+                            src={resolveAvatarUrl(post.user.profile_picture) ?? ''} 
+                            alt={post.user.full_name || 'Autor'} 
+                            style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <User size={18} strokeWidth={2} />
+                        )}
                       </div>
                       <div className={styles.headerInfo}>
                         <span className={styles.authorName}>
@@ -540,7 +553,7 @@ export default function NewsPage() {
         <ShareModal
           isOpen={isShareModalOpen}
           onClose={() => setIsShareModalOpen(false)}
-          url={`${typeof window !== 'undefined' ? window.location.origin : ''}/novidades?id=${sharingPost.id}`}
+          url={`${typeof window !== 'undefined' ? window.location.origin : ''}/novidades/${sharingPost.id}`}
           title={`Confira essa novidade na ECOSOPIS: ${sharingPost.title}`}
         />
       )}

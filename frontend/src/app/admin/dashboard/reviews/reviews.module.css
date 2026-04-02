@@ -155,6 +155,32 @@
   font-weight: 500;
 }
 
+.dateText {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.statusPending {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #d97706;
+  background: #fff7ed;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ffedd5;
+}
+
+.statusApproved {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #d1fae5;
+}
+
 /* ── MOBILE ── */
 
 @media (max-width: 768px) {

@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import styles from "./perfil.module.css";
 import { 
     User, Package, MapPin, LogOut, FileText, 
-    CheckCircle, Truck, Clock, XCircle, Map, Filter, Pencil, Save, X, Camera
+    CheckCircle, Truck, Clock, XCircle, Map, Filter, Pencil, Save, X, Camera, Lock
 } from "lucide-react";
 
 export default function UserProfile() {
@@ -25,6 +25,13 @@ export default function UserProfile() {
     const [editPhoto, setEditPhoto] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+
+    // Password State
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [passwordMsg, setPasswordMsg] = useState({ type: "", text: "" });
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -169,6 +176,50 @@ export default function UserProfile() {
         }
     };
 
+    const handleUpdatePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newPassword !== confirmPassword) {
+            setPasswordMsg({ type: "error", text: "As senhas não coincidem." });
+            return;
+        }
+        if (newPassword.length < 6) {
+            setPasswordMsg({ type: "error", text: "A nova senha deve ter pelo menos 6 caracteres." });
+            return;
+        }
+
+        setIsChangingPassword(true);
+        setPasswordMsg({ type: "", text: "" });
+
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch("/api/auth/me/password", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword
+                })
+            });
+
+            if (res.ok) {
+                setPasswordMsg({ type: "success", text: "Senha alterada com sucesso!" });
+                setCurrentPassword("");
+                setNewPassword("");
+                setConfirmPassword("");
+            } else {
+                const err = await res.json();
+                setPasswordMsg({ type: "error", text: err.detail || "Erro ao alterar senha." });
+            }
+        } catch (error) {
+            setPasswordMsg({ type: "error", text: "Erro de conexão." });
+        } finally {
+            setIsChangingPassword(false);
+        }
+    };
+
     useEffect(() => {
         const fetchProfile = async () => {
             try {
@@ -268,6 +319,13 @@ export default function UserProfile() {
                         >
                             <MapPin />
                             Meus Endereços
+                        </button>
+                        <button 
+                            className={`${styles.navItem} ${activeTab === 'security' ? styles.active : ''}`}
+                            onClick={() => setActiveTab('security')}
+                        >
+                            <Lock />
+                            Segurança
                         </button>
                         <button 
                             className={`${styles.navItem} ${styles.logout}`}

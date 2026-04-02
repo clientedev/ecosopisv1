@@ -72,7 +72,7 @@ export default function LiaPage() {
                             <div className={styles.liaBranding}>
                                 <div className={styles.liaAvatar}>
                                     <Image 
-                                        src="/lia.png" 
+                                        src="/lia.jpg" 
                                         alt="LIA AI" 
                                         width={80} 
                                         height={80} 

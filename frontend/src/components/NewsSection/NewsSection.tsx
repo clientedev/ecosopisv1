@@ -194,19 +194,23 @@ export default function NewsSection() {
         <div className={styles.grid}>
           {posts.map((post) => (
             <article key={post.id} className={styles.card}>
-              <div className={styles.media}>
-                {post.media_url ? (
-                  <img
-                    src={resolveMediaUrl(post.media_url)}
-                    alt={post.title}
-                  />
-                ) : (
-                  <div className={styles.placeholder}>🌿</div>
-                )}
-                <div className={styles.dateBadge}>{getTimeAgo(post.created_at)}</div>
-              </div>
+              <Link href={`/novidades/${post.id}`} className={styles.mediaLink}>
+                <div className={styles.media}>
+                  {post.media_url ? (
+                    <img
+                      src={resolveMediaUrl(post.media_url)}
+                      alt={post.title}
+                    />
+                  ) : (
+                    <div className={styles.placeholder}>🌿</div>
+                  )}
+                  <div className={styles.dateBadge}>{getTimeAgo(post.created_at)}</div>
+                </div>
+              </Link>
               <div className={styles.body}>
-                <h3 className={styles.postTitle}>{post.title}</h3>
+                <Link href={`/novidades/${post.id}`} style={{ textDecoration: 'none' }}>
+                  <h3 className={styles.postTitle}>{post.title}</h3>
+                </Link>
                 <p className={styles.excerpt}>{post.content}</p>
                 <div className={styles.footer}>
                   <div className={styles.stats}>
@@ -253,7 +257,7 @@ export default function NewsSection() {
                     >
                       <Share2 size={16} />
                     </button>
-                    <Link href="/novidades" className={styles.readMore}>
+                    <Link href={`/novidades/${post.id}`} className={styles.readMore}>
                       Ler mais
                     </Link>
                   </div>

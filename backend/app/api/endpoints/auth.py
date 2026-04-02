@@ -112,6 +112,19 @@ def update_my_profile(
     db.refresh(current_user)
     return current_user
 
+@router.put("/me/password")
+def update_password(
+    password_data: schemas.UserPasswordUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if not security.verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Senha atual incorreta")
+    
+    current_user.hashed_password = security.get_password_hash(password_data.new_password)
+    db.commit()
+    return {"message": "Senha atualizada com sucesso"}
+
 @router.post("/me/profile-picture", response_model=schemas.UserResponse)
 async def upload_profile_picture(
     file: UploadFile = File(...),

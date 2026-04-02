@@ -232,6 +232,17 @@ export default function NewsCommentModal({
                   <img src={mediaSrc} alt="" />
                 </div>
               )}
+              <div className={styles.postAuthorThumb}>
+                {post.user?.profile_picture ? (
+                  <img 
+                    src={resolveAvatarUrl(post.user.profile_picture) ?? ''} 
+                    alt={post.user?.full_name || ''} 
+                    className={styles.authorAvatar} 
+                  />
+                ) : (
+                  <div className={styles.avatarPlaceholder}>{getInitials(post.user?.full_name)}</div>
+                )}
+              </div>
               <div className={styles.headerText}>
                 <h2 id="news-modal-title" className={styles.modalTitle}>
                   {title}

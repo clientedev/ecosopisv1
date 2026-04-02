@@ -557,6 +557,42 @@
     to { transform: rotate(360deg); }
 }
 
+/* Security Section */
+.securityFormWrap {
+    max-width: 500px;
+}
+
+.securityIntro {
+    color: #64748b;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+}
+
+.changePasswordForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.formMsg {
+    padding: 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.msgError {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.msgSuccess {
+    background: #f0fdf4;
+    color: #115e59;
+    border: 1px solid #bbf7d0;
+}
+
 @media (max-width: 768px) {
     .orderHeader {
         flex-direction: column;

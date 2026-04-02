@@ -14,6 +14,10 @@ class UserProfileUpdate(BaseModel):
     full_name: Optional[str] = None
     profile_picture: Optional[str] = None
 
+class UserPasswordUpdate(BaseModel):
+    current_password: str
+    new_password: str
+
 class UserResponse(UserBase):
     id: int
     role: str

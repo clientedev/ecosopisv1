@@ -51,6 +51,46 @@ def list_news(db: Session = Depends(get_db), current_user: Optional[models.User]
 
     return results
 
+@router.get("/{news_id}", response_model=schemas.NewsResponse)
+def get_news(
+    news_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: Optional[models.User] = Depends(auth.get_current_user_optional)
+):
+    news = (
+        db.query(models.News)
+        .options(
+            joinedload(models.News.user),
+            joinedload(models.News.likes),
+            joinedload(models.News.comments).joinedload(models.NewsComment.user),
+        )
+        .filter(models.News.id == news_id)
+        .first()
+    )
+    if not news:
+        raise HTTPException(status_code=404, detail="Post não encontrado")
+
+    news_data = schemas.NewsResponse.model_validate(news)
+    def _comment_sort_key(c: models.NewsComment) -> float:
+        if c.created_at is None:
+            return 0.0
+        return c.created_at.timestamp()
+
+    sorted_comments = sorted(news.comments, key=_comment_sort_key)
+    
+    return news_data.model_copy(
+        update={
+            "likes_count": len(news.likes),
+            "comments_count": len(news.comments),
+            "comments": [schemas.NewsCommentResponse.model_validate(c) for c in sorted_comments],
+            "is_liked": (
+                any(like.user_id == current_user.id for like in news.likes)
+                if current_user
+                else False
+            ),
+        }
+    )
+
 @router.post("/{news_id}/like")
 def like_news(news_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     news = db.query(models.News).filter(models.News.id == news_id).first()
