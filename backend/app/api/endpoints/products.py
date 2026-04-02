@@ -107,11 +107,22 @@ def get_product(slug: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-def generate_qr_code(slug: str, base_url: str = None):
+def generate_qr_code(slug: str, base_url: Optional[str] = None):
     """Generate a permanent QR code for the product technical page."""
     if not base_url:
-        # BASE_URL from env or default to localhost for dev
-        base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        base_url = os.getenv("FRONTEND_URL") or os.getenv("EXTERNAL_URL") or "http://localhost:3000"
+    
+    # Heuristic to avoid localhost in production-like environments
+    if "localhost" in base_url or "127.0.0.1" in base_url:
+        # Check for Replit domain or Railway
+        replit_domain = os.getenv("REPLIT_DEV_DOMAIN")
+        if replit_domain:
+            base_url = f"https://{replit_domain}"
+        elif os.getenv("RAILWAY_STATIC_URL"):
+            base_url = f"https://{os.getenv('RAILWAY_STATIC_URL')}"
+        elif os.getenv("NODE_ENV") == "production":
+            # If we know it's production but still have localhost, use the branding domain
+            base_url = "https://ecosopis.com.br"
     
     # Remove trailing slash if present
     base_url = base_url.rstrip('/')
@@ -164,13 +175,23 @@ def create_product(
         forwarded_host = request.headers.get("x-forwarded-host")
         forwarded_proto = request.headers.get("x-forwarded-proto", "https")
         if forwarded_host:
-            origin = f"{forwarded_proto}://{forwarded_host}"
+            # Handle potentially comma-separated hosts (proxy chains)
+            main_host = forwarded_host.split(',')[0].strip()
+            origin = f"{forwarded_proto}://{main_host}"
         else:
             origin = f"{request.url.scheme}://{request.url.netloc}"
             
-    # Final safety check for production environments
-    if ("localhost" in origin or "127.0.0.1" in origin) and os.getenv("RAILWAY_STATIC_URL"):
-        origin = f"https://{os.getenv('RAILWAY_STATIC_URL')}"
+    # Final safety check for production environments (Replit/Railway)
+    is_prod = os.getenv("NODE_ENV") == "production"
+    replit_domain = os.getenv("REPLIT_DEV_DOMAIN")
+    
+    if "localhost" in origin or "127.0.0.1" in origin:
+        if replit_domain:
+            origin = f"https://{replit_domain}"
+        elif os.getenv("RAILWAY_STATIC_URL"):
+            origin = f"https://{os.getenv('RAILWAY_STATIC_URL')}"
+        elif is_prod:
+            origin = "https://ecosopis.com.br"
 
     qr_path = generate_qr_code(db_product.slug, base_url=origin)
     
@@ -335,19 +356,24 @@ def regenerate_product_qr(
         origin = os.getenv("FRONTEND_URL") or os.getenv("EXTERNAL_URL")
         
     if not origin:
-        # Fallback to headers (very useful for Railway/Nixpacks)
+        # Fallback to headers (very useful for Railway/Nixpacks/Replit)
         forwarded_host = request.headers.get("x-forwarded-host")
         forwarded_proto = request.headers.get("x-forwarded-proto", "https")
         if forwarded_host:
-            origin = f"{forwarded_proto}://{forwarded_host}"
+            main_host = forwarded_host.split(',')[0].strip()
+            origin = f"{forwarded_proto}://{main_host}"
         else:
             origin = f"{request.url.scheme}://{request.url.netloc}"
     
-    # Final safety check
-    if not origin or "localhost" in origin and os.getenv("RAILWAY_STATIC_URL"):
-        # If we are in production but still got localhost, something is wrong with proxy config
-        # Try to use Railway's own var if available
-        origin = f"https://{os.getenv('RAILWAY_STATIC_URL')}" if os.getenv("RAILWAY_STATIC_URL") else origin
+    # Final safety check for cloud environments (Replit/Railway)
+    replit_domain = os.getenv("REPLIT_DEV_DOMAIN")
+    if "localhost" in origin or "127.0.0.1" in origin:
+        if replit_domain:
+            origin = f"https://{replit_domain}"
+        elif os.getenv("RAILWAY_STATIC_URL"):
+            origin = f"https://{os.getenv('RAILWAY_STATIC_URL')}"
+        elif os.getenv("NODE_ENV") == "production":
+            origin = "https://ecosopis.com.br"
 
     qr_path = generate_qr_code(slug, base_url=origin)
     
