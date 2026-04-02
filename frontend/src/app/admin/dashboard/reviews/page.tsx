@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import styles from "@/app/admin/dashboard/dashboard.module.css";
 import reviewStyles from "./reviews.module.css";
-import { Search, Filter, CheckCircle2, Layers, Inbox } from "lucide-react";
+import { Search, Filter, CheckCircle2, Layers, Inbox, RefreshCw, Trash2 } from "lucide-react";
 
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
@@ -22,6 +22,7 @@ export default function AdminReviewsPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [productFilter, setProductFilter] = useState<string>("all");
+    const [actionMsg, setActionMsg] = useState<string>("");
     const router = useRouter();
 
     useEffect(() => {
@@ -48,6 +49,24 @@ export default function AdminReviewsPage() {
         };
         fetchReviews();
     }, [router]);
+
+    const fetchReviews = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`/api/reviews/pending`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json() as ReviewItem[];
+                setReviews(data);
+            }
+        } catch (error) {
+            console.error("Error fetching reviews:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const productOptions = useMemo(() => {
         const unique = new Map<string, string>();
@@ -102,6 +121,8 @@ export default function AdminReviewsPage() {
             });
             if (res.ok) {
                 setReviews(prev => prev.filter(r => r.id !== id));
+                setActionMsg("✅ Avaliação aprovada com sucesso!");
+                setTimeout(() => setActionMsg(""), 3000);
             }
         } catch (err) {
             console.error("Error approving review", err);
@@ -109,7 +130,7 @@ export default function AdminReviewsPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm("Excluir esta avaliação?")) return;
+        if (!confirm("Excluir esta avaliação? Ela será removida permanentemente do sistema.")) return;
         const token = localStorage.getItem("token");
         try {
             const res = await fetch(`/api/reviews/${id}`, {
@@ -120,6 +141,8 @@ export default function AdminReviewsPage() {
             });
             if (res.ok) {
                 setReviews(prev => prev.filter(r => r.id !== id));
+                setActionMsg("🗑️ Avaliação excluída com sucesso!");
+                setTimeout(() => setActionMsg(""), 3000);
             }
         } catch (err) {
             console.error("Error deleting review", err);
@@ -136,7 +159,24 @@ export default function AdminReviewsPage() {
                         <h1>Moderação de Avaliações</h1>
                         <p>Aprove ou remova avaliações enviadas por clientes com filtros por produto.</p>
                     </div>
+                    <button onClick={fetchReviews} style={{
+                        display: "flex", alignItems: "center", gap: "6px",
+                        padding: "8px 18px", borderRadius: "8px", border: "1.5px solid #2d5a27",
+                        background: "white", color: "#2d5a27", cursor: "pointer", fontWeight: 600, fontSize: "0.85rem"
+                    }}>
+                        <RefreshCw size={14} /> Atualizar
+                    </button>
                 </header>
+
+                {actionMsg && (
+                    <div style={{
+                        padding: "10px 16px", borderRadius: "10px", marginBottom: "12px",
+                        background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534",
+                        fontWeight: 600, fontSize: "0.85rem", animation: "fadeIn 0.3s ease"
+                    }}>
+                        {actionMsg}
+                    </div>
+                )}
 
                 <section className={reviewStyles.statsGrid}>
                     <article className={reviewStyles.statCard}>
@@ -233,7 +273,9 @@ export default function AdminReviewsPage() {
                                                             <button
                                                                 className={styles.deleteBtn}
                                                                 onClick={() => handleDelete(rev.id)}
+                                                                title="Excluir permanentemente"
                                                             >
+                                                                <Trash2 size={13} />
                                                                 Excluir
                                                             </button>
                                                         </div>

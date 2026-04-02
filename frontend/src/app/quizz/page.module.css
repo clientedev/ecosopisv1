@@ -370,3 +370,215 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ── MOBILE RESPONSIVENESS ── */
+
+@media (max-width: 768px) {
+  .heroContainer {
+    padding: 50px 16px;
+  }
+
+  .mainTitle {
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    margin-bottom: 30px;
+  }
+
+  .choiceGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    max-width: 400px;
+  }
+
+  .choiceCard {
+    padding: 28px 20px;
+  }
+
+  .iconWrapper {
+    font-size: 2.8rem;
+    margin-bottom: 14px;
+  }
+
+  .quizWrapper {
+    margin: 24px auto;
+    padding: 16px;
+    width: 95%;
+  }
+
+  .quizCard {
+    padding: 28px 20px;
+    border-radius: 20px;
+  }
+
+  .questionText {
+    font-size: 1.3rem;
+    margin-bottom: 24px;
+  }
+
+  .optionButton {
+    padding: 14px 16px;
+    font-size: 0.95rem;
+    border-radius: 12px;
+  }
+
+  .optionIndicator {
+    width: 26px;
+    height: 26px;
+    font-size: 0.8rem;
+    margin-right: 12px;
+  }
+
+  .progressContainer {
+    margin-bottom: 24px;
+  }
+
+  .resultAnimation {
+    padding: 0 4px;
+  }
+
+  .resultHeading {
+    font-size: 1.4rem;
+  }
+
+  .resultDescription {
+    font-size: 0.9rem;
+    padding: 0 8px;
+  }
+
+  .recommendationList {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin: 24px 0;
+  }
+
+  .productGlassCard {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+
+  .productImageFrame {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 12px;
+  }
+
+  .productInfo {
+    padding-left: 0;
+    text-align: center;
+  }
+
+  .productActions {
+    justify-content: center;
+  }
+
+  .resultActions {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .addAllBtn {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .restartBtn {
+    width: 100%;
+    max-width: 300px;
+    padding: 14px 30px;
+    font-size: 1rem;
+  }
+
+  .loadingState {
+    padding: 60px 16px;
+  }
+
+  .loadingState h2 {
+    font-size: 1.2rem;
+  }
+
+  .loadingState p {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroContainer {
+    padding: 36px 12px;
+  }
+
+  .mainTitle {
+    font-size: 1.4rem;
+  }
+
+  .subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+
+  .choiceCard {
+    padding: 22px 16px;
+  }
+
+  .choiceCard h3 {
+    font-size: 1rem;
+  }
+
+  .choiceCard p {
+    font-size: 0.85rem;
+  }
+
+  .iconWrapper {
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+  }
+
+  .quizWrapper {
+    padding: 10px;
+    margin: 16px auto;
+  }
+
+  .quizCard {
+    padding: 22px 16px;
+    border-radius: 16px;
+  }
+
+  .questionText {
+    font-size: 1.15rem;
+    margin-bottom: 20px;
+  }
+
+  .optionButton {
+    padding: 12px 14px;
+    font-size: 0.88rem;
+  }
+
+  .stepBadge {
+    font-size: 0.72rem;
+    padding: 4px 12px;
+  }
+
+  .successBadge {
+    font-size: 0.85rem;
+    padding: 6px 18px;
+  }
+
+  .productGlassCard {
+    padding: 16px 12px;
+  }
+
+  .explanationText {
+    font-size: 0.8rem;
+  }
+
+  .detailsBtn {
+    font-size: 0.75rem;
+    padding: 5px 12px;
+  }
+}

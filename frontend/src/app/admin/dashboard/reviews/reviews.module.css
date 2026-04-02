@@ -154,3 +154,42 @@
   color: #6b7280;
   font-weight: 500;
 }
+
+/* ── MOBILE ── */
+
+@media (max-width: 768px) {
+  .statsGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .filtersCard {
+    grid-template-columns: 1fr;
+  }
+
+  .commentCell {
+    max-width: 260px;
+    font-size: 0.82rem;
+  }
+
+  .groupHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statCard {
+    padding: 0.7rem 0.8rem;
+  }
+
+  .commentCell {
+    max-width: 180px;
+    font-size: 0.78rem;
+  }
+}

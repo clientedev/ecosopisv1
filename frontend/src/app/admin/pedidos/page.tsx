@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import { Package, CheckCircle, Truck, Clock, Download, FileText, ChevronDown, ChevronUp, XCircle, Eye, RefreshCw } from "lucide-react";
+import pedidoStyles from "./pedidos.module.css";
 
 interface Order {
     id: number;
@@ -165,7 +166,7 @@ export default function AdminPedidosPage() {
                 </p>
 
                 {/* Stats */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: "14px", marginBottom: "28px" }}>
+                <div className={pedidoStyles.statsGrid}>
                     {[
                         { label: "Total", value: stats.total, color: "#6b7280", icon: "📊" },
                         { label: "Pendentes", value: stats.pending, color: "#d97706", icon: "⏳" },
@@ -186,7 +187,7 @@ export default function AdminPedidosPage() {
                 </div>
 
                 {/* Filter */}
-                <div style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
+                <div className={pedidoStyles.filtersRow}>
                     {["all", "pending", "paid", "shipped", "delivered", "cancelled"].map(f => (
                         <button key={f} onClick={() => setFilter(f)} style={{
                             padding: "7px 16px", borderRadius: "20px", border: "none", cursor: "pointer",
@@ -225,13 +226,9 @@ export default function AdminPedidosPage() {
                                     {/* Row Header */}
                                     <div
                                         onClick={() => setExpandedId(isExpanded ? null : order.id)}
-                                        style={{
-                                            padding: "16px 20px", cursor: "pointer",
-                                            display: "grid", gridTemplateColumns: "1.2fr 1fr 0.8fr auto auto",
-                                            gap: "14px", alignItems: "center"
-                                        }}
+                                        className={pedidoStyles.orderRowHeader}
                                     >
-                                        <div>
+                                        <div className={pedidoStyles.orderInfo}>
                                             <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#111" }}>
                                                 Pedido #{order.id}
                                             </div>
@@ -241,14 +238,14 @@ export default function AdminPedidosPage() {
                                             </div>
                                         </div>
 
-                                        <div style={{ fontSize: "0.82rem", color: "#555" }}>
+                                        <div className={pedidoStyles.orderItems} style={{ fontSize: "0.82rem", color: "#555" }}>
                                             {(order.items || []).length} item(s)
                                             <div style={{ fontWeight: 600, color: "#059669", marginTop: "4px" }}>
                                                 R$ {Number(order.total || 0).toFixed(2).replace(".", ",")}
                                             </div>
                                         </div>
 
-                                        <div>
+                                        <div className={pedidoStyles.orderStatus}>
                                             <span style={{
                                                 display: "inline-flex", alignItems: "center", gap: "5px",
                                                 background: `${statusInfo.color}12`, color: statusInfo.color,
@@ -260,7 +257,7 @@ export default function AdminPedidosPage() {
                                         </div>
 
                                         {/* Quick Actions */}
-                                        <div style={{ display: "flex", gap: "6px" }} onClick={(e) => e.stopPropagation()}>
+                                        <div className={pedidoStyles.orderQuickActions} onClick={(e) => e.stopPropagation()}>
                                             {transitions.map(ns => (
                                                 <button key={ns}
                                                     onClick={() => updateStatus(order.id, ns)}
@@ -278,16 +275,12 @@ export default function AdminPedidosPage() {
                                             ))}
                                         </div>
 
-                                        <div>{isExpanded ? <ChevronUp size={18} color="#94a3b8" /> : <ChevronDown size={18} color="#94a3b8" />}</div>
+                                        <div className={pedidoStyles.orderChevron}>{isExpanded ? <ChevronUp size={18} color="#94a3b8" /> : <ChevronDown size={18} color="#94a3b8" />}</div>
                                     </div>
 
                                     {/* Expanded Details */}
                                     {isExpanded && (
-                                        <div style={{
-                                            borderTop: "1px solid #f1f5f9", padding: "20px 24px",
-                                            display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px",
-                                            background: "#fafbfc"
-                                        }}>
+                                        <div className={pedidoStyles.expandedDetails}>
                                             {/* Items */}
                                             <div>
                                                 <h4 style={{ fontSize: "0.85rem", color: "#374151", marginBottom: "10px", fontWeight: 700 }}>
@@ -361,10 +354,7 @@ export default function AdminPedidosPage() {
                                             </div>
 
                                             {/* Actions Bar */}
-                                            <div style={{
-                                                gridColumn: "1 / -1", display: "flex", gap: "10px",
-                                                paddingTop: "16px", borderTop: "1px solid #e5e7eb", flexWrap: "wrap"
-                                            }}>
+                                            <div className={pedidoStyles.expandedActions}>
                                                 {/* Ticket PDF */}
                                                 <button onClick={() => printTicket(order.id)} style={{
                                                     display: "flex", alignItems: "center", gap: "6px",

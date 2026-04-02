@@ -74,7 +74,15 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
             const data = new FormData();
 
             Object.entries(formData).forEach(([key, value]) => {
-                if (value !== null && value !== undefined) {
+                // Skip null, undefined, and empty-string values to avoid sending "null" / "undefined" strings
+                if (value === null || value === undefined) return;
+                // Convert booleans and numbers explicitly
+                if (typeof value === "boolean") {
+                    data.append(key, value ? "true" : "false");
+                } else if (typeof value === "number") {
+                    data.append(key, String(value));
+                } else {
+                    // String value — only append if non-empty or if the field is expected to be clearable
                     data.append(key, String(value));
                 }
             });

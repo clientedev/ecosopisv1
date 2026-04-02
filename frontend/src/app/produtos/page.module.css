@@ -186,3 +186,71 @@
         margin-bottom: 24px;
     }
 }
+
+@media (max-width: 768px) {
+    .productsContainer {
+        padding: 50px 12px;
+        gap: 28px;
+    }
+
+    .gridHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+    }
+
+    .gridHeader h2 {
+        font-size: 1.5rem;
+    }
+
+    .productGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .filterGroup {
+        margin-bottom: 24px;
+    }
+
+    .filterGroup h3 {
+        margin-bottom: 14px;
+    }
+
+    .filterList {
+        gap: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .productsContainer {
+        padding: 40px 10px;
+        gap: 20px;
+    }
+
+    .productGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .gridHeader h2 {
+        font-size: 1.25rem;
+    }
+
+    .resultsCount {
+        font-size: 0.75rem;
+    }
+
+    .quizSidebarCard {
+        padding: 16px;
+    }
+
+    .quizSidebarCard h4 {
+        font-size: 0.82rem;
+    }
+
+    .quizSidebarCard p {
+        font-size: 0.8rem;
+    }
+}
