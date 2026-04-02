@@ -13,6 +13,7 @@ export default function WholesalePage() {
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [bundle, setBundle] = useState<any[]>([]);
+    const [searchTerm, setSearchTerm] = useState("");
     const { addWholesaleBundleToCart } = useCart();
     const { showToast } = useToast();
     const router = useRouter();
@@ -67,6 +68,10 @@ export default function WholesalePage() {
     const progress = Math.min((totalQuantity / 10) * 100, 100);
     const isUnlocked = totalQuantity >= 10;
     
+    const filteredProducts = products.filter(p => 
+        p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
     const rawTotal = bundle.reduce((acc, p) => acc + (p.price * p.quantity), 0);
     const discountedTotal = rawTotal * 0.7;
     const savings = rawTotal * 0.3;
@@ -80,8 +85,8 @@ export default function WholesalePage() {
                 <div className="container">
                     <div className={styles.heroContent}>
                         <span className={styles.badge}>DIFERENCIAL ECOSOPIS</span>
-                        <h1>Atacado Nature-Premium</h1>
-                        <p>Monte seu estoque com <strong>30% de DESCONTO REAL</strong>. Ideal para revenda ou para quem não abre mão do cuidado diário consciente.</p>
+                        <h1 style={{ color: '#ffffff' }}>Atacado Nature-Premium</h1>
+                        <p>Monte seu estoque com <strong>30% de DESCONTO REAL</strong>. Preço de fábrica para revenda ou uso pessoal consciente.</p>
                     </div>
                 </div>
             </div>
@@ -108,41 +113,80 @@ export default function WholesalePage() {
             </div>
 
             <div className="container" style={{ paddingTop: '40px', paddingBottom: '120px' }}>
+                <div className={styles.searchBarWrapper}>
+                    <div className={styles.searchInputContainer}>
+                        <Link href="/produtos" className={styles.backLink}>← Voltar para Loja</Link>
+                        <div className={styles.searchField}>
+                            <ShoppingCart size={20} />
+                            <input 
+                                type="text" 
+                                placeholder="Procurar produto no catálogo..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 <div className={styles.layout}>
-                    {/* Product Grid */}
                     <div className={styles.grid}>
-                        <h2 className={styles.gridTitle}>Escolha seus Produtos</h2>
+                        <div className={styles.gridHeaderFlex}>
+                            <h2 className={styles.gridTitle}>Catálogo de Atacado</h2>
+                            <span className={styles.resultsCount}>{filteredProducts.length} produtos encontrados</span>
+                        </div>
                         {loading ? (
                             <div className={styles.loading}>Carregando catálogo...</div>
                         ) : (
                             <div className={styles.productGrid}>
-                                {products.map(p => {
+                                {filteredProducts.map(p => {
                                     const inBundle = bundle.find(item => item.id === p.id);
                                     return (
                                         <div key={p.id} className={`${styles.productCard} ${inBundle ? styles.selected : ''}`}>
                                             <div className={styles.imgWrapper}>
                                                 <img src={p.image_url || "/static/attached_assets/placeholder.png"} alt={p.name} />
-                                                {inBundle && <div className={styles.selectedBadge}><CheckCircle2 /></div>}
+                                                {inBundle && (
+                                                    <div className={styles.selectedOverlay}>
+                                                        <CheckCircle2 size={32} />
+                                                        <span>{inBundle.quantity} no Kit</span>
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className={styles.cardInfo}>
-                                                <h3>{p.name}</h3>
-                                                <div className={styles.priceRow}>
+                                                <div className={styles.nameAndOldPrice}>
+                                                    <h3>{p.name}</h3>
                                                     <span className={styles.oldPrice}>R$ {p.price.toFixed(2)}</span>
+                                                </div>
+                                                <div className={styles.priceRow}>
                                                     <span className={styles.newPrice}>R$ {(p.price * 0.7).toFixed(2)}</span>
+                                                    <span className={styles.unitLabel}>/ unidade</span>
                                                 </div>
                                                 
-                                                {inBundle ? (
-                                                    <div className={styles.qtyControl}>
-                                                        <button onClick={() => updateQuantity(p.id, -1)}><Minus size={16}/></button>
-                                                        <span>{inBundle.quantity}</span>
-                                                        <button onClick={() => updateQuantity(p.id, 1)}><Plus size={16}/></button>
-                                                        <button className={styles.removeBtn} onClick={() => toggleProduct(p)}><X size={14}/></button>
+                                                <div className={styles.actionRow}>
+                                                    <div className={styles.qtyControlMain}>
+                                                        <button onClick={() => updateQuantity(p.id, -1)} disabled={!inBundle}>
+                                                            <Minus size={18}/>
+                                                        </button>
+                                                        <span className={!inBundle ? styles.qtyDisabled : ''}>
+                                                            {inBundle ? inBundle.quantity : 0}
+                                                        </span>
+                                                        <button onClick={() => {
+                                                            if (!inBundle) toggleProduct(p);
+                                                            else updateQuantity(p.id, 1);
+                                                        }}>
+                                                            <Plus size={18}/>
+                                                        </button>
                                                     </div>
-                                                ) : (
-                                                    <button className={styles.addBtn} onClick={() => toggleProduct(p)}>
-                                                        ADICIONAR AO KIT
-                                                    </button>
-                                                )}
+                                                    
+                                                    {!inBundle ? (
+                                                        <button className={styles.addBtnLarge} onClick={() => toggleProduct(p)}>
+                                                            ADICIONAR
+                                                        </button>
+                                                    ) : (
+                                                        <button className={styles.removeBtnLarge} onClick={() => toggleProduct(p)}>
+                                                            REMOVER
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     );
