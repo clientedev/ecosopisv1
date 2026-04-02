@@ -12,7 +12,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 async function getPost(id: string) {
   try {
-    const res = await fetch(`${API_URL}/api/news/${id}`, { cache: 'no-store' });
+    const res = await fetch(`${API_URL}/news/${id}`, { cache: 'no-store' });
     if (!res.ok) return null;
     return await res.json();
   } catch (error) {

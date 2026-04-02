@@ -107,22 +107,26 @@
 }
 
 .faqButtonInline {
-    background: white;
-    border: 1px solid #e0e0e0;
-    color: #333;
-    padding: 12px 16px;
-    border-radius: 10px;
-    font-size: 0.9rem;
+    background: #fdfdfb;
+    border: 1px solid #eef2ed;
+    color: #4a554a;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 0.95rem;
     cursor: pointer;
     text-align: left;
-    transition: all 0.2s;
+    transition: all 0.3s;
     font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .faqButtonInline:hover {
     border-color: #2d5a27;
-    background: #f0fdf4;
+    background: #ffffff;
     color: #2d5a27;
+    box-shadow: 0 4px 12px rgba(45, 90, 39, 0.05);
 }
 
 .answerInline {
@@ -139,23 +143,30 @@
     align-items: center;
     justify-content: center;
     gap: 12px;
-    padding: 16px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    transition: all 0.3s ease;
+    padding: 18px 32px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.5px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     text-decoration: none;
     text-align: center;
-    border-radius: 8px;
-    background-color: #ee4d2d;
+    border-radius: 16px;
+    background-color: #1a1a1a;
     color: white;
     border: none;
     width: 100%;
+    box-shadow: 0 4px 0 #000;
 }
 
 .shopeeBtn:hover {
-    background-color: #d73211;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(238, 77, 45, 0.3);
+    background-color: #2d5a27;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(45, 90, 39, 0.25);
+}
+
+.shopeeBtn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 0 #000;
 }
 
 .shopeeLogo {
