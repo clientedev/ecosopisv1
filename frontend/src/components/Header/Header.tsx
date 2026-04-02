@@ -93,7 +93,16 @@ export default function Header() {
                     </Link>
                 </div>
 
-                <nav className={`${styles.nav} ${isMobileMenuOpen ? styles.navOpen : ''}`}>
+                {/* Desktop Navigation */}
+                <nav className={styles.desktopNav}>
+                    <Link href="/produtos">PRODUTOS</Link>
+                    <Link href="/novidades">NOVIDADES</Link>
+                    <Link href="/quizz">QUIZZ</Link>
+                    <Link href="/sobre">SOBRE</Link>
+                </nav>
+
+                {/* Mobile Navigation (Side Drawer) */}
+                <div className={`${styles.mobileNav} ${isMobileMenuOpen ? styles.mobileNavOpen : ''}`}>
                     <div className={styles.mobileMenuInner}>
                         <div className={styles.mobileMenuHeader}>
                             <div className={styles.logoContainer}>
@@ -129,7 +138,7 @@ export default function Header() {
                             </Link>
                             <Link href="/sobre" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
                                 <Info size={22} />
-                                SO BRE
+                                SOBRE
                             </Link>
                         </div>
 
@@ -154,21 +163,7 @@ export default function Header() {
                                         )}
                                         <button 
                                             onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} 
-                                            style={{ 
-                                                marginTop: '10px',
-                                                background: 'none', 
-                                                border: '1px solid #ef4444', 
-                                                color: '#ef4444', 
-                                                padding: '14px 24px', 
-                                                borderRadius: '12px', 
-                                                cursor: 'pointer', 
-                                                fontWeight: 700, 
-                                                fontSize: '1rem',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '10px'
-                                            }}
+                                            className={styles.mobileLogoutBtn}
                                         >
                                             <LogOut size={20} />
                                             Sair da Conta
@@ -183,7 +178,7 @@ export default function Header() {
                             </div>
                         </div>
                     </div>
-                </nav>
+                </div>
 
                 <div className={styles.actions} style={{ position: 'relative', zIndex: 1000 }}>
                     <Link href="/carrinho" className={`${styles.actionIcon} ${styles.desktopOnlyAction}`}>
