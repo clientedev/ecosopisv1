@@ -101,18 +101,47 @@
 }
 
 .itemInfo h4 {
-    margin: 0 0 8px 0;
+    margin: 0;
     font-family: var(--font-header);
     color: #1a3a16;
     font-size: 1.1rem;
     font-weight: 700;
 }
 
-.itemInfo p {
+.wholesaleBadgeSmall {
+    background: #f59e0b;
+    color: #1a3a16;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+.itemPrices {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.itemPrices p {
     margin: 0;
     color: #2d5a27;
     font-weight: 700;
     font-size: 1rem;
+}
+
+.oldPriceSmall {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.newPriceSmall {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #f59e0b;
 }
 
 .itemActions {

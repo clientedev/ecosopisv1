@@ -280,12 +280,15 @@ export default function CarrinhoPage() {
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    items: cart.map(i => ({ 
-                        product_id: i.id, 
-                        product_name: i.name, 
-                        quantity: i.quantity, 
-                        price: i.price 
-                    })),
+                    items: cart.map(i => {
+                        const finalPrice = i.isWholesale ? i.price * 0.7 : i.price;
+                        return { 
+                            product_id: i.id, 
+                            product_name: i.isWholesale ? `${i.name} (Atacado)` : i.name, 
+                            quantity: i.quantity, 
+                            price: finalPrice 
+                        };
+                    }),
                     shipping_price: shippingPrice,
                     shipping_method_id: selectedShipping.id.toString(),
                     address_info: { 
@@ -368,10 +371,20 @@ export default function CarrinhoPage() {
                                                     className={styles.itemImage}
                                                 />
                                             </div>
-                                            <div className={styles.itemInfo}>
-                                                <h4>{item.name}</h4>
-                                                <p>R$ {item.price.toFixed(2)}</p>
-                                            </div>
+                                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                    <h4>{item.name}</h4>
+                                                    {item.isWholesale && <span className={styles.wholesaleBadgeSmall}>ATACADO</span>}
+                                                </div>
+                                                <div className={styles.itemPrices}>
+                                                    {item.isWholesale ? (
+                                                        <>
+                                                            <span className={styles.oldPriceSmall}>R$ {item.price.toFixed(2)}</span>
+                                                            <span className={styles.newPriceSmall}>R$ {(item.price * 0.7).toFixed(2)}</span>
+                                                        </>
+                                                    ) : (
+                                                        <p>R$ {item.price.toFixed(2)}</p>
+                                                    )}
+                                                </div>
                                         </div>
                                         <div className={styles.itemActions}>
                                             <div className={styles.quantityControl}>

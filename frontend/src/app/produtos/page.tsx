@@ -93,6 +93,15 @@ export default function ProductsPage() {
             <main className="container">
                 <div className={styles.productsContainer}>
                     <aside className={styles.sidebar}>
+                        <div className={styles.wholesaleSidebarCard}>
+                            <div className={styles.wholesaleBadge}>ECONOMIA REAL</div>
+                            <h4>Atacado ECOSOPIS</h4>
+                            <p>Desbloqueie <strong>30% de desconto</strong> direto de fábrica ao montar seu kit com 10+ produtos.</p>
+                            <Link href="/atacado" className={styles.wholesaleBtnSidebar}>
+                                COMPRAR NO ATACADO
+                            </Link>
+                        </div>
+
                         <div className={styles.quizSidebarCard}>
                             <Sparkles size={24} color="var(--primary-green)" style={{ marginBottom: '12px' }} />
                             <h4>Dúvida na escolha?</h4>
