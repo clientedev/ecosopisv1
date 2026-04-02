@@ -55,13 +55,22 @@ export default function WholesalePage() {
     };
 
     const handleConfirmBundle = () => {
-        const totalItems = bundle.reduce((acc, p) => acc + p.quantity, 0);
-        if (totalItems < 10) {
-            showToast("Você precisa de pelo menos 10 itens para o Atacado!", "error");
-            return;
+        try {
+            const totalItems = bundle.reduce((acc, p) => acc + p.quantity, 0);
+            if (totalItems < 10) {
+                showToast("Você precisa de pelo menos 10 itens para o Atacado!", "error");
+                return;
+            }
+            
+            addWholesaleBundleToCart(bundle);
+            showToast("Kit adicionado ao carrinho com sucesso!", "success");
+            
+            // Redirect to the correct localized route
+            router.push("/carrinho");
+        } catch (err) {
+            console.error("Error confirming bundle:", err);
+            showToast("Houve um erro ao processar o kit. Tente novamente.", "error");
         }
-        addWholesaleBundleToCart(bundle);
-        router.push("/cart");
     };
 
     const totalQuantity = bundle.reduce((acc, p) => acc + p.quantity, 0);
