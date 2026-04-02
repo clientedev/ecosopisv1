@@ -594,6 +594,66 @@ export default function UserProfile() {
                                 </div>
                             </section>
                         )}
+
+                        {activeTab === 'security' && (
+                            <section className={styles.securityFormWrap}>
+                                <div className={styles.sectionHeader}>
+                                    <Lock />
+                                    <h2>Segurança da Conta</h2>
+                                </div>
+                                <p className={styles.securityIntro}>
+                                    Mantenha sua conta protegida alterando sua senha periodicamente.
+                                </p>
+
+                                {passwordMsg.text && (
+                                    <div className={`${styles.formMsg} ${passwordMsg.type === 'error' ? styles.msgError : styles.msgSuccess}`}>
+                                        {passwordMsg.text}
+                                    </div>
+                                )}
+
+                                <form onSubmit={handleUpdatePassword} className={styles.changePasswordForm}>
+                                    <div className={styles.formGroup}>
+                                        <label>Senha Atual</label>
+                                        <input 
+                                            type="password" 
+                                            className={styles.inputField}
+                                            value={currentPassword}
+                                            onChange={(e) => setCurrentPassword(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Nova Senha</label>
+                                        <input 
+                                            type="password" 
+                                            className={styles.inputField}
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Confirmar Nova Senha</label>
+                                        <input 
+                                            type="password" 
+                                            className={styles.inputField}
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <div className={styles.formActions} style={{ justifyContent: 'flex-start' }}>
+                                        <button 
+                                            type="submit" 
+                                            className={styles.saveBtn}
+                                            disabled={isChangingPassword}
+                                        >
+                                            <Save size={18} /> {isChangingPassword ? "Alterando..." : "Alterar Senha"}
+                                        </button>
+                                    </div>
+                                </form>
+                            </section>
+                        )}
                     </div>
                 </div>
             </div>
