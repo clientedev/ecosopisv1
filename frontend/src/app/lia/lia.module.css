@@ -9,17 +9,19 @@
 
 .mainContent {
     flex: 1;
-    padding: 30px 0;
+    padding: 80px 0 120px; /* Increased padding to prevent footer overlap */
     display: flex;
     align-items: center;
+    position: relative;
 }
 
 .liaContainer {
     display: grid;
     grid-template-columns: 350px 1fr;
     gap: 30px;
-    height: calc(100vh - 250px);
+    height: calc(100vh - 280px);
     min-height: 600px;
+    margin-bottom: 40px;
 }
 
 /* Sidebar Styling */
@@ -223,6 +225,8 @@
     padding: 24px 30px;
     background-color: white;
     border-top: 1px solid var(--neutral-gray-100);
+    position: relative;
+    z-index: 10;
 }
 
 .inputContainer {
@@ -284,6 +288,7 @@
     .liaContainer {
         grid-template-columns: 1fr;
         height: auto;
+        padding-bottom: 100px; /* Extra space for mobile footer */
     }
 
     .liaSidebar {
