@@ -35,6 +35,7 @@ interface NewsPost {
   created_at: string;
   user_id: number;
   user?: {
+    id?: number;
     full_name?: string | null;
     email?: string;
     profile_picture?: string | null;

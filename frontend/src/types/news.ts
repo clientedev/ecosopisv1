@@ -19,7 +19,7 @@ export interface NewsPostEngagement {
   media_type?: string;
   created_at?: string;
   user?: {
-    id: number;
+    id?: number;
     full_name?: string | null;
     profile_picture?: string | null;
   };

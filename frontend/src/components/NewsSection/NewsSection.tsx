@@ -24,7 +24,11 @@ interface NewsPost {
   media_url?: string;
   media_type?: 'image' | 'video';
   created_at: string;
-  user?: { full_name: string };
+  user?: { 
+    id?: number;
+    full_name?: string | null; 
+    profile_picture?: string | null;
+  };
   likes_count: number;
   comments_count: number;
   is_liked: boolean;
