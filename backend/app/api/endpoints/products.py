@@ -109,21 +109,22 @@ def get_product(slug: str, db: Session = Depends(get_db)):
 
 def generate_qr_code(slug: str, base_url: Optional[str] = None):
     """Generate a permanent QR code for the product technical page."""
-    if not base_url:
-        base_url = os.getenv("FRONTEND_URL") or os.getenv("EXTERNAL_URL") or "http://ecosopis.com.br"
+    # Strict Production Enforcement: If no URL provided or URL is localhost, try production fallbacks
+    is_replit = os.getenv("REPLIT_DEV_DOMAIN") or os.getenv("REPL_ID") or os.getenv("REPL_SLUG")
+    is_railway = os.getenv("RAILWAY_STATIC_URL") or os.getenv("RAILWAY_PROJECT_ID")
+    is_local_dev = os.getenv("ENV") == "development" or os.getenv("LOCAL_DEV") == "true"
     
-    # Heuristic to avoid localhost in production-like environments
-    is_cloud = os.getenv("REPLIT_DEV_DOMAIN") or os.getenv("RAILWAY_STATIC_URL") or os.getenv("REPL_ID")
-    
-    if is_cloud and ("localhost" in base_url or "127.0.0.1" in base_url):
-        replit_domain = os.getenv("REPLIT_DEV_DOMAIN")
-        if replit_domain:
-            base_url = f"https://{replit_domain}"
-        elif os.getenv("RAILWAY_STATIC_URL"):
-            base_url = f"https://{os.getenv('RAILWAY_STATIC_URL')}"
+    if not base_url or ("localhost" in base_url or "127.0.0.1" in base_url):
+        if not is_local_dev:
+            replit_domain = os.getenv("REPLIT_DEV_DOMAIN")
+            if replit_domain:
+                base_url = f"https://{replit_domain}"
+            elif os.getenv("RAILWAY_STATIC_URL"):
+                base_url = f"https://{os.getenv('RAILWAY_STATIC_URL')}"
+            else:
+                base_url = "https://ecosopis.com.br"
         else:
-            # Absolute fallback for production to ensure usable QR codes
-            base_url = "https://ecosopis.com.br"
+            base_url = base_url or "http://localhost:3000"
     
     # Remove trailing slash if present
     base_url = base_url.rstrip('/')
@@ -365,9 +366,11 @@ def regenerate_product_qr(
                 origin = f"{request.url.scheme}://{request.url.netloc}"
         
         # Final safety check for cloud environments (Replit/Railway/Prod)
-        is_cloud = os.getenv("REPLIT_DEV_DOMAIN") or os.getenv("RAILWAY_STATIC_URL") or os.getenv("REPL_ID")
+        is_replit = os.getenv("REPLIT_DEV_DOMAIN") or os.getenv("REPL_ID") or os.getenv("REPL_SLUG")
+        is_railway = os.getenv("RAILWAY_STATIC_URL") or os.getenv("RAILWAY_PROJECT_ID")
+        is_local_dev = os.getenv("ENV") == "development" or os.getenv("LOCAL_DEV") == "true"
         
-        if is_cloud and ("localhost" in origin or "127.0.0.1" in origin):
+        if ("localhost" in origin or "127.0.0.1" in origin) and not is_local_dev:
             replit_domain = os.getenv("REPLIT_DEV_DOMAIN")
             if replit_domain:
                 origin = f"https://{replit_domain}"
