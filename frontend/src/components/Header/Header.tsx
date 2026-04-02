@@ -3,7 +3,7 @@ import Link from "next/link";
 import styles from "./Header.module.css";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart, Package, Newspaper, Zap, Info } from "lucide-react";
+import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart, Package, Newspaper, Zap, Info, Sparkles } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
@@ -98,6 +98,10 @@ export default function Header() {
                     <Link href="/produtos">PRODUTOS</Link>
                     <Link href="/novidades">NOVIDADES</Link>
                     <Link href="/quizz">QUIZZ</Link>
+                    <Link href="/lia" className={styles.liaLink}>
+                        <Sparkles size={16} />
+                        LIA AI
+                    </Link>
                     <Link href="/sobre">SOBRE</Link>
                 </nav>
 
@@ -135,6 +139,10 @@ export default function Header() {
                             <Link href="/quizz" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
                                 <Zap size={22} />
                                 QUIZZ
+                            </Link>
+                            <Link href="/lia" className={`${styles.mobileNavItem} ${styles.mobileLiaItem}`} onClick={() => setIsMobileMenuOpen(false)}>
+                                <Sparkles size={22} />
+                                LIA AI
                             </Link>
                             <Link href="/sobre" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
                                 <Info size={22} />
