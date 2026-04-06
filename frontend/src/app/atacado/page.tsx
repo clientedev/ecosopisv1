@@ -24,7 +24,7 @@ export default function WholesalePage() {
                 const res = await fetch("/api/products");
                 if (res.ok) {
                     const data = await res.json();
-                    setProducts(data.filter((p: any) => p.is_active));
+                    setProducts(data.filter((p: any) => p.is_active && p.is_wholesale));
                 }
             } catch (error) {
                 console.error("Error fetching products:", error);
