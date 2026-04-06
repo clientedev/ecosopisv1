@@ -10,7 +10,6 @@ resend.api_key = os.getenv("RESEND_API_KEY")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5000")
 FROM_EMAIL = "ECOSOPIS <onboarding@resend.dev>" # Resend default for testing, should be updated to domain in production
 
-def send_email(to_email: str, subject: str, html_content: str):
     try:
         params = {
             "from": FROM_EMAIL,
@@ -18,10 +17,12 @@ def send_email(to_email: str, subject: str, html_content: str):
             "subject": subject,
             "html": html_content,
         }
-        resend.Emails.send(params)
+        r = resend.Emails.send(params)
+        print(f"Email sent successfully to {to_email}. Response ID: {r.get('id')}")
         return True
     except Exception as e:
-        print(f"Error sending email to {to_email}: {e}")
+        print(f"CRITICAL ERROR: Failed to send email to {to_email}. Error: {str(e)}")
+        # If it's a domain verification issue, it will show up here
         return False
 
 def send_verification_email(email: str, token: str):

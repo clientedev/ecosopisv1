@@ -98,6 +98,13 @@ def _apply_startup_migrations():
                 conn.commit()
             except Exception: pass
 
+        # Migration: Mark existing users as verified if they don't have a token yet
+        # (This handles users created before the verification system was implemented)
+        try:
+            conn.execute(text("UPDATE users SET is_verified = TRUE WHERE is_verified IS NULL OR (is_verified = FALSE AND verification_token IS NULL)"))
+            conn.commit()
+        except Exception: pass
+
         for col, defn in PRIZE_COLS:
             try:
                 conn.execute(text(f"ALTER TABLE roulette_prizes ADD COLUMN IF NOT EXISTS {col} {defn}"))
