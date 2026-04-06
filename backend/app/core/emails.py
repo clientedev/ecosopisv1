@@ -10,6 +10,7 @@ resend.api_key = os.getenv("RESEND_API_KEY")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5000")
 FROM_EMAIL = "ECOSOPIS <onboarding@resend.dev>" # Resend default for testing, should be updated to domain in production
 
+def send_email(to_email: str, subject: str, html_content: str):
     try:
         params = {
             "from": FROM_EMAIL,
