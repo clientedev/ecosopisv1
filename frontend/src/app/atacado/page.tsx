@@ -98,6 +98,16 @@ export default function WholesalePage() {
                         <p>Monte seu estoque com <strong>30% de DESCONTO REAL</strong>. Preço de fábrica para revenda ou uso pessoal consciente.</p>
                     </div>
                 </div>
+                {/* GLOBAL OVERRIDE FOR STICKY */}
+                <style dangerouslySetInnerHTML={{ __html: `
+                    html, body {
+                        overflow-x: visible !important;
+                        overflow: visible !important;
+                    }
+                    main {
+                        overflow: visible !important;
+                    }
+                ` }} />
             </div>
 
             {/* Sticky Progress Bar */}
