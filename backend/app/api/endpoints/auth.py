@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.core import security
+from app.core import security, emails
 from app.core.upload_content_type import resolve_stored_image_content_type
 from app.models import models
 from app.schemas import schemas
@@ -29,16 +29,24 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     if config and config.ativa and config.regra_novo_usuario:
         can_spin = True
 
+    verification_token = str(uuid.uuid4())
+    
     new_user = models.User(
         email=user_in.email,
         hashed_password=hashed_password,
         full_name=user_in.full_name,
         role="client",
-        pode_girar_roleta=can_spin
+        pode_girar_roleta=can_spin,
+        is_verified=False,
+        verification_token=verification_token
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    
+    # Send Verification Email
+    emails.send_verification_email(new_user.email, verification_token)
+    
     return new_user
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -230,6 +238,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="E-mail não verificado. Por favor, verifique seu e-mail para acessar sua conta."
+        )
+    
     access_token = security.create_access_token(subject=user.id)
     return {"access_token": access_token, "token_type": "bearer", "role": user.role}
 @router.get("/verify-token")
@@ -243,3 +257,15 @@ async def verify_token(current_user: models.User = Depends(get_current_user)):
             "full_name": current_user.full_name
         }
     }
+
+@router.get("/verify")
+def verify_email(token: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.verification_token == token).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Token de verificação inválido ou expirado")
+    
+    user.is_verified = True
+    user.verification_token = None # Clear token after verification
+    db.commit()
+    
+    return {"message": "E-mail verificado com sucesso! Agora você pode fazer login."}

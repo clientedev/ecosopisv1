@@ -48,6 +48,14 @@ class User(Base):
     role = Column(String, default="client") # admin, client
     can_post_news = Column(Boolean, default=False)  # can post to blog/news
     
+    # Email Verification
+    is_verified = Column(Boolean, default=False)
+    verification_token = Column(String, nullable=True)
+    
+    # Abandoned Cart Tracking
+    cart_json = Column(Text, nullable=True) # JSON string of cart items
+    cart_updated_at = Column(DateTime(timezone=True), nullable=True)
+    
     # Roulette fields
     total_compras = Column(Integer, default=0)
     pode_girar_roleta = Column(Boolean, default=False)

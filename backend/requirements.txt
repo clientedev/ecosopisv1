@@ -21,3 +21,4 @@ stripe
 zeep
 requests
 reportlab
+resend

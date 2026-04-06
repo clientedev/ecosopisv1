@@ -446,6 +446,7 @@ def seed():
         {"key": "text_primary", "value": "#1a1a1a"},
         {"key": "text_secondary", "value": "#4a4a4a"},
         {"key": "bg_color", "value": "#fdfcf9"},
+        {"key": "admin_order_notification_email", "value": "contato@ecosopis.com.br"},
     ]
     for color in branding_colors:
         exists = db.query(models.SystemSetting).filter(models.SystemSetting.key == color["key"]).first()

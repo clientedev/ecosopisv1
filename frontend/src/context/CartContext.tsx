@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useToast } from '@/components/Toast/Toast';
+import { useAuth } from './AuthContext';
 
 interface CartItem {
     id: number;
@@ -34,6 +35,7 @@ export const useCart = () => {
 export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [cart, setCart] = useState<CartItem[]>([]);
     const { showToast } = useToast();
+    const { token } = useAuth();
 
     // Load cart from localStorage on mount
     useEffect(() => {
@@ -50,7 +52,26 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     // Save cart to localStorage whenever it changes
     useEffect(() => {
         localStorage.setItem('cart', JSON.stringify(cart));
-    }, [cart]);
+        
+        // Sync with backend if logged in
+        if (token && cart.length > 0) {
+            const syncCart = async () => {
+                try {
+                    await fetch('/api/cart/sync', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(cart)
+                    });
+                } catch (e) {
+                    console.error("Failed to sync cart with server", e);
+                }
+            };
+            syncCart();
+        }
+    }, [cart, token]);
 
     const addToCart = useCallback((product: any) => {
         setCart((prev) => {

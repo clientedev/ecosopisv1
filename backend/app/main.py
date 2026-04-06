@@ -44,7 +44,11 @@ def _apply_startup_migrations():
         ("pode_girar_roleta",  "BOOLEAN DEFAULT FALSE"),
         ("tentativas_roleta",  "INTEGER DEFAULT 0"),
         ("ultimo_premio_id",   "INTEGER"),
-        ("profile_picture",    "VARCHAR")
+        ("profile_picture",    "VARCHAR"),
+        ("is_verified",        "BOOLEAN DEFAULT FALSE"),
+        ("verification_token", "VARCHAR"),
+        ("cart_json",          "TEXT"),
+        ("cart_updated_at",    "TIMESTAMP WITH TIME ZONE")
     ]
     PRIZE_COLS = [
         ("discount_type", "VARCHAR"),
@@ -152,7 +156,7 @@ try:
     _apply_startup_migrations()
 except Exception: pass
 
-from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat, roulette, admin_roulette, shipping, addresses
+from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat, roulette, admin_roulette, shipping, addresses, cart
 from fastapi.staticfiles import StaticFiles
 import os
 from dotenv import load_dotenv
@@ -212,6 +216,7 @@ app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(roulette.router, prefix="/roleta", tags=["roulette"])
 app.include_router(admin_roulette.router, prefix="/admin/roleta", tags=["admin_roulette"])
 app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
+app.include_router(cart.router, prefix="/cart", tags=["cart"])
 app.include_router(payment.router, prefix="/payment", tags=["payment"])
 app.include_router(shipping.router, prefix="/shipping", tags=["shipping"])
 app.include_router(crm.router, prefix="/crm", tags=["crm"])

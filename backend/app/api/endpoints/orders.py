@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
 from app.api.endpoints.auth import get_current_user
-from app.core import pdf_service
+from app.core import pdf_service, emails
 from app.repositories.order_repository import OrderRepository
 from app.services.order_service import OrderService
 import io
@@ -126,6 +126,15 @@ def update_order_status(
     order.status = new_status
     db.commit()
     db.refresh(order)
+
+    # Send Status Update Email
+    try:
+        user_email = order.customer_email or (order.user.email if order.user else None)
+        if user_email:
+            emails.send_order_update_email(user_email, order.id, new_status)
+    except Exception as e:
+        print(f"Error sending status update email: {e}")
+
     return _order_to_response(order, db)
 
 

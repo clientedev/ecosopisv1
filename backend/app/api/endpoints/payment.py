@@ -15,6 +15,7 @@ from app.api.endpoints.auth import get_current_user
 from app.repositories.order_repository import OrderRepository
 from app.core.stripe_service import create_checkout_session, verify_webhook_signature
 from app.models import models
+from app.core import emails
 
 logger = logging.getLogger(__name__)
 
@@ -227,6 +228,34 @@ async def stripe_webhook(
 
             db.commit()
             logger.info(f"Order {pedido_id} marked as PAID via Stripe")
+            
+            # Send Notification Emails
+            try:
+                # 1. User Confirmation
+                order_items = []
+                # Fallback for items extraction
+                items_data = order.items or []
+                if not items_data and order.order_items:
+                    items_data = [{"name": item.product.name, "quantity": item.quantity, "price": item.price} for item in order.order_items]
+                
+                emails.send_order_confirmation_email(
+                    email=order.buyer_email or order.customer_email,
+                    order_id=order.id,
+                    items=items_data,
+                    total=order.total
+                )
+                
+                # 2. Admin Notification
+                admin_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "admin_order_notification_email").first()
+                admin_email = admin_setting.value if admin_setting else "contato@ecosopis.com.br"
+                emails.send_admin_notification_email(
+                    admin_email=admin_email,
+                    order_id=order.id,
+                    total=order.total,
+                    customer_name=order.buyer_name or order.customer_name
+                )
+            except Exception as e:
+                logger.error(f"Error sending payment success emails: {e}")
 
     elif event["type"] == "checkout.session.expired":
         session = event["data"]["object"]
@@ -334,6 +363,18 @@ async def update_order_status(
     order.status = body.status
     db.commit()
     db.refresh(order)
+
+    # Send Status Update Email
+    try:
+        user_email = order.buyer_email or order.customer_email
+        if not user_email and order.user_id:
+            u = db.query(models.User).filter(models.User.id == order.user_id).first()
+            if u: user_email = u.email
+            
+        if user_email:
+            emails.send_order_update_email(user_email, order.id, body.status)
+    except Exception as e:
+        logger.error(f"Error sending status update email: {e}")
 
     logger.info(f"Admin updated order {order_id} status to '{body.status}'")
     return {"id": order.id, "status": order.status, "message": "Status atualizado com sucesso"}

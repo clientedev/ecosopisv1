@@ -83,6 +83,13 @@ async def get_crm_summary(
 
     top_products = sorted(product_stats.values(), key=lambda x: x["count"], reverse=True)[:10]
 
+    # Abandoned Carts
+    one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+    abandoned_carts_count = db.query(func.count(models.User.id)).filter(
+        models.User.cart_json.is_not(None),
+        models.User.cart_updated_at < one_hour_ago
+    ).scalar() or 0
+
     return {
         "total_orders": total_orders,
         "total_revenue": total_revenue,
@@ -92,5 +99,6 @@ async def get_crm_summary(
         "top_products": top_products,
         "user_growth": user_growth,
         "payment_distribution": payment_distribution,
-        "click_stats": click_stats
+        "click_stats": click_stats,
+        "abandoned_carts_count": abandoned_carts_count
     }

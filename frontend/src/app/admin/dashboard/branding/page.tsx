@@ -13,7 +13,8 @@ export default function BrandingPage() {
         secondary_color: "#ffffff",
         text_primary: "#1a1a1a",
         text_secondary: "#4a4a4a",
-        bg_color: "#fdfcf9"
+        bg_color: "#fdfcf9",
+        admin_order_notification_email: "contato@ecosopis.com.br"
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -88,8 +89,8 @@ export default function BrandingPage() {
             <main style={{ flex: 1, overflowY: 'auto' }}>
                 <div className={styles.brandingContainer}>
                     <header className={styles.header}>
-                        <h1>Cores do Site</h1>
-                        <p>Personalize a identidade visual da sua loja. As mudanças afetam todo o site em tempo real após salvar.</p>
+                        <h1>Identidade e Configurações</h1>
+                        <p>Personalize a identidade visual e as configurações de notificação da sua loja.</p>
                     </header>
 
                     <div className={styles.section}>
@@ -234,8 +235,26 @@ export default function BrandingPage() {
                                 disabled={saving}
                             >
                                 {saving ? <RefreshCw className={styles.spin} /> : <Save size={20} />}
-                                {saving ? "Salvando..." : "Salvar Identidade"}
+                                {saving ? "Salvando..." : "Salvar Configurações"}
                             </button>
+                        </div>
+                    </div>
+
+                    <div className={styles.section}>
+                        <h2><Palette size={20} color="#4B8411" /> Notificações de E-mail</h2>
+                        <div className={styles.colorItem} style={{ maxWidth: '100%' }}>
+                            <label>E-mail para receber avisos de novas vendas</label>
+                            <input 
+                                type="email" 
+                                value={settings.admin_order_notification_email} 
+                                onChange={(e) => handleChange("admin_order_notification_email", e.target.value)}
+                                className={styles.hexInput}
+                                style={{ width: '100%', marginTop: '10px' }}
+                                placeholder="exemplo@gmail.com"
+                            />
+                            <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '5px' }}>
+                                Este e-mail receberá os detalhes de cada nova compra realizada no site.
+                            </p>
                         </div>
                     </div>
                     

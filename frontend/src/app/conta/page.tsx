@@ -25,6 +25,7 @@ export default function ContaPage() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [orders, setOrders] = useState<any[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
+    const [showVerificationMessage, setShowVerificationMessage] = useState(false);
 
     const { login, logout, token, user, refreshProfile } = useAuth();
     const router = useRouter();
@@ -68,13 +69,17 @@ export default function ContaPage() {
 
         if (isLogin) {
             try {
-                const success = await login(email, password);
-                if (success) {
+                const result = await login(email, password);
+                if (result.success) {
                     const searchParams = new URLSearchParams(window.location.search);
                     const redirect = searchParams.get('redirect') || "/";
                     router.push(redirect);
                 } else {
-                    alert("Credenciais inválidas. Verifique seu e-mail e senha.");
+                    if (result.status === 403) {
+                        alert("Seu e-mail ainda não foi verificado. Por favor, verifique sua caixa de entrada (e a pasta de spam).");
+                    } else {
+                        alert("Credenciais inválidas. Verifique seu e-mail e senha.");
+                    }
                 }
             } catch (err) {
                 console.error("Login error:", err);
@@ -89,10 +94,7 @@ export default function ContaPage() {
                 });
 
                 if (res.ok) {
-                    alert("Conta criada com sucesso! Entrando...");
-                    const loginSuccess = await login(email, password);
-                    if (loginSuccess) { router.push("/"); }
-                    else { setIsLogin(true); alert("Conta criada, mas login automático falhou. Tente entrar manualmente."); }
+                    setShowVerificationMessage(true);
                 } else {
                     let errorMessage = "Erro ao criar conta.";
                     try { const data = await res.json(); errorMessage = data.detail || errorMessage; } catch { }
@@ -269,11 +271,28 @@ export default function ContaPage() {
                     {!token && (
                         <>
                             <div className={styles.tabs}>
-                                <button className={isLogin ? styles.activeTab : ""} onClick={() => setIsLogin(true)}>ENTRAR</button>
-                                <button className={!isLogin ? styles.activeTab : ""} onClick={() => setIsLogin(false)}>CADASTRAR</button>
+                                <button className={isLogin ? styles.activeTab : ""} onClick={() => { setIsLogin(true); setShowVerificationMessage(false); }}>ENTRAR</button>
+                                <button className={!isLogin ? styles.activeTab : ""} onClick={() => { setIsLogin(false); setShowVerificationMessage(false); }}>CADASTRAR</button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className={styles.form}>
+                            {showVerificationMessage ? (
+                                <div style={{ textAlign: 'center', padding: '30px 10px' }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📩</div>
+                                    <h1 style={{ color: '#2d5a27', marginBottom: '10px' }}>Quase pronto!</h1>
+                                    <p style={{ color: '#4a7c59', lineHeight: '1.5' }}>
+                                        Enviamos um link de verificação para o seu e-mail.<br/>
+                                        Por favor, <strong>verifique sua conta</strong> clicando no link para poder acessar o site.
+                                    </p>
+                                    <button 
+                                        className="btn-primary" 
+                                        style={{ marginTop: '20px', width: '100%' }}
+                                        onClick={() => { setIsLogin(true); setShowVerificationMessage(false); }}
+                                    >
+                                        IR PARA LOGIN
+                                    </button>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleSubmit} className={styles.form}>
                                 {!isLogin && (
                                     <div className={styles.field}>
                                         <label>Nome Completo</label>
@@ -292,6 +311,7 @@ export default function ContaPage() {
                                     {isLogin ? "ENTRAR" : "CRIAR CONTA"}
                                 </button>
                             </form>
+                            )}
 
                             {isLogin && (
                                 <div className={styles.links}><a href="#">Esqueci minha senha</a></div>

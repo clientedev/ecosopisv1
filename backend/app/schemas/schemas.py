@@ -21,6 +21,7 @@ class UserPasswordUpdate(BaseModel):
 class UserResponse(UserBase):
     id: int
     role: str
+    is_verified: bool = False
     can_post_news: Optional[bool] = False
     total_compras: Optional[int] = 0
     pode_girar_roleta: Optional[bool] = False

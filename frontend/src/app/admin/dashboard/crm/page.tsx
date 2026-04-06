@@ -11,7 +11,8 @@ import {
     Clock, 
     Package,
     CheckCircle,
-    Activity
+    Activity,
+    ShoppingCart
 } from 'lucide-react';
 import { 
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -68,6 +69,7 @@ export default function AdminCRMPage() {
         { label: 'Total de Pedidos', value: data?.total_orders || 0, icon: <ShoppingBag size={24} />, color: '#3b82f6' },
         { label: 'Ticket Médio (Pagos)', value: `R$ ${data?.avg_ticket?.toFixed(2).replace('.', ',') || '0,00'}`, icon: <TrendingUp size={24} />, color: '#f59e0b' },
         { label: 'Novos Clientes (30d)', value: data?.user_growth?.reduce((acc: number, cur: any) => acc + cur.count, 0) || 0, icon: <Users size={24} />, color: '#8b5cf6' },
+        { label: 'Carrinhos Abandonados', value: data?.abandoned_carts_count || 0, icon: <ShoppingCart size={24} />, color: '#64748b' },
     ];
 
     // Format data for charts
@@ -98,8 +100,37 @@ export default function AdminCRMPage() {
         <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/dashboard/crm" />
             <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
-                <header className={styles.header}>
-                    <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', marginBottom: '32px' }}>Inteligência de Vendas - CRM</h1>
+                <header className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                    <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>Inteligência de Vendas - CRM</h1>
+                    {data?.abandoned_carts_count > 0 && (
+                        <button 
+                            onClick={async () => {
+                                if (confirm(`Deseja enviar e-mails de recuperação para ${data.abandoned_carts_count} clientes?`)) {
+                                    const token = localStorage.getItem("token");
+                                    const res = await fetch('/api/cart/admin/notify-abandoned', { 
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    });
+                                    if (res.ok) alert("E-mails enviados com sucesso!");
+                                    else alert("Erro ao enviar e-mails.");
+                                }
+                            }}
+                            style={{ 
+                                backgroundColor: '#2d5a27', 
+                                color: 'white', 
+                                padding: '10px 20px', 
+                                borderRadius: '8px', 
+                                border: 'none', 
+                                fontWeight: 'bold', 
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            <ShoppingCart size={18} /> RECUPERAR CARRINHOS
+                        </button>
+                    )}
                 </header>
 
                 {/* Top Summary Cards */}

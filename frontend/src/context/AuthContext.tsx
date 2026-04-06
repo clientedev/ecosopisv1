@@ -19,7 +19,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; status?: number }>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
   isLoading: boolean;
@@ -112,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; status?: number }> => {
     try {
       const params = new URLSearchParams();
       params.append("username", email);
@@ -140,12 +140,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(userData);
           localStorage.setItem('user', JSON.stringify(userData));
         }
-        return true;
+        return { success: true };
       }
-      return false;
+      return { success: false, status: response.status };
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      return { success: false };
     }
   };
 
