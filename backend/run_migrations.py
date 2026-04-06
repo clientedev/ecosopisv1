@@ -26,6 +26,23 @@ MISSING_ANNOUNCEMENT_COLUMNS = [
     ("scroll_speed", "INTEGER DEFAULT 20"),
 ]
 
+MISSING_USERS_COLUMNS = [
+    ("profile_picture", "VARCHAR"),
+    ("can_post_news", "BOOLEAN DEFAULT FALSE"),
+    ("total_compras", "INTEGER DEFAULT 0"),
+    ("pode_girar_roleta", "BOOLEAN DEFAULT FALSE"),
+    ("tentativas_roleta", "INTEGER DEFAULT 0"),
+    ("ultimo_premio_id", "INTEGER"),
+]
+
+MISSING_PRODUCTS_COLUMNS = [
+    ("buy_on_site", "BOOLEAN DEFAULT TRUE"),
+    ("is_wholesale", "BOOLEAN DEFAULT FALSE"),
+    ("mercadolivre_url", "VARCHAR"),
+    ("shopee_url", "VARCHAR"),
+]
+
+
 def add_missing_columns():
     """Safely add any columns that don't exist yet in the live database."""
     with engine.connect() as conn:
@@ -50,6 +67,30 @@ def add_missing_columns():
                 logger.info(f"✓ Column announcement_bar.{col_name} ensured.")
             except Exception as e:
                 logger.warning(f"Could not add column announcement_bar.{col_name}: {e}")
+                try: conn.rollback()
+                except Exception: pass
+
+        for col_name, col_def in MISSING_USERS_COLUMNS:
+            try:
+                conn.execute(text(
+                    f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
+                ))
+                conn.commit()
+                logger.info(f"✓ Column users.{col_name} ensured.")
+            except Exception as e:
+                logger.warning(f"Could not add column users.{col_name}: {e}")
+                try: conn.rollback()
+                except Exception: pass
+
+        for col_name, col_def in MISSING_PRODUCTS_COLUMNS:
+            try:
+                conn.execute(text(
+                    f"ALTER TABLE products ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
+                ))
+                conn.commit()
+                logger.info(f"✓ Column products.{col_name} ensured.")
+            except Exception as e:
+                logger.warning(f"Could not add column products.{col_name}: {e}")
                 try: conn.rollback()
                 except Exception: pass
 
