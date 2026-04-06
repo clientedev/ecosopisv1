@@ -1,6 +1,10 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
+import traceback
+from app.core.database import SessionLocal
+from app.models import models
+
 # Run migrations before potentially importing any routers that might trigger SQLAlchemy mapping errors
 def _apply_startup_migrations():
     from sqlalchemy import text
