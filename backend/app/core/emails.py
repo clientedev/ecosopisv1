@@ -7,8 +7,10 @@ load_dotenv()
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5000")
-FROM_EMAIL = "ECOSOPIS <onboarding@resend.dev>" # Resend default for testing, should be updated to domain in production
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+STORE_NAME = os.getenv("STORE_NAME", "ECOSOPIS")
+# The "from" address should be verified in your Resend dashboard
+FROM_EMAIL = os.getenv("FROM_EMAIL", f"{STORE_NAME} <nao-responda@ecosopis.com.br>")
 
 # DEBUG: Force push to resolve indentation issues
 def send_email(to_email: str, subject: str, html_content: str):
