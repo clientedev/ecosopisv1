@@ -116,6 +116,7 @@ class Product(Base):
     
     # Buy channels
     buy_on_site = Column(Boolean, default=True)
+    is_wholesale = Column(Boolean, default=False)
     mercadolivre_url = Column(String, nullable=True)
     shopee_url = Column(String, nullable=True)
     

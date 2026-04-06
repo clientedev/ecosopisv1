@@ -17,6 +17,7 @@ interface Product {
     mercadolivre_url: string;
     shopee_url: string;
     buy_on_site: boolean;
+    is_wholesale: boolean;
     is_active: boolean;
     images?: string[];
     tags?: string[];
@@ -46,6 +47,7 @@ interface Props {
 export default function EditProductModal({ product, onClose, onSave }: Props) {
     const [formData, setFormData] = useState<Product>({
         ...product,
+        is_wholesale: product.is_wholesale === true,
         is_active: product.is_active !== false,
         images: (product as any).images || [],
         tags: Array.isArray((product as any).tags) ? (product as any).tags : (typeof (product as any).tags === 'string' ? JSON.parse((product as any).tags || '[]') : [])
@@ -524,6 +526,16 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                     onChange={(e) => setFormData({ ...formData, buy_on_site: e.target.checked })}
                                 />
                                 Vender diretamente no site
+                            </label>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={formData.is_wholesale}
+                                    onChange={(e) => setFormData({ ...formData, is_wholesale: e.target.checked })}
+                                />
+                                Disponível para Atacado
                             </label>
                         </div>
                         <div className={styles.formGroup}>

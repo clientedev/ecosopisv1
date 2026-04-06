@@ -171,6 +171,7 @@ class ProductBase(BaseModel):
     images: List[str] = []
     tags: List[str] = []
     buy_on_site: bool = True
+    is_wholesale: bool = False
     mercadolivre_url: Optional[str] = None
     shopee_url: Optional[str] = None
     is_active: bool = True
@@ -217,6 +218,7 @@ class ProductUpdate(BaseModel):
     images: Optional[List[str]] = None
     tags: Optional[List[str]] = None
     buy_on_site: Optional[bool] = None
+    is_wholesale: Optional[bool] = None
     mercadolivre_url: Optional[str] = None
     shopee_url: Optional[str] = None
     is_active: Optional[bool] = None

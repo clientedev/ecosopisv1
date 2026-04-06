@@ -13,6 +13,7 @@ interface Product {
     mercadolivre_url: string;
     shopee_url: string;
     buy_on_site: boolean;
+    is_wholesale: boolean;
     images?: string[];
     tags?: string[];
     details?: Partial<ProductDetail>;
@@ -44,6 +45,7 @@ export default function NewProductModal({ onClose, onSave }: Props) {
         mercadolivre_url: "",
         shopee_url: "",
         buy_on_site: true,
+        is_wholesale: false,
         images: [],
         tags: [],
         details: {
@@ -356,6 +358,16 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                                     onChange={(e) => setFormData({ ...formData, buy_on_site: e.target.checked })}
                                 />
                                 Vender diretamente no site
+                            </label>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={formData.is_wholesale}
+                                    onChange={(e) => setFormData({ ...formData, is_wholesale: e.target.checked })}
+                                />
+                                Disponível para Atacado
                             </label>
                         </div>
                     </div>
