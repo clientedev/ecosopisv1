@@ -18,6 +18,7 @@ export default function BrandingPage() {
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [testingEmail, setTestingEmail] = useState(false);
     const router = useRouter();
     const { showToast } = useToast();
 
@@ -77,6 +78,30 @@ export default function BrandingPage() {
             showToast("Erro de conexão", "error");
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleTestEmail = async () => {
+        setTestingEmail(true);
+        const token = localStorage.getItem("token");
+        try {
+            const res = await fetch("/api/settings/test-email", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                showToast("E-mail de teste enviado com sucesso!", "success");
+            } else {
+                const data = await res.json();
+                showToast(data.detail || "Erro ao testar e-mail", "error");
+            }
+        } catch (err) {
+            showToast("Erro de conexão", "error");
+        } finally {
+            setTestingEmail(false);
         }
     };
 
@@ -255,6 +280,28 @@ export default function BrandingPage() {
                             <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '5px' }}>
                                 Este e-mail receberá os detalhes de cada nova compra realizada no site.
                             </p>
+                            <button 
+                                onClick={handleTestEmail}
+                                disabled={testingEmail}
+                                style={{
+                                    marginTop: '15px',
+                                    padding: '8px 16px',
+                                    backgroundColor: '#4B8411',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 'bold',
+                                    opacity: testingEmail ? 0.7 : 1
+                                }}
+                            >
+                                {testingEmail ? <RefreshCw size={16} className={styles.spin} /> : <Eye size={16} />}
+                                TESTAR ENVIO AGORA
+                            </button>
                         </div>
                     </div>
                     
