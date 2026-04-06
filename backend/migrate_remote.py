@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, text
 from app.models import models
 
 # Remote Railway PostgreSQL URL
-DATABASE_URL = "postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway"
+DATABASE_URL = "postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway?sslmode=require"
 
 def migrate_remote():
     print(f"Connecting to remote database at {DATABASE_URL.split('@')[-1]}...")
@@ -15,9 +15,12 @@ def migrate_remote():
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS pode_girar_roleta BOOLEAN DEFAULT FALSE;"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS tentativas_roleta INTEGER DEFAULT 0;"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS ultimo_premio_id INTEGER;"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture VARCHAR;"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS can_post_news BOOLEAN DEFAULT FALSE;"))
         
         print("Adding missing columns to 'products' table if they don't exist...")
         conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS buy_on_site BOOLEAN DEFAULT TRUE;"))
+        conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS is_wholesale BOOLEAN DEFAULT FALSE;"))
         conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS mercadolivre_url VARCHAR;"))
         conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS shopee_url VARCHAR;"))
 

@@ -438,6 +438,20 @@ def seed():
             news = models.News(**n_data)
             db.add(news)
             
+    # Initial Site Branding Colors
+    branding_colors = [
+        {"key": "primary_color", "value": "#4B8411"},
+        {"key": "primary_color_dark", "value": "#3a660d"},
+        {"key": "secondary_color", "value": "#ffffff"},
+        {"key": "text_primary", "value": "#1a1a1a"},
+        {"key": "text_secondary", "value": "#4a4a4a"},
+        {"key": "bg_color", "value": "#fdfcf9"},
+    ]
+    for color in branding_colors:
+        exists = db.query(models.SystemSetting).filter(models.SystemSetting.key == color["key"]).first()
+        if not exists:
+            db.add(models.SystemSetting(**color))
+
     db.commit()
 
     print("Database seeded!")

@@ -3,6 +3,7 @@ import "@/styles/globals.css";
 import { Raleway, Karla, Cinzel } from "next/font/google";
 import ChatIA from "@/components/ChatIA/ChatIA";
 import RouletteModal from "@/components/RouletteModal/RouletteModal";
+import DynamicBranding from "@/components/DynamicBranding/DynamicBranding";
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/components/Toast/Toast";
 import { CartProvider } from "@/context/CartContext";
@@ -39,6 +40,7 @@ export default function RootLayout({
                 <AuthProvider>
                     <ToastProvider>
                         <CartProvider>
+                            <DynamicBranding />
                             {children}
                             <ChatIA />
                             <RouletteModal />

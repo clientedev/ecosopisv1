@@ -61,6 +61,7 @@ const CATEGORIES: Category[] = [
             { label: "Cupons", path: "/admin/dashboard/cupons", icon: <Ticket size={18} /> },
             { label: "Banner Principal", path: "/admin/dashboard/carousel", icon: <ImageIcon size={18} /> },
             { label: "Faixa de Aviso", path: "/admin/dashboard/announcement", icon: <Megaphone size={18} /> },
+            { label: "Cores do Site", path: "/admin/dashboard/branding", icon: <Settings size={18} /> },
         ]
     },
     {
