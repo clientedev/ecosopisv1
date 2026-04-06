@@ -21,10 +21,10 @@ class UserPasswordUpdate(BaseModel):
 class UserResponse(UserBase):
     id: int
     role: str
-    can_post_news: bool = False
-    total_compras: int = 0
-    pode_girar_roleta: bool = False
-    tentativas_roleta: int = 0
+    can_post_news: Optional[bool] = False
+    total_compras: Optional[int] = 0
+    pode_girar_roleta: Optional[bool] = False
+    tentativas_roleta: Optional[int] = 0
     profile_picture: Optional[str] = None
     created_at: Optional[datetime] = None
 
@@ -166,15 +166,15 @@ class ProductBase(BaseModel):
     ingredients: Optional[str] = None
     benefits: Optional[str] = None
     price: Optional[float] = None
-    stock: int = 0
+    stock: Optional[int] = 0
     image_url: Optional[str] = None
-    images: List[str] = []
-    tags: List[str] = []
-    buy_on_site: bool = True
-    is_wholesale: bool = False
+    images: Optional[List[str]] = []
+    tags: Optional[List[str]] = []
+    buy_on_site: Optional[bool] = True
+    is_wholesale: Optional[bool] = False
     mercadolivre_url: Optional[str] = None
     shopee_url: Optional[str] = None
-    is_active: bool = True
+    is_active: Optional[bool] = True
 
 # Product Details Schemas
 class ProductDetailBase(BaseModel):
