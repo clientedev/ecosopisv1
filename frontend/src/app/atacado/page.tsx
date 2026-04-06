@@ -205,7 +205,7 @@ export default function WholesalePage() {
                     </div>
 
                     {/* Summary Sidebar (Desktop Only) */}
-                    <aside className={styles.summaryDesktop}>
+                    <aside className={styles.summaryDesktop} style={{ position: 'sticky', top: '160px', alignSelf: 'flex-start', height: 'fit-content' }}>
                         <div className={styles.summaryCard}>
                             <h3>Resumo do Kit</h3>
                             <div className={styles.summaryRow}>

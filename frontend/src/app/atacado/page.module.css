@@ -401,10 +401,8 @@
     position: sticky;
     top: 160px;
     align-self: flex-start;
-    height: max-content;
+    height: fit-content;
     z-index: 10;
-    max-height: calc(100vh - 180px);
-    overflow-y: auto;
 }
 
 .summaryCard {
