@@ -214,7 +214,7 @@ export default function BrandingPage() {
                             <div style={{ display: 'flex', gap: '15px' }}>
                                 <button 
                                     className={styles.demoButton}
-                                    style={{ backgroundColor: settings.primary_color, color: '#white', color: settings.secondary_color }}
+                                    style={{ backgroundColor: settings.primary_color, color: settings.secondary_color }}
                                 >
                                     BOTÃO PRINCIPAL
                                 </button>
