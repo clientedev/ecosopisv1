@@ -294,3 +294,55 @@ def processar_envio(pedido, db) -> dict:
         resultado["erro"] = str(exc)
 
     return resultado
+
+
+# ---------------------------------------------------------------------------
+# Compatibilidade retroativa — order_service.py importa MelhorEnvioV2Service
+# ---------------------------------------------------------------------------
+class MelhorEnvioV2Service:
+    """
+    Shim de compatibilidade que adapta a interface antiga (class-based) para
+    as novas funções do serviço refatorado.
+    """
+
+    @staticmethod
+    def calcular_frete(cep_destino: str, peso: float, comprimento: int, altura: int, largura: int):
+        try:
+            return selecionar_servico(cep_destino, 0)
+        except Exception:
+            return []
+
+    @staticmethod
+    def criar_envio(pedido_id: int, user_info: dict, items: list, shipping_service_id: int):
+        """
+        Interface legada usada por order_service.py.
+        Cria envio usando os dados do user_info e items fornecidos.
+        """
+        from types import SimpleNamespace
+
+        total_value = sum(i.get("price", 0) * i.get("quantity", 1) for i in items)
+        produto_nome = "Produto ECOSOPIS"
+        if items:
+            produto_nome = items[0].get("name") or produto_nome
+
+        pedido_ns = SimpleNamespace(
+            id=pedido_id,
+            valor=total_value,
+            produto_nome=produto_nome,
+            cep_cliente=user_info.get("postal_code", "00000000"),
+        )
+
+        try:
+            shipment_id = criar_envio(pedido_ns)
+            comprar_etiqueta(shipment_id)
+            etiqueta_url = gerar_etiqueta(shipment_id)
+            tracking_code = obter_tracking(shipment_id)
+            return {
+                "melhorenvio_id": shipment_id,
+                "tracking_code": tracking_code,
+                "etiqueta_url": etiqueta_url,
+                "generated": bool(etiqueta_url),
+            }
+        except Exception as exc:
+            logger.error(f"[MelhorEnvioV2Service.criar_envio] Erro: {exc}", exc_info=True)
+            return None
