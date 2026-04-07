@@ -1,0 +1,223 @@
+Crie um backend completo em FastAPI com arquitetura profissional para um sistema de ecommerce focado exclusivamente na integração com Melhor Envio (logística).
+
+---
+
+## 🎯 OBJETIVO
+
+Automatizar o fluxo de envio após pagamento já confirmado:
+
+Pedido já pago → Criar envio → Comprar etiqueta → Gerar etiqueta → Salvar rastreio → Atualizar status
+
+⚠️ IMPORTANTE:
+NÃO implementar Stripe.
+O sistema deve assumir que o pedido já está pago.
+
+---
+
+## 🔐 VARIÁVEIS DE AMBIENTE
+
+Utilizar:
+
+MELHORENVIO_CEP_ORIGEM=02969-000
+MELHORENVIO_TOKEN= def50200bb22ce36f732a40469271381225e1155721751864570eeb915d9ee2153939329357517a1918cac7b15a7b50b0e91fc656bdc3cb86833050efc97a48814f23e10bed262a0012215f84219220ae4c0a0d11a339bd7707dd89067e3b1d9bbc9d37bbecf080352d4493b28bcfaf9d320306596fd267ff47d25b0bfab72295394230f550b2bfeac19d7b18751cc8eab753d87e3858c3dd7ad24777431dbe540fed15eed5e04acf35ea11576f1cff7eea50ee566f7229809d98173ac3acc8678d8a1c19d198c03716e768c505946cca1e3479fd5d7fa1db22ddf86e8a3c15c7fdab78b47878e4090cad05c16352a981df85732749743002f14f91336ed9a4bfb2276296532604b0c6a29c335a13e3a4f198171dae7e2ad52027c2fbad4ce1f3ad3dfe0fef1ab39a55a4f4332b466f32b3f4d5308a697c43b9c2457bf5340a9fb73e6f694a01a6d88117ba65f0f77b12a3ba94c2416862aa5fce06cedb61e3338f1342f9cf2d1dc2eb57e0e6cfa541c44e88fc3d15806972b790197ca5c0e483d5aa9390f56a0397d2395d6c0b96f237adbfde90e00447d166a75f48d  
+MELHORENVIO_URL=https://api.melhorenvio.com.br
+
+---
+
+## 🧠 ARQUITETURA
+
+/app
+/services
+melhor_envio_service.py
+/routes
+envio.py
+webhook_me.py
+/models
+pedido.py
+/core
+config.py
+database.py
+main.py
+
+---
+
+## 📦 MODELAGEM
+
+Criar modelo Pedido com:
+
+* id
+* status (PAGO, PROCESSANDO_ENVIO, ENVIADO, ERRO_ENVIO)
+* valor
+* produto_nome
+* cep_cliente
+* tracking_code
+* etiqueta_url
+* shipment_id
+* created_at
+
+---
+
+## 🚚 MELHOR ENVIO SERVICE (CORE DO SISTEMA)
+
+Criar classe MelhorEnvioService com:
+
+### Headers padrão
+
+Authorization: Bearer MELHORENVIO_TOKEN
+Accept: application/json
+Content-Type: application/json
+
+---
+
+### criar_envio(pedido)
+
+POST /api/v2/me/cart
+
+Função:
+
+* Criar envio no carrinho
+* Retornar shipment_id
+
+Body:
+
+{
+"from": {
+"postal_code": MELHORENVIO_CEP_ORIGEM
+},
+"to": {
+"postal_code": pedido.cep_cliente
+},
+"products": [
+{
+"name": pedido.produto_nome,
+"quantity": 1,
+"unitary_value": pedido.valor,
+"weight": 1,
+"length": 20,
+"height": 5,
+"width": 15
+}
+]
+}
+
+---
+
+### selecionar_servico()
+
+* Escolher automaticamente o serviço mais barato
+
+---
+
+### comprar_etiqueta(shipment_id)
+
+POST /api/v2/me/shipment/checkout
+
+---
+
+### gerar_etiqueta(shipment_id)
+
+GET /api/v2/me/shipment/print
+
+* Retornar URL do PDF
+
+---
+
+### obter_tracking(shipment_id)
+
+* Extrair código de rastreio
+
+---
+
+## 🔁 FLUXO PRINCIPAL
+
+Criar função:
+
+processar_envio(pedido)
+
+Passos:
+
+1. Atualizar status → PROCESSANDO_ENVIO
+2. criar_envio
+3. selecionar_servico
+4. comprar_etiqueta
+5. gerar_etiqueta
+6. obter_tracking
+7. salvar tracking_code
+8. salvar etiqueta_url
+9. atualizar status → ENVIADO
+
+---
+
+## ⚠️ TRATAMENTO DE ERROS
+
+* retry automático (até 3 tentativas)
+* log detalhado
+* status ERRO_ENVIO em falha
+* não quebrar execução principal
+
+---
+
+## ⚡ PERFORMANCE
+
+* usar BackgroundTasks (FastAPI)
+* execução assíncrona
+* não bloquear requisições
+
+---
+
+## 🔔 WEBHOOK MELHOR ENVIO
+
+Criar endpoint:
+
+POST /webhook/melhor-envio
+
+Tratar eventos:
+
+* shipment_posted
+* shipment_delivered
+* shipment_canceled
+
+Atualizar status automaticamente
+
+---
+
+## 🧪 TESTES
+
+Criar endpoints:
+
+POST /envio/{pedido_id}
+→ dispara envio manual
+
+GET /envio/status/{pedido_id}
+→ retorna status completo
+
+---
+
+## 🧱 BANCO
+
+PostgreSQL + SQLAlchemy
+
+---
+
+## 🔐 SEGURANÇA
+
+* usar .env
+* nunca expor tokens
+* validar dados
+
+---
+
+## 🎯 RESULTADO FINAL
+
+✔️ Pedido entra como pago
+✔️ Envio criado automaticamente
+✔️ Etiqueta comprada
+✔️ PDF gerado
+✔️ Rastreamento salvo
+✔️ Status atualizado
+
+---
+
+## 🚀 DIFERENCIAL
+
+Código limpo, desacoplado, escalável, pronto para SaaS.
