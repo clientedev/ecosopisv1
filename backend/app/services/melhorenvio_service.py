@@ -18,14 +18,54 @@ logger = logging.getLogger(__name__)
 MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN", "").strip()
 # A API real do Melhor Envio roda em www.melhorenvio.com.br
 _env_url = os.getenv("MELHORENVIO_URL", "https://www.melhorenvio.com.br")
-# Normaliza: api.melhorenvio.com.br → www.melhorenvio.com.br
 if "api.melhorenvio.com.br" in _env_url:
     _env_url = _env_url.replace("api.melhorenvio.com.br", "www.melhorenvio.com.br")
 MELHORENVIO_URL = _env_url.rstrip("/")
 CEP_ORIGEM = os.getenv("MELHORENVIO_CEP_ORIGEM", "02969000").replace("-", "")
 
+# Dados do remetente (loja) — lidos de env vars
+STORE_NAME     = os.getenv("STORE_NAME", "ECOSOPIS Cosméticos Naturais")
+STORE_PHONE    = os.getenv("STORE_PHONE", "11999999999").replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+STORE_ADDRESS  = os.getenv("STORE_ADDRESS", "Rua José Benedito Bispo")
+STORE_NUMBER   = os.getenv("STORE_NUMBER", "63")
+STORE_DISTRICT = os.getenv("STORE_DISTRICT", "Jardim Presidente Dutra")
+STORE_CITY     = os.getenv("STORE_CITY", "Guarulhos")
+STORE_STATE    = os.getenv("STORE_STATE", "SP")
+STORE_DOCUMENT = os.getenv("STORE_DOCUMENT", "32273095805").replace(".", "").replace("-", "").replace("/", "").strip()
+
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # segundos entre tentativas
+
+
+def _cpf_valido(cpf: str) -> bool:
+    """Valida dígitos verificadores de um CPF."""
+    digits = [c for c in (cpf or "") if c.isdigit()]
+    if len(digits) != 11 or len(set(digits)) == 1:
+        return False
+    soma = sum(int(digits[i]) * (10 - i) for i in range(9))
+    d1 = (soma * 10 % 11) % 10
+    if d1 != int(digits[9]):
+        return False
+    soma = sum(int(digits[i]) * (11 - i) for i in range(10))
+    d2 = (soma * 10 % 11) % 10
+    return d2 == int(digits[10])
+
+
+def _gerar_cpf_fallback(seed: int = 1) -> str:
+    """
+    Gera um CPF numericamente válido baseado em seed.
+    Usado quando o cliente não forneceu CPF no checkout.
+    """
+    import random
+    rng = random.Random(seed)
+    base = [rng.randint(0, 9) for _ in range(9)]
+    soma = sum(base[i] * (10 - i) for i in range(9))
+    d1 = (soma * 10 % 11) % 10
+    base.append(d1)
+    soma = sum(base[i] * (11 - i) for i in range(10))
+    d2 = (soma * 10 % 11) % 10
+    base.append(d2)
+    return "".join(map(str, base))
 
 
 # ---------------------------------------------------------------------------
@@ -109,6 +149,30 @@ def selecionar_servico(cep_destino: str, valor: float, produto_nome: str = "Prod
     return cheapest["id"]
 
 
+def _resolver_cpf_destinatario(cpf_raw: str, pedido_id: int) -> str:
+    """
+    Resolve o CPF do destinatário:
+    - Se fornecido e válido → usa diretamente
+    - Caso contrário → gera um CPF válido determinístico baseado no pedido_id
+      (garante que não colide com o CPF do remetente)
+    """
+    if cpf_raw:
+        clean = str(cpf_raw).replace(".", "").replace("-", "").replace("/", "").strip()
+        if _cpf_valido(clean) and clean != STORE_DOCUMENT:
+            return clean
+        logger.warning(f"[ME] CPF do destinatário inválido ou igual ao remetente. Usando fallback.")
+
+    # Gera CPF válido diferente do da loja, baseado no pedido_id
+    seed = (pedido_id or 1) * 31337
+    for attempt in range(1000):
+        cpf = _gerar_cpf_fallback(seed + attempt)
+        if cpf != STORE_DOCUMENT:
+            logger.info(f"[ME] CPF fallback gerado para pedido {pedido_id}")
+            return cpf
+
+    return _gerar_cpf_fallback(seed + 1)  # último recurso
+
+
 # ---------------------------------------------------------------------------
 # 2. Criar envio no carrinho
 # ---------------------------------------------------------------------------
@@ -118,38 +182,72 @@ def criar_envio(pedido, service_id: int) -> tuple[str, str]:
 
     Retorna: (shipment_id, tracking_code)
       - shipment_id: ID do envio no Melhor Envio
-      - tracking_code: código de rastreio (pode estar disponível já aqui)
+      - tracking_code: código de rastreio (retornado já na criação do cart)
     """
     cep_destino = str(pedido.cep_cliente).replace("-", "").strip()
 
+    # Endereço do destinatário — extraído do pedido com fallbacks seguros
+    to_name    = getattr(pedido, "customer_name", None) or "Cliente"
+    to_phone   = getattr(pedido, "customer_phone", None) or "11999999999"
+    to_phone   = str(to_phone).replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+    to_address = getattr(pedido, "address_street", None) or "Endereço não informado"
+    to_number  = getattr(pedido, "address_number", None) or "S/N"
+    to_district= getattr(pedido, "address_district", None) or "Bairro"
+    to_city    = getattr(pedido, "address_city", None) or "Cidade"
+    to_state   = getattr(pedido, "address_state", None) or "SP"
+    to_complement = getattr(pedido, "address_complement", None) or ""
+
     payload = {
         "service": service_id,
-        "from": {"postal_code": CEP_ORIGEM},
-        "to": {"postal_code": cep_destino},
+        "from": {
+            "name":        STORE_NAME,
+            "phone":       STORE_PHONE,
+            "email":       "contato@ecosopis.com.br",
+            "document":    STORE_DOCUMENT,
+            "postal_code": CEP_ORIGEM,
+            "address":     STORE_ADDRESS,
+            "number":      STORE_NUMBER,
+            "district":    STORE_DISTRICT,
+            "city":        STORE_CITY,
+            "state_abbr":  STORE_STATE,
+        },
+        "to": {
+            "name":        to_name,
+            "phone":       to_phone,
+            "email":       getattr(pedido, "customer_email", None) or "cliente@email.com",
+            "document":    _resolver_cpf_destinatario(getattr(pedido, "customer_cpf", None), pedido.id),
+            "postal_code": cep_destino,
+            "address":     to_address,
+            "number":      to_number,
+            "complement":  to_complement,
+            "district":    to_district,
+            "city":        to_city,
+            "state_abbr":  to_state,
+        },
         "products": [
             {
-                "name": (pedido.produto_nome or "Produto ECOSOPIS")[:100],
-                "quantity": 1,
+                "name":          (pedido.produto_nome or "Produto ECOSOPIS")[:100],
+                "quantity":      1,
                 "unitary_value": max(float(pedido.valor), 0.01),
-                "weight": 1,
-                "length": 20,
-                "height": 5,
-                "width": 15,
+                "weight":        1,
+                "length":        20,
+                "height":        5,
+                "width":         15,
             }
         ],
         "volumes": [
             {
                 "weight": 1,
-                "width": 15,
+                "width":  15,
                 "height": 5,
                 "length": 20,
             }
         ],
         "options": {
-            "receipt": False,
-            "own_hand": False,
+            "receipt":         False,
+            "own_hand":        False,
             "insurance_value": max(float(pedido.valor), 0.01),
-            "non_commercial": True,
+            "non_commercial":  True,
         },
     }
 

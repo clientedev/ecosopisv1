@@ -214,6 +214,8 @@ class Order(Base):
     # Buyer info from Stripe webhook (customer_details)
     buyer_name = Column(String, nullable=True)
     buyer_email = Column(String, nullable=True)
+    # Customer CPF/CNPJ for Melhor Envio
+    customer_cpf = Column(String, nullable=True)
     # Correios/Melhor Envio
     correios_label_url = Column(String, nullable=True)
     etiqueta_url = Column(String, nullable=True)

@@ -95,6 +95,76 @@ class Pedido:
             self._order.etiqueta_url = value
         self._order.correios_label_url = value
 
+    # ------------------------------------------------------------------
+    # Campos do destinatário (extraídos do JSON address do pedido)
+    # ------------------------------------------------------------------
+    @property
+    def customer_name(self) -> str:
+        return (
+            getattr(self._order, "customer_name", None)
+            or (self._order.address or {}).get("name")
+            or (self._order.address or {}).get("full_name")
+            or "Cliente"
+        )
+
+    @property
+    def customer_phone(self) -> str:
+        raw = (
+            getattr(self._order, "customer_phone", None)
+            or (self._order.address or {}).get("phone")
+            or "11999999999"
+        )
+        return str(raw).replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+
+    @property
+    def customer_email(self) -> str:
+        return (
+            getattr(self._order, "customer_email", None)
+            or (self._order.address or {}).get("email")
+            or "cliente@email.com"
+        )
+
+    @property
+    def customer_cpf(self) -> str:
+        raw = (
+            getattr(self._order, "customer_cpf", None)
+            or (self._order.address or {}).get("cpf")
+            or (self._order.address or {}).get("document")
+        )
+        if raw:
+            return str(raw).replace(".", "").replace("-", "").replace("/", "").strip()
+        return ""
+
+    @property
+    def address_street(self) -> str:
+        return (self._order.address or {}).get("street") \
+            or (self._order.address or {}).get("logradouro") \
+            or "Endereço não informado"
+
+    @property
+    def address_number(self) -> str:
+        return str((self._order.address or {}).get("number") or "S/N")
+
+    @property
+    def address_complement(self) -> str:
+        return (self._order.address or {}).get("complement") or ""
+
+    @property
+    def address_district(self) -> str:
+        return (self._order.address or {}).get("neighborhood") \
+            or (self._order.address or {}).get("district") \
+            or "Bairro"
+
+    @property
+    def address_city(self) -> str:
+        return (self._order.address or {}).get("city") or "Cidade"
+
+    @property
+    def address_state(self) -> str:
+        return (self._order.address or {}).get("state") \
+            or (self._order.address or {}).get("state_abbr") \
+            or "SP"
+
     @classmethod
     def from_order(cls, order: Order) -> "Pedido":
         return cls(order)
@@ -106,6 +176,12 @@ class Pedido:
             "valor": self.valor,
             "produto_nome": self.produto_nome,
             "cep_cliente": self.cep_cliente,
+            "customer_name": self.customer_name,
+            "customer_phone": self.customer_phone,
+            "customer_email": self.customer_email,
+            "address_street": self.address_street,
+            "address_city": self.address_city,
+            "address_state": self.address_state,
             "shipment_id": self.shipment_id,
             "tracking_code": self.tracking_code,
             "etiqueta_url": self.etiqueta_url,

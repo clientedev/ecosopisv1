@@ -63,6 +63,7 @@ def _apply_startup_migrations():
         ("customer_name",       "VARCHAR"),
         ("customer_email",      "VARCHAR"),
         ("customer_phone",      "VARCHAR"),
+        ("customer_cpf",        "VARCHAR"),
         ("coupon_code",         "VARCHAR"),
         ("discount_amount",     "REAL DEFAULT 0"),
     ]
