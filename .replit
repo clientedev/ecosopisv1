@@ -11,7 +11,7 @@ packages = ["cargo", "libiconv", "libxcrypt", "rustc"]
 [userenv.shared]
 ACCESS_TOKEN_EXPIRE_MINUTES = "60"
 ALGORITHM = "HS256"
-SECRET_KEY = "your-secret-key-change-this-in-production-via-secrets-tab"
+SECRET_KEY = "80d1fa9e0e09f6187b371a66dfcc728d44e2025c2fedac6027adfd8ff7c03ee1"
 MELHORENVIO_CEP_ORIGEM = "02969000"
 MELHORENVIO_URL = "https://www.melhorenvio.com.br"
 STORE_NAME = "ECOSOPIS Cosméticos Naturais"
@@ -73,6 +73,6 @@ externalPort = 8000
 
 [deployment]
 deploymentTarget = "vm"
-run = ["bash", "-c", "cd backend && python main.py & cd frontend && npm run start"]
-build = ["npm", "run", "build"]
+run = ["bash", "-c", "(cd /home/runner/workspace/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4) & (cd /home/runner/workspace/frontend && PORT=5000 npm start)"]
+build = ["bash", "-c", "cd /home/runner/workspace/frontend && npm run build"]
 publicDir = "frontend/out"
