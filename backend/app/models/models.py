@@ -216,7 +216,9 @@ class Order(Base):
     buyer_email = Column(String, nullable=True)
     # Correios/Melhor Envio
     correios_label_url = Column(String, nullable=True)
+    etiqueta_url = Column(String, nullable=True)
     codigo_rastreio = Column(String, nullable=True)
+    shipment_id = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="orders")

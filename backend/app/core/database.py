@@ -6,8 +6,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# POSTGRES_URL takes priority (external DB override), then DATABASE_URL, then SQLite fallback
-DATABASE_URL = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
+# POSTGRES_URL / DATABASE_PUBLIC_URL take priority, then DATABASE_URL, then SQLite fallback
+DATABASE_URL = (
+    os.getenv("POSTGRES_URL")
+    or os.getenv("DATABASE_PUBLIC_URL")
+    or os.getenv("DATABASE_URL")
+)
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 

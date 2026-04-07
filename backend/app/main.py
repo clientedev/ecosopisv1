@@ -117,7 +117,7 @@ def _apply_startup_migrations():
             conn.commit()
         except Exception: pass
 
-        # Add Stripe + Correios fields to orders
+        # Add Stripe + Correios + Melhor Envio fields to orders
         ORDER_COLS = [
             ("shipping_method",    "VARCHAR"),
             ("shipping_price",     "DOUBLE PRECISION DEFAULT 0"),
@@ -126,7 +126,9 @@ def _apply_startup_migrations():
             ("buyer_name",         "VARCHAR"),
             ("buyer_email",        "VARCHAR"),
             ("correios_label_url", "VARCHAR"),
+            ("etiqueta_url",       "VARCHAR"),
             ("codigo_rastreio",    "VARCHAR"),
+            ("shipment_id",        "VARCHAR"),
         ]
         for col, defn in ORDER_COLS:
             try:
@@ -236,6 +238,14 @@ try:
     app.include_router(freight.router, tags=["freight_v2"])
 except ImportError as e:
     print(f"Skipping v2 routes import: {e}")
+
+# Melhor Envio — envio automático e webhook
+try:
+    from app.routes import envio, webhook_me
+    app.include_router(envio.router, tags=["envio"])
+    app.include_router(webhook_me.router, tags=["webhook"])
+except ImportError as e:
+    print(f"Skipping envio/webhook routes: {e}")
 
 if __name__ == "__main__":
     import uvicorn

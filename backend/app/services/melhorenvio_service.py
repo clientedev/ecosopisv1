@@ -1,226 +1,296 @@
 import os
+import time
+import logging
 import requests
-import json
 from dotenv import load_dotenv
 
 load_dotenv()
 
-MELHORENVIO_URL = os.getenv("MELHOR_ENVIO_BASE_URL", os.getenv("MELHORENVIO_URL", "https://www.melhorenvio.com.br"))
-if "api.melhorenvio.com.br" in MELHORENVIO_URL:
-    MELHORENVIO_URL = MELHORENVIO_URL.replace("api.melhorenvio.com.br", "www.melhorenvio.com.br")
+logger = logging.getLogger(__name__)
 
-CLIENT_ID = os.getenv("MELHOR_ENVIO_CLIENT_ID", os.getenv("MELHORENVIO_CLIENT_ID", "23449"))
-CLIENT_SECRET = os.getenv("MELHOR_ENVIO_CLIENT_SECRET", os.getenv("MELHORENVIO_CLIENT_SECRET", ""))
-STORE_CEP = "02969000"  # fixed CEP requested by user
+MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN", "")
+MELHORENVIO_URL = os.getenv("MELHORENVIO_URL", "https://www.melhorenvio.com.br").rstrip("/")
+CEP_ORIGEM = os.getenv("MELHORENVIO_CEP_ORIGEM", "02969000").replace("-", "")
 
-class MelhorEnvioV2Service:
-    _access_token = None
+MAX_RETRIES = 3
+RETRY_DELAY = 2  # seconds
 
-    @classmethod
-    def get_token(cls) -> str:
-        if cls._access_token:
-            # For a production robust system, we would check expiration time. 
-            # For now, we will assume it's valid if set, or we fetch a new one if a request fails with 401.
-            return cls._access_token
-        
-        return cls.refresh_token()
 
-    @classmethod
-    def refresh_token(cls) -> str:
-        url = f"{MELHORENVIO_URL}/oauth/token"
-        payload = {
-            "grant_type": "client_credentials",
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-            "scope": "cart-read cart-write companies-read companies-write coupons-read coupons-write messages-read messages-write notifications-read orders-read products-read products-write purchases-read shipping-calculate shipping-cancel shipping-checkout shipping-companies shipping-generate shipping-preview shipping-print shipping-share shipping-tracking shops-read shops-write tags-read tags-write tickets-read tickets-write users-read users-write"
-        }
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        }
-        
-        # NOTE: Melhor Envio client_credentials grant type is deprecated in v2 in favor of standard OAuth2,
-        # but the prompt specifically requested client_id/client_secret to generate token automatically
-        # Since they are using a specific client ID "23449", this likely still works or is meant for their env.
-        # Alternatively, we just use the Personal Token if oauth fails.
-        
-        personal_token = os.getenv("MELHOR_ENVIO_TOKEN", "")
-        
+def _headers() -> dict:
+    return {
+        "Authorization": f"Bearer {MELHORENVIO_TOKEN}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": "ECOSOPIS (contato@ecosopis.com.br)",
+    }
+
+
+def _request_with_retry(method: str, endpoint: str, **kwargs) -> requests.Response:
+    url = f"{MELHORENVIO_URL}{endpoint}"
+    last_exc = None
+    for attempt in range(1, MAX_RETRIES + 1):
         try:
-            resp = requests.post(url, json=payload, headers=headers, timeout=10)
-            if resp.status_code == 200:
-                data = resp.json()
-                cls._access_token = data.get("access_token")
-                return cls._access_token
+            logger.info(f"[ME] {method.upper()} {url} (tentativa {attempt})")
+            resp = requests.request(method, url, headers=_headers(), timeout=30, **kwargs)
+            logger.info(f"[ME] Status: {resp.status_code}")
+            return resp
+        except Exception as exc:
+            last_exc = exc
+            logger.warning(f"[ME] Erro na tentativa {attempt}: {exc}")
+            if attempt < MAX_RETRIES:
+                time.sleep(RETRY_DELAY)
+    raise RuntimeError(f"Falha após {MAX_RETRIES} tentativas: {last_exc}")
+
+
+# ---------------------------------------------------------------------------
+# 1. Criar envio no carrinho → retorna shipment_id
+# ---------------------------------------------------------------------------
+def criar_envio(pedido) -> str:
+    """
+    Adiciona o envio no carrinho do Melhor Envio.
+    Retorna o shipment_id (id do pedido criado no carrinho).
+    """
+    cep_destino = str(pedido.cep_cliente).replace("-", "").strip()
+
+    payload = {
+        "from": {"postal_code": CEP_ORIGEM},
+        "to": {"postal_code": cep_destino},
+        "products": [
+            {
+                "name": pedido.produto_nome or "Produto ECOSOPIS",
+                "quantity": 1,
+                "unitary_value": float(pedido.valor),
+                "weight": 1,
+                "length": 20,
+                "height": 5,
+                "width": 15,
+            }
+        ],
+        "volumes": [
+            {
+                "weight": 1,
+                "width": 15,
+                "height": 5,
+                "length": 20,
+            }
+        ],
+        "options": {
+            "receipt": False,
+            "own_hand": False,
+            "insurance_value": float(pedido.valor),
+            "non_commercial": True,
+        },
+    }
+
+    resp = _request_with_retry("POST", "/api/v2/me/cart", json=payload)
+
+    if resp.status_code not in (200, 201):
+        raise RuntimeError(f"Erro ao criar envio: {resp.status_code} – {resp.text}")
+
+    data = resp.json()
+    shipment_id = data.get("id")
+    if not shipment_id:
+        raise RuntimeError(f"Resposta inesperada ao criar envio: {data}")
+
+    logger.info(f"[ME] Envio criado. shipment_id={shipment_id}")
+    return str(shipment_id)
+
+
+# ---------------------------------------------------------------------------
+# 2. Selecionar o serviço mais barato para um CEP
+# ---------------------------------------------------------------------------
+def selecionar_servico(cep_destino: str, valor: float) -> int:
+    """
+    Calcula fretes disponíveis e retorna o ID do serviço mais barato.
+    """
+    cep = cep_destino.replace("-", "").strip()
+    payload = {
+        "from": {"postal_code": CEP_ORIGEM},
+        "to": {"postal_code": cep},
+        "products": [
+            {
+                "id": "x",
+                "width": 15,
+                "height": 5,
+                "length": 20,
+                "weight": 1,
+                "insurance_value": float(valor),
+                "quantity": 1,
+            }
+        ],
+        "options": {"receipt": False, "own_hand": False},
+    }
+
+    resp = _request_with_retry("POST", "/api/v2/me/shipment/calculate", json=payload)
+
+    if resp.status_code != 200:
+        raise RuntimeError(f"Erro ao calcular frete: {resp.status_code} – {resp.text}")
+
+    options = [o for o in resp.json() if "error" not in o and o.get("price")]
+    if not options:
+        raise RuntimeError("Nenhuma opção de frete disponível.")
+
+    cheapest = min(options, key=lambda o: float(o["price"]))
+    logger.info(f"[ME] Serviço mais barato: {cheapest['name']} (R$ {cheapest['price']}) id={cheapest['id']}")
+    return cheapest["id"]
+
+
+# ---------------------------------------------------------------------------
+# 3. Comprar etiqueta (checkout do carrinho)
+# ---------------------------------------------------------------------------
+def comprar_etiqueta(shipment_id: str) -> bool:
+    """
+    Executa o checkout do envio no carrinho, comprando a etiqueta.
+    """
+    payload = {"orders": [str(shipment_id)]}
+    resp = _request_with_retry("POST", "/api/v2/me/shipment/checkout", json=payload)
+
+    if resp.status_code not in (200, 201):
+        raise RuntimeError(f"Erro ao comprar etiqueta: {resp.status_code} – {resp.text}")
+
+    logger.info(f"[ME] Etiqueta comprada. shipment_id={shipment_id}")
+    return True
+
+
+# ---------------------------------------------------------------------------
+# 4. Gerar etiqueta (gera o PDF)
+# ---------------------------------------------------------------------------
+def gerar_etiqueta(shipment_id: str) -> str:
+    """
+    Solicita a geração da etiqueta e retorna a URL do PDF.
+    """
+    # Primeiro, dispara a geração
+    payload = {"orders": [str(shipment_id)]}
+    resp_gen = _request_with_retry("POST", "/api/v2/me/shipment/generate", json=payload)
+
+    if resp_gen.status_code not in (200, 201):
+        logger.warning(f"[ME] Gerar etiqueta retornou {resp_gen.status_code}: {resp_gen.text}")
+
+    # Depois, busca a URL de impressão
+    params = {"mode": "public", "orders[]": str(shipment_id)}
+    resp_print = _request_with_retry("GET", "/api/v2/me/shipment/print", params=params)
+
+    if resp_print.status_code == 200:
+        data = resp_print.json()
+        url = data.get("url") or data.get("link") or data.get("pdf")
+        if url:
+            logger.info(f"[ME] URL etiqueta: {url}")
+            return url
+
+    # Fallback: tenta obter pelo endpoint de preview
+    resp_prev = _request_with_retry("GET", "/api/v2/me/shipment/preview", params=params)
+    if resp_prev.status_code == 200:
+        data = resp_prev.json()
+        url = data.get("url") or data.get("link")
+        if url:
+            return url
+
+    # Retorna URL construída manualmente como último recurso
+    fallback_url = f"{MELHORENVIO_URL}/envios/imprimir/{shipment_id}"
+    logger.warning(f"[ME] Usando URL fallback: {fallback_url}")
+    return fallback_url
+
+
+# ---------------------------------------------------------------------------
+# 5. Obter código de rastreio
+# ---------------------------------------------------------------------------
+def obter_tracking(shipment_id: str) -> str:
+    """
+    Retorna o código de rastreio para o shipment_id informado.
+    """
+    resp = _request_with_retry("GET", f"/api/v2/me/shipment/tracking?orders[]={shipment_id}")
+
+    if resp.status_code == 200:
+        data = resp.json()
+        # A resposta pode ser um dict com o id como chave
+        if isinstance(data, dict):
+            item = data.get(str(shipment_id), {})
+            code = item.get("tracking") or item.get("code")
+            if code:
+                return str(code)
+        elif isinstance(data, list) and data:
+            return str(data[0].get("tracking") or data[0].get("code", ""))
+
+    logger.warning(f"[ME] Não foi possível obter tracking para shipment_id={shipment_id}")
+    return ""
+
+
+# ---------------------------------------------------------------------------
+# FLUXO PRINCIPAL
+# ---------------------------------------------------------------------------
+def processar_envio(pedido, db) -> dict:
+    """
+    Executa o fluxo completo de envio após pagamento confirmado:
+      1. Status → PROCESSANDO_ENVIO
+      2. Criar envio no carrinho
+      3. Selecionar serviço mais barato
+      4. Comprar etiqueta
+      5. Gerar etiqueta (PDF)
+      6. Obter tracking
+      7. Salvar tracking_code e etiqueta_url
+      8. Status → ENVIADO
+
+    Em caso de falha, status → ERRO_ENVIO e loga o erro.
+    """
+    resultado = {
+        "pedido_id": pedido.id,
+        "status": None,
+        "shipment_id": None,
+        "tracking_code": None,
+        "etiqueta_url": None,
+        "erro": None,
+    }
+
+    try:
+        # 1. Atualizar status
+        pedido.status = "PROCESSANDO_ENVIO"
+        db.commit()
+        logger.info(f"[ENVIO] Pedido {pedido.id} → PROCESSANDO_ENVIO")
+
+        # 2. Criar envio no carrinho
+        shipment_id = criar_envio(pedido)
+        pedido.shipment_id = shipment_id
+        db.commit()
+        resultado["shipment_id"] = shipment_id
+
+        # 3. (Opcional) Selecionar serviço mais barato — já embutido no cart via service_id
+        # Aqui apenas logamos a opção mais barata para fins de auditoria
+        try:
+            selecionar_servico(pedido.cep_cliente, pedido.valor)
+        except Exception as e:
+            logger.warning(f"[ENVIO] selecionar_servico não-crítico: {e}")
+
+        # 4. Comprar etiqueta
+        comprar_etiqueta(shipment_id)
+
+        # 5. Gerar etiqueta
+        etiqueta_url = gerar_etiqueta(shipment_id)
+        pedido.etiqueta_url = etiqueta_url
+        db.commit()
+        resultado["etiqueta_url"] = etiqueta_url
+
+        # 6. Obter tracking
+        tracking_code = obter_tracking(shipment_id)
+        pedido.tracking_code = tracking_code
+        resultado["tracking_code"] = tracking_code
+
+        # 8. Status → ENVIADO
+        pedido.status = "ENVIADO"
+        db.commit()
+        resultado["status"] = "ENVIADO"
+
+        logger.info(
+            f"[ENVIO] Pedido {pedido.id} → ENVIADO | tracking={tracking_code} | etiqueta={etiqueta_url}"
+        )
+
+    except Exception as exc:
+        logger.error(f"[ENVIO] Falha ao processar envio do pedido {pedido.id}: {exc}", exc_info=True)
+        try:
+            pedido.status = "ERRO_ENVIO"
+            db.commit()
         except Exception:
             pass
-            
-        # Fallback to token from env if oauth fails
-        cls._access_token = personal_token
-        return cls._access_token
+        resultado["status"] = "ERRO_ENVIO"
+        resultado["erro"] = str(exc)
 
-    @classmethod
-    def request_with_auth(cls, method, endpoint, **kwargs):
-        token = cls.get_token()
-        headers = kwargs.get("headers", {})
-        headers.update({
-            "Accept": "application/json",
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-            "User-Agent": "Aplicação (contato@ecosopis.com.br)"
-        })
-        kwargs["headers"] = headers
-        url = f"{MELHORENVIO_URL}{endpoint}"
-        
-        resp = requests.request(method, url, **kwargs)
-        if resp.status_code == 401:
-            # retry once
-            cls._access_token = None
-            token = cls.get_token()
-            headers["Authorization"] = f"Bearer {token}"
-            resp = requests.request(method, url, **kwargs)
-        
-        return resp
-
-    @classmethod
-    def calcular_frete(cls, cep_destino: str, peso: float, comprimento: int, altura: int, largura: int):
-        clean_cep = "".join([c for c in cep_destino if c.isdigit()])
-        payload = {
-            "from": {"postal_code": STORE_CEP},
-            "to": {"postal_code": clean_cep},
-            "volumes": [
-                {
-                    "weight": peso,
-                    "width": largura,
-                    "height": altura,
-                    "length": comprimento
-                }
-            ],
-            "options": {
-                "receipt": False,
-                "own_hand": False
-            }
-        }
-        
-        resp = cls.request_with_auth("POST", "/api/v2/me/shipment/calculate", json=payload)
-        
-        if resp.status_code == 200:
-            options = []
-            for opt in resp.json():
-                if "error" not in opt:
-                    options.append({
-                        "id": opt.get("id"),
-                        "name": opt.get("name"),
-                        "price": float(opt.get("price", 0)),
-                        "delivery_time": opt.get("delivery_time"),
-                        "company": opt.get("company", {}).get("name")
-                    })
-            return options
-        else:
-            print(f"Erro Melhor Envio Calculate: {resp.text}")
-            return []
-
-    @classmethod
-    def criar_envio(cls, pedido_id: int, user_info: dict, items: list, shipping_service_id: int):
-        """
-        Adiciona itens ao carrinho do Melhor Envio, faz o checkout e gera etiqueta.
-        """
-        # 1. Adicionar ao carrinho
-        total_value = sum([item["price"] * item["quantity"] for item in items])
-        # Lógica básica de caixas (Mesma usada para orçar, baseada no pedido)
-        total_quantity = sum([item["quantity"] for item in items])
-        # Calculate dynamic physical volume
-        v_width, v_height, v_length = 16, 12, 20
-        v_weight = max(total_quantity * 0.25, 0.3)
-        if total_quantity > 2 and total_quantity <= 5:
-            v_width, v_height, v_length = 20, 20, 20
-        elif total_quantity > 5:
-            v_width, v_height, v_length = 30, 25, 25
-            
-        cart_payload = {
-            "service": shipping_service_id,
-            "agency": 1, # ID da agencia de preferência se Jadlog ou outro
-            "from": {
-                "name": "ECOSOPIS",
-                "phone": "11999999999", # TODO: load from config
-                "email": "contato@ecosopis.com.br",
-                "document": "00000000000",
-                "postal_code": STORE_CEP,
-                "address": "Rua Exemplo",
-                "number": "123"
-            },
-            "to": {
-                "name": user_info.get("name", "Cliente"),
-                "phone": user_info.get("phone", "11999999999"),
-                "email": user_info.get("email", "cliente@email.com"),
-                "document": user_info.get("document", "00000000000"),
-                "postal_code": user_info.get("postal_code", "").replace("-", "") if user_info.get("postal_code") else "00000000",
-                "address": user_info.get("address", "Endereço"),
-                "number": user_info.get("number", "S/N"),
-                "complement": user_info.get("complement", ""),
-                "district": user_info.get("district", "Bairro"),
-                "city": user_info.get("city", "Cidade"),
-                "state_abbr": user_info.get("state", "SP"),
-                "note": f"Pedido {pedido_id}"
-            },
-            "products": [
-                {
-                    "name": "Produtos ECOSOPIS",
-                    "quantity": 1,
-                    "unitary_value": total_value,
-                }
-            ],
-            "volumes": [
-                {
-                    "height": v_height,
-                    "width": v_width,
-                    "length": v_length,
-                    "weight": v_weight
-                }
-            ],
-            "options": {
-                "receipt": False,
-                "own_hand": False,
-                "insurance_value": total_value,
-                "non_commercial": True
-            }
-        }
-        
-        # API requires inserting into cart first
-        resp_cart = cls.request_with_auth("POST", "/api/v2/me/cart", json=cart_payload)
-        
-        if resp_cart.status_code not in [200, 201]:
-            print(f"Error Cart ME: {resp_cart.text}")
-            return None
-            
-        order_me = resp_cart.json()
-        order_me_id = order_me.get("id")
-        
-        if not order_me_id:
-            return None
-            
-        # 2. Fazer checkout dos itens no carrinho para gerar os rastreios
-        checkout_payload = {
-            "orders": [str(order_me_id)]
-        }
-        resp_checkout = cls.request_with_auth("POST", "/api/v2/me/shipment/checkout", json=checkout_payload)
-        
-        if resp_checkout.status_code == 200:
-            checkout_data = resp_checkout.json()
-            
-            # 3. Gerar etiquetas (opcional, pode ser async, mas faremos aqui conforme escopo)
-            resp_generate = cls.request_with_auth("POST", "/api/v2/me/shipment/generate", json={"orders": [str(order_me_id)]})
-            
-            # The tracking code won't change after generation, we can get it from the cart creation response
-            # or checkout. Actually, checkout response rarely returns tracking code directly for all services,
-            # we need to get tracking by parsing the object or hitting tracking api.
-            # Usually order_me['tracking'] gives the tracking hash.
-            tracking = order_me.get("tracking")
-            return {
-                "melhorenvio_id": order_me_id,
-                "tracking_code": tracking,
-                "generated": resp_generate.status_code == 200
-            }
-        
-        print(f"Error Checkout ME: {resp_checkout.text}")
-        return None
+    return resultado

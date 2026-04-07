@@ -12,6 +12,8 @@ packages = ["cargo", "libiconv", "libxcrypt", "rustc"]
 ACCESS_TOKEN_EXPIRE_MINUTES = "60"
 ALGORITHM = "HS256"
 SECRET_KEY = "your-secret-key-change-this-in-production-via-secrets-tab"
+MELHORENVIO_CEP_ORIGEM = "02969000"
+MELHORENVIO_URL = "https://www.melhorenvio.com.br"
 
 [workflows]
 runButton = "Project"
