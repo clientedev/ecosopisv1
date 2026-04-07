@@ -1,3 +1,10 @@
+"""
+Melhor Envio Service — Fluxo completo de logística pós-pagamento.
+
+Fluxo:
+  selecionar_servico → criar_envio → comprar_etiqueta → gerar_etiqueta → obter_tracking
+"""
+
 import os
 import time
 import logging
@@ -8,13 +15,22 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN", "")
-MELHORENVIO_URL = os.getenv("MELHORENVIO_URL", "https://www.melhorenvio.com.br").rstrip("/")
+MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN", "").strip()
+# A API real do Melhor Envio roda em www.melhorenvio.com.br
+_env_url = os.getenv("MELHORENVIO_URL", "https://www.melhorenvio.com.br")
+# Normaliza: api.melhorenvio.com.br → www.melhorenvio.com.br
+if "api.melhorenvio.com.br" in _env_url:
+    _env_url = _env_url.replace("api.melhorenvio.com.br", "www.melhorenvio.com.br")
+MELHORENVIO_URL = _env_url.rstrip("/")
 CEP_ORIGEM = os.getenv("MELHORENVIO_CEP_ORIGEM", "02969000").replace("-", "")
 
 MAX_RETRIES = 3
-RETRY_DELAY = 2  # seconds
+RETRY_DELAY = 2  # segundos entre tentativas
 
+
+# ---------------------------------------------------------------------------
+# Helpers internos
+# ---------------------------------------------------------------------------
 
 def _headers() -> dict:
     return {
@@ -26,12 +42,16 @@ def _headers() -> dict:
 
 
 def _request_with_retry(method: str, endpoint: str, **kwargs) -> requests.Response:
+    """Faz uma requisição HTTP com até MAX_RETRIES tentativas em caso de falha de rede."""
     url = f"{MELHORENVIO_URL}{endpoint}"
     last_exc = None
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             logger.info(f"[ME] {method.upper()} {url} (tentativa {attempt})")
-            resp = requests.request(method, url, headers=_headers(), timeout=30, **kwargs)
+            resp = requests.request(
+                method, url, headers=_headers(), timeout=30,
+                allow_redirects=True, **kwargs
+            )
             logger.info(f"[ME] Status: {resp.status_code}")
             return resp
         except Exception as exc:
@@ -43,23 +63,74 @@ def _request_with_retry(method: str, endpoint: str, **kwargs) -> requests.Respon
 
 
 # ---------------------------------------------------------------------------
-# 1. Criar envio no carrinho → retorna shipment_id
+# 1. Selecionar serviço mais barato
 # ---------------------------------------------------------------------------
-def criar_envio(pedido) -> str:
+def selecionar_servico(cep_destino: str, valor: float, produto_nome: str = "Produto") -> int:
     """
-    Adiciona o envio no carrinho do Melhor Envio.
-    Retorna o shipment_id (id do pedido criado no carrinho).
+    Calcula os fretes disponíveis via /api/v2/me/shipment/calculate
+    e retorna o ID do serviço mais barato.
+    """
+    cep = cep_destino.replace("-", "").strip()
+    payload = {
+        "from": {"postal_code": CEP_ORIGEM},
+        "to": {"postal_code": cep},
+        "products": [
+            {
+                "id": "1",
+                "width": 15,
+                "height": 5,
+                "length": 20,
+                "weight": 1,
+                "insurance_value": max(float(valor), 1.0),
+                "quantity": 1,
+            }
+        ],
+        "options": {"receipt": False, "own_hand": False},
+    }
+
+    resp = _request_with_retry("POST", "/api/v2/me/shipment/calculate", json=payload)
+
+    if resp.status_code != 200:
+        raise RuntimeError(
+            f"Erro ao calcular frete: {resp.status_code} – {resp.text[:300]}"
+        )
+
+    all_options = resp.json()
+    valid_options = [o for o in all_options if "error" not in o and o.get("price")]
+    if not valid_options:
+        erros = [o.get("error") or o.get("name") for o in all_options[:3]]
+        raise RuntimeError(f"Nenhuma opção de frete válida. Detalhes: {erros}")
+
+    cheapest = min(valid_options, key=lambda o: float(o["price"]))
+    logger.info(
+        f"[ME] Serviço mais barato: {cheapest.get('name')} "
+        f"(R$ {cheapest.get('price')}) id={cheapest.get('id')}"
+    )
+    return cheapest["id"]
+
+
+# ---------------------------------------------------------------------------
+# 2. Criar envio no carrinho
+# ---------------------------------------------------------------------------
+def criar_envio(pedido, service_id: int) -> tuple[str, str]:
+    """
+    POST /api/v2/me/cart — Adiciona o envio ao carrinho do Melhor Envio.
+
+    Retorna: (shipment_id, tracking_code)
+      - shipment_id: ID do envio no Melhor Envio
+      - tracking_code: código de rastreio (pode estar disponível já aqui)
     """
     cep_destino = str(pedido.cep_cliente).replace("-", "").strip()
 
     payload = {
+        "service": service_id,
         "from": {"postal_code": CEP_ORIGEM},
         "to": {"postal_code": cep_destino},
         "products": [
             {
-                "name": pedido.produto_nome or "Produto ECOSOPIS",
+                "name": (pedido.produto_nome or "Produto ECOSOPIS")[:100],
                 "quantity": 1,
-                "unitary_value": float(pedido.valor),
+                "unitary_value": max(float(pedido.valor), 0.01),
                 "weight": 1,
                 "length": 20,
                 "height": 5,
@@ -77,7 +148,7 @@ def criar_envio(pedido) -> str:
         "options": {
             "receipt": False,
             "own_hand": False,
-            "insurance_value": float(pedido.valor),
+            "insurance_value": max(float(pedido.valor), 0.01),
             "non_commercial": True,
         },
     }
@@ -85,133 +156,157 @@ def criar_envio(pedido) -> str:
     resp = _request_with_retry("POST", "/api/v2/me/cart", json=payload)
 
     if resp.status_code not in (200, 201):
-        raise RuntimeError(f"Erro ao criar envio: {resp.status_code} – {resp.text}")
+        raise RuntimeError(
+            f"Erro ao criar envio no carrinho: {resp.status_code} – {resp.text[:300]}"
+        )
 
     data = resp.json()
-    shipment_id = data.get("id")
+    shipment_id = str(data.get("id", ""))
     if not shipment_id:
         raise RuntimeError(f"Resposta inesperada ao criar envio: {data}")
 
-    logger.info(f"[ME] Envio criado. shipment_id={shipment_id}")
-    return str(shipment_id)
+    # O Melhor Envio já retorna o tracking code no momento do cart
+    tracking_code = str(data.get("tracking") or "")
 
-
-# ---------------------------------------------------------------------------
-# 2. Selecionar o serviço mais barato para um CEP
-# ---------------------------------------------------------------------------
-def selecionar_servico(cep_destino: str, valor: float) -> int:
-    """
-    Calcula fretes disponíveis e retorna o ID do serviço mais barato.
-    """
-    cep = cep_destino.replace("-", "").strip()
-    payload = {
-        "from": {"postal_code": CEP_ORIGEM},
-        "to": {"postal_code": cep},
-        "products": [
-            {
-                "id": "x",
-                "width": 15,
-                "height": 5,
-                "length": 20,
-                "weight": 1,
-                "insurance_value": float(valor),
-                "quantity": 1,
-            }
-        ],
-        "options": {"receipt": False, "own_hand": False},
-    }
-
-    resp = _request_with_retry("POST", "/api/v2/me/shipment/calculate", json=payload)
-
-    if resp.status_code != 200:
-        raise RuntimeError(f"Erro ao calcular frete: {resp.status_code} – {resp.text}")
-
-    options = [o for o in resp.json() if "error" not in o and o.get("price")]
-    if not options:
-        raise RuntimeError("Nenhuma opção de frete disponível.")
-
-    cheapest = min(options, key=lambda o: float(o["price"]))
-    logger.info(f"[ME] Serviço mais barato: {cheapest['name']} (R$ {cheapest['price']}) id={cheapest['id']}")
-    return cheapest["id"]
+    logger.info(
+        f"[ME] Envio criado. shipment_id={shipment_id}, tracking={tracking_code}"
+    )
+    return shipment_id, tracking_code
 
 
 # ---------------------------------------------------------------------------
 # 3. Comprar etiqueta (checkout do carrinho)
 # ---------------------------------------------------------------------------
-def comprar_etiqueta(shipment_id: str) -> bool:
+def comprar_etiqueta(shipment_id: str) -> dict:
     """
-    Executa o checkout do envio no carrinho, comprando a etiqueta.
+    POST /api/v2/me/shipment/checkout — Efetua a compra/checkout da etiqueta.
+    Retorna o dict de resposta da API.
     """
     payload = {"orders": [str(shipment_id)]}
     resp = _request_with_retry("POST", "/api/v2/me/shipment/checkout", json=payload)
 
     if resp.status_code not in (200, 201):
-        raise RuntimeError(f"Erro ao comprar etiqueta: {resp.status_code} – {resp.text}")
+        raise RuntimeError(
+            f"Erro ao comprar etiqueta: {resp.status_code} – {resp.text[:300]}"
+        )
 
+    data = resp.json()
     logger.info(f"[ME] Etiqueta comprada. shipment_id={shipment_id}")
-    return True
+    return data
 
 
 # ---------------------------------------------------------------------------
-# 4. Gerar etiqueta (gera o PDF)
+# 4. Gerar etiqueta e obter URL do PDF
 # ---------------------------------------------------------------------------
 def gerar_etiqueta(shipment_id: str) -> str:
     """
-    Solicita a geração da etiqueta e retorna a URL do PDF.
+    1. POST /api/v2/me/shipment/generate — dispara a geração
+    2. GET  /api/v2/me/shipment/print    — retorna a URL do PDF
+
+    Retorna a URL da etiqueta em PDF.
     """
-    # Primeiro, dispara a geração
-    payload = {"orders": [str(shipment_id)]}
-    resp_gen = _request_with_retry("POST", "/api/v2/me/shipment/generate", json=payload)
+    # Passo 1: gerar
+    gen_payload = {"orders": [str(shipment_id)]}
+    resp_gen = _request_with_retry("POST", "/api/v2/me/shipment/generate", json=gen_payload)
 
     if resp_gen.status_code not in (200, 201):
-        logger.warning(f"[ME] Gerar etiqueta retornou {resp_gen.status_code}: {resp_gen.text}")
+        logger.warning(
+            f"[ME] generate retornou {resp_gen.status_code}: {resp_gen.text[:200]}"
+        )
+    else:
+        logger.info(f"[ME] Etiqueta gerada para shipment_id={shipment_id}")
 
-    # Depois, busca a URL de impressão
-    params = {"mode": "public", "orders[]": str(shipment_id)}
-    resp_print = _request_with_retry("GET", "/api/v2/me/shipment/print", params=params)
+    # Passo 2: obter URL de impressão
+    # O endpoint GET /print redireciona para o PDF. Capturamos a URL final.
+    print_params = {"mode": "public", "orders[]": str(shipment_id)}
+    resp_print = _request_with_retry(
+        "GET", "/api/v2/me/shipment/print", params=print_params
+    )
 
+    # Se redirecionou, a URL final é a do PDF
+    if resp_print.url and resp_print.url != f"{MELHORENVIO_URL}/api/v2/me/shipment/print":
+        if resp_print.url.endswith(".pdf") or "pdf" in resp_print.url.lower() or "print" in resp_print.url:
+            logger.info(f"[ME] URL etiqueta (redirect): {resp_print.url}")
+            return resp_print.url
+
+    # Tenta parsear JSON
     if resp_print.status_code == 200:
-        data = resp_print.json()
-        url = data.get("url") or data.get("link") or data.get("pdf")
-        if url:
-            logger.info(f"[ME] URL etiqueta: {url}")
-            return url
+        try:
+            data = resp_print.json()
+            url = (
+                data.get("url")
+                or data.get("link")
+                or data.get("pdf")
+                or data.get("print_url")
+            )
+            if url:
+                logger.info(f"[ME] URL etiqueta (JSON): {url}")
+                return url
+        except Exception:
+            # Pode ser o próprio conteúdo do PDF em bytes — salva localmente
+            if resp_print.content and len(resp_print.content) > 100:
+                import os as _os
+                _os.makedirs("static/labels", exist_ok=True)
+                fname = f"static/labels/etiqueta-me-{shipment_id}.pdf"
+                with open(fname, "wb") as f:
+                    f.write(resp_print.content)
+                local_url = f"/static/labels/etiqueta-me-{shipment_id}.pdf"
+                logger.info(f"[ME] Etiqueta salva localmente: {local_url}")
+                return local_url
 
-    # Fallback: tenta obter pelo endpoint de preview
-    resp_prev = _request_with_retry("GET", "/api/v2/me/shipment/preview", params=params)
-    if resp_prev.status_code == 200:
-        data = resp_prev.json()
-        url = data.get("url") or data.get("link")
-        if url:
-            return url
-
-    # Retorna URL construída manualmente como último recurso
-    fallback_url = f"{MELHORENVIO_URL}/envios/imprimir/{shipment_id}"
-    logger.warning(f"[ME] Usando URL fallback: {fallback_url}")
-    return fallback_url
+    # Fallback: URL canônica do Melhor Envio para o envio
+    fallback = f"{MELHORENVIO_URL}/envios/imprimir/{shipment_id}"
+    logger.warning(f"[ME] Usando URL fallback de impressão: {fallback}")
+    return fallback
 
 
 # ---------------------------------------------------------------------------
 # 5. Obter código de rastreio
 # ---------------------------------------------------------------------------
-def obter_tracking(shipment_id: str) -> str:
+def obter_tracking(shipment_id: str, tracking_from_cart: str = "") -> str:
     """
-    Retorna o código de rastreio para o shipment_id informado.
+    Tenta obter o código de rastreio via API.
+    Usa o tracking_from_cart como fallback (já retornado no momento do cart).
     """
-    resp = _request_with_retry("GET", f"/api/v2/me/shipment/tracking?orders[]={shipment_id}")
+    # Primeiro tenta via API de tracking
+    try:
+        resp = _request_with_retry(
+            "GET",
+            "/api/v2/me/shipment/tracking",
+            params={"orders[]": str(shipment_id)},
+        )
 
-    if resp.status_code == 200:
-        data = resp.json()
-        # A resposta pode ser um dict com o id como chave
-        if isinstance(data, dict):
-            item = data.get(str(shipment_id), {})
-            code = item.get("tracking") or item.get("code")
-            if code:
-                return str(code)
-        elif isinstance(data, list) and data:
-            return str(data[0].get("tracking") or data[0].get("code", ""))
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, dict):
+                # Resposta: { "shipment_id": { "tracking": "...", ... } }
+                item = data.get(str(shipment_id)) or next(iter(data.values()), {})
+                code = (
+                    item.get("tracking")
+                    or item.get("code")
+                    or item.get("tracking_code")
+                )
+                if code:
+                    logger.info(f"[ME] Tracking obtido via API: {code}")
+                    return str(code)
+            elif isinstance(data, list) and data:
+                code = (
+                    data[0].get("tracking")
+                    or data[0].get("code")
+                    or data[0].get("tracking_code")
+                )
+                if code:
+                    logger.info(f"[ME] Tracking obtido via API (list): {code}")
+                    return str(code)
+    except Exception as exc:
+        logger.warning(f"[ME] Erro ao obter tracking via API: {exc}")
 
-    logger.warning(f"[ME] Não foi possível obter tracking para shipment_id={shipment_id}")
+    # Fallback: usa o tracking que já veio na criação do cart
+    if tracking_from_cart:
+        logger.info(f"[ME] Usando tracking do cart: {tracking_from_cart}")
+        return tracking_from_cart
+
+    logger.warning(f"[ME] Tracking não encontrado para shipment_id={shipment_id}")
     return ""
 
 
@@ -221,20 +316,24 @@ def obter_tracking(shipment_id: str) -> str:
 def processar_envio(pedido, db) -> dict:
     """
     Executa o fluxo completo de envio após pagamento confirmado:
-      1. Status → PROCESSANDO_ENVIO
-      2. Criar envio no carrinho
-      3. Selecionar serviço mais barato
-      4. Comprar etiqueta
-      5. Gerar etiqueta (PDF)
-      6. Obter tracking
-      7. Salvar tracking_code e etiqueta_url
-      8. Status → ENVIADO
 
-    Em caso de falha, status → ERRO_ENVIO e loga o erro.
+      1. Status → PROCESSANDO_ENVIO
+      2. selecionar_servico → service_id mais barato
+      3. criar_envio         → shipment_id + tracking inicial
+      4. comprar_etiqueta    → checkout/compra
+      5. gerar_etiqueta      → URL do PDF
+      6. obter_tracking      → código de rastreio definitivo
+      7. Salvar tracking_code no pedido
+      8. Salvar etiqueta_url no pedido
+      9. Status → ENVIADO
+
+    Em caso de falha: status → ERRO_ENVIO, erro logado.
+    Retorna dict com resultado completo.
     """
     resultado = {
         "pedido_id": pedido.id,
         "status": None,
+        "service_id": None,
         "shipment_id": None,
         "tracking_code": None,
         "etiqueta_url": None,
@@ -242,49 +341,56 @@ def processar_envio(pedido, db) -> dict:
     }
 
     try:
-        # 1. Atualizar status
+        # Passo 1: status → PROCESSANDO_ENVIO
         pedido.status = "PROCESSANDO_ENVIO"
         db.commit()
         logger.info(f"[ENVIO] Pedido {pedido.id} → PROCESSANDO_ENVIO")
 
-        # 2. Criar envio no carrinho
-        shipment_id = criar_envio(pedido)
+        # Passo 2: selecionar serviço mais barato
+        service_id = selecionar_servico(
+            pedido.cep_cliente, pedido.valor, pedido.produto_nome
+        )
+        resultado["service_id"] = service_id
+        logger.info(f"[ENVIO] Service ID selecionado: {service_id}")
+
+        # Passo 3: criar envio no carrinho com o service_id
+        shipment_id, tracking_from_cart = criar_envio(pedido, service_id)
         pedido.shipment_id = shipment_id
         db.commit()
         resultado["shipment_id"] = shipment_id
+        logger.info(f"[ENVIO] Envio criado. shipment_id={shipment_id}")
 
-        # 3. (Opcional) Selecionar serviço mais barato — já embutido no cart via service_id
-        # Aqui apenas logamos a opção mais barata para fins de auditoria
-        try:
-            selecionar_servico(pedido.cep_cliente, pedido.valor)
-        except Exception as e:
-            logger.warning(f"[ENVIO] selecionar_servico não-crítico: {e}")
-
-        # 4. Comprar etiqueta
+        # Passo 4: comprar etiqueta (checkout)
         comprar_etiqueta(shipment_id)
+        logger.info(f"[ENVIO] Etiqueta comprada.")
 
-        # 5. Gerar etiqueta
+        # Passo 5: gerar etiqueta e obter URL do PDF
         etiqueta_url = gerar_etiqueta(shipment_id)
         pedido.etiqueta_url = etiqueta_url
         db.commit()
         resultado["etiqueta_url"] = etiqueta_url
+        logger.info(f"[ENVIO] Etiqueta gerada: {etiqueta_url}")
 
-        # 6. Obter tracking
-        tracking_code = obter_tracking(shipment_id)
+        # Passo 6: obter código de rastreio definitivo
+        tracking_code = obter_tracking(shipment_id, tracking_from_cart)
         pedido.tracking_code = tracking_code
         resultado["tracking_code"] = tracking_code
+        logger.info(f"[ENVIO] Tracking: {tracking_code}")
 
-        # 8. Status → ENVIADO
+        # Passo 9: status → ENVIADO
         pedido.status = "ENVIADO"
         db.commit()
         resultado["status"] = "ENVIADO"
 
         logger.info(
-            f"[ENVIO] Pedido {pedido.id} → ENVIADO | tracking={tracking_code} | etiqueta={etiqueta_url}"
+            f"[ENVIO] ✅ Pedido {pedido.id} → ENVIADO | "
+            f"shipment={shipment_id} | tracking={tracking_code} | etiqueta={etiqueta_url}"
         )
 
     except Exception as exc:
-        logger.error(f"[ENVIO] Falha ao processar envio do pedido {pedido.id}: {exc}", exc_info=True)
+        logger.error(
+            f"[ENVIO] ❌ Falha no envio do pedido {pedido.id}: {exc}", exc_info=True
+        )
         try:
             pedido.status = "ERRO_ENVIO"
             db.commit()
@@ -301,29 +407,25 @@ def processar_envio(pedido, db) -> dict:
 # ---------------------------------------------------------------------------
 class MelhorEnvioV2Service:
     """
-    Shim de compatibilidade que adapta a interface antiga (class-based) para
-    as novas funções do serviço refatorado.
+    Shim de compatibilidade com a interface legada (class-based).
     """
 
     @staticmethod
-    def calcular_frete(cep_destino: str, peso: float, comprimento: int, altura: int, largura: int):
+    def calcular_frete(cep_destino: str, peso: float = 1, comprimento: int = 20,
+                       altura: int = 5, largura: int = 15):
         try:
-            return selecionar_servico(cep_destino, 0)
+            sid = selecionar_servico(cep_destino, 0)
+            return [{"id": sid}]
         except Exception:
             return []
 
     @staticmethod
     def criar_envio(pedido_id: int, user_info: dict, items: list, shipping_service_id: int):
-        """
-        Interface legada usada por order_service.py.
-        Cria envio usando os dados do user_info e items fornecidos.
-        """
+        """Interface legada: cria envio completo a partir de user_info e items."""
         from types import SimpleNamespace
 
         total_value = sum(i.get("price", 0) * i.get("quantity", 1) for i in items)
-        produto_nome = "Produto ECOSOPIS"
-        if items:
-            produto_nome = items[0].get("name") or produto_nome
+        produto_nome = (items[0].get("name") if items else None) or "Produto ECOSOPIS"
 
         pedido_ns = SimpleNamespace(
             id=pedido_id,
@@ -333,10 +435,14 @@ class MelhorEnvioV2Service:
         )
 
         try:
-            shipment_id = criar_envio(pedido_ns)
+            # Usa o service_id fornecido, ou seleciona automaticamente
+            service_id = int(shipping_service_id) if shipping_service_id else selecionar_servico(
+                pedido_ns.cep_cliente, pedido_ns.valor
+            )
+            shipment_id, tracking_from_cart = criar_envio(pedido_ns, service_id)
             comprar_etiqueta(shipment_id)
             etiqueta_url = gerar_etiqueta(shipment_id)
-            tracking_code = obter_tracking(shipment_id)
+            tracking_code = obter_tracking(shipment_id, tracking_from_cart)
             return {
                 "melhorenvio_id": shipment_id,
                 "tracking_code": tracking_code,
@@ -344,5 +450,5 @@ class MelhorEnvioV2Service:
                 "generated": bool(etiqueta_url),
             }
         except Exception as exc:
-            logger.error(f"[MelhorEnvioV2Service.criar_envio] Erro: {exc}", exc_info=True)
+            logger.error(f"[MelhorEnvioV2Service] Erro: {exc}", exc_info=True)
             return None
