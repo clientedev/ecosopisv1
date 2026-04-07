@@ -7,7 +7,7 @@ class OrderService:
     def __init__(self, repo: OrderRepository):
         self.repo = repo
 
-    def create_checkout(self, user_id: int, items: List[dict], shipping_price: float, shipping_method_id: str, address_info: dict, return_url: str = None, coupon_code: str = None, discount_amount: float = 0.0):
+    def create_checkout(self, user_id: int, items: List[dict], shipping_price: float, shipping_method_id: str, address_info: dict, return_url: str = None, coupon_code: str = None, discount_amount: float = 0.0, customer_cpf: str = None):
         """
         1. Calcula o total
         2. Cria o pedido "pending"
@@ -20,6 +20,9 @@ class OrderService:
         order_total = final_product_total + shipping_price
         
         # 1. & 2. Create Order
+        # Extract customer_cpf from address_info if not passed directly
+        resolved_cpf = customer_cpf or address_info.get("customer_cpf") or None
+
         order = self.repo.create_order(
             user_id=user_id,
             total=order_total,
@@ -29,7 +32,8 @@ class OrderService:
             address=address_info,
             status="pending",
             coupon_code=coupon_code,
-            discount_amount=discount_amount
+            discount_amount=discount_amount,
+            customer_cpf=resolved_cpf
         )
         
         # Save custom properties like address

@@ -26,6 +26,16 @@ export default function CarrinhoPage() {
     const [cep, setCep] = useState("");
     const [customerName, setCustomerName] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
+    const [customerCpf, setCustomerCpf] = useState("");
+
+    const formatCpf = (value: string) => {
+        const digits = value.replace(/\D/g, "").slice(0, 11);
+        if (digits.length <= 3) return digits;
+        if (digits.length <= 6) return `${digits.slice(0,3)}.${digits.slice(3)}`;
+        if (digits.length <= 9) return `${digits.slice(0,3)}.${digits.slice(3,6)}.${digits.slice(6)}`;
+        return `${digits.slice(0,3)}.${digits.slice(3,6)}.${digits.slice(6,9)}-${digits.slice(9)}`;
+    };
+
     const [address, setAddress] = useState<any>({
         street: "",
         number: "",
@@ -295,7 +305,8 @@ export default function CarrinhoPage() {
                         ...address, 
                         postal_code: cep.replace(/\D/g, ""),
                         customer_name: customerName,
-                        customer_phone: customerPhone
+                        customer_phone: customerPhone,
+                        customer_cpf: customerCpf.replace(/\D/g, "")
                     },
                     return_url: window.location.origin,
                     coupon_code: appliedCoupon?.code
@@ -411,6 +422,8 @@ export default function CarrinhoPage() {
                                     <div className={styles.inputGroup}>
                                         <input type="text" placeholder="Nome Completo" className={styles.inputField} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
                                         <input type="text" placeholder="WhatsApp / Telefone" className={styles.inputField} value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+                                        <input type="text" placeholder="CPF (Ex: 000.000.000-00)" className={styles.inputField} value={customerCpf} onChange={(e) => setCustomerCpf(formatCpf(e.target.value))} maxLength={14} inputMode="numeric" />
+                                        <small style={{ color: "#888", fontSize: "0.78rem", marginTop: "-4px" }}>Necessário para emissão da etiqueta de envio</small>
                                     </div>
                                 </div>
 
