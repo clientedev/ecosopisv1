@@ -330,8 +330,13 @@ export default function AdminPedidosPage() {
 
                 <header className={pedidoStyles.headerRow}>
                     <div className={pedidoStyles.titleSection}>
-                        <h1>Gestão de Pedidos</h1>
-                        <p>Gerencie vendas e gere etiquetas via Melhor Envio.</p>
+                        <div className={pedidoStyles.titleIcon}>
+                            <Package size={26} color="white" strokeWidth={1.8} />
+                        </div>
+                        <div className={pedidoStyles.titleText}>
+                            <h1>Gestão de Pedidos</h1>
+                            <p>Gerencie vendas e gere etiquetas via Melhor Envio.</p>
+                        </div>
                     </div>
                     <button onClick={fetchOrders} className={pedidoStyles.btnAction + " " + pedidoStyles.btnSecondary}>
                         <RefreshCw size={14} /> Atualizar
