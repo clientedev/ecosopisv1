@@ -335,7 +335,7 @@ export default function ProductTechnicalPage() {
                         className={styles.footerLogo}
                     />
                 </div>
-                &copy; {new Date().getFullYear()} Ecosopis Cosmética Natural. Todos os direitos reservados.<br />
+                &copy; {new Date().getFullYear()} Ecosopis Cosmético Natural. Todos os direitos reservados.<br />
                 Tecnologia e Natureza em equilíbrio para sua pele.
             </footer>
         </div>

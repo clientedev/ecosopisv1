@@ -604,15 +604,6 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={handleExportZpl}
-                                            className={styles.editBtn}
-                                            style={{ backgroundColor: '#374151', color: 'white', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, height: 'auto' }}
-                                            title="Exportar etiqueta para impressoras Zebra (.zpl)"
-                                        >
-                                            <Download size={16} /> Exportar ZPL
-                                        </button>
-                                        <button
-                                            type="button"
                                             onClick={handleRegenerateQR}
                                             disabled={regeneratingQR}
                                             className={styles.editBtn}

@@ -208,14 +208,6 @@ export default function AdminDashboard() {
                                                 <Download size={14} /> QR
                                             </button>
                                             <button
-                                                onClick={() => handleExportZpl(p.id, p.slug)}
-                                                className={styles.editBtn}
-                                                style={{ backgroundColor: '#374151', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
-                                                title="Exportar etiqueta ZPL"
-                                            >
-                                                <Download size={14} /> ZPL
-                                            </button>
-                                            <button
                                                 className={styles.editBtn}
                                                 onClick={() => setEditingProduct(p)}
                                             >
