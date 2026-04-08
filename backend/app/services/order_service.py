@@ -120,9 +120,16 @@ class OrderService:
         if not order or order.status != "pending" or not order.stripe_session_id:
             return order
 
-        session = StripeService.get_checkout_session(order.stripe_session_id)
-        if session and session.payment_status == "paid":
-            print(f"Sincronização: Pedido {order_id} detectado como pago na Stripe.")
-            return self.handle_payment_success(order_id)
+        try:
+            session = StripeService.get_checkout_session(order.stripe_session_id)
+            if session and session.payment_status == "paid":
+                print(f"Sincronização: Pedido {order_id} detectado como pago na Stripe.")
+                return self.handle_payment_success(order_id)
+        except Exception as e:
+            err_str = str(e)
+            if "No such checkout.session" in err_str or "no such" in err_str.lower():
+                pass
+            else:
+                print(f"Erro ao sincronizar pedido {order_id} com Stripe: {e}")
         
         return order

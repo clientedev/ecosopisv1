@@ -256,9 +256,45 @@ async def generate_label(
     resultado = me_service.processar_envio(pedido, db)
 
     if resultado.get("erro"):
+        erro_str = resultado["erro"]
+        is_network_error = any(kw in erro_str for kw in [
+            "NameResolution", "Failed to resolve", "Max retries exceeded",
+            "Connection refused", "Name or service not known", "ConnectionError",
+            "Timeout", "RemoteDisconnected", "SSL", "timed out"
+        ])
+
+        if is_network_error:
+            try:
+                pdf_bytes = _simulate_label_pdf(order)
+                label_dir = "static/labels"
+                os.makedirs(label_dir, exist_ok=True)
+                label_filename = f"etiqueta-pedido-{order_id}.pdf"
+                label_path = os.path.join(label_dir, label_filename)
+                with open(label_path, "wb") as f:
+                    f.write(pdf_bytes)
+                label_url = f"/static/labels/{label_filename}"
+
+                order.etiqueta_url = label_url
+                order.status = "paid"
+                db.commit()
+                db.refresh(order)
+
+                return {
+                    "order_id": order_id,
+                    "label_url": label_url,
+                    "tracking_code": None,
+                    "shipment_id": None,
+                    "status": "paid",
+                    "reused": False,
+                    "simulated": True,
+                    "warning": "Etiqueta provisória gerada localmente. O serviço Melhor Envio está temporariamente indisponível. Tente reprocessar quando o serviço estiver estável."
+                }
+            except Exception as sim_exc:
+                logger.error(f"[LABEL] Falha também no fallback simulado: {sim_exc}")
+
         raise HTTPException(
             status_code=422,
-            detail=f"Erro Melhor Envio: {resultado['erro']}"
+            detail=f"Erro Melhor Envio: {erro_str}"
         )
 
     return {
@@ -268,6 +304,7 @@ async def generate_label(
         "shipment_id": resultado.get("shipment_id"),
         "status": resultado.get("status"),
         "reused": False,
+        "simulated": False,
     }
 
 @router.get("/label/{order_id}")

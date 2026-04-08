@@ -1,0 +1,14 @@
+[ME] Tentativa 1 falhou: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))
+[ME] Tentativa 2 falhou: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))
+[ME] Tentativa 3 falhou: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))
+[ENVIO] ❌ Pedido 27: Falha após 3 tentativas: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))
+Traceback (most recent call last):
+  File "/app/backend/app/services/melhorenvio_service.py", line 420, in processar_envio
+    service_id = selecionar_servico(pedido.cep_cliente, pedido.valor, pedido.produto_nome)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/app/services/melhorenvio_service.py", line 144, in selecionar_servico
+    resp = _request_with_retry("POST", "/api/v2/me/shipment/calculate", json=payload)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/app/services/melhorenvio_service.py", line 120, in _request_with_retry
+    raise RuntimeError(f"Falha após {MAX_RETRIES} tentativas: {last_exc}")
+RuntimeError: Falha após 3 tentativas: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))

@@ -98,7 +98,8 @@ export default function AdminPedidosPage() {
 
     const parseMEError = (detail: string): { title: string; message: string } => {
         const raw = detail || "";
-        if (raw.toLowerCase().includes("saldo") && raw.toLowerCase().includes("insuficiente")) {
+        const lower = raw.toLowerCase();
+        if (lower.includes("saldo") && lower.includes("insuficiente")) {
             const match = raw.match(/R\$\s*[\d.,]+/g);
             const balanceStr = match ? match[0] : "insuficiente";
             return {
@@ -106,16 +107,32 @@ export default function AdminPedidosPage() {
                 message: `Seu saldo atual (${balanceStr}) não cobre o valor da etiqueta. Acesse a carteira da Melhor Envio para adicionar créditos e tente novamente.`
             };
         }
-        if (raw.toLowerCase().includes("token") || raw.toLowerCase().includes("unauthorized") || raw.includes("401")) {
-            return { title: "Token Melhor Envio inválido", message: "O token de autenticação da Melhor Envio está inválido ou expirado. Atualize o token nas configurações." };
+        if (lower.includes("token") || lower.includes("unauthorized") || raw.includes("401")) {
+            return { title: "Token Melhor Envio inválido", message: "O token de autenticação da Melhor Envio está inválido ou expirado. Atualize o token nas configurações do sistema." };
         }
-        if (raw.toLowerCase().includes("cep") || raw.toLowerCase().includes("postal")) {
-            return { title: "CEP inválido ou não encontrado", message: "O CEP do destinatário não foi reconhecido pela Melhor Envio. Verifique o endereço do pedido." };
+        if (lower.includes("cep") || lower.includes("postal")) {
+            return { title: "CEP inválido ou não encontrado", message: "O CEP do destinatário não foi reconhecido pela Melhor Envio. Verifique o endereço do pedido antes de tentar novamente." };
         }
-        if (raw.toLowerCase().includes("status") && raw.toLowerCase().includes("não pode")) {
+        if (lower.includes("status") && lower.includes("não pode")) {
             return { title: "Status incompatível", message: "Apenas pedidos com status 'Pago' ou com erro anterior podem ter etiqueta gerada." };
         }
-        return { title: "Erro ao gerar etiqueta", message: raw.replace(/^Erro Melhor Envio:\s*/i, "").substring(0, 300) };
+        if (
+            lower.includes("nameresolution") || lower.includes("failed to resolve") ||
+            lower.includes("max retries exceeded") || lower.includes("name or service not known") ||
+            lower.includes("connectionerror") || lower.includes("connection refused") ||
+            lower.includes("timed out") || lower.includes("remotedisconnected") ||
+            lower.includes("timeout")
+        ) {
+            return {
+                title: "Serviço Melhor Envio temporariamente indisponível",
+                message: "Não foi possível conectar ao serviço Melhor Envio no momento. Isso pode ser uma instabilidade temporária. Aguarde alguns minutos e tente novamente. Se o problema persistir, verifique se o token da Melhor Envio está configurado corretamente."
+            };
+        }
+        if (lower.includes("nenhuma opção de frete")) {
+            return { title: "Nenhuma opção de frete disponível", message: "A Melhor Envio não retornou opções de frete para o CEP deste pedido. Verifique o endereço e tente novamente." };
+        }
+        const cleanedMessage = raw.replace(/^Erro Melhor Envio:\s*/i, "").substring(0, 250);
+        return { title: "Não foi possível gerar a etiqueta", message: cleanedMessage || "Ocorreu um erro inesperado. Tente novamente em instantes." };
     };
 
     const handleClearAll = async () => {
@@ -174,7 +191,19 @@ export default function AdminPedidosPage() {
                             shipment: data.shipment_id || ""
                         }
                     }));
-                    setNotification({ type: "success", title: "Etiqueta gerada com sucesso!", message: `Pedido #${orderId} · Rastreio: ${data.tracking_code || "disponível em breve"}` });
+                    if (data.simulated) {
+                        setNotification({
+                            type: "warning",
+                            title: "Etiqueta provisória gerada",
+                            message: `Pedido #${orderId}: foi gerada uma etiqueta local provisória pois o serviço Melhor Envio está temporariamente indisponível. Você pode baixá-la agora e reprocessar pelo Melhor Envio assim que o serviço estiver estável.`
+                        });
+                    } else {
+                        setNotification({
+                            type: "success",
+                            title: "Etiqueta gerada com sucesso!",
+                            message: `Pedido #${orderId} · Rastreio: ${data.tracking_code || "disponível em breve"}`
+                        });
+                    }
                     window.open(data.label_url, "_blank");
                 }
             } else {

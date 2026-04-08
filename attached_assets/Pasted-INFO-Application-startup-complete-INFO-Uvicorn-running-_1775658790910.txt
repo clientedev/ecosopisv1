@@ -1,0 +1,47 @@
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     100.64.0.2:31326 - "GET /settings HTTP/1.1" 307 Temporary Redirect
+INFO:     100.64.0.3:49946 - "GET /products?include_inactive=true HTTP/1.1" 200 OK
+INFO:     100.64.0.4:30836 - "GET /settings/ HTTP/1.1" 200 OK
+INFO:     100.64.0.5:62128 - "GET /auth/me HTTP/1.1" 200 OK
+Erro ao recuperar sessão Stripe: Request req_PiCOiebpr2dHAH: No such checkout.session: cs_test_a1gQLQgfSzQ2R32otRS5OpWm9nDTOfzzX8XxyToZFACdCwXzpbTj7zF1Xq
+Erro ao recuperar sessão Stripe: Request req_D5mkpqsrOeFUvu: No such checkout.session: cs_test_a17UHglBAxXMWcoUd6rRJtiwWfEsx64YNKRVAoXnCEUtFje9Lq6aM3pTAX
+Erro ao recuperar sessão Stripe: Request req_WVipY2jrAFaxYk: No such checkout.session: cs_test_a1Mwt07LkmcR7HPTu33Yk9PkQwmPmvMxMfzyrExsu81s6n8Rkd7xduedNu
+Erro ao recuperar sessão Stripe: Request req_6CCKwpIbaG4Neb: No such checkout.session: cs_test_b1fWKdvzOJIpo4DVp23y5iI9dp9PTaD9Hhwloh1uqNfyBVhpb0hsCHnUPu
+Erro ao recuperar sessão Stripe: Request req_33qB2zGW6vOD1r: No such checkout.session: cs_test_a1gR2LgBmw4LJVNiVKCL8SrwNAh1cWzFHiywK2Xc7ZyEXBgaz7vU3qTLA3
+Erro ao recuperar sessão Stripe: Request req_RWw7gy6yZUAXKw: No such checkout.session: cs_test_a1YZSdH2wDyNK8QCbWRhBWbq6sUixbL7L3o7ljmlQ2d6ZmTrBlr9phyC9C
+Erro ao recuperar sessão Stripe: Request req_ceAjSfcoRrap7B: No such checkout.session: cs_test_b1zq2IjskcHlwIVMm2EdMignvNhqoswOnvPbQCye6ta3ZzCV6M0g30dUXp
+Erro ao recuperar sessão Stripe: Request req_dsuCu7AphAhN4o: No such checkout.session: cs_test_b17jXT8QYbURLvBGNVO4ZbK1G9UFIonC9a88i5WKhY7AoZAccxGMQ4IZjn
+INFO:     100.64.0.6:13702 - "GET /orders/admin/all HTTP/1.1" 200 OK
+INFO:     100.64.0.7:58732 - "GET /orders/admin/all HTTP/1.1" 401 Unauthorized
+INFO:     100.64.0.8:22656 - "GET /settings HTTP/1.1" 307 Temporary Redirect
+INFO:     100.64.0.9:58360 - "GET /settings/ HTTP/1.1" 200 OK
+DEBUG: Login attempt for admin@admin.com
+INFO:     100.64.0.10:45684 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     100.64.0.10:45684 - "GET /products?include_inactive=true HTTP/1.1" 200 OK
+Erro ao recuperar sessão Stripe: Request req_AhxgTf6MgzkUl1: No such checkout.session: cs_test_a1gQLQgfSzQ2R32otRS5OpWm9nDTOfzzX8XxyToZFACdCwXzpbTj7zF1Xq
+Erro ao recuperar sessão Stripe: Request req_uc0EiPTDSdot6E: No such checkout.session: cs_test_a17UHglBAxXMWcoUd6rRJtiwWfEsx64YNKRVAoXnCEUtFje9Lq6aM3pTAX
+Erro ao recuperar sessão Stripe: Request req_NDed7tXJ5J5Ned: No such checkout.session: cs_test_a1Mwt07LkmcR7HPTu33Yk9PkQwmPmvMxMfzyrExsu81s6n8Rkd7xduedNu
+Erro ao recuperar sessão Stripe: Request req_Sw0ez4oa3LD4nf: No such checkout.session: cs_test_b1fWKdvzOJIpo4DVp23y5iI9dp9PTaD9Hhwloh1uqNfyBVhpb0hsCHnUPu
+Erro ao recuperar sessão Stripe: Request req_ma1rwOd4be7DrD: No such checkout.session: cs_test_a1gR2LgBmw4LJVNiVKCL8SrwNAh1cWzFHiywK2Xc7ZyEXBgaz7vU3qTLA3
+Erro ao recuperar sessão Stripe: Request req_NEChCikXsTqMQd: No such checkout.session: cs_test_a1YZSdH2wDyNK8QCbWRhBWbq6sUixbL7L3o7ljmlQ2d6ZmTrBlr9phyC9C
+Erro ao recuperar sessão Stripe: Request req_kNC8gJMhZUVPRt: No such checkout.session: cs_test_b1zq2IjskcHlwIVMm2EdMignvNhqoswOnvPbQCye6ta3ZzCV6M0g30dUXp
+Erro ao recuperar sessão Stripe: Request req_ELxob6DY23DknE: No such checkout.session: cs_test_b17jXT8QYbURLvBGNVO4ZbK1G9UFIonC9a88i5WKhY7AoZAccxGMQ4IZjn
+INFO:     100.64.0.11:11800 - "GET /orders/admin/all HTTP/1.1" 200 OK
+[ME] Tentativa 1 falhou: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))
+[ME] Tentativa 2 falhou: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))
+[ME] Tentativa 3 falhou: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))
+[ENVIO] ❌ Pedido 27: Falha após 3 tentativas: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))
+Traceback (most recent call last):
+  File "/app/backend/app/services/melhorenvio_service.py", line 420, in processar_envio
+    service_id = selecionar_servico(pedido.cep_cliente, pedido.valor, pedido.produto_nome)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/app/services/melhorenvio_service.py", line 144, in selecionar_servico
+    resp = _request_with_retry("POST", "/api/v2/me/shipment/calculate", json=payload)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/app/services/melhorenvio_service.py", line 120, in _request_with_retry
+    raise RuntimeError(f"Falha após {MAX_RETRIES} tentativas: {last_exc}")
+RuntimeError: Falha após 3 tentativas: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))
+INFO:     100.64.0.12:18050 - "POST /shipping/generate-label/27 HTTP/1.1" 422 Unprocessable Entity
+INFO:     100.64.0.12:23986 - "GET /static/labels/etiqueta-pedido-27.pdf HTTP/1.1" 404 Not Found
+INFO:     100.64.0.2:51218 - "GET /static/labels/etiqueta-pedido-27.pdf HTTP/1.1" 404 Not Found

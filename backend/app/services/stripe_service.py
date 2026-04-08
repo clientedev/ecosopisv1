@@ -70,5 +70,7 @@ class StripeService:
         try:
             return stripe.checkout.Session.retrieve(session_id)
         except Exception as e:
-            print(f"Erro ao recuperar sessão Stripe: {e}")
+            err_str = str(e)
+            if "No such checkout.session" not in err_str:
+                print(f"Erro ao recuperar sessão Stripe: {e}")
             return None

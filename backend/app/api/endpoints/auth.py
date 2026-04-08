@@ -102,7 +102,11 @@ def get_user_profile(user_id: int, db: Session = Depends(get_db), current_admin:
     return user
 
 @router.get("/me", response_model=schemas.UserProfileResponse)
-def get_my_profile(current_user: models.User = Depends(get_current_user)):
+def get_my_profile(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    db.refresh(current_user)
     return current_user
 
 @router.put("/me/profile", response_model=schemas.UserResponse)
