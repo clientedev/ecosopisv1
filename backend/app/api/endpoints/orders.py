@@ -285,6 +285,7 @@ def _order_to_response(o: models.Order, db: Session = None) -> dict:
         "customer_name": buyer_name,
         "customer_email": buyer_email,
         "customer_phone": getattr(o, "customer_phone", None),
+        "customer_cpf": getattr(o, "customer_cpf", None),
         "buyer_name": buyer_name,
         "buyer_email": buyer_email,
         "user_name": buyer_name,
@@ -292,5 +293,8 @@ def _order_to_response(o: models.Order, db: Session = None) -> dict:
         "coupon_code": getattr(o, "coupon_code", None),
         "discount_amount": getattr(o, "discount_amount", None),
         "correios_label_url": getattr(o, "correios_label_url", None),
+        "etiqueta_url": getattr(o, "etiqueta_url", None) or getattr(o, "correios_label_url", None),
+        "shipment_id": getattr(o, "shipment_id", None),
+        "codigo_rastreio": getattr(o, "codigo_rastreio", None),
         "created_at": o.created_at,
     }

@@ -522,7 +522,48 @@ export default function UserProfile() {
                                                         {order.codigo_rastreio && (
                                                             <div className={styles.trackingInfo}>
                                                                 <Truck size={20} />
-                                                                <span>Código de Rastreio: <span className={styles.trackingCode}>{order.codigo_rastreio}</span></span>
+                                                                <div style={{ flex: 1 }}>
+                                                                    <span style={{ fontSize: "0.8rem", color: "#64748b" }}>Código de Rastreio:</span>
+                                                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginTop: "3px" }}>
+                                                                        <span className={styles.trackingCode}>{order.codigo_rastreio}</span>
+                                                                        <a
+                                                                            href={`https://melhorrastreio.com.br/rastreio/${order.codigo_rastreio}`}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            style={{
+                                                                                display: "inline-flex", alignItems: "center", gap: "4px",
+                                                                                fontSize: "0.75rem", color: "#2563eb", textDecoration: "none",
+                                                                                padding: "3px 8px", borderRadius: "6px",
+                                                                                background: "#eff6ff", fontWeight: 600, border: "1px solid #bfdbfe"
+                                                                            }}
+                                                                        >
+                                                                            Rastrear <Map size={12} />
+                                                                        </a>
+                                                                        {order.etiqueta_url && (
+                                                                            <a
+                                                                                href={order.etiqueta_url}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                style={{
+                                                                                    display: "inline-flex", alignItems: "center", gap: "4px",
+                                                                                    fontSize: "0.75rem", color: "#059669", textDecoration: "none",
+                                                                                    padding: "3px 8px", borderRadius: "6px",
+                                                                                    background: "#f0fdf4", fontWeight: 600, border: "1px solid #bbf7d0"
+                                                                                }}
+                                                                            >
+                                                                                <FileText size={12} /> Etiqueta
+                                                                            </a>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {order.status === "shipped" && !order.codigo_rastreio && (
+                                                            <div className={styles.trackingInfo} style={{ background: "#fff7ed", borderColor: "#fed7aa" }}>
+                                                                <Truck size={20} color="#ea580c" />
+                                                                <span style={{ color: "#9a3412", fontSize: "0.85rem" }}>
+                                                                    Pedido enviado! Código de rastreio disponível em breve.
+                                                                </span>
                                                             </div>
                                                         )}
                                                         

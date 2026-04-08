@@ -219,29 +219,56 @@ async def generate_label(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    """
+    Executa o fluxo completo Melhor Envio para o pedido:
+    cart → checkout (compra) → generate → print → tracking
+    """
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
+
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
-    
-    os.makedirs("static/labels", exist_ok=True)
-    label_filename = f"etiqueta-pedido-{order_id}.pdf"
-    label_path = f"static/labels/{label_filename}"
 
-    # For now, always use simulation or implement full Correios logic if needed.
-    # Standardizing on simulation if no credentials.
-    pdf_bytes = _simulate_label_pdf(order)
+    # Aceita pedidos pagos, já enviados (re-gera) ou com erro anterior
+    allowed = {"paid", "shipped", "erro_envio", "ERRO_ENVIO", "processando_envio"}
+    if order.status not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Pedido com status '{order.status}' não pode ter etiqueta gerada. Status esperado: pago (paid)."
+        )
 
-    with open(label_path, "wb") as f:
-        f.write(pdf_bytes)
+    # Se já tem etiqueta salva e pedido está enviado, apenas retorna
+    if order.status == "shipped" and getattr(order, "etiqueta_url", None):
+        return {
+            "order_id": order_id,
+            "label_url": order.etiqueta_url,
+            "tracking_code": getattr(order, "codigo_rastreio", None),
+            "shipment_id": getattr(order, "shipment_id", None),
+            "status": order.status,
+            "reused": True,
+        }
 
-    label_url = f"/static/labels/{label_filename}"
-    order.correios_label_url = label_url
-    if order.status == "paid":
-        order.status = "shipped"
-    db.commit()
-    return {"order_id": order_id, "label_url": label_url, "status": order.status}
+    from app.models.pedido import Pedido
+    from app.services import melhorenvio_service as me_service
+
+    pedido = Pedido.from_order(order)
+    resultado = me_service.processar_envio(pedido, db)
+
+    if resultado.get("erro"):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Erro Melhor Envio: {resultado['erro']}"
+        )
+
+    return {
+        "order_id": order_id,
+        "label_url": resultado.get("etiqueta_url"),
+        "tracking_code": resultado.get("tracking_code"),
+        "shipment_id": resultado.get("shipment_id"),
+        "status": resultado.get("status"),
+        "reused": False,
+    }
 
 @router.get("/label/{order_id}")
 async def download_label(

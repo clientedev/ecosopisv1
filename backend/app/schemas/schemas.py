@@ -107,6 +107,13 @@ class OrderResponse(BaseModel):
     discount_amount: Optional[float] = None
     # Shipping Extras
     correios_label_url: Optional[str] = None
+    # Melhor Envio Fields
+    etiqueta_url: Optional[str] = None
+    shipment_id: Optional[str] = None
+    codigo_rastreio: Optional[str] = None
+    # Additional fields
+    customer_phone: Optional[str] = None
+    customer_cpf: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:

@@ -267,12 +267,17 @@
 }
 
 .expandedContent {
-  padding: 1.5rem;
+  padding: 1.5rem 2rem;
   background: #f9fafb;
   border-top: 1px solid #f3f4f6;
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.itemsSection {
+  display: flex;
+  flex-direction: column;
 }
 
 .sectionTitle {
