@@ -4,18 +4,18 @@ import re
 import json
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 # Configurações do Melhor Envio (aceitando nomes com e sem underscore para evitar erro)
-MELHORENVIO_URL = os.getenv("MELHORENVIO_URL", os.getenv("MELHOR_ENVIO_BASE_URL", "https://www.melhorenvio.com.br")).strip()
+MELHORENVIO_URL = os.getenv("MELHORENVIO_URL", os.getenv("MELHOR_ENVIO_BASE_URL", "https://api.melhorenvio.com.br")).strip()
 MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN", os.getenv("MELHOR_ENVIO_TOKEN", "")).strip()
 MELHORENVIO_CLIENT_ID = os.getenv("MELHORENVIO_CLIENT_ID", os.getenv("MELHOR_ENVIO_CLIENT_ID", "")).strip()
 MELHORENVIO_CLIENT_SECRET = os.getenv("MELHORENVIO_CLIENT_SECRET", os.getenv("MELHOR_ENVIO_CLIENT_SECRET", "")).strip()
-# Impedir crash se houver `api.` na URL fornecida
-if "api.melhorenvio.com.br" in MELHORENVIO_URL:
-    MELHORENVIO_URL = MELHORENVIO_URL.replace("api.melhorenvio.com.br", "www.melhorenvio.com.br")
-# CEP de Origem (Padrão: 07430350 conforme solicitado)
-STORE_CEP = re.sub(r"\D", "", os.getenv("STORE_CEP", "07430350")).strip()
+# Garante que sempre usamos o endpoint correto da API Melhor Envio
+if "melhorenvio.com.br" in MELHORENVIO_URL and "api.melhorenvio.com.br" not in MELHORENVIO_URL:
+    MELHORENVIO_URL = "https://api.melhorenvio.com.br"
+# CEP de Origem da loja
+STORE_CEP = re.sub(r"\D", "", os.getenv("MELHORENVIO_CEP_ORIGEM", os.getenv("STORE_CEP", "02969000"))).strip()
 
 class MelhorEnvioService:
     MELHORENVIO_URL = MELHORENVIO_URL

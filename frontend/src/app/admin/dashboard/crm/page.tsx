@@ -100,37 +100,57 @@ export default function AdminCRMPage() {
         <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/dashboard/crm" />
             <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
-                <header className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <header className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                     <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>Inteligência de Vendas - CRM</h1>
-                    {data?.abandoned_carts_count > 0 && (
-                        <button 
-                            onClick={async () => {
-                                if (confirm(`Deseja enviar e-mails de recuperação para ${data.abandoned_carts_count} clientes?`)) {
-                                    const token = localStorage.getItem("token");
-                                    const res = await fetch('/api/cart/admin/notify-abandoned', { 
-                                        method: 'POST',
-                                        headers: { 'Authorization': `Bearer ${token}` }
-                                    });
-                                    if (res.ok) alert("E-mails enviados com sucesso!");
-                                    else alert("Erro ao enviar e-mails.");
-                                }
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <a
+                            href="https://dashboard.stripe.com/acct_1TEadTFP8tBMS4sg/dashboard"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                backgroundColor: '#635bff', color: 'white',
+                                padding: '10px 20px', borderRadius: '8px',
+                                fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none',
+                                boxShadow: '0 2px 8px rgba(99,91,255,0.25)',
+                                transition: 'opacity 0.2s',
                             }}
-                            style={{ 
-                                backgroundColor: '#2d5a27', 
-                                color: 'white', 
-                                padding: '10px 20px', 
-                                borderRadius: '8px', 
-                                border: 'none', 
-                                fontWeight: 'bold', 
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }}
+                            onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
                         >
-                            <ShoppingCart size={18} /> RECUPERAR CARRINHOS
-                        </button>
-                    )}
+                            <svg width="18" height="18" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="white"/><path d="M13.5 12.7c0-.8.7-1.2 1.7-1.2 1.5 0 3.4.5 4.9 1.3V8.3c-1.6-.6-3.3-.9-4.9-.9-4 0-6.7 2.1-6.7 5.6 0 5.4 7.5 4.5 7.5 6.8 0 .9-.8 1.3-2 1.3-1.7 0-3.9-.7-5.6-1.7v4.5c1.9.8 3.8 1.2 5.6 1.2 4.1 0 6.9-2 6.9-5.6-.1-5.8-7.4-4.8-7.4-6.8z" fill="#635bff"/></svg>
+                            Painel Stripe
+                        </a>
+                        {data?.abandoned_carts_count > 0 && (
+                            <button 
+                                onClick={async () => {
+                                    if (confirm(`Deseja enviar e-mails de recuperação para ${data.abandoned_carts_count} clientes?`)) {
+                                        const token = localStorage.getItem("token");
+                                        const res = await fetch('/api/cart/admin/notify-abandoned', { 
+                                            method: 'POST',
+                                            headers: { 'Authorization': `Bearer ${token}` }
+                                        });
+                                        if (res.ok) alert("E-mails enviados com sucesso!");
+                                        else alert("Erro ao enviar e-mails.");
+                                    }
+                                }}
+                                style={{ 
+                                    backgroundColor: '#2d5a27', 
+                                    color: 'white', 
+                                    padding: '10px 20px', 
+                                    borderRadius: '8px', 
+                                    border: 'none', 
+                                    fontWeight: 'bold', 
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                <ShoppingCart size={18} /> RECUPERAR CARRINHOS
+                            </button>
+                        )}
+                    </div>
                 </header>
 
                 {/* Top Summary Cards */}

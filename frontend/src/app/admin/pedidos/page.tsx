@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import {
-    Package, CheckCircle, Truck, Clock, Download, FileText,
+    Package, CheckCircle, Truck, Clock, Download,
     ChevronDown, ChevronUp, XCircle, RefreshCw, Search,
     AlertTriangle, ExternalLink, Tag, Loader2, Copy, MapPin
 } from "lucide-react";
@@ -69,6 +69,7 @@ export default function AdminPedidosPage() {
     const [generatingLabel, setGeneratingLabel] = useState<number | null>(null);
     const [labelResults, setLabelResults] = useState<Record<number, { url: string; tracking: string; shipment: string }>>({});
     const [bannerDismissed, setBannerDismissed] = useState(false);
+    const [notification, setNotification] = useState<{ type: "error" | "success" | "warning"; title: string; message: string } | null>(null);
 
     const getToken = () => typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
     const authHeaders = () => ({
@@ -95,14 +96,43 @@ export default function AdminPedidosPage() {
         }
     };
 
+    const parseMEError = (detail: string): { title: string; message: string } => {
+        const raw = detail || "";
+        if (raw.toLowerCase().includes("saldo") && raw.toLowerCase().includes("insuficiente")) {
+            const match = raw.match(/R\$\s*[\d.,]+/g);
+            const balanceStr = match ? match[0] : "insuficiente";
+            return {
+                title: "Saldo insuficiente na Melhor Envio",
+                message: `Seu saldo atual (${balanceStr}) não cobre o valor da etiqueta. Acesse a carteira da Melhor Envio para adicionar créditos e tente novamente.`
+            };
+        }
+        if (raw.toLowerCase().includes("token") || raw.toLowerCase().includes("unauthorized") || raw.includes("401")) {
+            return { title: "Token Melhor Envio inválido", message: "O token de autenticação da Melhor Envio está inválido ou expirado. Atualize o token nas configurações." };
+        }
+        if (raw.toLowerCase().includes("cep") || raw.toLowerCase().includes("postal")) {
+            return { title: "CEP inválido ou não encontrado", message: "O CEP do destinatário não foi reconhecido pela Melhor Envio. Verifique o endereço do pedido." };
+        }
+        if (raw.toLowerCase().includes("status") && raw.toLowerCase().includes("não pode")) {
+            return { title: "Status incompatível", message: "Apenas pedidos com status 'Pago' ou com erro anterior podem ter etiqueta gerada." };
+        }
+        return { title: "Erro ao gerar etiqueta", message: raw.replace(/^Erro Melhor Envio:\s*/i, "").substring(0, 300) };
+    };
+
     const handleClearAll = async () => {
         if (!confirm("⚠️ Esta ação irá EXCLUIR PERMANENTEMENTE todos os pedidos. Confirmar?")) return;
         if (!confirm("Confirmação final: excluir histórico de testes?")) return;
         try {
             const res = await fetch("/api/orders/admin/clear-all", { method: "DELETE", headers: authHeaders() });
-            if (res.ok) { alert("Histórico zerado!"); await fetchOrders(); }
-            else { const err = await res.json(); alert(`Erro: ${err.detail}`); }
-        } catch { alert("Erro de conexão"); }
+            if (res.ok) {
+                setNotification({ type: "success", title: "Histórico zerado!", message: "Todos os pedidos foram removidos com sucesso." });
+                await fetchOrders();
+            } else {
+                const err = await res.json();
+                setNotification({ type: "error", title: "Erro ao zerar histórico", message: err.detail || "Tente novamente." });
+            }
+        } catch {
+            setNotification({ type: "error", title: "Erro de conexão", message: "Não foi possível conectar ao servidor. Verifique sua rede e tente novamente." });
+        }
     };
 
     const updateStatus = async (orderId: number, newStatus: string) => {
@@ -111,14 +141,22 @@ export default function AdminPedidosPage() {
             const res = await fetch(`/api/orders/${orderId}/status`, {
                 method: "PATCH", headers: authHeaders(), body: JSON.stringify({ status: newStatus })
             });
-            if (res.ok) await fetchOrders();
-            else { const err = await res.json(); alert(`Erro: ${err.detail}`); }
-        } catch { alert("Erro de conexão"); }
+            if (res.ok) {
+                await fetchOrders();
+                setNotification({ type: "success", title: "Status atualizado!", message: `Pedido #${orderId} → ${STATUS_LABELS[newStatus]?.label || newStatus}` });
+            } else {
+                const err = await res.json();
+                setNotification({ type: "error", title: "Falha ao atualizar status", message: err.detail || "Tente novamente." });
+            }
+        } catch {
+            setNotification({ type: "error", title: "Erro de conexão", message: "Não foi possível conectar ao servidor." });
+        }
         finally { setUpdatingStatus(null); }
     };
 
     const gerarEtiquetaME = async (orderId: number) => {
         setGeneratingLabel(orderId);
+        setNotification(null);
         try {
             const res = await fetch(`/api/shipping/generate-label/${orderId}`, {
                 method: "POST",
@@ -136,26 +174,17 @@ export default function AdminPedidosPage() {
                             shipment: data.shipment_id || ""
                         }
                     }));
+                    setNotification({ type: "success", title: "Etiqueta gerada com sucesso!", message: `Pedido #${orderId} · Rastreio: ${data.tracking_code || "disponível em breve"}` });
                     window.open(data.label_url, "_blank");
                 }
             } else {
-                alert(`❌ ${data.detail || "Falha ao gerar etiqueta"}`);
+                const parsed = parseMEError(data.detail || "");
+                setNotification({ type: "error", title: parsed.title, message: parsed.message });
             }
-        } catch { alert("Erro de conexão"); }
+        } catch {
+            setNotification({ type: "error", title: "Erro de conexão", message: "Não foi possível contactar o servidor. Verifique sua rede e tente novamente." });
+        }
         finally { setGeneratingLabel(null); }
-    };
-
-    const printTicketPDF = async (orderId: number) => {
-        const token = getToken();
-        try {
-            const res = await fetch(`/api/orders/${orderId}/label`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (!res.ok) { alert("Falha ao gerar ticket PDF"); return; }
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            window.open(url, "_blank");
-        } catch { alert("Erro ao gerar ticket PDF"); }
     };
 
     const copyToClipboard = (text: string) => {
@@ -194,6 +223,37 @@ export default function AdminPedidosPage() {
             <AdminSidebar activePath="/admin/pedidos" />
 
             <main style={{ flex: 1, padding: "2rem", overflowY: "auto", height: "100%" }}>
+
+                {/* ── Notificação in-page ── */}
+                {notification && (
+                    <div style={{
+                        background: notification.type === "error" ? "#fef2f2" : notification.type === "success" ? "#f0fdf4" : "#fffbeb",
+                        border: `1.5px solid ${notification.type === "error" ? "#fca5a5" : notification.type === "success" ? "#86efac" : "#fcd34d"}`,
+                        borderRadius: "14px",
+                        padding: "1rem 1.25rem",
+                        marginBottom: "1rem",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "0.75rem",
+                    }}>
+                        <div style={{ fontSize: "1.3rem", flexShrink: 0, marginTop: "1px" }}>
+                            {notification.type === "error" ? "❌" : notification.type === "success" ? "✅" : "⚠️"}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <strong style={{ display: "block", color: notification.type === "error" ? "#b91c1c" : notification.type === "success" ? "#15803d" : "#92400e", fontSize: "0.95rem", marginBottom: "2px" }}>
+                                {notification.title}
+                            </strong>
+                            <span style={{ fontSize: "0.85rem", color: "#374151", lineHeight: 1.5 }}>{notification.message}</span>
+                            {notification.type === "error" && notification.title.includes("Saldo") && (
+                                <a href="https://melhorenvio.com.br/painel/carteira" target="_blank" rel="noopener noreferrer"
+                                    style={{ display: "inline-block", marginTop: "6px", background: "#ea580c", color: "#fff", padding: "5px 14px", borderRadius: "8px", fontSize: "0.8rem", fontWeight: 700, textDecoration: "none" }}>
+                                    💳 Abastecer Carteira Melhor Envio
+                                </a>
+                            )}
+                        </div>
+                        <button onClick={() => setNotification(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "1.1rem", padding: "0", flexShrink: 0 }}>✕</button>
+                    </div>
+                )}
 
                 {/* ── Banner Melhor Envio ── */}
                 {!bannerDismissed && (
@@ -277,7 +337,7 @@ export default function AdminPedidosPage() {
                         />
                     </div>
                     <div className={pedidoStyles.filterTabs}>
-                        {["all","pending","paid","shipped","delivered","cancelled"].map(f => (
+                        {["all","pending","paid","shipped","delivered","cancelled","erro_envio","processando_envio"].map(f => (
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
@@ -454,15 +514,6 @@ export default function AdminPedidosPage() {
 
                                             {/* Ações */}
                                             <div className={pedidoStyles.actionFooter}>
-                                                {/* Ticket PDF interno */}
-                                                <button
-                                                    onClick={() => printTicketPDF(order.id)}
-                                                    className={`${pedidoStyles.btnAction} ${pedidoStyles.btnSecondary}`}
-                                                    title="Gera um PDF interno com os dados do pedido"
-                                                >
-                                                    <FileText size={14} /> Ticket PDF
-                                                </button>
-
                                                 {/* Etiqueta Melhor Envio */}
                                                 {etiquetaUrl ? (
                                                     <>
@@ -470,16 +521,16 @@ export default function AdminPedidosPage() {
                                                             onClick={() => window.open(etiquetaUrl, "_blank")}
                                                             className={`${pedidoStyles.btnAction} ${pedidoStyles.btnPrimary}`}
                                                         >
-                                                            <Download size={14} /> Etiqueta Melhor Envio
+                                                            <Download size={14} /> Baixar Etiqueta
                                                         </button>
                                                         <button
                                                             onClick={() => gerarEtiquetaME(order.id)}
                                                             disabled={generatingLabel === order.id}
                                                             className={`${pedidoStyles.btnAction} ${pedidoStyles.btnSecondary}`}
-                                                            title="Re-gerar etiqueta no Melhor Envio"
+                                                            title="Reenviar pedido ao Melhor Envio e gerar nova etiqueta"
                                                         >
                                                             <RefreshCw size={14} />
-                                                            {generatingLabel === order.id ? "Gerando..." : "Re-gerar"}
+                                                            {generatingLabel === order.id ? "Processando..." : "Reenviar ao Melhor Envio"}
                                                         </button>
                                                     </>
                                                 ) : canGenerateLabel && (

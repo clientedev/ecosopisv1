@@ -81,12 +81,12 @@ export default function UserProfile() {
         ? profile.orders
             .filter((order: any) => {
                 if (statusFilter === "all") return true;
-                const status = order.status || "pending";
+                const status = (order.status || "pending").toLowerCase();
                 if (statusFilter === "pending") return status === "pending";
                 if (statusFilter === "paid") return status === "paid";
-                if (statusFilter === "shipped") return status === "shipped";
+                if (statusFilter === "shipped") return status === "shipped" || status === "processando_envio";
                 if (statusFilter === "delivered") return status === "delivered";
-                if (statusFilter === "cancelled") return status === "cancelled" || status === "payment_error";
+                if (statusFilter === "cancelled") return status === "cancelled" || status === "payment_error" || status === "erro_envio";
                 return true;
             })
             .sort((a: any, b: any) => {
@@ -272,7 +272,7 @@ export default function UserProfile() {
     };
 
     const getStatusInfo = (status: string) => {
-        switch (status.toLowerCase()) {
+        switch ((status || '').toLowerCase()) {
             case 'pending':
                 return { label: 'Aguardando Pagamento', icon: <Clock size={16}/>, className: styles.statusPending };
             case 'paid':
@@ -283,7 +283,13 @@ export default function UserProfile() {
                 return { label: 'Entregue', icon: <Package size={16}/>, className: styles.statusDelivered };
             case 'payment_error':
             case 'cancelled':
-                return { label: 'Cancelado/Erro', icon: <XCircle size={16}/>, className: styles.statusCancelled };
+                return { label: 'Cancelado / Pagamento Recusado', icon: <XCircle size={16}/>, className: styles.statusCancelled };
+            case 'erro_envio':
+            case 'erro envio':
+                return { label: 'Problema no Envio', icon: <XCircle size={16}/>, className: styles.statusCancelled };
+            case 'processando_envio':
+            case 'processando envio':
+                return { label: 'Processando Envio...', icon: <Truck size={16}/>, className: styles.statusShipped };
             default:
                 return { label: status, icon: <FileText size={16}/>, className: styles.statusPending };
         }
@@ -471,9 +477,9 @@ export default function UserProfile() {
                                         <option value="all">Todos os Pedidos</option>
                                         <option value="pending">Aguardando Pagamento</option>
                                         <option value="paid">Pagamento Confirmado</option>
-                                        <option value="shipped">Enviados</option>
+                                        <option value="shipped">Em Envio / Processando</option>
                                         <option value="delivered">Entregues</option>
-                                        <option value="cancelled">Cancelados / Erro</option>
+                                        <option value="cancelled">Cancelados / Problema no Envio</option>
                                     </select>
                                 </div>
                                 

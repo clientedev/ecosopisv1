@@ -16,16 +16,16 @@ import logging
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 logger = logging.getLogger(__name__)
 
 MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN", "").strip()
-# URL oficial da API Melhor Envio (produção)
-_raw_url = os.getenv("MELHORENVIO_URL", "https://melhorenvio.com.br").rstrip("/")
-# Normaliza variações conhecidas para a URL canônica
-if "api.melhorenvio.com.br" in _raw_url:
-    _raw_url = "https://melhorenvio.com.br"
+# URL oficial da API Melhor Envio (produção) — sempre usa o subdomínio correto
+_raw_url = os.getenv("MELHORENVIO_URL", "https://api.melhorenvio.com.br").rstrip("/")
+# Garante que sempre usamos o endpoint correto da API
+if "melhorenvio.com.br" in _raw_url and "api.melhorenvio.com.br" not in _raw_url:
+    _raw_url = "https://api.melhorenvio.com.br"
 MELHORENVIO_URL = _raw_url
 
 CEP_ORIGEM = os.getenv("MELHORENVIO_CEP_ORIGEM", "02969000").replace("-", "").strip()
@@ -307,7 +307,8 @@ def imprimir_etiqueta(shipment_id: str) -> str:
             fname = f"static/labels/etiqueta-{shipment_id}.pdf"
             with open(fname, "wb") as f:
                 f.write(resp.content)
-            local_url = f"/static/labels/etiqueta-{shipment_id}.pdf"
+            # Retorna caminho que funciona via proxy do Next.js (/api/static/...)
+            local_url = f"/api/static/labels/etiqueta-{shipment_id}.pdf"
             logger.info(f"[ME] Etiqueta salva localmente: {local_url}")
             return local_url
 
@@ -332,7 +333,7 @@ def imprimir_etiqueta(shipment_id: str) -> str:
                 fname = f"static/labels/etiqueta-{shipment_id}.pdf"
                 with open(fname, "wb") as f:
                     f.write(resp_get.content)
-                local_url = f"/static/labels/etiqueta-{shipment_id}.pdf"
+                local_url = f"/api/static/labels/etiqueta-{shipment_id}.pdf"
                 logger.info(f"[ME] Etiqueta salva (GET fallback): {local_url}")
                 return local_url
 
