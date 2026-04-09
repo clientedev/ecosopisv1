@@ -21,11 +21,12 @@ load_dotenv(override=True)
 logger = logging.getLogger(__name__)
 
 MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN", "").strip()
-# URL oficial da API Melhor Envio (produção) — sempre usa o subdomínio correto
-_raw_url = os.getenv("MELHORENVIO_URL", "https://api.melhorenvio.com.br").rstrip("/")
-# Garante que sempre usamos o endpoint correto da API
-if "melhorenvio.com.br" in _raw_url and "api.melhorenvio.com.br" not in _raw_url:
-    _raw_url = "https://api.melhorenvio.com.br"
+# URL correta da API Melhor Envio (produção): www.melhorenvio.com.br
+# O subdomínio "api.melhorenvio.com.br" NÃO existe no DNS público.
+_raw_url = os.getenv("MELHORENVIO_URL", "https://www.melhorenvio.com.br").rstrip("/")
+# Corrige URL errada que usa "api." — esse subdomínio não existe
+if _raw_url in ("https://api.melhorenvio.com.br", "http://api.melhorenvio.com.br"):
+    _raw_url = "https://www.melhorenvio.com.br"
 MELHORENVIO_URL = _raw_url
 
 CEP_ORIGEM = os.getenv("MELHORENVIO_CEP_ORIGEM", "02969000").replace("-", "").strip()

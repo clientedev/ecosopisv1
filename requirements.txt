@@ -46,3 +46,4 @@ starlette
 stripe
 uvicorn[standard]
 zeep
+dnspython

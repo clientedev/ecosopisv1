@@ -1,0 +1,94 @@
+ConnectionError na tentativa 2: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))
+INFO:     100.64.0.8:37962 - "POST /shipping/calculate HTTP/1.1" 422 Unprocessable Entity
+INFO:     100.64.0.11:12670 - "GET /settings HTTP/1.1" 307 Temporary Redirect
+INFO:     100.64.0.9:60468 - "GET /carousel HTTP/1.1" 200 OK
+INFO:     100.64.0.10:42158 - "GET /products/announcement HTTP/1.1" 200 OK
+INFO:     100.64.0.2:57250 - "GET /reviews/approved HTTP/1.1" 200 OK
+INFO:     100.64.0.2:57240 - "GET /roleta/config HTTP/1.1" 200 OK
+INFO:     100.64.0.4:29966 - "GET /products HTTP/1.1" 200 OK
+INFO:     100.64.0.11:12654 - "POST /metrics/log/visit HTTP/1.1" 201 Created
+INFO:     100.64.0.9:60468 - "GET /images/120 HTTP/1.1" 200 OK
+INFO:     100.64.0.7:16242 - "GET /news HTTP/1.1" 200 OK
+INFO:     100.64.0.11:12654 - "GET /images/146 HTTP/1.1" 200 OK
+INFO:     100.64.0.2:57240 - "GET /images/123 HTTP/1.1" 200 OK
+INFO:     100.64.0.7:16242 - "GET /images/124 HTTP/1.1" 200 OK
+INFO:     100.64.0.6:30486 - "GET /images/101 HTTP/1.1" 200 OK
+INFO:     100.64.0.13:26868 - "GET /images/119 HTTP/1.1" 200 OK
+INFO:     100.64.0.12:32970 - "GET /settings/ HTTP/1.1" 200 OK
+INFO:     100.64.0.2:57240 - "GET /products/announcement HTTP/1.1" 200 OK
+DEBUG: Login attempt for admin@admin.com
+INFO:     100.64.0.4:60542 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     100.64.0.14:37738 - "POST /cart/sync HTTP/1.1" 200 OK
+INFO:     100.64.0.7:23984 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.64.0.15:23472 - "GET /products/announcement HTTP/1.1" 200 OK
+INFO:     100.64.0.5:12238 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.64.0.11:45168 - "GET /carousel HTTP/1.1" 200 OK
+INFO:     100.64.0.6:38474 - "POST /metrics/log/visit HTTP/1.1" 201 Created
+INFO:     100.64.0.16:13082 - "GET /reviews/approved HTTP/1.1" 200 OK
+INFO:     100.64.0.6:38474 - "GET /orders HTTP/1.1" 307 Temporary Redirect
+INFO:     100.64.0.15:23484 - "GET /roleta/config HTTP/1.1" 200 OK
+INFO:     100.64.0.7:23984 - "GET /products HTTP/1.1" 200 OK
+INFO:     100.64.0.4:60542 - "GET /images/150 HTTP/1.1" 200 OK
+INFO:     100.64.0.12:48880 - "GET /orders/ HTTP/1.1" 401 Unauthorized
+INFO:     100.64.0.10:43410 - "GET /news HTTP/1.1" 200 OK
+INFO:     100.64.0.9:30676 - "GET /roleta/config HTTP/1.1" 200 OK
+INFO:     100.64.0.2:45190 - "GET /products/announcement HTTP/1.1" 200 OK
+--- MelhorEnvio Freight Request (tentativa 1) ---
+URL: https://api.melhorenvio.com.br/api/v2/me/shipment/calculate
+    "own_hand": false
+CEP origem: 02969000 | CEP destino: 07430350
+  },
+Payload: {
+  "services": ""
+      "id": "envio_ecosopis",
+  "from": {
+}
+    "postal_code": "02969000"
+      "width": 16,
+  },
+      "height": 12,
+  "to": {
+    "postal_code": "07430350"
+      "length": 20,
+  },
+  "products": [
+      "weight": 0.3,
+    {
+      "insurance_value": 13.9,
+      "quantity": 1
+    }
+  ],
+  "options": {
+    "insurance_value": 13.9,
+    "receipt": false,
+ConnectionError na tentativa 1: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))
+    "receipt": false,
+--- MelhorEnvio Freight Request (tentativa 2) ---
+URL: https://api.melhorenvio.com.br/api/v2/me/shipment/calculate
+CEP origem: 02969000 | CEP destino: 07430350
+    "own_hand": false
+Payload: {
+  },
+  "from": {
+    "postal_code": "02969000"
+  },
+  "to": {
+    "postal_code": "07430350"
+  },
+  "products": [
+    {
+      "id": "envio_ecosopis",
+      "width": 16,
+      "height": 12,
+      "length": 20,
+      "weight": 0.3,
+      "insurance_value": 13.9,
+      "quantity": 1
+    }
+  ],
+  "options": {
+    "insurance_value": 13.9,
+  "services": ""
+}
+ConnectionError na tentativa 2: HTTPSConnectionPool(host='api.melhorenvio.com.br', port=443): Max retries exceeded with url: /api/v2/me/shipment/calculate (Caused by NameResolutionError("HTTPSConnection(host='api.melhorenvio.com.br', port=443): Failed to resolve 'api.melhorenvio.com.br' ([Errno -2] Name or service not known)"))
+INFO:     100.64.0.7:57092 - "POST /shipping/calculate HTTP/1.1" 422 Unprocessable Entity
