@@ -162,6 +162,57 @@ def _apply_startup_migrations():
                 conn.commit()
         except Exception: pass
 
+        # ── Cashback tables ────────────────────────────────────────────────────
+        try:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS cashback_config (
+                    id SERIAL PRIMARY KEY,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    first_purchase_percentage DOUBLE PRECISION DEFAULT 10.0,
+                    repurchase_percentage DOUBLE PRECISION DEFAULT 10.0,
+                    first_purchase_validity_days INTEGER DEFAULT 30,
+                    repurchase_validity_days INTEGER DEFAULT 30,
+                    min_purchase_to_earn DOUBLE PRECISION DEFAULT 0.0,
+                    min_purchase_to_use DOUBLE PRECISION DEFAULT 50.0,
+                    allow_with_coupons BOOLEAN DEFAULT FALSE,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            """))
+            conn.commit()
+        except Exception: pass
+
+        try:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS cashback_transactions (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id),
+                    order_id INTEGER REFERENCES orders(id),
+                    amount DOUBLE PRECISION NOT NULL,
+                    type VARCHAR NOT NULL,
+                    status VARCHAR DEFAULT 'approved',
+                    description VARCHAR,
+                    is_first_purchase BOOLEAN DEFAULT FALSE,
+                    expires_at TIMESTAMP WITH TIME ZONE,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            """))
+            conn.commit()
+        except Exception: pass
+
+        # Ensure default cashback config singleton exists
+        try:
+            row = conn.execute(text("SELECT id FROM cashback_config LIMIT 1")).fetchone()
+            if not row:
+                conn.execute(text("""
+                    INSERT INTO cashback_config
+                        (is_active, first_purchase_percentage, repurchase_percentage,
+                         first_purchase_validity_days, repurchase_validity_days,
+                         min_purchase_to_earn, min_purchase_to_use, allow_with_coupons)
+                    VALUES (TRUE, 10.0, 10.0, 30, 30, 0.0, 50.0, FALSE)
+                """))
+                conn.commit()
+        except Exception: pass
+
 try:
     _apply_startup_migrations()
 except Exception: pass
@@ -211,7 +262,7 @@ async def root():
     return {"message": "Welcome to ECOSOPIS API", "version": "1.0.1"}
 
 from app.api.endpoints import raw_materials
-from app.api.endpoints import payment, shipping, crm
+from app.api.endpoints import payment, shipping, crm, cashback
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(products.router, prefix="/products", tags=["products"])
 app.include_router(coupons.router, prefix="/coupons", tags=["coupons"])
@@ -231,6 +282,7 @@ app.include_router(payment.router, prefix="/payment", tags=["payment"])
 app.include_router(shipping.router, prefix="/shipping", tags=["shipping"])
 app.include_router(crm.router, prefix="/crm", tags=["crm"])
 app.include_router(addresses.router, prefix="/addresses", tags=["addresses"])
+app.include_router(cashback.router, tags=["cashback"])
 
 # Novos routers com Arquitetura Limpa (Routes/Services/Repositories)
 try:

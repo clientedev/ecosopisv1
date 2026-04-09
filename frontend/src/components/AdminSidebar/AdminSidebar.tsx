@@ -62,6 +62,7 @@ const CATEGORIES: Category[] = [
             { label: "Banner Principal", path: "/admin/dashboard/carousel", icon: <ImageIcon size={18} /> },
             { label: "Faixa de Aviso", path: "/admin/dashboard/announcement", icon: <Megaphone size={18} /> },
             { label: "Cores do Site", path: "/admin/dashboard/branding", icon: <Settings size={18} /> },
+            { label: "Cashback", path: "/admin/dashboard/cashback", icon: <CreditCard size={18} /> },
         ]
     },
     {

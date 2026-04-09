@@ -16,6 +16,7 @@ from app.repositories.order_repository import OrderRepository
 from app.core.stripe_service import create_checkout_session, verify_webhook_signature
 from app.models import models
 from app.core import emails
+from app.api.endpoints.cashback import create_cashback_for_order
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +218,7 @@ async def stripe_webhook(
                 order.buyer_email = getattr(customer_details, "email", "") if customer_details else ""
                 order.buyer_name = getattr(customer_details, "name", "") if customer_details else ""
 
-            # Update user purchase count / roulette
+            # Update user purchase count / roulette / cashback
             user = db.query(models.User).filter(models.User.id == order.user_id).first()
             if user:
                 user.total_compras = (user.total_compras or 0) + 1
@@ -225,6 +226,12 @@ async def stripe_webhook(
                 if config and config.ativa and config.regra_5_compras:
                     if user.total_compras >= 5:
                         user.pode_girar_roleta = True
+                
+                # Gera cashback se aplicável
+                try:
+                    create_cashback_for_order(db, order, user)
+                except Exception as e:
+                    logger.error(f"Erro ao processar cashback para pedido {pedido_id}: {e}")
 
             db.commit()
             logger.info(f"Order {pedido_id} marked as PAID via Stripe")

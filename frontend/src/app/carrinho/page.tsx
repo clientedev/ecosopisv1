@@ -4,7 +4,7 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
 import Link from "next/link";
-import { Trash2, ShoppingBag, ShieldCheck, Truck, CreditCard, ChevronRight, Loader2, Info, ShoppingCart } from "lucide-react";
+import { Trash2, ShoppingBag, ShieldCheck, Truck, CreditCard, ChevronRight, Loader2, Info, ShoppingCart, Coins } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -78,6 +78,12 @@ export default function CarrinhoPage() {
     const [couponCode, setCouponCode] = useState("");
     const [couponError, setCouponError] = useState("");
 
+    // Cashback states
+    const [availableCashback, setAvailableCashback] = useState(0);
+    const [useCashback, setUseCashback] = useState(false);
+    const [cashbackToApply, setCashbackToApply] = useState(0);
+    const [cashbackConfig, setCashbackConfig] = useState<any>(null);
+
     // Initialize/Check for coupons
     useEffect(() => {
         const rouletteDiscount = localStorage.getItem("active_roulette_discount");
@@ -95,6 +101,33 @@ export default function CarrinhoPage() {
             }
         }
     }, []);
+
+    // Fetch Cashback balance and config
+    useEffect(() => {
+        if (token && step === "checkout") {
+            const fetchCashback = async () => {
+                try {
+                    const [balRes, cfgRes] = await Promise.all([
+                        fetch("/api/cashback/me/balance", { headers: { "Authorization": `Bearer ${token}` } }),
+                        // Admin config might be restricted, but we can try or use default if it fails
+                        fetch("/api/cashback/admin/config", { headers: { "Authorization": `Bearer ${token}` } }).catch(() => null)
+                    ]);
+                    
+                    if (balRes?.ok) {
+                        const data = await balRes.json();
+                        setAvailableCashback(data.available_balance);
+                    }
+                    if (cfgRes?.ok) {
+                        const data = await cfgRes.json();
+                        setCashbackConfig(data);
+                    }
+                } catch (e) {
+                    console.error("Cashback fetch error", e);
+                }
+            };
+            fetchCashback();
+        }
+    }, [token, step]);
 
     // Calculate shipping whenever valid CEP and cart changes
     const [shippingError, setShippingError] = useState<string | null>(null);
@@ -274,7 +307,21 @@ export default function CarrinhoPage() {
 
     const shippingPrice = selectedShipping ? selectedShipping.price : 0;
     const discount = appliedCoupon ? (appliedCoupon.type === "fixed" ? appliedCoupon.value : (subtotal * appliedCoupon.value / 100)) : 0;
-    const finalTotal = Math.max(0, subtotal + shippingPrice - discount);
+    
+    // Total Cashback to Apply
+    const cashbackDiscount = useCashback ? Math.min(availableCashback, subtotal - discount) : 0;
+    
+    const finalTotal = Math.max(0, subtotal + shippingPrice - discount - cashbackDiscount);
+    
+    // Estimate cashback to be earned
+    const earnedCashback = (() => {
+        if (!cashbackConfig || !cashbackConfig.is_active) return 0;
+        const totalCompras = user?.total_compras ?? 0;
+        const pct = totalCompras > 0 
+            ? cashbackConfig.repurchase_percentage 
+            : cashbackConfig.first_purchase_percentage;
+        return (subtotal * pct / 100);
+    })();
 
     const handleCheckout = async () => {
         if (!customerName || !cep) {
@@ -319,6 +366,7 @@ export default function CarrinhoPage() {
                     },
                     coupon_code: appliedCoupon?.code,
                     discount_amount: discount,
+                    cashback_amount: cashbackDiscount,
                 }),
             });
 
@@ -600,6 +648,39 @@ export default function CarrinhoPage() {
                                 </div>
                             )}
 
+                            {availableCashback > 0 && (
+                                <div className={styles.cashbackApplyBox}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <Coins size={18} color="#059669" />
+                                            <div>
+                                                <strong style={{ fontSize: "0.85rem" }}>Usar R$ {availableCashback.toFixed(2)}</strong>
+                                                <p style={{ margin: 0, fontSize: "0.7rem", color: "#64748b" }}>Saldo de Cashback disponível</p>
+                                            </div>
+                                        </div>
+                                        <label className={styles.switch}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={useCashback} 
+                                                onChange={(e) => {
+                                                    if (appliedCoupon && cashbackConfig && !cashbackConfig.allow_with_coupons) {
+                                                        alert("O sistema não permite usar cupom e cashback no mesmo pedido.");
+                                                        return;
+                                                    }
+                                                    setUseCashback(e.target.checked);
+                                                }}
+                                            />
+                                            <span className={styles.slider}></span>
+                                        </label>
+                                    </div>
+                                    {useCashback && cashbackConfig && subtotal < cashbackConfig.min_purchase_to_use && (
+                                        <p style={{ color: "#e11d48", fontSize: "0.7rem", marginTop: "8px" }}>
+                                            ⚠️ Mínimo de R$ {cashbackConfig.min_purchase_to_use.toFixed(2)} em produtos necessário.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
                             <div className={styles.summaryDivider}></div>
 
                             <div className={styles.summaryRow}>
@@ -616,10 +697,24 @@ export default function CarrinhoPage() {
                                     <span>- R$ {discount.toFixed(2)}</span>
                                 </div>
                             )}
+                            {cashbackDiscount > 0 && (
+                                <div className={styles.summaryRow} style={{ color: "#059669" }}>
+                                    <span>Cashback usado</span>
+                                    <span>- R$ {cashbackDiscount.toFixed(2)}</span>
+                                </div>
+                            )}
                             <div className={styles.totalRow}>
                                 <span>Total</span>
                                 <span>R$ {finalTotal.toFixed(2)}</span>
                             </div>
+
+                            {earnedCashback > 0 && (
+                                <div className={styles.earnedCashbackHint}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
+                                        <Coins size={16} /> Você ganhará <strong>R$ {earnedCashback.toFixed(2)}</strong> em cashback
+                                    </div>
+                                </div>
+                            )}
 
                             {step === "cart" ? (
                                 <button className="btn-primary" style={{ width: "100%", marginTop: "24px", height: "56px" }} onClick={() => {

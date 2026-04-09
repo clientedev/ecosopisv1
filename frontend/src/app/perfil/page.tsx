@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import styles from "./perfil.module.css";
 import { 
     User, Package, MapPin, LogOut, FileText, 
-    CheckCircle, Truck, Clock, XCircle, Map, Filter, Pencil, Save, X, Camera, Lock
+    CheckCircle, Truck, Clock, XCircle, Map, Filter, Pencil, Save, X, Camera, Lock, Coins
 } from "lucide-react";
 
 export default function UserProfile() {
@@ -32,6 +32,11 @@ export default function UserProfile() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [passwordMsg, setPasswordMsg] = useState({ type: "", text: "" });
     const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+    // Cashback State
+    const [cashbackBalance, setCashbackBalance] = useState<any>(null);
+    const [cashbackHistory, setCashbackHistory] = useState<any[]>([]);
+    const [loadingCashback, setLoadingCashback] = useState(false);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -251,6 +256,28 @@ export default function UserProfile() {
         fetchProfile();
     }, [router, logout]);
 
+    useEffect(() => {
+        if (activeTab === 'cashback') {
+            const fetchCashbackData = async () => {
+                setLoadingCashback(true);
+                try {
+                    const token = localStorage.getItem("token");
+                    const [balanceRes, historyRes] = await Promise.all([
+                        fetch("/api/cashback/me/balance", { headers: { "Authorization": `Bearer ${token}` } }),
+                        fetch("/api/cashback/me/history", { headers: { "Authorization": `Bearer ${token}` } })
+                    ]);
+                    if (balanceRes.ok) setCashbackBalance(await balanceRes.json());
+                    if (historyRes.ok) setCashbackHistory(await historyRes.json());
+                } catch (error) {
+                    console.error("Error fetching cashback:", error);
+                } finally {
+                    setLoadingCashback(false);
+                }
+            };
+            fetchCashbackData();
+        }
+    }, [activeTab]);
+
     if (loading || authLoading) {
         return (
             <main>
@@ -325,6 +352,13 @@ export default function UserProfile() {
                         >
                             <MapPin />
                             Meus Endereços
+                        </button>
+                        <button 
+                            className={`${styles.navItem} ${activeTab === 'cashback' ? styles.active : ''}`}
+                            onClick={() => setActiveTab('cashback')}
+                        >
+                            <Coins />
+                            Meu Cashback
                         </button>
                         <button 
                             className={`${styles.navItem} ${activeTab === 'security' ? styles.active : ''}`}
@@ -699,6 +733,83 @@ export default function UserProfile() {
                                         </button>
                                     </div>
                                 </form>
+                            </section>
+                        )}
+
+                        {activeTab === 'cashback' && (
+                            <section>
+                                <div className={styles.sectionHeader}>
+                                    <Coins />
+                                    <h2>Meu Cashback</h2>
+                                </div>
+
+                                <div className={styles.cashbackOverview}>
+                                    <div className={styles.balanceCard}>
+                                        <span className={styles.balanceLabel}>Saldo Disponível</span>
+                                        <span className={styles.balanceValue}>
+                                            {cashbackBalance ? `R$ ${cashbackBalance.available_balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'}
+                                        </span>
+                                        {cashbackBalance?.next_expiration_date && (
+                                            <div className={styles.expirationInfo}>
+                                                <Clock size={16} />
+                                                <span>R$ {cashbackBalance.next_expiration_amount.toFixed(2)} expira em {cashbackBalance.next_expiration_date}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.9rem' }}>Como funciona?</h4>
+                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', lineHeight: '1.5' }}>
+                                            Ganhe 10% de cashback em suas compras para usar como desconto no próximo pedido. 
+                                            O saldo é liberado automaticamente após a confirmação do pagamento.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className={styles.cashbackHistory}>
+                                    <div className={styles.historyTitle}>Histórico de Transações</div>
+                                    <div className={styles.historyTableWrap}>
+                                        <table className={styles.historyTable}>
+                                            <thead>
+                                                <tr>
+                                                    <th>Data</th>
+                                                    <th>Descrição</th>
+                                                    <th>Valor</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {cashbackHistory.length > 0 ? (
+                                                    cashbackHistory.map((tx) => (
+                                                        <tr key={tx.id}>
+                                                            <td>{tx.created_at.split(' ')[0]}</td>
+                                                            <td>
+                                                                <div style={{ fontWeight: '500' }}>{tx.description}</div>
+                                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>ID: {tx.id}</div>
+                                                            </td>
+                                                            <td className={`${styles.txAmount} ${tx.type === 'earned' ? styles.txEarned : styles.txUsed}`}>
+                                                                {tx.type === 'earned' ? '+' : '-'} R$ {tx.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                            </td>
+                                                            <td>
+                                                                <span className={styles.statusBadgeMini} style={{
+                                                                    background: tx.status === 'approved' ? '#f0fdf4' : tx.status === 'used' ? '#eff6ff' : '#fef2f2',
+                                                                    color: tx.status === 'approved' ? '#166534' : tx.status === 'used' ? '#1e40af' : '#991b1b'
+                                                                }}>
+                                                                    {tx.status === 'approved' ? 'Disponível' : tx.status === 'used' ? 'Usado' : tx.status === 'expired' ? 'Expirado' : tx.status}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={4} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                                                            Nenhuma transação de cashback encontrada.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </section>
                         )}
                     </div>

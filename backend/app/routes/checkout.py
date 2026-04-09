@@ -31,6 +31,7 @@ class CheckoutRequestModel(BaseModel):
     address: Optional[dict] = None
     discount_amount: Optional[float] = 0.0
     coupon_code: Optional[str] = None
+    cashback_amount: Optional[float] = 0.0
     # Formato legado (compatibilidade)
     shipping_method_id: Optional[str] = None
     address_info: Optional[dict] = None
@@ -45,9 +46,10 @@ async def checkout(
     """
     1. Recebe itens do carrinho
     2. Valida cupom se houver
-    3. Cria pedido pending e order_items com todos os dados do cliente
-    4. Cria Stripe Checkout Session (salvando pedido_id na metadata)
-    5. Retorna URL do checkout
+    3. Valida cashback se houver
+    4. Cria pedido pending e order_items com todos os dados do cliente
+    5. Cria Stripe Checkout Session (salvando pedido_id na metadata)
+    6. Retorna URL do checkout
     """
     if not checkout_data.items:
         raise HTTPException(status_code=400, detail="Carrinho vazio.")
@@ -69,7 +71,9 @@ async def checkout(
     repo = OrderRepository(db)
     service = OrderService(repo)
 
-    # Validação de Cupom
+    subtotal = sum(item.price * item.quantity for item in checkout_data.items)
+
+    # 1. Validação de Cupom
     coupon_code = None
     discount_amount = checkout_data.discount_amount or 0.0
 
@@ -91,7 +95,6 @@ async def checkout(
         if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
             raise HTTPException(status_code=400, detail="Este cupom atingiu o limite de uso")
 
-        subtotal = sum(item.price * item.quantity for item in checkout_data.items)
         if coupon.min_purchase_value > subtotal:
             raise HTTPException(status_code=400, detail=f"Compra mínima de R$ {coupon.min_purchase_value} necessária")
 
@@ -103,6 +106,27 @@ async def checkout(
 
         coupon.usage_count += 1
         db.add(coupon)
+
+    # 2. Validação de Cashback
+    from app.api.endpoints.cashback import _available_balance, _get_config
+    cashback_amount = checkout_data.cashback_amount or 0.0
+    cashback_used = False
+
+    if cashback_amount > 0:
+        cfg = _get_config(db)
+        if not cfg.is_active:
+            raise HTTPException(status_code=400, detail="Cashback desativado.")
+        if coupon_code and not cfg.allow_with_coupons:
+            raise HTTPException(status_code=400, detail="Não é permitido usar cashback junto com cupom.")
+        if subtotal < cfg.min_purchase_to_use:
+            raise HTTPException(status_code=400, detail=f"Compra mínima para usar cashback é R$ {cfg.min_purchase_to_use}")
+        
+        balance = _available_balance(db, current_user.id)
+        if cashback_amount > balance:
+            raise HTTPException(status_code=400, detail="Saldo de cashback insuficiente.")
+            
+        discount_amount += cashback_amount
+        cashback_used = True
 
     items_list = [item.dict() for item in checkout_data.items]
     return_url = checkout_data.return_url or ""
@@ -120,8 +144,7 @@ async def checkout(
             customer_cpf=customer_cpf or None
         )
 
-        # Salva dados adicionais do cliente no pedido para o Melhor Envio
-        from app.models.models import Order
+        from app.models.models import Order, CashbackTransaction
         order = db.query(Order).filter(Order.id == resultado["pedido_id"]).first()
         if order:
             order.customer_name = customer_name
@@ -130,6 +153,18 @@ async def checkout(
             if customer_cpf:
                 order.customer_cpf = customer_cpf
             db.add(order)
+            
+            # Registrar uso do cashback
+            if cashback_used:
+                tx = CashbackTransaction(
+                    user_id=current_user.id,
+                    order_id=order.id,
+                    amount=cashback_amount,
+                    type="used",
+                    status="used",
+                    description=f"Uso no pedido #{order.id}"
+                )
+                db.add(tx)
 
         db.commit()
         return {"checkout_url": resultado["checkout_url"], "order_id": resultado["pedido_id"]}

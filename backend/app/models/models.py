@@ -381,3 +381,50 @@ class RawMaterial(Base):
     name = Column(String, unique=True, nullable=False)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ─── Cashback System ──────────────────────────────────────────────────────────
+
+class CashbackConfig(Base):
+    """Configurações globais do sistema de cashback (singleton)."""
+    __tablename__ = "cashback_config"
+
+    id = Column(Integer, primary_key=True, index=True)
+    is_active = Column(Boolean, default=True)
+
+    # Percentuais
+    first_purchase_percentage = Column(Float, default=10.0)   # % na 1ª compra
+    repurchase_percentage = Column(Float, default=10.0)        # % nas recompras
+
+    # Validade
+    first_purchase_validity_days = Column(Integer, default=30) # dias até expirar (1ª compra)
+    repurchase_validity_days = Column(Integer, default=30)     # dias até expirar (recompra)
+
+    # Regras de uso
+    min_purchase_to_earn = Column(Float, default=0.0)          # mínimo de compra para ganhar
+    min_purchase_to_use = Column(Float, default=50.0)          # mínimo de compra para usar
+    allow_with_coupons = Column(Boolean, default=False)        # permitir uso com cupons
+
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class CashbackTransaction(Base):
+    """Cada crédito (earned) ou débito (used) de cashback de um usuário."""
+    __tablename__ = "cashback_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=True)
+
+    amount = Column(Float, nullable=False)     # valor em R$
+    type = Column(String, nullable=False)      # 'earned' | 'used'
+    status = Column(String, default="approved") # 'pending' | 'approved' | 'used' | 'expired' | 'reversed'
+    description = Column(String, nullable=True) # ex: "10% na primeira compra"
+    is_first_purchase = Column(Boolean, default=False)
+
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+    order = relationship("Order", foreign_keys=[order_id])
+
