@@ -97,11 +97,14 @@ export default function CarrinhoPage() {
     }, []);
 
     // Calculate shipping whenever valid CEP and cart changes
+    const [shippingError, setShippingError] = useState<string | null>(null);
+
     useEffect(() => {
         const cleanCep = cep.replace(/\D/g, "");
         if (cleanCep.length === 8 && cart.length > 0 && step === "checkout") {
             const calculateShipping = async () => {
                 setLoadingShipping(true);
+                setShippingError(null);
                 try {
                     const reqBody = {
                         dest_cep: cleanCep,
@@ -134,26 +137,30 @@ export default function CarrinhoPage() {
                             setSelectedShipping(null);
                         }
                     } else {
+                        const errData = await res.json().catch(() => ({}));
+                        setShippingError(errData.detail || "Erro ao calcular frete. Verifique o CEP e tente novamente.");
                         setShippingOptions([]);
                         setSelectedShipping(null);
                     }
                 } catch (error) {
                     console.error("Shipping calc error:", error);
+                    setShippingError("Erro de conexão ao calcular frete.");
                     setShippingOptions([]);
                     setSelectedShipping(null);
                 } finally {
                     setLoadingShipping(false);
                 }
             };
-            
+
             const timeoutId = setTimeout(() => {
                 calculateShipping();
             }, 500);
-            
+
             return () => clearTimeout(timeoutId);
         } else if (cleanCep.length !== 8) {
             setShippingOptions([]);
             setSelectedShipping(null);
+            setShippingError(null);
         }
     }, [cep, cart, step]);
 
@@ -292,24 +299,26 @@ export default function CarrinhoPage() {
                 body: JSON.stringify({
                     items: cart.map(i => {
                         const finalPrice = i.isWholesale ? i.price * 0.7 : i.price;
-                        return { 
-                            product_id: i.id, 
-                            product_name: i.isWholesale ? `${i.name} (Atacado)` : i.name, 
-                            quantity: i.quantity, 
-                            price: finalPrice 
+                        return {
+                            product_id: i.id,
+                            product_name: i.isWholesale ? `${i.name} (Atacado)` : i.name,
+                            quantity: i.quantity,
+                            price: finalPrice
                         };
                     }),
+                    total: finalTotal,
                     shipping_price: shippingPrice,
-                    shipping_method_id: selectedShipping.id.toString(),
-                    address_info: { 
-                        ...address, 
+                    shipping_method: selectedShipping?.name || "Melhor Envio",
+                    customer_name: customerName,
+                    customer_phone: customerPhone,
+                    customer_cpf: customerCpf.replace(/\D/g, ""),
+                    address: {
+                        ...address,
                         postal_code: cep.replace(/\D/g, ""),
-                        customer_name: customerName,
-                        customer_phone: customerPhone,
-                        customer_cpf: customerCpf.replace(/\D/g, "")
+                        zip: cep.replace(/\D/g, ""),
                     },
-                    return_url: window.location.origin,
-                    coupon_code: appliedCoupon?.code
+                    coupon_code: appliedCoupon?.code,
+                    discount_amount: discount,
                 }),
             });
 
@@ -500,6 +509,10 @@ export default function CarrinhoPage() {
                                     {loadingShipping ? (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b' }}>
                                             <Loader2 size={18} className="spin" /> Calculando frete...
+                                        </div>
+                                    ) : shippingError ? (
+                                        <div style={{ color: "#ef4444", fontSize: "0.88rem", background: "#fef2f2", borderRadius: "10px", padding: "12px", border: "1px solid #fca5a5" }}>
+                                            ⚠️ {shippingError}
                                         </div>
                                     ) : shippingOptions.length > 0 ? (
                                         <div className={styles.shippingOptions}>

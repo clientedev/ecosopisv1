@@ -35,9 +35,9 @@ async def calculate_shipping(request: ShippingRequest):
     Calcula opções de frete reais via Melhor Envio.
     """
     items_dict = [item.model_dump() for item in request.items]
-    options = MelhorEnvioService.calculate_shipping(request.dest_cep, items_dict)
-    if not options:
-        return []
+    options, error = MelhorEnvioService.calculate_shipping(request.dest_cep, items_dict)
+    if error and not options:
+        raise HTTPException(status_code=422, detail=error)
     return options
 
 @router.get("/test-connection")
@@ -257,40 +257,12 @@ async def generate_label(
 
     if resultado.get("erro"):
         erro_str = resultado["erro"]
-        is_network_error = any(kw in erro_str for kw in [
-            "NameResolution", "Failed to resolve", "Max retries exceeded",
-            "Connection refused", "Name or service not known", "ConnectionError",
-            "Timeout", "RemoteDisconnected", "SSL", "timed out"
-        ])
 
-        if is_network_error:
-            try:
-                pdf_bytes = _simulate_label_pdf(order)
-                label_dir = "static/labels"
-                os.makedirs(label_dir, exist_ok=True)
-                label_filename = f"etiqueta-pedido-{order_id}.pdf"
-                label_path = os.path.join(label_dir, label_filename)
-                with open(label_path, "wb") as f:
-                    f.write(pdf_bytes)
-                label_url = f"/static/labels/{label_filename}"
-
-                order.etiqueta_url = label_url
-                order.status = "paid"
-                db.commit()
-                db.refresh(order)
-
-                return {
-                    "order_id": order_id,
-                    "label_url": label_url,
-                    "tracking_code": None,
-                    "shipment_id": None,
-                    "status": "paid",
-                    "reused": False,
-                    "simulated": True,
-                    "warning": "Etiqueta provisória gerada localmente. O serviço Melhor Envio está temporariamente indisponível. Tente reprocessar quando o serviço estiver estável."
-                }
-            except Exception as sim_exc:
-                logger.error(f"[LABEL] Falha também no fallback simulado: {sim_exc}")
+        # Garante que o status do pedido volta a 'paid' se falhou no envio
+        # (processando_envio → paid) para permitir nova tentativa
+        if order.status in ("processando_envio", "erro_envio", "PROCESSANDO_ENVIO", "ERRO_ENVIO"):
+            order.status = "paid"
+            db.commit()
 
         raise HTTPException(
             status_code=422,
