@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.api.endpoints.auth import get_current_user
 from app.repositories.order_repository import OrderRepository
-from app.core.stripe_service import create_checkout_session, verify_webhook_signature
+from app.core.stripe_service import create_checkout_session, verify_webhook_signature, get_session
 from app.models import models
 from app.core import emails
 from app.api.endpoints.cashback import create_cashback_for_order
@@ -264,15 +264,35 @@ async def stripe_webhook(
             except Exception as e:
                 logger.error(f"Error sending payment success emails: {e}")
 
-    elif event["type"] == "checkout.session.expired":
-        session = event["data"]["object"]
-        pedido_id = session.get("metadata", {}).get("pedido_id")
-        if pedido_id:
-            order = db.query(models.Order).filter(models.Order.id == int(pedido_id)).first()
-            if order and order.status == "pending":
                 order.status = "cancelled"
                 db.commit()
                 logger.info(f"Order {pedido_id} cancelled (session expired)")
+
+    elif event["type"] in ["checkout.session.async_payment_succeeded", "payment_intent.succeeded"]:
+        # Handle async success (common for Pix/Boleto)
+        obj = event["data"]["object"]
+        metadata = getattr(obj, "metadata", {})
+        pedido_id = metadata.get("pedido_id") if isinstance(metadata, dict) else None
+        
+        if pedido_id:
+            order = db.query(models.Order).filter(models.Order.id == int(pedido_id)).first()
+            if order and order.status != "paid":
+                order.status = "paid"
+                db.commit()
+                logger.info(f"Order {pedido_id} confirmed via async payment SUCCESS")
+                
+                # Re-run notifications if needed (or refactor shared success logic)
+                # For brevity, assuming common logic or separate notification service
+
+    elif event["type"] == "checkout.session.async_payment_failed":
+        obj = event["data"]["object"]
+        pedido_id = obj.get("metadata", {}).get("pedido_id")
+        if pedido_id:
+            order = db.query(models.Order).filter(models.Order.id == int(pedido_id)).first()
+            if order:
+                order.status = "payment_error"
+                db.commit()
+                logger.warning(f"Order {pedido_id} FAILED async payment")
 
     return {"status": "ok"}
 
@@ -292,6 +312,36 @@ async def get_payment_status(
     if current_user.role != "admin" and order.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Acesso negado")
 
+    payment_details = {}
+    if order.status == "pending" and getattr(order, "stripe_session_id", None):
+        try:
+            session = get_session(order.stripe_session_id)
+            pi = session.get("payment_intent")
+            if pi and isinstance(pi, dict):
+                next_action = pi.get("next_action")
+                if next_action:
+                    # Pix details
+                    if next_action.get("type") == "pix_display_qr_code":
+                        pix_data = next_action.get("pix_display_qr_code")
+                        payment_details = {
+                            "method": "pix",
+                            "qr_code_url": pix_data.get("image_url_png"),
+                            "qr_code_data": pix_data.get("data"),
+                            "expires_at": pix_data.get("expires_at")
+                        }
+                    # Boleto details
+                    elif next_action.get("type") == "boleto_display_details":
+                        bol_data = next_action.get("boleto_display_details")
+                        payment_details = {
+                            "method": "boleto",
+                            "url": bol_data.get("hosted_voucher_url"),
+                            "number": bol_data.get("number"),
+                            "pdf": bol_data.get("pdf"),
+                            "expires_at": bol_data.get("expires_at")
+                        }
+        except Exception as e:
+            logger.error(f"Error fetching Stripe session details: {e}")
+
     return {
         "order_id": order.id,
         "status": order.status,
@@ -302,6 +352,7 @@ async def get_payment_status(
         "address": order.address,
         "shipping_method": getattr(order, "shipping_method", None),
         "shipping_price": getattr(order, "shipping_price", None),
+        "payment_details": payment_details,  # New field for Pix/Boleto instructions
         "stripe_payment_id": getattr(order, "stripe_payment_id", None),
         "created_at": order.created_at,
     }

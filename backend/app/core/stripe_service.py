@@ -50,16 +50,23 @@ def create_checkout_session(
             "quantity": 1,
         })
 
-    session = stripe.checkout.Session.create(
-        payment_method_types=["card"],
-        mode="payment",
-        line_items=line_items,
-        success_url=f"{base_url}/pagamento?status=approved&order_id={order_id}",
-        cancel_url=f"{base_url}/pagamento?status=failure&order_id={order_id}",
-        metadata={
+    session_data = {
+        "payment_method_types": ["card", "pix", "boleto"],
+        "mode": "payment",
+        "line_items": line_items,
+        "success_url": f"{base_url}/pagamento?status=approved&order_id={order_id}",
+        "cancel_url": f"{base_url}/pagamento?status=failure&order_id={order_id}",
+        "metadata": {
             "pedido_id": str(order_id),
         },
-    )
+        "payment_method_options": {
+            "boleto": {
+                "expires_after_days": 3,
+            },
+        },
+    }
+
+    session = stripe.checkout.Session.create(**session_data)
 
     return {
         "session_id": session.id,
@@ -76,3 +83,10 @@ def verify_webhook_signature(payload: bytes, sig_header: str) -> dict:
         payload, sig_header, STRIPE_WEBHOOK_SECRET
     )
     return event
+
+
+def get_session(session_id: str) -> stripe.checkout.Session:
+    """
+    Retrieves a Stripe Checkout Session by ID, including the related Payment Intent.
+    """
+    return stripe.checkout.Session.retrieve(session_id, expand=["payment_intent"])

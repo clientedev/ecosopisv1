@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
+import { Copy, ExternalLink, QrCode, FileText } from "lucide-react";
 
 function PaymentContent() {
     const searchParams = useSearchParams();
@@ -11,8 +12,10 @@ function PaymentContent() {
     const orderId = searchParams.get("order_id");
 
     const [orderStatus, setOrderStatus] = useState<string>(status);
+    const [paymentDetails, setPaymentDetails] = useState<any>(null);
     const [polling, setPolling] = useState(true);
     const [attempts, setAttempts] = useState(0);
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         if (!orderId || status === "failure") {
@@ -42,6 +45,9 @@ function PaymentContent() {
                         setPolling(false);
                         return;
                     }
+                    if (data.payment_details && Object.keys(data.payment_details).length > 0) {
+                        setPaymentDetails(data.payment_details);
+                    }
                 }
             } catch (e) {
                 console.error("Error polling payment status:", e);
@@ -64,6 +70,13 @@ function PaymentContent() {
     const isApproved = orderStatus === "approved" || orderStatus === "paid";
     const isFailure = status === "failure" || status === "rejected";
     const isPending = !isApproved && !isFailure;
+
+    const copyToClipboard = (text: string) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+    };
 
     return (
         <main>
@@ -162,6 +175,143 @@ function PaymentContent() {
                                 Continuar Navegando
                             </Link>
                         </div>
+
+                        {paymentDetails && (
+                            <div style={{
+                                marginTop: "40px",
+                                padding: "30px",
+                                background: "#fff",
+                                borderRadius: "20px",
+                                border: "1px solid #e2e8f0",
+                                maxWidth: "500px",
+                                width: "100%",
+                                boxShadow: "0 10px 15px -3px rgba(0,0,0,0.05)"
+                            }}>
+                                {paymentDetails.method === "pix" && (
+                                    <>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", marginBottom: "20px" }}>
+                                            <QrCode color="#059669" />
+                                            <h3 style={{ margin: 0 }}>Pagamento via Pix</h3>
+                                        </div>
+                                        {paymentDetails.qr_code_url && (
+                                            <img 
+                                                src={paymentDetails.qr_code_url} 
+                                                alt="QR Code Pix" 
+                                                style={{ width: "200px", height: "200px", margin: "0 auto 20px", display: "block", padding: "10px", border: "1px solid #eee", borderRadius: "12px" }}
+                                            />
+                                        )}
+                                        <p style={{ fontSize: "0.9rem", color: "#64748b", marginBottom: "15px" }}>
+                                            Escaneie o QR Code acima ou copie o código abaixo para pagar:
+                                        </p>
+                                        <div style={{ 
+                                            background: "#f8fafc", 
+                                            padding: "12px", 
+                                            borderRadius: "10px", 
+                                            fontSize: "0.75rem", 
+                                            wordBreak: "break-all",
+                                            fontFamily: "monospace",
+                                            border: "1px solid #e2e8f0",
+                                            marginBottom: "15px",
+                                            textAlign: "left"
+                                        }}>
+                                            {paymentDetails.qr_code_data}
+                                        </div>
+                                        <button 
+                                            onClick={() => copyToClipboard(paymentDetails.qr_code_data)}
+                                            style={{
+                                                width: "100%",
+                                                padding: "12px",
+                                                background: copied ? "#059669" : "#fff",
+                                                color: copied ? "#fff" : "#059669",
+                                                border: "1px solid #059669",
+                                                borderRadius: "10px",
+                                                fontWeight: 700,
+                                                cursor: "pointer",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                gap: "8px",
+                                                transition: "all 0.2s"
+                                            }}
+                                        >
+                                            <Copy size={18} />
+                                            {copied ? "CÓDIGO COPIADO!" : "COPIAR CÓDIGO PIX"}
+                                        </button>
+                                    </>
+                                )}
+
+                                {paymentDetails.method === "boleto" && (
+                                    <>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", marginBottom: "20px" }}>
+                                            <FileText color="#1e40af" />
+                                            <h3 style={{ margin: 0 }}>Pagamento via Boleto</h3>
+                                        </div>
+                                        <p style={{ fontSize: "0.9rem", color: "#64748b", marginBottom: "20px" }}>
+                                            Seu boleto foi gerado com sucesso. Clique no botão abaixo para visualizá-lo e realizar o pagamento.
+                                        </p>
+                                        <div style={{ marginBottom: "20px", textAlign: "left" }}>
+                                            <label style={{ fontSize: "0.75rem", color: "#94a3b8", display: "block", marginBottom: "4px" }}>Linha Digitável:</label>
+                                            <div style={{ 
+                                                background: "#f8fafc", 
+                                                padding: "12px", 
+                                                borderRadius: "10px", 
+                                                fontSize: "0.85rem", 
+                                                fontWeight: "bold",
+                                                border: "1px solid #e2e8f0",
+                                                fontFamily: "monospace"
+                                            }}>
+                                                {paymentDetails.number}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: "flex", gap: "12px" }}>
+                                            <button 
+                                                onClick={() => copyToClipboard(paymentDetails.number)}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: "12px",
+                                                    background: "#f1f5f9",
+                                                    color: "#475569",
+                                                    border: "1px solid #cbd5e1",
+                                                    borderRadius: "10px",
+                                                    fontWeight: 600,
+                                                    cursor: "pointer",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    gap: "8px"
+                                                }}
+                                            >
+                                                <Copy size={18} /> {copied ? "Copiado!" : "Copiar"}
+                                            </button>
+                                            <a 
+                                                href={paymentDetails.url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    flex: 1.5,
+                                                    padding: "12px",
+                                                    background: "#1e40af",
+                                                    color: "#fff",
+                                                    border: "none",
+                                                    borderRadius: "10px",
+                                                    fontWeight: 700,
+                                                    textDecoration: "none",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    gap: "8px"
+                                                }}
+                                            >
+                                                VER BOLETO <ExternalLink size={18} />
+                                            </a>
+                                        </div>
+                                        <p style={{ marginTop: "15px", fontSize: "0.75rem", color: "#ef4444" }}>
+                                            Atenção: Boletos podem levar até 3 dias úteis para compensar.
+                                        </p>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </>
                 )}
             </div>
