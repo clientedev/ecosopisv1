@@ -56,7 +56,7 @@ function VerifyEmailContent() {
           <div className={styles.success}>
             <div className={styles.icon}>✅</div>
             <p>{message}</p>
-            <Link href="/login" className={styles.button}>
+            <Link href="/conta" className={styles.button}>
               Ir para o Login
             </Link>
           </div>
@@ -66,7 +66,7 @@ function VerifyEmailContent() {
           <div className={styles.error}>
             <div className={styles.icon}>❌</div>
             <p>{message}</p>
-            <Link href="/cadastro" className={styles.buttonSecondary}>
+            <Link href="/conta" className={styles.buttonSecondary}>
               Tentar Novamente
             </Link>
           </div>
