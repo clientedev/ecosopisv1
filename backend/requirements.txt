@@ -22,3 +22,4 @@ zeep
 requests
 reportlab
 resend
+dnspython

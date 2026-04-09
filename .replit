@@ -4,7 +4,7 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["cargo", "freetype", "glibcLocales", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "rustc", "tcl", "tk", "zlib"]
+packages = ["cacert", "cargo", "freetype", "glibcLocales", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "rustc", "tcl", "tk", "zlib"]
 
 [userenv]
 
@@ -13,7 +13,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = "60"
 ALGORITHM = "HS256"
 SECRET_KEY = "80d1fa9e0e09f6187b371a66dfcc728d44e2025c2fedac6027adfd8ff7c03ee1"
 MELHORENVIO_CEP_ORIGEM = "02969000"
-MELHORENVIO_URL = "https://api.melhorenvio.com.br"
 STORE_NAME = "ECOSOPIS Cosméticos Naturais"
 STORE_PHONE = "11999999999"
 STORE_ADDRESS = "Rua José Benedito Bispo"
@@ -23,6 +22,7 @@ STORE_CITY = "Guarulhos"
 STORE_STATE = "SP"
 STORE_DOCUMENT = "32273095805"
 MELHORENVIO_CLIENT_ID = "23449"
+MELHORENVIO_URL = "https://www.melhorenvio.com.br"
 
 [workflows]
 runButton = "Project"

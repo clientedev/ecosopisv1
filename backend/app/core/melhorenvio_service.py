@@ -6,16 +6,23 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-# Configurações do Melhor Envio (aceitando nomes com e sem underscore para evitar erro)
-MELHORENVIO_URL = os.getenv("MELHORENVIO_URL", os.getenv("MELHOR_ENVIO_BASE_URL", "https://api.melhorenvio.com.br")).strip()
+# ──────────────────────────────────────────────────────────────────────────────
+# URL correta da API Melhor Envio (produção): https://www.melhorenvio.com.br
+# O subdomínio "api.melhorenvio.com.br" NÃO possui registro DNS público.
+# ──────────────────────────────────────────────────────────────────────────────
+
+_raw_url = os.getenv("MELHORENVIO_URL", "https://www.melhorenvio.com.br").strip().rstrip("/")
+
+# Corrige URL errada que usa "api." — esse subdomínio não existe no DNS
+if _raw_url == "https://api.melhorenvio.com.br" or _raw_url == "http://api.melhorenvio.com.br":
+    _raw_url = "https://www.melhorenvio.com.br"
+
+MELHORENVIO_URL = _raw_url
 MELHORENVIO_TOKEN = os.getenv("MELHORENVIO_TOKEN", os.getenv("MELHOR_ENVIO_TOKEN", "")).strip()
 MELHORENVIO_CLIENT_ID = os.getenv("MELHORENVIO_CLIENT_ID", os.getenv("MELHOR_ENVIO_CLIENT_ID", "")).strip()
 MELHORENVIO_CLIENT_SECRET = os.getenv("MELHORENVIO_CLIENT_SECRET", os.getenv("MELHOR_ENVIO_CLIENT_SECRET", "")).strip()
-# Garante que sempre usamos o endpoint correto da API Melhor Envio
-if "melhorenvio.com.br" in MELHORENVIO_URL and "api.melhorenvio.com.br" not in MELHORENVIO_URL:
-    MELHORENVIO_URL = "https://api.melhorenvio.com.br"
-# CEP de Origem da loja — prioriza MELHORENVIO_CEP_ORIGEM, depois STORE_CEP
 STORE_CEP = re.sub(r"\D", "", os.getenv("MELHORENVIO_CEP_ORIGEM", os.getenv("STORE_CEP", "02969000"))).strip()
+
 
 class MelhorEnvioService:
     MELHORENVIO_URL = MELHORENVIO_URL
@@ -25,13 +32,9 @@ class MelhorEnvioService:
 
     @classmethod
     def _get_access_token(cls):
-        """
-        Obtém o token de acesso via OAuth ou retorna o token manual se configurado.
-        """
         if cls._cached_token:
             return cls._cached_token
 
-        # O token pessoal (Token do Painel) tem todas as permissões de usuário
         if MELHORENVIO_TOKEN:
             return MELHORENVIO_TOKEN
 
@@ -64,7 +67,7 @@ class MelhorEnvioService:
     @classmethod
     def calculate_shipping(cls, dest_cep, items):
         """
-        Calcula frete para múltiplas transportadoras via Melhor Envio com validações rigorosas.
+        Calcula frete para múltiplas transportadoras via Melhor Envio.
         Retorna tupla (options, error_message).
         """
         token = cls._get_access_token()
@@ -72,9 +75,7 @@ class MelhorEnvioService:
             print("Token do Melhor Envio não disponível")
             return [], "Token do Melhor Envio não configurado."
 
-        # Limpeza do CEP de destino
         clean_dest_cep = re.sub(r"\D", "", str(dest_cep))
-
         if len(clean_dest_cep) != 8:
             return [], f"CEP de destino inválido: {dest_cep}"
 
@@ -86,17 +87,10 @@ class MelhorEnvioService:
             "User-Agent": "ECOSOPIS/2.0 (ecosopisartesanais@gmail.com)",
         }
 
-        # Lógica de Embalagem Automática
         total_quantity = sum(item.get("quantity", 1) for item in items)
         total_price = sum(item.get("price", 0) * item.get("quantity", 1) for item in items)
-
-        # Peso total (mínimo 0.3kg)
         total_weight = max(total_quantity * 0.25, 0.3)
 
-        # Melhor Envio strict minimums
-        min_width, min_height, min_length, min_weight = 16, 12, 20, 0.3
-
-        # Seleção de Caixa baseada na quantidade
         if total_quantity <= 2:
             width, height, length = 16, 12, 20
         elif total_quantity <= 5:
@@ -104,11 +98,10 @@ class MelhorEnvioService:
         else:
             width, height, length = 30, 25, 25
 
-        # Garantir dimensões e peso mínimos recomendados
-        width = max(width, min_width)
-        height = max(height, min_height)
-        length = max(length, min_length)
-        total_weight = max(total_weight, min_weight)
+        width = max(width, 16)
+        height = max(height, 12)
+        length = max(length, 20)
+        total_weight = max(total_weight, 0.3)
         insurance_value = max(total_price, 1.0)
 
         payload = {
@@ -128,11 +121,11 @@ class MelhorEnvioService:
                 "receipt": False,
                 "own_hand": False
             },
-            "services": ""  # Permitir todos os serviços ativos
+            "services": ""
         }
 
         last_error = None
-        for attempt in range(1, 3):  # até 2 tentativas, mas para imediatamente se DNS falhar
+        for attempt in range(1, 3):
             try:
                 print(f"--- MelhorEnvio Freight Request (tentativa {attempt}) ---")
                 print(f"URL: {url}")
@@ -168,18 +161,21 @@ class MelhorEnvioService:
                 else:
                     last_error = f"Erro {response.status_code}: {response.text[:200]}"
                     print(f"MELHORENVIO_ERROR: {last_error}")
+
             except requests.exceptions.Timeout:
                 last_error = "Timeout ao conectar com a Melhor Envio. Serviço pode estar indisponível."
                 print(f"Timeout na tentativa {attempt}")
+
             except requests.exceptions.ConnectionError as e:
                 err_str = str(e)
                 if "NameResolutionError" in err_str or "Name or service not known" in err_str or "Failed to resolve" in err_str:
                     last_error = "CONEXAO_INDISPONIVEL"
                     print(f"DNS resolution failed — abortando tentativas")
-                    break  # Não adianta tentar novamente se o DNS falhou
+                    break
                 else:
                     last_error = f"Erro de conexão com a Melhor Envio: {err_str[:100]}"
                 print(f"ConnectionError na tentativa {attempt}: {e}")
+
             except Exception as e:
                 last_error = f"Erro inesperado: {str(e)[:100]}"
                 print(f"Erro na tentativa {attempt}: {e}")
