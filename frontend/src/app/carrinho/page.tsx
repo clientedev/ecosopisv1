@@ -138,7 +138,11 @@ export default function CarrinhoPage() {
                         }
                     } else {
                         const errData = await res.json().catch(() => ({}));
-                        setShippingError(errData.detail || "Erro ao calcular frete. Verifique o CEP e tente novamente.");
+                        if (res.status === 503) {
+                            setShippingError("__INDISPONIVEL__");
+                        } else {
+                            setShippingError(errData.detail || "Erro ao calcular frete. Verifique o CEP e tente novamente.");
+                        }
                         setShippingOptions([]);
                         setSelectedShipping(null);
                     }
@@ -509,6 +513,15 @@ export default function CarrinhoPage() {
                                     {loadingShipping ? (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b' }}>
                                             <Loader2 size={18} className="spin" /> Calculando frete...
+                                        </div>
+                                    ) : shippingError === "__INDISPONIVEL__" ? (
+                                        <div style={{ fontSize: "0.88rem", background: "#fffbeb", borderRadius: "10px", padding: "14px 16px", border: "1px solid #fcd34d" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 700, color: "#92400e", marginBottom: "4px" }}>
+                                                <Truck size={16} /> Cálculo de frete disponível no site publicado
+                                            </div>
+                                            <p style={{ margin: 0, color: "#78350f", lineHeight: 1.5 }}>
+                                                O cálculo de frete via Melhor Envio funciona normalmente no site em produção. As opções de PAC, SEDEX e outras transportadoras aparecerão ao finalizar sua compra pelo site oficial.
+                                            </p>
                                         </div>
                                     ) : shippingError ? (
                                         <div style={{ color: "#ef4444", fontSize: "0.88rem", background: "#fef2f2", borderRadius: "10px", padding: "12px", border: "1px solid #fca5a5" }}>

@@ -132,7 +132,7 @@ class MelhorEnvioService:
         }
 
         last_error = None
-        for attempt in range(1, 3):  # 2 tentativas
+        for attempt in range(1, 3):  # até 2 tentativas, mas para imediatamente se DNS falhar
             try:
                 print(f"--- MelhorEnvio Freight Request (tentativa {attempt}) ---")
                 print(f"URL: {url}")
@@ -172,7 +172,13 @@ class MelhorEnvioService:
                 last_error = "Timeout ao conectar com a Melhor Envio. Serviço pode estar indisponível."
                 print(f"Timeout na tentativa {attempt}")
             except requests.exceptions.ConnectionError as e:
-                last_error = f"Erro de conexão com a Melhor Envio: {str(e)[:100]}"
+                err_str = str(e)
+                if "NameResolutionError" in err_str or "Name or service not known" in err_str or "Failed to resolve" in err_str:
+                    last_error = "CONEXAO_INDISPONIVEL"
+                    print(f"DNS resolution failed — abortando tentativas")
+                    break  # Não adianta tentar novamente se o DNS falhou
+                else:
+                    last_error = f"Erro de conexão com a Melhor Envio: {err_str[:100]}"
                 print(f"ConnectionError na tentativa {attempt}: {e}")
             except Exception as e:
                 last_error = f"Erro inesperado: {str(e)[:100]}"

@@ -37,6 +37,11 @@ async def calculate_shipping(request: ShippingRequest):
     items_dict = [item.model_dump() for item in request.items]
     options, error = MelhorEnvioService.calculate_shipping(request.dest_cep, items_dict)
     if error and not options:
+        if error == "CONEXAO_INDISPONIVEL":
+            raise HTTPException(
+                status_code=503,
+                detail="O serviço de frete está temporariamente indisponível. Os valores de frete serão calculados normalmente no site de produção."
+            )
         raise HTTPException(status_code=422, detail=error)
     return options
 
