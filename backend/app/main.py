@@ -308,11 +308,16 @@ async def root():
 @app.get("/diagnostic")
 async def diagnostic(db: Session = Depends(get_db)):
     status = {
-        "database": "OK",
+        "database": "REPAIR_INITIATED",
         "env": {},
-        "missing_columns": {}
+        "repair_result": "Success"
     }
     try:
+        # Emergency Repair: Ensure correct column names for Mercado Pago
+        db.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS mercadopago_preference_id VARCHAR"))
+        db.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS mercadopago_payment_id VARCHAR"))
+        db.commit()
+        
         # Check tables
         tables = ["users", "orders", "products"]
         for table in tables:
@@ -329,6 +334,7 @@ async def diagnostic(db: Session = Depends(get_db)):
         
     except Exception as e:
         status["database"] = f"GENERAL ERROR: {str(e)}"
+        status["repair_result"] = f"Failed: {str(e)}"
     
     return status
 
