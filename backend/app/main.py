@@ -252,6 +252,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"GLOBAL ERROR: {str(exc)}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": f"Erro crítico no servidor: {str(exc)}",
+            "type": type(exc).__name__,
+            "path": request.url.path
+        }
+    )
+
 @app.middleware("http")
 async def fix_proto_header(request, call_next):
     # If we're behind a proxy (like Next.js rewrite or Railway edge),
@@ -266,8 +280,7 @@ async def fix_proto_header(request, call_next):
 async def root():
     return {"message": "Welcome to ECOSOPIS API", "version": "1.0.1"}
 
-from app.api.endpoints import raw_materials
-from app.api.endpoints import payment, shipping, crm, cashback
+from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat, roulette, admin_roulette, shipping, addresses, cart, payment, crm, cashback, raw_materials
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(products.router, prefix="/products", tags=["products"])
 app.include_router(coupons.router, prefix="/coupons", tags=["coupons"])
