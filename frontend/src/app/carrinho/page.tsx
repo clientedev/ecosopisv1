@@ -619,9 +619,8 @@ export default function CarrinhoPage() {
                                         <div style={{ color: "#64748b", fontSize: "0.9rem" }}>
                                             Insira o CEP de entrega para calcular o frete.
                                         </div>
-                                                    </div>
-                            </div>
-                            </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
