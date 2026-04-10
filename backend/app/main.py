@@ -57,8 +57,70 @@ def _apply_startup_migrations():
         ("customer_cpf",             "VARCHAR")
     ]
     
+    ADDRESS_COLS = [
+        ("name",         "VARCHAR"),
+        ("street",       "VARCHAR"),
+        ("number",       "VARCHAR"),
+        ("complement",   "VARCHAR"),
+        ("neighborhood", "VARCHAR"),
+        ("city",         "VARCHAR"),
+        ("state",        "VARCHAR"),
+        ("postal_code",  "VARCHAR"),
+        ("is_default",   "BOOLEAN DEFAULT FALSE")
+    ]
+    CAROUSEL_COLS = [
+        ("badge",              "VARCHAR"),
+        ("title",              "VARCHAR"),
+        ("description",        "TEXT"),
+        ("image_url",          "VARCHAR"),
+        ("cta_primary_text",   "VARCHAR"),
+        ("cta_primary_link",   "VARCHAR"),
+        ("cta_secondary_text", "VARCHAR"),
+        ("cta_secondary_link", "VARCHAR"),
+        ("alignment",          "VARCHAR DEFAULT 'left'"),
+        ("vertical_alignment", "VARCHAR DEFAULT 'center'"),
+        ("content_max_width",  "VARCHAR DEFAULT '500px'"),
+        ("glassmorphism",      "BOOLEAN DEFAULT FALSE"),
+        ("offset_x",           "VARCHAR DEFAULT '0px'"),
+        ("offset_y",           "VARCHAR DEFAULT '0px'"),
+        ("title_color",        "VARCHAR DEFAULT '#ffffff'"),
+        ("description_color",  "VARCHAR DEFAULT '#ffffff'"),
+        ("order",              "INTEGER DEFAULT 0")
+    ]
+    ANNOUNCE_COLS = [
+        ("text",         "VARCHAR"),
+        ("bg_color",     "VARCHAR DEFAULT '#2d5a27'"),
+        ("text_color",   "VARCHAR DEFAULT '#ffffff'"),
+        ("is_active",     "BOOLEAN DEFAULT TRUE"),
+        ("is_scrolling",  "BOOLEAN DEFAULT FALSE"),
+        ("repeat_text",   "BOOLEAN DEFAULT TRUE"),
+        ("scroll_speed",  "INTEGER DEFAULT 20")
+    ]
+    NEWS_COLS = [
+        ("title",        "VARCHAR"),
+        ("content",      "TEXT"),
+        ("image_url",    "VARCHAR"),
+        ("is_published", "BOOLEAN DEFAULT TRUE"),
+        ("category",     "VARCHAR")
+    ]
+    
     with engine.connect() as conn:
-        for table, cols in [("users", USER_COLS), ("orders", ORDER_COLS)]:
+        tables_to_sync = [
+            ("users", USER_COLS), 
+            ("orders", ORDER_COLS),
+            ("addresses", ADDRESS_COLS),
+            ("carousel_items", CAROUSEL_COLS),
+            ("announcement_bar", ANNOUNCE_COLS),
+            ("news", NEWS_COLS)
+        ]
+        for table, cols in tables_to_sync:
+            # Check if table exists, create if not
+            try:
+                conn.execute(text(f"CREATE TABLE IF NOT EXISTS {table} (id SERIAL PRIMARY KEY)"))
+                conn.commit()
+            except: 
+                conn.rollback()
+
             for col, defn in cols:
                 try:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {defn}"))

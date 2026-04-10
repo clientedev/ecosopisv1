@@ -619,48 +619,9 @@ export default function CarrinhoPage() {
                                         <div style={{ color: "#64748b", fontSize: "0.9rem" }}>
                                             Insira o CEP de entrega para calcular o frete.
                                         </div>
-                                    )}
-                                </div>
-
-                                <div className={styles.detailSection}>
-                                    <h3>💳 PAGAMENTO</h3>
-                                    <div className={styles.paymentSelector}>
-                                        <div 
-                                            className={`${styles.paymentOption} ${paymentMethod === 'stripe' ? styles.paymentSelected : ''}`}
-                                            onClick={() => setPaymentMethod('stripe')}
-                                        >
-                                            <div className={styles.paymentRadio}>
-                                                <div className={styles.radioInner}></div>
-                                            </div>
-                                            <CreditCard size={24} color="#635bff" />
-                                            <div className={styles.paymentText}>
-                                                <strong>Cartão, Pix e Boleto (Stripe)</strong>
-                                                <p>Pagamento rápido e seguro via Stripe</p>
-                                            </div>
-                                        </div>
-
-                                        <div 
-                                            className={`${styles.paymentOption} ${paymentMethod === 'mercadopago' ? styles.paymentSelected : ''}`}
-                                            onClick={() => setPaymentMethod('mercadopago')}
-                                        >
-                                            <div className={styles.paymentRadio}>
-                                                <div className={styles.radioInner}></div>
-                                            </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', background: '#009ee3', borderRadius: '4px' }}>
-                                                <span style={{ color: 'white', fontWeight: 'bold', fontSize: '12px' }}>MP</span>
-                                            </div>
-                                            <div className={styles.paymentText}>
-                                                <strong>Mercado Pago</strong>
-                                                <p>Pague com sua conta Mercado Pago, Cartão ou Pix</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "12px", textAlign: "center" }}>
-                                        {paymentMethod === 'stripe' 
-                                            ? "Você será redirecionado para o checkout seguro da Stripe" 
-                                            : "Você será redirecionado para o checkout oficial do Mercado Pago"}
-                                    </p>
-                                </div>
+                                                    </div>
+                            </div>
+                            </div>
                             </div>
                         )}
                     </div>
@@ -751,6 +712,30 @@ export default function CarrinhoPage() {
                                 <div className={styles.earnedCashbackHint}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
                                         <Coins size={16} /> Você ganhará <strong>R$ {earnedCashback.toFixed(2)}</strong> em cashback
+                                    </div>
+                                </div>
+                            )}
+
+                            {step === "checkout" && (
+                                <div className={styles.paymentSectionInSummary}>
+                                    <h4 style={{ fontSize: "0.9rem", color: "#64748b", margin: "20px 0 12px", fontWeight: 700 }}>MÉTODO DE PAGAMENTO</h4>
+                                    <div className={styles.compactPaymentSelector}>
+                                        <div 
+                                            className={`${styles.compactPaymentOption} ${paymentMethod === 'stripe' ? styles.compactSelected : ''}`}
+                                            onClick={() => setPaymentMethod('stripe')}
+                                        >
+                                            <CreditCard size={20} color="#635bff" />
+                                            <span>Stripe (Pix, Cartão)</span>
+                                            <div className={styles.compactRadio}></div>
+                                        </div>
+                                        <div 
+                                            className={`${styles.compactPaymentOption} ${paymentMethod === 'mercadopago' ? styles.compactSelected : ''}`}
+                                            onClick={() => setPaymentMethod('mercadopago')}
+                                        >
+                                            <div style={{ width: 20, height: 20, background: '#009ee3', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, color: 'white', fontSize: 10, fontWeight: 900 }}>MP</div>
+                                            <span>Mercado Pago</span>
+                                            <div className={styles.compactRadio}></div>
+                                        </div>
                                     </div>
                                 </div>
                             )}

@@ -27,6 +27,8 @@ class UserResponse(UserBase):
     pode_girar_roleta: Optional[bool] = False
     tentativas_roleta: Optional[int] = 0
     profile_picture: Optional[str] = None
+    cart_json: Optional[str] = None
+    cart_updated_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
 
     class Config:

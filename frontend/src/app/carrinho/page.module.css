@@ -592,4 +592,81 @@ input:checked + .slider:before {
 
 .paymentSelected .paymentText strong {
     color: #1a3a16;
-}
+}
+
+/* Compact Payment Selector in Summary Card */
+.paymentSectionInSummary {
+    margin: 20px 0;
+    padding-top: 20px;
+    border-top: 1px dashed #e2e8f0;
+}
+
+.compactPaymentSelector {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.compactPaymentOption {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fff;
+    position: relative;
+    font-size: 0.9rem;
+    color: #475569;
+    font-weight: 600;
+}
+
+.compactPaymentOption:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
+.compactSelected {
+    border-color: #2d5a27;
+    background: #f0f7ee;
+    color: #1a3a16;
+}
+
+.compactRadio {
+    margin-left: auto;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.compactSelected .compactRadio {
+    border-color: #2d5a27;
+    background: #2d5a27;
+}
+
+.compactSelected .compactRadio::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: white;
+}
+
+@media (max-width: 480px) {
+    .summaryCard {
+        padding: 20px;
+    }
+    
+    .compactPaymentOption {
+        padding: 10px;
+        font-size: 0.85rem;
+    }
+}

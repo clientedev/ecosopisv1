@@ -35,9 +35,10 @@ export const useCart = () => {
 export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [cart, setCart] = useState<CartItem[]>([]);
     const { showToast } = useToast();
-    const { token } = useAuth();
+    const { user, token } = useAuth();
+    const [isInitialized, setIsInitialized] = useState(false);
 
-    // Load cart from localStorage on mount
+    // 1. Load cart from localStorage on mount
     useEffect(() => {
         const savedCart = localStorage.getItem('cart');
         if (savedCart) {
@@ -47,14 +48,33 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 console.error("Failed to parse cart from localStorage", e);
             }
         }
+        setIsInitialized(true);
     }, []);
 
-    // Save cart to localStorage whenever it changes
+    // 2. Load cart from server when user logs in
     useEffect(() => {
+        if (isInitialized && user && user.cart_json) {
+            try {
+                const serverCart = JSON.parse(user.cart_json);
+                // Only load from server if local cart is empty to avoid overwriting current session
+                if (cart.length === 0 && serverCart.length > 0) {
+                    setCart(serverCart);
+                    showToast("Seu carrinho foi recuperado!", "success");
+                }
+            } catch (e) {
+                console.error("Failed to parse cart from server", e);
+            }
+        }
+    }, [user, isInitialized]);
+
+    // 3. Save cart to localStorage AND sync with backend
+    useEffect(() => {
+        if (!isInitialized) return;
+        
         localStorage.setItem('cart', JSON.stringify(cart));
         
         // Sync with backend if logged in
-        if (token && cart.length > 0) {
+        if (token) {
             const syncCart = async () => {
                 try {
                     await fetch('/api/cart/sync', {
@@ -69,9 +89,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                     console.error("Failed to sync cart with server", e);
                 }
             };
-            syncCart();
+            // Debounce or just sync
+            const timeoutId = setTimeout(syncCart, 1000);
+            return () => clearTimeout(timeoutId);
         }
-    }, [cart, token]);
+    }, [cart, token, isInitialized]);
 
     const addToCart = useCallback((product: any) => {
         setCart((prev) => {
