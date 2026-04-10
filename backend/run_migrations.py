@@ -42,6 +42,12 @@ MISSING_PRODUCTS_COLUMNS = [
     ("shopee_url", "VARCHAR"),
 ]
 
+MISSING_ORDERS_COLUMNS = [
+    ("mercadopago_preference_id", "VARCHAR"),
+    ("mercadopago_payment_id", "VARCHAR"),
+    ("payment_method", "VARCHAR(50) DEFAULT 'stripe'"),
+]
+
 
 def add_missing_columns():
     """Safely add any columns that don't exist yet in the live database."""
@@ -91,6 +97,18 @@ def add_missing_columns():
                 logger.info(f"✓ Column products.{col_name} ensured.")
             except Exception as e:
                 logger.warning(f"Could not add column products.{col_name}: {e}")
+                try: conn.rollback()
+                except Exception: pass
+
+        for col_name, col_def in MISSING_ORDERS_COLUMNS:
+            try:
+                conn.execute(text(
+                    f"ALTER TABLE orders ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
+                ))
+                conn.commit()
+                logger.info(f"✓ Column orders.{col_name} ensured.")
+            except Exception as e:
+                logger.warning(f"Could not add column orders.{col_name}: {e}")
                 try: conn.rollback()
                 except Exception: pass
 

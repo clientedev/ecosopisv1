@@ -68,3 +68,11 @@ class OrderRepository:
             self.db.add(order)
             self.db.flush()
         return order
+
+    def save_mercadopago_preference(self, order_id: int, preference_id: str):
+        order = self.get_order_by_id(order_id)
+        if order:
+            order.mercadopago_preference_id = preference_id
+            self.db.add(order)
+            self.db.flush()
+        return order

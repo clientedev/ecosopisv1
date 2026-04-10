@@ -205,6 +205,9 @@ class Order(Base):
     # Stripe fields
     stripe_payment_id = Column(String, nullable=True)
     stripe_session_id = Column(String, nullable=True)
+    # Mercado Pago fields
+    mercadopago_preference_id = Column(String, nullable=True)
+    mercadopago_payment_id = Column(String, nullable=True)
     # Customer info for shipping label
     customer_name = Column(String, nullable=True)
     customer_email = Column(String, nullable=True)

@@ -27,6 +27,7 @@ export default function CarrinhoPage() {
     const [customerName, setCustomerName] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
     const [customerCpf, setCustomerCpf] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState<"stripe" | "mercadopago">("stripe");
 
     const formatCpf = (value: string) => {
         const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -341,7 +342,11 @@ export default function CarrinhoPage() {
         setLoading(true);
         const token = localStorage.getItem("token");
         try {
-            const res = await fetch(`/api/payment/checkout`, {
+            const endpoint = paymentMethod === 'stripe' 
+                ? '/api/payment/create-stripe-checkout' 
+                : '/api/payment/create-mercadopago-checkout';
+
+            const res = await fetch(endpoint, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -619,20 +624,41 @@ export default function CarrinhoPage() {
 
                                 <div className={styles.detailSection}>
                                     <h3>💳 PAGAMENTO</h3>
-                                    <div style={{
-                                        padding: "20px", background: "#f8fafc", borderRadius: "12px",
-                                        border: "2px solid #635bff", display: "flex", alignItems: "center", gap: "16px"
-                                    }}>
-                                        <CreditCard size={32} color="#635bff" />
-                                        <div>
-                                            <strong style={{ color: "#1e293b" }}>Stripe Checkout</strong>
-                                            <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "#64748b" }}>
-                                                Cartão de Crédito · Débito · Pix
-                                            </p>
+                                    <div className={styles.paymentSelector}>
+                                        <div 
+                                            className={`${styles.paymentOption} ${paymentMethod === 'stripe' ? styles.paymentSelected : ''}`}
+                                            onClick={() => setPaymentMethod('stripe')}
+                                        >
+                                            <div className={styles.paymentRadio}>
+                                                <div className={styles.radioInner}></div>
+                                            </div>
+                                            <CreditCard size={24} color="#635bff" />
+                                            <div className={styles.paymentText}>
+                                                <strong>Cartão, Pix e Boleto (Stripe)</strong>
+                                                <p>Pagamento rápido e seguro via Stripe</p>
+                                            </div>
+                                        </div>
+
+                                        <div 
+                                            className={`${styles.paymentOption} ${paymentMethod === 'mercadopago' ? styles.paymentSelected : ''}`}
+                                            onClick={() => setPaymentMethod('mercadopago')}
+                                        >
+                                            <div className={styles.paymentRadio}>
+                                                <div className={styles.radioInner}></div>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', background: '#009ee3', borderRadius: '4px' }}>
+                                                <span style={{ color: 'white', fontWeight: 'bold', fontSize: '12px' }}>MP</span>
+                                            </div>
+                                            <div className={styles.paymentText}>
+                                                <strong>Mercado Pago</strong>
+                                                <p>Pague com sua conta Mercado Pago, Cartão ou Pix</p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <p style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "8px", textAlign: "center" }}>
-                                        Você será redirecionado para o checkout seguro da Stripe
+                                    <p style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "12px", textAlign: "center" }}>
+                                        {paymentMethod === 'stripe' 
+                                            ? "Você será redirecionado para o checkout seguro da Stripe" 
+                                            : "Você será redirecionado para o checkout oficial do Mercado Pago"}
                                     </p>
                                 </div>
                             </div>

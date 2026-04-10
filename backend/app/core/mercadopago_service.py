@@ -14,8 +14,10 @@ def create_pix_payment(order_id: int, total: float, customer_email: str,
                         customer_name: str, items: list) -> dict:
     """
     Creates a PIX payment via Mercado Pago API.
-    Returns dict with qr_code, qr_code_base64, payment_id.
     """
+    # Prefer standardized backend notification path
+    webhook_url = os.getenv("MP_WEBHOOK_URL") or f"{FRONTEND_URL.replace('3000', '8000')}/api/payment/webhook/mercadopago"
+    
     payment_data = {
         "transaction_amount": round(float(total), 2),
         "description": f"Pedido ECOSOPIS #{order_id}",
@@ -26,7 +28,7 @@ def create_pix_payment(order_id: int, total: float, customer_email: str,
             "last_name": " ".join(customer_name.split()[1:]) if len(customer_name.split()) > 1 else "ECOSOPIS",
         },
         "external_reference": str(order_id),
-        "notification_url": f"{FRONTEND_URL.replace('5000', '8000')}/orders/webhook",
+        "notification_url": webhook_url,
     }
 
     result = sdk.payment().create(payment_data)
@@ -46,51 +48,46 @@ def create_pix_payment(order_id: int, total: float, customer_email: str,
     }
 
 
-def create_checkout_pro_preference(order_id: int, total: float, customer_email: str,
-                                    customer_name: str, items: list) -> dict:
+def create_checkout_pro_preference(order_id: int, items: list, shipping_price: float = 0.0, 
+                                    customer_email: str = "", customer_name: str = "") -> dict:
     """
-    Creates a Checkout Pro preference for ALL payment methods (official way).
-    Returns dict with preference_id and init_point (redirect URL).
+    Creates a Checkout Pro preference including products and shipping.
     """
+    webhook_url = os.getenv("MP_WEBHOOK_URL") or f"{FRONTEND_URL.replace('3000', '8000')}/api/payment/webhook/mercadopago"
+    
     mp_items = []
     for item in items:
-        # Standardizing item structure for MP
         mp_items.append({
             "id": str(item.get("product_id", "")),
             "title": item.get("product_name", "Produto ECOSOPIS"),
-            "description": item.get("description", "Cosmético Natural"),
-            "category_id": "health",
             "quantity": int(item.get("quantity", 1)),
             "unit_price": float(round(float(item.get("price", 0)), 2)),
             "currency_id": "BRL",
         })
 
-    # Prepare payer data
-    first_name = "Cliente"
-    last_name = "ECOSOPIS"
-    if customer_name:
-        parts = customer_name.split()
-        first_name = parts[0]
-        if len(parts) > 1:
-            last_name = " ".join(parts[1:])
+    # Add shipping as a separate item if > 0
+    if shipping_price and shipping_price > 0:
+        mp_items.append({
+            "id": "shipping",
+            "title": "Frete (Melhor Envio)",
+            "quantity": 1,
+            "unit_price": float(round(float(shipping_price), 2)),
+            "currency_id": "BRL",
+        })
 
     preference_data = {
         "items": mp_items,
         "payer": {
-            "name": first_name,
-            "surname": last_name,
             "email": customer_email,
         },
         "back_urls": {
-            "success": f"{FRONTEND_URL}/pedido/{order_id}?status=success",
-            "failure": f"{FRONTEND_URL}/pedido/{order_id}?status=failure",
-            "pending": f"{FRONTEND_URL}/pedido/{order_id}?status=pending",
+            "success": f"{FRONTEND_URL}/pagamento?status=approved&order_id={order_id}",
+            "failure": f"{FRONTEND_URL}/pagamento?status=failure&order_id={order_id}",
+            "pending": f"{FRONTEND_URL}/pagamento?status=pending&order_id={order_id}",
         },
         "auto_return": "approved",
         "external_reference": str(order_id),
-        # notification_url should point to the BACKEND reachable by MP
-        # In development this might fail if not using ngrok/tunnel
-        "notification_url": f"{FRONTEND_URL.replace('5000', '8000')}/orders/webhook",
+        "notification_url": webhook_url,
         "statement_descriptor": "ECOSOPIS",
         "payment_methods": {
             "excluded_payment_types": [],
@@ -105,9 +102,8 @@ def create_checkout_pro_preference(order_id: int, total: float, customer_email: 
         raise Exception(f"Erro MP Preference: {response}")
 
     return {
-        "preference_id": response.get("id", ""),
+        "id": response.get("id", ""),
         "init_point": response.get("init_point", ""),
-        "sandbox_init_point": response.get("sandbox_init_point", ""),
     }
 
 
