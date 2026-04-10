@@ -59,12 +59,20 @@ class StatusUpdateIn(BaseModel):
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+def _normalize_url(url: str) -> str:
+    url = url.strip().rstrip("/")
+    if not url:
+        return "http://localhost:3000"
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    return f"https://{url}"
+
 def _resolve_frontend_url(request: Request) -> str:
     if FRONTEND_URL:
-        return FRONTEND_URL.rstrip("/")
+        return _normalize_url(FRONTEND_URL)
     origin = request.headers.get("origin")
     if origin and "localhost" not in origin:
-        return origin.rstrip("/")
+        return _normalize_url(origin)
     return "http://localhost:3000"
 
 

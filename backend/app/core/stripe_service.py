@@ -12,6 +12,16 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 
+def _normalize_url(url: str) -> str:
+    """Garante que a URL tenha um esquema válido (https://)."""
+    url = url.strip().rstrip("/")
+    if not url:
+        return "http://localhost:3000"
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    return f"https://{url}"
+
+
 def create_checkout_session(
     order_id: int,
     items: list,
@@ -22,7 +32,7 @@ def create_checkout_session(
     Creates a Stripe Checkout Session.
     Returns dict with session_id and checkout_url.
     """
-    base_url = (frontend_url or FRONTEND_URL).rstrip("/")
+    base_url = _normalize_url(frontend_url or FRONTEND_URL)
 
     line_items = []
     for item in items:
