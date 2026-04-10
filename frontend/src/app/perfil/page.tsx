@@ -529,6 +529,11 @@ export default function UserProfile() {
                                                     <div className={styles.orderHeader}>
                                                         <div className={styles.orderIdGroup}>
                                                             <span className={styles.orderId}>Pedido #{order.id}</span>
+                                                            {order.payment_method && (
+                                                                <span style={{ display: 'inline-block', fontSize: "0.75rem", backgroundColor: "#e2e8f0", padding: "3px 8px", borderRadius: "12px", color: "#334155", fontWeight: 700, marginTop: "4px" }}>
+                                                                    Via {order.payment_method === 'mercadopago' ? 'Mercado Pago' : order.payment_method === 'stripe' ? 'Stripe' : order.payment_method}
+                                                                </span>
+                                                            )}
                                                             <span className={styles.orderDate}>
                                                                 {order.created_at ? new Date(order.created_at).toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                                                             </span>
