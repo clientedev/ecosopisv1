@@ -88,7 +88,10 @@ def create_checkout_pro_preference(order_id: int, items: list, shipping_price: f
         "auto_return": "approved",
         "external_reference": str(order_id),
         "notification_url": webhook_url,
-        "statement_descriptor": "ECOSOPIS"
+        "statement_descriptor": "ECOSOPIS",
+        "payment_methods": {
+            "excluded_payment_types": []
+        }
     }
 
     result = sdk.preference().create(preference_data)
