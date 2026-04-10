@@ -4,7 +4,7 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import { useCart } from "@/context/CartContext";
 import styles from "./page.module.css";
-import { ShoppingBag, ChevronRight, CheckCircle2, TrendingDown, Info, ShoppingCart, Plus, Minus, X } from "lucide-react";
+import { ShoppingBag, ChevronRight, CheckCircle2, TrendingDown, Info, ShoppingCart, Plus, Minus, X, Sparkles } from "lucide-react";
 import { useToast } from "@/components/Toast/Toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -269,6 +269,15 @@ export default function WholesalePage() {
                     <ShoppingCart size={18} /> {isUnlocked ? 'CONCLUIR' : `${totalQuantity}/10`}
                 </button>
             </div>
+
+            {/* Floating Lia Help */}
+            <Link href="/lia" className={styles.floatingLia}>
+                <div className={styles.liaTooltip}>Você tem dúvidas sobre o atacado?</div>
+                <div className={styles.liaIconWrapper}>
+                    <img src="/static/attached_assets/placeholder.png" alt="Fale com a Lia" className={styles.liaFace} />
+                    <Sparkles size={14} className={styles.liaSparkle} />
+                </div>
+            </Link>
 
             <Footer />
         </main>

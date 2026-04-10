@@ -199,7 +199,7 @@ export default function Header() {
 
                     {user ? (
 
-                        <div className={`${styles.userMenuContainer} ${styles.desktopOnlyAction}`}>
+                        <div className={styles.userMenuContainer}>
                             <button
                                 className={styles.userButton}
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -243,7 +243,10 @@ export default function Header() {
                             )}
                         </div>
                     ) : (
-                        <Link href="/conta" className={`${styles.actionIcon} ${styles.desktopOnlyAction}`}>ENTRAR</Link>
+                        <Link href="/conta" className={styles.actionIcon}>
+                            <User size={22} style={{ marginRight: 5 }} />
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, display: 'none' }} className={styles.desktopTextInfo}>ENTRAR</span>
+                        </Link>
                     )}
 
                     <button
