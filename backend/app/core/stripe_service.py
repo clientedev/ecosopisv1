@@ -50,23 +50,16 @@ def create_checkout_session(
             "quantity": 1,
         })
 
-    session_data = {
-        "payment_method_types": ["card", "pix", "boleto"],
-        "mode": "payment",
-        "line_items": line_items,
-        "success_url": f"{base_url}/pagamento?status=approved&order_id={order_id}",
-        "cancel_url": f"{base_url}/pagamento?status=failure&order_id={order_id}",
-        "metadata": {
+    session = stripe.checkout.Session.create(
+        automatic_payment_methods={"enabled": True},
+        mode="payment",
+        line_items=line_items,
+        success_url=f"{base_url}/pagamento?status=approved&order_id={order_id}",
+        cancel_url=f"{base_url}/pagamento?status=failure&order_id={order_id}",
+        metadata={
             "pedido_id": str(order_id),
         },
-        "payment_method_options": {
-            "boleto": {
-                "expires_after_days": 3,
-            },
-        },
-    }
-
-    session = stripe.checkout.Session.create(**session_data)
+    )
 
     return {
         "session_id": session.id,

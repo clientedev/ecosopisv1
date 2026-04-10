@@ -38,7 +38,7 @@ class StripeService:
             })
 
         session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
+            automatic_payment_methods={"enabled": True},
             mode="payment",
             line_items=line_items,
             success_url=f"{base_url}/pagamento?status=approved&order_id={pedido_id}",
