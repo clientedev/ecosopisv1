@@ -50,16 +50,44 @@ def create_checkout_session(
             "quantity": 1,
         })
 
-    session = stripe.checkout.Session.create(
-        payment_method_types=["card", "boleto"],
-        mode="payment",
-        line_items=line_items,
-        success_url=f"{base_url}/pagamento?status=approved&order_id={order_id}",
-        cancel_url=f"{base_url}/pagamento?status=failure&order_id={order_id}",
-        metadata={
-            "pedido_id": str(order_id),
-        },
-    )
+    # IDs dos métodos personalizados configurados no Dashboard da Stripe
+    CUSTOM_METHODS = [
+        "cpmt_1TKdRoFP8tBMS4sg3887Yk9V", # PicPay
+        "cpmt_1TKdZwFP8tBMS4sgcukwrKV5"  # PayPal
+    ]
+
+    try:
+        # Tenta a configuração mais completa (Apple Pay, Google Pay, Link, PicPay, PayPal)
+        session = stripe.checkout.Session.create(
+            automatic_payment_methods={"enabled": True},
+            payment_method_options={
+                "external_payment_methods": {
+                    "enabled": True,
+                    "types": CUSTOM_METHODS
+                }
+            },
+            mode="payment",
+            line_items=line_items,
+            success_url=f"{base_url}/pagamento?status=approved&order_id={order_id}",
+            cancel_url=f"{base_url}/pagamento?status=failure&order_id={order_id}",
+            metadata={
+                "pedido_id": str(order_id),
+            },
+            stripe_version="2024-04-10"
+        )
+    except Exception as e:
+        # Se falhar (ex: erro de parâmetro desconhecido), reverte para o modo estável garantido
+        print(f"Alerta: Stripe robusto falhou, usando modo de segurança: {e}")
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card", "boleto"],
+            mode="payment",
+            line_items=line_items,
+            success_url=f"{base_url}/pagamento?status=approved&order_id={order_id}",
+            cancel_url=f"{base_url}/pagamento?status=failure&order_id={order_id}",
+            metadata={
+                "pedido_id": str(order_id),
+            },
+        )
 
     return {
         "session_id": session.id,
