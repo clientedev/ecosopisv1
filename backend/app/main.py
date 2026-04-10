@@ -105,11 +105,11 @@ def _apply_startup_migrations():
             except Exception: pass
 
         # Migration: Mark existing users as verified if they don't have a token yet
-        # (This handles users created before the verification system was implemented)
         try:
             conn.execute(text("UPDATE users SET is_verified = TRUE WHERE is_verified IS NULL OR (is_verified = FALSE AND verification_token IS NULL)"))
             conn.commit()
-        except Exception: pass
+        except Exception as e:
+            logger.warning(f"Could not update user verification status: {e}")
 
         for col, defn in PRIZE_COLS:
             try:
@@ -219,8 +219,11 @@ def _apply_startup_migrations():
         except Exception: pass
 
 try:
+    logger.info("Starting startup migrations...")
     _apply_startup_migrations()
-except Exception: pass
+    logger.info("Startup migrations completed.")
+except Exception as e:
+    logger.error(f"FATAL STARTUP MIGRATION ERROR: {e}", exc_info=True)
 
 from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat, roulette, admin_roulette, shipping, addresses, cart
 from fastapi.staticfiles import StaticFiles
