@@ -27,25 +27,40 @@ MISSING_ANNOUNCEMENT_COLUMNS = [
 ]
 
 MISSING_USERS_COLUMNS = [
-    ("profile_picture", "VARCHAR"),
-    ("can_post_news", "BOOLEAN DEFAULT FALSE"),
-    ("total_compras", "INTEGER DEFAULT 0"),
-    ("pode_girar_roleta", "BOOLEAN DEFAULT FALSE"),
-    ("tentativas_roleta", "INTEGER DEFAULT 0"),
-    ("ultimo_premio_id", "INTEGER"),
+    ("profile_picture",    "VARCHAR"),
+    ("can_post_news",      "BOOLEAN DEFAULT FALSE"),
+    ("total_compras",      "INTEGER DEFAULT 0"),
+    ("pode_girar_roleta",  "BOOLEAN DEFAULT FALSE"),
+    ("tentativas_roleta",  "INTEGER DEFAULT 0"),
+    ("ultimo_premio_id",   "INTEGER"),
+    ("is_verified",        "BOOLEAN DEFAULT FALSE"),
+    ("verification_token", "VARCHAR"),
+    ("cart_json",          "TEXT"),
+    ("cart_updated_at",    "TIMESTAMP WITH TIME ZONE"),
 ]
 
 MISSING_PRODUCTS_COLUMNS = [
-    ("buy_on_site", "BOOLEAN DEFAULT TRUE"),
-    ("is_wholesale", "BOOLEAN DEFAULT FALSE"),
+    ("buy_on_site",      "BOOLEAN DEFAULT TRUE"),
+    ("is_wholesale",     "BOOLEAN DEFAULT FALSE"),
     ("mercadolivre_url", "VARCHAR"),
-    ("shopee_url", "VARCHAR"),
+    ("shopee_url",       "VARCHAR"),
+    ("is_active",        "BOOLEAN DEFAULT TRUE"),
 ]
 
 MISSING_ORDERS_COLUMNS = [
     ("mercadopago_preference_id", "VARCHAR"),
-    ("mercadopago_payment_id", "VARCHAR"),
-    ("payment_method", "VARCHAR(50) DEFAULT 'stripe'"),
+    ("mercadopago_payment_id",    "VARCHAR"),
+    ("payment_method",           "VARCHAR(50) DEFAULT 'stripe'"),
+    ("shipping_method",          "VARCHAR"),
+    ("shipping_price",           "DOUBLE PRECISION DEFAULT 0"),
+    ("stripe_payment_id",        "VARCHAR"),
+    ("stripe_session_id",        "VARCHAR"),
+    ("buyer_name",               "VARCHAR"),
+    ("buyer_email",              "VARCHAR"),
+    ("correios_label_url",       "VARCHAR"),
+    ("etiqueta_url",             "VARCHAR"),
+    ("codigo_rastreio",          "VARCHAR"),
+    ("shipment_id",              "VARCHAR"),
 ]
 
 
