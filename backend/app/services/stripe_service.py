@@ -38,7 +38,7 @@ class StripeService:
             })
 
         session = stripe.checkout.Session.create(
-            payment_method_types=["card", "boleto"],
+            automatic_payment_methods={"enabled": True},
             mode="payment",
             line_items=line_items,
             success_url=f"{base_url}/pagamento?status=approved&order_id={pedido_id}",
@@ -46,6 +46,7 @@ class StripeService:
             metadata={
                 "pedido_id": str(pedido_id),
             },
+            stripe_version="2024-04-10",
         )
 
         return {
