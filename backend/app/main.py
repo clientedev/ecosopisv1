@@ -75,34 +75,48 @@ def _apply_startup_migrations():
     with engine.connect() as conn:
         for col, defn in ORDER_COLS:
             try:
-                # Use ALTER TABLE ADD COLUMN IF NOT EXISTS syntax (works in newer SQLite and Postgres)
-                # For older SQLite, we might need a different check, but this is the current pattern.
                 conn.execute(text(f"ALTER TABLE orders ADD COLUMN IF NOT EXISTS {col} {defn}"))
                 conn.commit()
-            except Exception: pass
+                logger.info(f"✓ Column orders.{col} ensured.")
+            except Exception as e:
+                logger.warning(f"Failed to ensure orders.{col}: {e}")
+                conn.rollback()
+
         for col, defn in CAROUSEL_COLS:
             try:
                 conn.execute(text(f"ALTER TABLE carousel_items ADD COLUMN IF NOT EXISTS {col} {defn}"))
                 conn.commit()
-            except Exception: pass
+                logger.info(f"✓ Column carousel_items.{col} ensured.")
+            except Exception as e:
+                logger.warning(f"Failed to ensure carousel_items.{col}: {e}")
+                conn.rollback()
 
         for col, defn in ANNOUNCEMENT_COLS:
             try:
                 conn.execute(text(f"ALTER TABLE announcement_bar ADD COLUMN IF NOT EXISTS {col} {defn}"))
                 conn.commit()
-            except Exception: pass
+                logger.info(f"✓ Column announcement_bar.{col} ensured.")
+            except Exception as e:
+                logger.warning(f"Failed to ensure announcement_bar.{col}: {e}")
+                conn.rollback()
 
         for col, defn in NEWS_COLS:
             try:
                 conn.execute(text(f"ALTER TABLE news ADD COLUMN IF NOT EXISTS {col} {defn}"))
                 conn.commit()
-            except Exception: pass
+                logger.info(f"✓ Column news.{col} ensured.")
+            except Exception as e:
+                logger.warning(f"Failed to ensure news.{col}: {e}")
+                conn.rollback()
 
         for col, defn in USER_COLS:
             try:
                 conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {defn}"))
                 conn.commit()
-            except Exception: pass
+                logger.info(f"✓ Column users.{col} ensured.")
+            except Exception as e:
+                logger.warning(f"Failed to ensure users.{col}: {e}")
+                conn.rollback()
 
         # Migration: Mark existing users as verified if they don't have a token yet
         try:
