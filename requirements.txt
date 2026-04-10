@@ -47,3 +47,4 @@ stripe
 uvicorn[standard]
 zeep
 dnspython
+mercadopago
