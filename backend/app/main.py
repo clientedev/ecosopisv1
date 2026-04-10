@@ -319,7 +319,7 @@ async def diagnostic(db: Session = Depends(get_db)):
         db.commit()
         
         # Check tables
-        tables = ["users", "orders", "products"]
+        tables = ["users", "orders", "products", "order_items"]
         for table in tables:
             try:
                 cols = db.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table}'")).fetchall()
