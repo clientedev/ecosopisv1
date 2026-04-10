@@ -267,6 +267,18 @@
         display: flex;
     }
 
+    .cartLabel {
+        display: none;
+    }
+
+    .actions {
+        gap: 15px;
+    }
+
+    .cartIconWrapper {
+        padding: 8px;
+    }
+
     .desktopNav, .desktopOnlyAction {
         display: none !important;
     }

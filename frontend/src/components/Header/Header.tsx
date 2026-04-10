@@ -189,7 +189,7 @@ export default function Header() {
                 </div>
 
                 <div className={styles.actions} style={{ position: 'relative', zIndex: 1000 }}>
-                    <Link href="/carrinho" className={`${styles.actionIcon} ${styles.desktopOnlyAction}`}>
+                    <Link href="/carrinho" className={styles.actionIcon}>
                         <div className={styles.cartIconWrapper}>
                             <ShoppingCart size={22} />
                             {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
