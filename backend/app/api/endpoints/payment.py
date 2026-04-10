@@ -191,10 +191,10 @@ async def create_stripe_payment(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    order = _get_or_create_order(data, current_user, db, "stripe")
-    frontend_url = _resolve_frontend_url(request)
-
     try:
+        order = _get_or_create_order(data, current_user, db, "stripe")
+        frontend_url = _resolve_frontend_url(request)
+
         items_for_stripe = [item.dict() for item in data.items]
         result = create_checkout_session(
             order_id=order.id,
@@ -211,8 +211,12 @@ async def create_stripe_payment(
             order_id=order.id,
         )
     except Exception as e:
-        logger.error(f"Stripe session error: {e}")
-        raise HTTPException(status_code=502, detail=str(e))
+        db.rollback()
+        logger.error(f"FATAL CHECKOUT ERROR (Stripe): {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erro interno no checkout (Stripe): {type(e).__name__} - {str(e)}"
+        )
 
 
 @router.post("/create-mercadopago-checkout", response_model=CheckoutResponse)
@@ -223,9 +227,9 @@ async def create_mp_payment(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    order = _get_or_create_order(data, current_user, db, "mercadopago")
-    
     try:
+        order = _get_or_create_order(data, current_user, db, "mercadopago")
+        
         items_for_mp = [item.dict() for item in data.items]
         # Include shipping as an item in MP if needed, or handle in service
         preference = create_checkout_pro_preference(
@@ -244,8 +248,12 @@ async def create_mp_payment(
             order_id=order.id,
         )
     except Exception as e:
-        logger.error(f"Mercado Pago preference error: {e}")
-        raise HTTPException(status_code=502, detail=str(e))
+        db.rollback()
+        logger.error(f"FATAL CHECKOUT ERROR (MP): {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erro interno no checkout (MP): {type(e).__name__} - {str(e)}"
+        )
 
 
 @router.post("/webhook/stripe")
