@@ -215,7 +215,7 @@ async def create_stripe_payment(
         logger.error(f"Erro no checkout Stripe: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, 
-            detail="Não foi possível iniciar o checkout Stripe. Por favor, tente novamente."
+            detail=f"ERRO TÉCNICO STRIPE: {str(e)}"
         )
 
 
@@ -251,7 +251,7 @@ async def create_mp_payment(
         logger.error(f"Erro no checkout Mercado Pago: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, 
-            detail="Não foi possível iniciar o checkout Mercado Pago. Por favor, tente novamente."
+            detail=f"ERRO TÉCNICO MP: {str(e)}"
         )
 
 
