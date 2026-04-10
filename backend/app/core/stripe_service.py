@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
-stripe.api_version = "2024-04-10"
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
@@ -52,7 +51,7 @@ def create_checkout_session(
         })
 
     session = stripe.checkout.Session.create(
-        automatic_payment_methods={"enabled": True},
+        payment_method_types=["card", "boleto"],
         mode="payment",
         line_items=line_items,
         success_url=f"{base_url}/pagamento?status=approved&order_id={order_id}",
