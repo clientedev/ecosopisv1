@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.database import engine, Base
+from sqlalchemy.orm import Session
+from app.core.database import engine, Base, get_db
 import traceback
 import logging
 from app.core.database import SessionLocal
@@ -304,6 +305,33 @@ async def fix_proto_header(request, call_next):
 @app.get("/")
 async def root():
     return {"message": "Welcome to ECOSOPIS API", "version": "1.0.1"}
+
+@app.get("/diagnostic")
+async def diagnostic(db: Session = Depends(get_db)):
+    status = {
+        "database": "OK",
+        "env": {},
+        "missing_columns": {}
+    }
+    try:
+        # Check tables
+        tables = ["users", "orders", "products"]
+        for table in tables:
+            try:
+                cols = db.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table}'")).fetchall()
+                status["env"][f"{table}_columns"] = [c[0] for c in cols]
+            except Exception as e:
+                status["database"] = f"ERROR on {table}: {str(e)}"
+        
+        # Check critical env vars
+        status["env"]["STRIPE_KEY"] = "SET" if os.getenv("STRIPE_SECRET_KEY") else "MISSING"
+        status["env"]["MP_TOKEN"] = "SET" if os.getenv("MP_ACCESS_TOKEN") else "MISSING"
+        status["env"]["FRONTEND_URL"] = os.getenv("FRONTEND_URL", "NOT_SET")
+        
+    except Exception as e:
+        status["database"] = f"GENERAL ERROR: {str(e)}"
+    
+    return status
 
 from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat, roulette, admin_roulette, shipping, addresses, cart, payment, crm, cashback, raw_materials
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
