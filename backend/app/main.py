@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.core.database import engine, Base, get_db
 import traceback
@@ -11,9 +12,7 @@ from app.models import models
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# Run migrations before potentially importing any routers that might trigger SQLAlchemy mapping errors
 def _apply_startup_migrations():
-    from sqlalchemy import text
     import bcrypt as _bcrypt
 
     CAROUSEL_COLS = [
