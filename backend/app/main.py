@@ -240,7 +240,7 @@ try:
 except Exception as e:
     logger.error(f"FATAL STARTUP MIGRATION ERROR: {e}", exc_info=True)
 
-from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat, roulette, admin_roulette, shipping, addresses, cart
+from app.api.endpoints import auth, products, coupons, carousel, orders, settings, reviews, images, news, metrics, chat, roulette, admin_roulette, shipping, addresses, cart, payment, crm, cashback, raw_materials
 from fastapi.staticfiles import StaticFiles
 import os
 from dotenv import load_dotenv
@@ -347,13 +347,13 @@ app.include_router(metrics.router, prefix="/metrics", tags=["metrics"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(roulette.router, prefix="/roleta", tags=["roulette"])
 app.include_router(admin_roulette.router, prefix="/admin/roleta", tags=["admin_roulette"])
-app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
+app.include_router(shipping.router, prefix="/shipping", tags=["shipping"])
+app.include_router(addresses.router, prefix="/addresses", tags=["addresses"])
 app.include_router(cart.router, prefix="/cart", tags=["cart"])
 app.include_router(payment.router, prefix="/payment", tags=["payment"])
-app.include_router(shipping.router, prefix="/shipping", tags=["shipping"])
 app.include_router(crm.router, prefix="/crm", tags=["crm"])
-app.include_router(addresses.router, prefix="/addresses", tags=["addresses"])
 app.include_router(cashback.router, tags=["cashback"])
+app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
 
 # Novos routers com Arquitetura Limpa (Routes/Services/Repositories)
 try:
