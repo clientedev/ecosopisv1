@@ -212,10 +212,10 @@ async def create_stripe_payment(
         )
     except Exception as e:
         db.rollback()
-        logger.error(f"FATAL CHECKOUT ERROR (Stripe): {str(e)}", exc_info=True)
+        logger.error(f"Erro no checkout Stripe: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, 
-            detail=f"Erro interno no checkout (Stripe): {type(e).__name__} - {str(e)}"
+            detail="Não foi possível iniciar o checkout Stripe. Por favor, tente novamente."
         )
 
 
@@ -231,7 +231,6 @@ async def create_mp_payment(
         order = _get_or_create_order(data, current_user, db, "mercadopago")
         
         items_for_mp = [item.dict() for item in data.items]
-        # Include shipping as an item in MP if needed, or handle in service
         preference = create_checkout_pro_preference(
             order_id=order.id,
             items=items_for_mp,
@@ -249,10 +248,10 @@ async def create_mp_payment(
         )
     except Exception as e:
         db.rollback()
-        logger.error(f"FATAL CHECKOUT ERROR (MP): {str(e)}", exc_info=True)
+        logger.error(f"Erro no checkout Mercado Pago: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, 
-            detail=f"Erro interno no checkout (MP): {type(e).__name__} - {str(e)}"
+            detail="Não foi possível iniciar o checkout Mercado Pago. Por favor, tente novamente."
         )
 
 
