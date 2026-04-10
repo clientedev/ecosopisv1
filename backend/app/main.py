@@ -2,8 +2,13 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 import traceback
+import logging
 from app.core.database import SessionLocal
 from app.models import models
+
+# Initialize logger
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 # Run migrations before potentially importing any routers that might trigger SQLAlchemy mapping errors
 def _apply_startup_migrations():
@@ -256,11 +261,14 @@ from fastapi.responses import JSONResponse
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"GLOBAL ERROR: {str(exc)}", exc_info=True)
+    # Log details locally
+    stack = traceback.format_exc()
+    logger.error(f"GLOBAL ERROR: {str(exc)}\n{stack}")
+    
     return JSONResponse(
         status_code=500,
         content={
-            "detail": f"Erro crítico no servidor: {str(exc)}",
+            "detail": f"Erro interno: {str(exc)}",
             "type": type(exc).__name__,
             "path": request.url.path
         }
