@@ -299,11 +299,18 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Receives notification from Mercado Pago (topic: merchant_order or payment).
     """
-    data = await request.json()
-    logger.info(f"MP Webhook received: {data}")
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
 
-    resource_id = data.get("data", {}).get("id") or data.get("id")
-    topic = data.get("type") or data.get("topic")
+    if not data:
+        data = dict(request.query_params)
+
+    logger.info(f"MP Webhook received. Data: {data}, Query: {dict(request.query_params)}")
+
+    resource_id = data.get("data", {}).get("id") or data.get("id") or request.query_params.get("data.id") or request.query_params.get("id")
+    topic = data.get("type") or data.get("topic") or request.query_params.get("type") or request.query_params.get("topic")
 
     if topic == "payment" and resource_id:
         try:
