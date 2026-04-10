@@ -14,6 +14,8 @@ interface User {
   total_compras?: number;
   tentativas_roleta?: number;
   ultimo_premio_id?: number;
+  cart_json?: string | null;
+  cart_updated_at?: string | null;
 }
 
 interface AuthContextType {
