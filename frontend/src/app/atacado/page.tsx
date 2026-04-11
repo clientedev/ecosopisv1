@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import { useCart } from "@/context/CartContext";
@@ -16,7 +16,43 @@ export default function WholesalePage() {
     const [searchTerm, setSearchTerm] = useState("");
     const { addWholesaleBundleToCart } = useCart();
     const { showToast } = useToast();
+    const [isLiaOpen, setIsLiaOpen] = useState(false);
+    const [liaMessages, setLiaMessages] = useState<{role: 'user' | 'lia', text: string}[]>([
+        { role: 'lia', text: 'Oi! Sou a Lia. Como posso ajudar com sua compra no atacado?' }
+    ]);
+    const chatEndRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
+
+    useEffect(() => {
+        if (isLiaOpen && chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [liaMessages, isLiaOpen]);
+
+    const handleLiaQuestion = (questionCode: number) => {
+        let userText = "";
+        let liaResponse = "";
+        
+        switch(questionCode) {
+            case 1:
+                userText = "Como funciona o desconto de 30%?";
+                liaResponse = "É simples! Basta adicionar 10 ou mais itens no carrinho a partir desta página, e o desconto de 30% (+ preço de fábrica) será aplicado automaticamente em todos os itens. 🌱";
+                break;
+            case 2:
+                userText = "Qual é o pedido mínimo?";
+                liaResponse = "Para obter o desconto de atacadista, você precisa selecionar pelo menos 10 itens no total. Eles podem ser todos do mesmo produto ou variados!";
+                break;
+            case 3:
+                userText = "O frete é grátis?";
+                liaResponse = "Como oferecemos o preço de fábrica no atacado, o frete é calculado de acordo com o peso da caixa no momento do checkout, mas não temos frete grátis garantido. No entanto, sua economia de 30% geralmente compensa muito mais!";
+                break;
+        }
+
+        setLiaMessages(prev => [...prev, { role: 'user', text: userText }]);
+        setTimeout(() => {
+            setLiaMessages(prev => [...prev, { role: 'lia', text: liaResponse }]);
+        }, 600);
+    };
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -270,14 +306,87 @@ export default function WholesalePage() {
                 </button>
             </div>
 
-            {/* Floating Lia Help */}
-            <Link href="/lia" className={styles.floatingLia}>
-                <div className={styles.liaTooltip}>Você tem dúvidas sobre o atacado?</div>
-                <div className={styles.liaIconWrapper}>
-                    <img src="/static/attached_assets/placeholder.png" alt="Fale com a Lia" className={styles.liaFace} />
-                    <Sparkles size={14} className={styles.liaSparkle} />
-                </div>
-            </Link>
+            {/* Floating Lia Help - Premium UX Edition */}
+            <div className={styles.floatingLiaContainer}>
+                <button 
+                    className={styles.floatingLia}
+                    onClick={() => setIsLiaOpen(!isLiaOpen)}
+                    aria-label="Ajuda da Lia"
+                >
+                    <div className={styles.liaTooltip}>
+                        Alguma dúvida?
+                    </div>
+                    <div className={styles.liaIconWrapper}>
+                        <img src="/static/attached_assets/placeholder.png" alt="Lia AI" className={styles.liaFace} />
+                        <Sparkles size={14} className={styles.liaSparkle} />
+                    </div>
+                </button>
+
+                {isLiaOpen && (
+                    <div className={styles.liaPopover}>
+                        <div className={styles.popoverHeader}>
+                            <div className={styles.popoverTitleIcon}>
+                                <Sparkles size={18} color="#f59e0b" />
+                                <h3>Dicas da Lia</h3>
+                            </div>
+                            <button onClick={() => setIsLiaOpen(false)} className={styles.closePopover}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        
+                        <div className={styles.popoverBody} style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '350px' }}>
+                            <div className={styles.chatArea} style={{ flex: 1, overflowY: 'auto', padding: '15px', background: '#f8fafc' }}>
+                                {liaMessages.map((msg, i) => (
+                                    <div key={i} style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                                        marginBottom: '12px'
+                                    }}>
+                                        <div style={{
+                                            background: msg.role === 'user' ? '#10b981' : '#ffffff',
+                                            color: msg.role === 'user' ? 'white' : '#1e293b',
+                                            padding: '10px 14px',
+                                            borderRadius: '15px',
+                                            borderBottomRightRadius: msg.role === 'user' ? '2px' : '15px',
+                                            borderBottomLeftRadius: msg.role === 'lia' ? '2px' : '15px',
+                                            maxWidth: '85%',
+                                            fontSize: '0.85rem',
+                                            boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+                                            border: msg.role === 'lia' ? '1px solid #e2e8f0' : 'none'
+                                        }}>
+                                            {msg.text}
+                                        </div>
+                                    </div>
+                                ))}
+                                <div ref={chatEndRef} />
+                            </div>
+                            
+                            <div className={styles.presetQuestions} style={{ padding: '10px', background: 'white', borderTop: '1px solid #e2e8f0' }}>
+                                <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '8px', fontWeight: 'bold' }}>Perguntas frequentes:</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <button onClick={() => handleLiaQuestion(1)} className={styles.presetQBtn}>
+                                        Como funciona o desconto de 30%?
+                                    </button>
+                                    <button onClick={() => handleLiaQuestion(2)} className={styles.presetQBtn}>
+                                        Qual é o pedido mínimo?
+                                    </button>
+                                    <button onClick={() => handleLiaQuestion(3)} className={styles.presetQBtn}>
+                                        O frete é grátis no atacado?
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                            
+                            <hr className={styles.popoverDivider} />
+                            
+                            <div className={styles.popoverFooter}>
+                                <p>Dúvidas técnicas? <Link href="/lia">Conversar com a IA completa</Link></p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             <Footer />
         </main>

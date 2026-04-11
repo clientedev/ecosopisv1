@@ -583,16 +583,26 @@
     }
 }
 
-/* Floating Lia Help */
-.floatingLia {
+.floatingLiaContainer {
     position: fixed;
-    bottom: 110px; /* Above mobile bar */
+    top: 100px;
     right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 15px;
+}
+
+.floatingLia {
     display: flex;
     align-items: center;
     gap: 12px;
-    z-index: 999;
     text-decoration: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
     animation: bounce 2s infinite;
 }
 
@@ -606,12 +616,19 @@
     color: #2d5a27;
     padding: 8px 12px;
     border-radius: 12px;
-    border-bottom-right-radius: 4px;
+    border-top-right-radius: 4px;
     font-size: 0.85rem;
     font-weight: 700;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     white-space: nowrap;
     border: 1px solid #e2e8f0;
+    position: relative;
+    transition: transform 0.3s ease;
+}
+
+.floatingLia:hover .liaTooltip {
+    transform: scale(1.05);
+    border-color: #10b981;
 }
 
 .liaIconWrapper {
@@ -626,7 +643,7 @@
 }
 
 .floatingLia:hover .liaIconWrapper {
-    transform: scale(1.1);
+    transform: scale(1.1) rotate(5deg);
 }
 
 .liaFace {
@@ -645,11 +662,192 @@
     background: white;
     border-radius: 50%;
     padding: 2px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-@media (min-width: 1025px) {
-    .floatingLia {
-        bottom: 30px;
-        right: 30px;
+/* Glassmorphism Popover */
+.liaPopover {
+    width: 300px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-origin: top right;
+}
+
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.8) translateY(-20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.popoverHeader {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(45, 90, 39, 0.05);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+}
+
+.popoverTitleIcon {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.popoverTitleIcon h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1a3a16;
+}
+
+.closePopover {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.2s;
+}
+
+.closePopover:hover {
+    color: #ef4444;
+}
+
+.popoverBody {
+    padding: 20px;
+}
+
+.popoverIntro {
+    font-weight: 700;
+    color: #1a3a16;
+    margin-bottom: 15px;
+}
+
+.benefitList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.benefitList li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: #475569;
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.benefitList li svg {
+    color: #10b981;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.nudgeText {
+    font-weight: 800;
+    color: #f59e0b;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+}
+
+.miniProgress {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 3px;
+    margin-top: 15px;
+    overflow: hidden;
+}
+
+.miniBar {
+    height: 100%;
+    background: linear-gradient(to right, #10b981, #f59e0b);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.successText {
+    color: #166534;
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
+.popoverCTA {
+    width: 100%;
+    margin-top: 15px;
+    padding: 12px;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.popoverCTA:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+}
+
+.popoverDivider {
+    border: none;
+    border-top: 1px solid rgba(226, 232, 240, 0.5);
+    margin: 15px 0;
+}
+
+.popoverFooter {
+    font-size: 0.8rem;
+    color: #64748b;
+    text-align: center;
+}
+
+.popoverFooter a {
+    color: #10b981;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.presetQBtn {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.presetQBtn:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+@media (max-width: 1024px) {
+    .floatingLiaContainer {
+        top: 80px; 
+        right: 15px;
+        bottom: auto;
+    }
+    
+    .liaPopover {
+        width: 280px;
+        transform-origin: top right;
+    }
+    
+    @keyframes popIn {
+        from { opacity: 0; transform: scale(0.8) translateY(-20px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
     }
 }
