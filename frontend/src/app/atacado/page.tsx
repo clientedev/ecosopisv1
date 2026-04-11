@@ -9,6 +9,11 @@ import { useToast } from "@/components/Toast/Toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+interface LiaMessage {
+    role: 'user' | 'lia';
+    text: string;
+}
+
 export default function WholesalePage() {
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -17,7 +22,7 @@ export default function WholesalePage() {
     const { addWholesaleBundleToCart } = useCart();
     const { showToast } = useToast();
     const [isLiaOpen, setIsLiaOpen] = useState(false);
-    const [liaMessages, setLiaMessages] = useState<{role: 'user' | 'lia', text: string}[]>([
+    const [liaMessages, setLiaMessages] = useState<LiaMessage[]>([
         { role: 'lia', text: 'Oi! Sou a Lia. Como posso ajudar com sua compra no atacado?' }
     ]);
     const chatEndRef = useRef<HTMLDivElement>(null);
@@ -376,7 +381,7 @@ export default function WholesalePage() {
                                     </button>
                                 </div>
                             </div>
-                        </div>
+                            </div>
                             
                             <hr className={styles.popoverDivider} />
                             
@@ -384,7 +389,6 @@ export default function WholesalePage() {
                                 <p>Dúvidas técnicas? <Link href="/lia">Conversar com a IA completa</Link></p>
                             </div>
                         </div>
-                    </div>
                 )}
             </div>
 
