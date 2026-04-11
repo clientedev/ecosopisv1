@@ -322,7 +322,7 @@ export default function WholesalePage() {
                         Alguma dúvida?
                     </div>
                     <div className={styles.liaIconWrapper}>
-                        <img src="/static/attached_assets/placeholder.png" alt="Lia AI" className={styles.liaFace} />
+                        <img src="/lia.jpg" alt="Lia AI" className={styles.liaFace} />
                         <Sparkles size={14} className={styles.liaSparkle} />
                     </div>
                 </button>
