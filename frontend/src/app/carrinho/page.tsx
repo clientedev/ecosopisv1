@@ -52,8 +52,8 @@ export default function CarrinhoPage() {
 
     // Initialize data from logged in user
     useEffect(() => {
-        if (user && step === "checkout") {
-            if (!customerName) setCustomerName(user.full_name || "");
+        if (user) {
+            if (!customerName && step === "checkout") setCustomerName(user.full_name || "");
             
             // Auto select default address if available
             if (user.addresses && user.addresses.length > 0 && !cep) {
@@ -67,9 +67,9 @@ export default function CarrinhoPage() {
                     city: defaultAddr.city,
                     state: defaultAddr.state
                 });
-                setShowAddressForm(false);
+                if (step === "checkout") setShowAddressForm(false);
             } else if (!user.addresses || user.addresses.length === 0) {
-                setShowAddressForm(true);
+                if (step === "checkout") setShowAddressForm(true);
             }
         }
     }, [user, step]);
@@ -644,6 +644,28 @@ export default function CarrinhoPage() {
                     <div className={styles.rightColumn}>
                         <div className={styles.summaryCard}>
                             <h3>RESUMO DO PEDIDO</h3>
+
+                            {step === "cart" && (
+                                <div style={{ marginBottom: "20px" }}>
+                                    <label style={{ fontSize: "0.85rem", color: "#64748b", display: "block", marginBottom: "8px" }}>📦 Calcular Frete Grátis</label>
+                                    <div style={{ display: "flex", gap: "8px" }}>
+                                        <input 
+                                            type="text" 
+                                            placeholder="CEP (Ex: 01001000)" 
+                                            className={styles.inputField}
+                                            style={{ margin: 0, padding: "8px 12px", height: "auto" }}
+                                            value={cep}
+                                            onChange={(e) => setCep(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {threshold !== null && (
+                                <div style={{ background: "#f8faf8", padding: "10px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px", fontSize: "0.8rem", textAlign: "center" }}>
+                                    📍 <strong>Região:</strong> {threshold === 148.90 ? "Sul/Sudeste" : "Demais Regiões"}
+                                </div>
+                            )}
 
                             {missingForFreeShipping !== null && missingForFreeShipping > 0 && (
                                 <div style={{ background: "#f0f7ee", color: "#2d5a27", padding: "12px", borderRadius: "8px", fontSize: "0.88rem", marginBottom: "16px", border: "1px solid #d4edda", textAlign: "center", fontWeight: "600" }}>
