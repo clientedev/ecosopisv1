@@ -310,7 +310,23 @@ export default function CarrinhoPage() {
         }
     };
 
-    const shippingPrice = selectedShipping ? selectedShipping.price : 0;
+    const getFreeShippingThreshold = (cepValue: string) => {
+        const clean = (cepValue || "").replace(/\D/g, "");
+        if (clean.length !== 8) return null;
+        const prefix = parseInt(clean.substring(0, 2), 10);
+        // SP(01-19), RJ(20-28), ES(29), MG(30-39), PR(80-87), SC(88-89), RS(90-99)
+        if ((prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99)) {
+            return 148.90;
+        }
+        return 248.90;
+    };
+
+    const threshold = getFreeShippingThreshold(cep);
+    const appliesFreeShipping = threshold !== null && subtotal >= threshold;
+    const missingForFreeShipping = threshold !== null && subtotal < threshold ? threshold - subtotal : null;
+
+    const originalShippingPrice = selectedShipping ? selectedShipping.price : 0;
+    const shippingPrice = appliesFreeShipping ? 0 : originalShippingPrice;
     const discount = appliedCoupon ? (appliedCoupon.type === "fixed" ? appliedCoupon.value : (subtotal * appliedCoupon.value / 100)) : 0;
     
     // Total Cashback to Apply
@@ -606,7 +622,7 @@ export default function CarrinhoPage() {
                                                         </span>
                                                     </div>
                                                     <span style={{ fontSize: "1.1rem", fontWeight: 700, color: selectedShipping?.id === opt.id ? "#2d5a27" : "#334155" }}>
-                                                        R$ {opt.price.toFixed(2)}
+                                                        {appliesFreeShipping ? "FRETE GRÁTIS" : `R$ ${opt.price.toFixed(2)}`}
                                                     </span>
                                                 </div>
                                             ))}
@@ -628,6 +644,17 @@ export default function CarrinhoPage() {
                     <div className={styles.rightColumn}>
                         <div className={styles.summaryCard}>
                             <h3>RESUMO DO PEDIDO</h3>
+
+                            {missingForFreeShipping !== null && missingForFreeShipping > 0 && (
+                                <div style={{ background: "#f0f7ee", color: "#2d5a27", padding: "12px", borderRadius: "8px", fontSize: "0.88rem", marginBottom: "16px", border: "1px solid #d4edda", textAlign: "center", fontWeight: "600" }}>
+                                    💰 Faltam R$ {missingForFreeShipping.toFixed(2)} para FRETE GRÁTIS!
+                                </div>
+                            )}
+                            {appliesFreeShipping && (
+                                <div style={{ background: "#f0f7ee", color: "#2d5a27", padding: "12px", borderRadius: "8px", fontSize: "0.88rem", marginBottom: "16px", border: "1px solid #d4edda", textAlign: "center", fontWeight: "600" }}>
+                                    🎉 Parabéns! Você ganhou FRETE GRÁTIS!
+                                </div>
+                            )}
                             
                             <div className={styles.promoCode}>
                                 <input 
@@ -688,7 +715,7 @@ export default function CarrinhoPage() {
                             </div>
                             <div className={styles.summaryRow}>
                                 <span>Frete</span>
-                                <span>{shippingPrice > 0 ? `R$ ${shippingPrice.toFixed(2)}` : (step === "cart" ? "Calculado a seguir" : "A calcular")}</span>
+                                <span>{appliesFreeShipping ? <strong style={{ color: "#2d5a27" }}>Grátis</strong> : (shippingPrice > 0 ? `R$ ${shippingPrice.toFixed(2)}` : (step === "cart" ? "Calculado a seguir" : "A calcular"))}</span>
                             </div>
                             {discount > 0 && (
                                 <div className={styles.summaryRow} style={{ color: "#15803d" }}>

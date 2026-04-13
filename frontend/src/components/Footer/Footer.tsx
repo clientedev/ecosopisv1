@@ -14,7 +14,6 @@ export default function Footer() {
                     <Link href="/produtos">Produtos</Link>
                     <Link href="/sobre">Sobre Nós</Link>
                     <Link href="/quizz">Quizz de Pele</Link>
-                    <Link href="/box">Box Surpresa</Link>
                 </div>
                 <div className={styles.column}>
                     <h4>AJUDA</h4>

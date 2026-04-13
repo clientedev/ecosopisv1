@@ -31,10 +31,6 @@ export default function FAQ() {
         {
             q: "Posso usar vários produtos ao mesmo tempo?",
             a: "Sim! Nossa linha foi criada para ser complementar. Use o Quizz para montar sua rotina personalizada com os produtos que se potencializam mutuamente."
-        },
-        {
-            q: "Vocês oferecem amostras grátis?",
-            a: "Eventualmente enviamos amostras junto com pedidos especiais. Assine nossa newsletter para ser avisada sobre promoções e brindes exclusivos."
         }
     ];
 

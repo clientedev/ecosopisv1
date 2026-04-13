@@ -155,6 +155,24 @@ export default function MateriaPrimaPage() {
           </div>
         </section>
 
+        <section className={styles.safetySection}>
+          <div className="container">
+            <div className={styles.safetyBox}>
+              <h3>⚠️ Cuidados Importantes</h3>
+              <div className={styles.safetyGrid}>
+                <div className={styles.safetyItem}>
+                  <h4>Óleos Vegetais</h4>
+                  <p>Recomendamos o <strong>uso noturno</strong>. Por serem fotossensíveis, o contato com o sol após a aplicação pode causar manchas na pele.</p>
+                </div>
+                <div className={styles.safetyItem}>
+                  <h4>Óleos Essenciais</h4>
+                  <p>São extremamente concentrados. <strong>Nunca aplique óleos essenciais puros</strong> diretamente na pele, pois podem causar alergias ou irritações. Dilua sempre em um óleo vegetal carreador.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className={styles.backButtonSection}>
           <div className="container">
             <Link href="/sobre" className={styles.buttonSecondary}>
