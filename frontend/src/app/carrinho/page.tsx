@@ -130,6 +130,15 @@ export default function CarrinhoPage() {
         }
     }, [token, step]);
 
+    // Auto-select cheapest option when free shipping is earned
+    useEffect(() => {
+        if (appliesFreeShipping && cheapestOption) {
+            if (!selectedShipping || (selectedShipping.id !== cheapestOption.id && shippingPrice > 0)) {
+                setSelectedShipping(cheapestOption);
+            }
+        }
+    }, [appliesFreeShipping, cheapestOption, selectedShipping, shippingPrice]);
+
     // Calculate shipping whenever valid CEP and cart changes
     const [shippingError, setShippingError] = useState<string | null>(null);
 
@@ -325,8 +334,13 @@ export default function CarrinhoPage() {
     const appliesFreeShipping = threshold !== null && subtotal >= threshold;
     const missingForFreeShipping = threshold !== null && subtotal < threshold ? threshold - subtotal : null;
 
-    const originalShippingPrice = selectedShipping ? selectedShipping.price : 0;
-    const shippingPrice = appliesFreeShipping ? 0 : originalShippingPrice;
+    // Identify cheapest option to apply free shipping only to it
+    const cheapestOption = shippingOptions.length > 0 
+        ? [...shippingOptions].sort((a, b) => a.price - b.price)[0] 
+        : null;
+
+    const isSelectedShippingFree = selectedShipping && cheapestOption && selectedShipping.id === cheapestOption.id && appliesFreeShipping;
+    const shippingPrice = isSelectedShippingFree ? 0 : (selectedShipping ? selectedShipping.price : 0);
     const discount = appliedCoupon ? (appliedCoupon.type === "fixed" ? appliedCoupon.value : (subtotal * appliedCoupon.value / 100)) : 0;
     
     // Total Cashback to Apply
@@ -622,7 +636,7 @@ export default function CarrinhoPage() {
                                                         </span>
                                                     </div>
                                                     <span style={{ fontSize: "1.1rem", fontWeight: 700, color: selectedShipping?.id === opt.id ? "#2d5a27" : "#334155" }}>
-                                                        {appliesFreeShipping ? "FRETE GRÁTIS" : `R$ ${opt.price.toFixed(2)}`}
+                                                        {appliesFreeShipping && cheapestOption && opt.id === cheapestOption.id ? "FRETE GRÁTIS" : `R$ ${opt.price.toFixed(2)}`}
                                                     </span>
                                                 </div>
                                             ))}
