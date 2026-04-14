@@ -85,6 +85,35 @@ export default function CarrinhoPage() {
     const [cashbackToApply, setCashbackToApply] = useState(0);
     const [cashbackConfig, setCashbackConfig] = useState<any>(null);
 
+    const getFreeShippingThreshold = (cepValue: string) => {
+        const clean = (cepValue || "").replace(/\D/g, "");
+        if (clean.length !== 8) return null;
+        const prefix = parseInt(clean.substring(0, 2), 10);
+        // SP(01-19), RJ(20-28), ES(29), MG(30-39), PR(80-87), SC(88-89), RS(90-99)
+        if ((prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99)) {
+            return 148.90;
+        }
+        return 248.90;
+    };
+
+    const threshold = getFreeShippingThreshold(cep);
+    const appliesFreeShipping = threshold !== null && subtotal >= threshold;
+    const missingForFreeShipping = threshold !== null && subtotal < threshold ? threshold - subtotal : null;
+
+    // Identify cheapest option to apply free shipping only to it
+    const cheapestOption = shippingOptions.length > 0 
+        ? [...shippingOptions].sort((a, b) => a.price - b.price)[0] 
+        : null;
+
+    const isSelectedShippingFree = selectedShipping && cheapestOption && selectedShipping.id === cheapestOption.id && appliesFreeShipping;
+    const shippingPrice = isSelectedShippingFree ? 0 : (selectedShipping ? selectedShipping.price : 0);
+    const discount = appliedCoupon ? (appliedCoupon.type === "fixed" ? appliedCoupon.value : (subtotal * appliedCoupon.value / 100)) : 0;
+    
+    // Total Cashback to Apply
+    const cashbackDiscount = useCashback ? Math.min(availableCashback, subtotal - discount) : 0;
+    
+    const finalTotal = Math.max(0, subtotal + shippingPrice - discount - cashbackDiscount);
+
     // Initialize/Check for coupons
     useEffect(() => {
         const rouletteDiscount = localStorage.getItem("active_roulette_discount");
@@ -318,35 +347,6 @@ export default function CarrinhoPage() {
             setAppliedCoupon(null);
         }
     };
-
-    const getFreeShippingThreshold = (cepValue: string) => {
-        const clean = (cepValue || "").replace(/\D/g, "");
-        if (clean.length !== 8) return null;
-        const prefix = parseInt(clean.substring(0, 2), 10);
-        // SP(01-19), RJ(20-28), ES(29), MG(30-39), PR(80-87), SC(88-89), RS(90-99)
-        if ((prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99)) {
-            return 148.90;
-        }
-        return 248.90;
-    };
-
-    const threshold = getFreeShippingThreshold(cep);
-    const appliesFreeShipping = threshold !== null && subtotal >= threshold;
-    const missingForFreeShipping = threshold !== null && subtotal < threshold ? threshold - subtotal : null;
-
-    // Identify cheapest option to apply free shipping only to it
-    const cheapestOption = shippingOptions.length > 0 
-        ? [...shippingOptions].sort((a, b) => a.price - b.price)[0] 
-        : null;
-
-    const isSelectedShippingFree = selectedShipping && cheapestOption && selectedShipping.id === cheapestOption.id && appliesFreeShipping;
-    const shippingPrice = isSelectedShippingFree ? 0 : (selectedShipping ? selectedShipping.price : 0);
-    const discount = appliedCoupon ? (appliedCoupon.type === "fixed" ? appliedCoupon.value : (subtotal * appliedCoupon.value / 100)) : 0;
-    
-    // Total Cashback to Apply
-    const cashbackDiscount = useCashback ? Math.min(availableCashback, subtotal - discount) : 0;
-    
-    const finalTotal = Math.max(0, subtotal + shippingPrice - discount - cashbackDiscount);
     
     // Estimate cashback to be earned
     const earnedCashback = (() => {
