@@ -4,7 +4,7 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import { useCart } from "@/context/CartContext";
 import styles from "./page.module.css";
-import { ShoppingBag, ChevronRight, CheckCircle2, TrendingDown, Info, ShoppingCart, Plus, Minus, X, Sparkles } from "lucide-react";
+import { ShoppingBag, ChevronRight, CheckCircle2, TrendingDown, Info, ShoppingCart, Plus, Minus, X, Sparkles, QrCode } from "lucide-react";
 import { useToast } from "@/components/Toast/Toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
