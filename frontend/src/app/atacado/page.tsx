@@ -427,40 +427,53 @@ export default function WholesalePage() {
                                 <p className={styles.modalDescription}>{selectedProductForModal.description}</p>
                                 
                                 <div className={styles.technicalSpecs}>
-                                    {selectedProductForModal.details ? (
-                                        <>
-                                            {selectedProductForModal.details.modo_de_uso && (
-                                                <div className={styles.specItem}>
-                                                    <h3>🌿 Modo de Uso</h3>
-                                                    <p>{selectedProductForModal.details.modo_de_uso}</p>
-                                                </div>
-                                            )}
-                                            {selectedProductForModal.details.ingredientes && (
-                                                <div className={styles.specItem}>
-                                                    <h3>🔬 Ingredientes</h3>
-                                                    <p>{selectedProductForModal.details.ingredientes}</p>
-                                                </div>
-                                            )}
-                                            {selectedProductForModal.details.beneficios && (
-                                                <div className={styles.specItem}>
-                                                    <h3>✨ Benefícios</h3>
-                                                    <p>{selectedProductForModal.details.beneficios}</p>
-                                                </div>
-                                            )}
-                                            {selectedProductForModal.details.curiosidades && (
-                                                <div className={styles.specItem}>
-                                                    <h3>💎 Curiosidades</h3>
-                                                    <p>{selectedProductForModal.details.curiosidades}</p>
-                                                </div>
-                                            )}
-                                            {selectedProductForModal.details.contraindicacoes && (
-                                                <div className={styles.specItem}>
-                                                    <h3>⚠️ Contraindicações</h3>
-                                                    <p>{selectedProductForModal.details.contraindicacoes}</p>
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (
+                                    {/* Combine base product fields and detail-specific fields */}
+                                    {(selectedProductForModal.details?.modo_de_uso || selectedProductForModal.details?.modo_uso) && (
+                                        <div className={styles.specItem}>
+                                            <h3>🌿 Modo de Uso</h3>
+                                            <p>{selectedProductForModal.details.modo_de_uso || selectedProductForModal.details.modo_uso}</p>
+                                        </div>
+                                    )}
+
+                                    {(selectedProductForModal.details?.ingredientes || selectedProductForModal.ingredients) && (
+                                        <div className={styles.specItem}>
+                                            <h3>🔬 Ingredientes</h3>
+                                            <p>{selectedProductForModal.details?.ingredientes || selectedProductForModal.ingredients}</p>
+                                        </div>
+                                    )}
+
+                                    {selectedProductForModal.benefits && (
+                                        <div className={styles.specItem}>
+                                            <h3>✨ Benefícios</h3>
+                                            <p>{selectedProductForModal.benefits}</p>
+                                        </div>
+                                    )}
+
+                                    {selectedProductForModal.details?.curiosidades && (
+                                        <div className={styles.specItem}>
+                                            <h3>💎 Curiosidades</h3>
+                                            <p>{selectedProductForModal.details.curiosidades}</p>
+                                        </div>
+                                    )}
+
+                                    {selectedProductForModal.details?.contraindicacoes && (
+                                        <div className={styles.specItem}>
+                                            <h3>⚠️ Contraindicações</h3>
+                                            <p>{selectedProductForModal.details.contraindicacoes}</p>
+                                        </div>
+                                    )}
+
+                                    {selectedProductForModal.details?.cuidados && (
+                                        <div className={styles.specItem}>
+                                            <h3>🛡️ Cuidados</h3>
+                                            <p>{selectedProductForModal.details.cuidados}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Fallback if absolutely no tech specs are found */}
+                                    {!selectedProductForModal.benefits && 
+                                     !selectedProductForModal.ingredients && 
+                                     !selectedProductForModal.details && (
                                         <div className={styles.noSpecs}>
                                             <p>Informações técnicas detalhadas em breve para este produto.</p>
                                         </div>
