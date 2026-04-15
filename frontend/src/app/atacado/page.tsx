@@ -479,6 +479,15 @@ export default function WholesalePage() {
                                         </div>
                                     )}
                                 </div>
+
+                                <Link 
+                                    href={`/produtos/${selectedProductForModal.slug}/info`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={styles.fullSpecsBtn}
+                                >
+                                    <QrCode size={20} /> Ver Ficha Técnica Completa
+                                </Link>
                             </div>
                         </div>
                     </div>

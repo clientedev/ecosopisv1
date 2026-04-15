@@ -1027,6 +1027,30 @@
     color: #64748b;
 }
 
+.fullSpecsBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 40px;
+    padding: 16px 24px;
+    border-radius: 12px;
+    background: rgba(45, 90, 39, 0.05);
+    border: 1.5px solid var(--primary-green);
+    color: var(--primary-green);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.fullSpecsBtn:hover {
+    background: var(--primary-green);
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(45, 90, 39, 0.15);
+}
+
 @media (max-width: 850px) {
     .modalLayout {
         grid-template-columns: 1fr;
