@@ -481,7 +481,7 @@ export default function WholesalePage() {
                                 </div>
 
                                 <Link 
-                                    href={`/produtos/${selectedProductForModal.slug}/info`}
+                                    href={`/produto/${selectedProductForModal.slug}/info`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className={styles.fullSpecsBtn}
