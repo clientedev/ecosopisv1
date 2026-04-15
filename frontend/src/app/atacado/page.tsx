@@ -437,7 +437,7 @@ export default function WholesalePage() {
 
                                     {(selectedProductForModal.details?.ingredientes || selectedProductForModal.ingredients) && (
                                         <div className={styles.specItem}>
-                                            <h3>🔬 Ingredientes</h3>
+                                            <h3>🔬 Ativos / Ingredientes</h3>
                                             <p>{selectedProductForModal.details?.ingredientes || selectedProductForModal.ingredients}</p>
                                         </div>
                                     )}

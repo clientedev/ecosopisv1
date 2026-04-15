@@ -153,7 +153,7 @@ export default function ProductTechnicalPage() {
         },
         {
             icon: <Droplets size={20} />,
-            title: "Ingredientes",
+            title: "Ativos / Ingredientes",
             content: details?.ingredientes || "Composição baseada em óleos vegetais prensados a frio, extratos botânicos concentrados e óleos essenciais puros. Totalmente livre de sulfatos, parabenos, petrolatos e fragrâncias sintéticas.",
             delay: "0.3s"
         },
@@ -288,7 +288,7 @@ export default function ProductTechnicalPage() {
                         {chatMessages.length === 0 && (
                             <div className={styles.chatEmptyState}>
                                 <span>👋</span>
-                                <p>Olá! Pergunte qualquer coisa sobre <strong>{product.name}</strong>: ingredientes, modo de uso, pele sensível, combinações e muito mais.</p>
+                                <p>Olá! Pergunte qualquer coisa sobre <strong>{product.name}</strong>: ativos, modo de uso, pele sensível, combinações e muito mais.</p>
                             </div>
                         )}
                         {chatMessages.map((msg, idx) => (

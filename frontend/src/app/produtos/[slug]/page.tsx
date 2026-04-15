@@ -316,7 +316,7 @@ export default function ProductDetailPage() {
                             <QrCode size={20} /> Ver Ficha Técnica Completa
                         </a>
                         <div className={styles.detailSection}>
-                            <h3>INGREDIENTES</h3>
+                            <h3>ATIVOS / INGREDIENTES</h3>
                             <p>{product.ingredients}</p>
                         </div>
                         <div className={styles.detailSection}>
