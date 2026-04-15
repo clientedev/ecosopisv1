@@ -14,6 +14,7 @@ import {
     MessageSquare,
     Send,
     Leaf,
+    Heart,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -160,48 +161,60 @@ export default function ProductTechnicalPage() {
     const details = product.details;
     const allImages = [product.image_url, ...(product.images || [])].filter(Boolean);
 
-    const infoCards = [
+    const primaryCards = [
+        {
+            icon: <Droplets size={24} />,
+            title: "Ativos / Ingredientes",
+            content: details?.ingredientes,
+            delay: "0.1s",
+            featured: true
+        },
+        {
+            icon: <Zap size={24} />,
+            title: "Ritual de Uso",
+            content: details?.modo_de_uso,
+            delay: "0.2s",
+            featured: true
+        },
+        {
+            icon: <Heart size={24} />,
+            title: "Benefícios Reais",
+            content: product.benefits || details?.beneficios,
+            delay: "0.3s",
+            featured: true
+        },
+    ];
+
+    const secondaryCards = [
         {
             icon: <Sparkles size={20} />,
             title: "Curiosidades",
             content: details?.curiosidades,
-            delay: "0.1s"
+            delay: "0.4s"
         },
         {
             icon: <Leaf size={20} />,
             title: "Destaque Sustentável",
             content: "Nossas fórmulas são biodegradáveis e as embalagens são pensadas para reduzir o impacto ambiental. Ao escolher Ecosopis, você apoia o consumo consciente e a preservação das nossas águas.",
-            delay: "0.15s"
-        },
-        {
-            icon: <Zap size={20} />,
-            title: "Modo de Uso",
-            content: details?.modo_de_uso,
-            delay: "0.2s"
-        },
-        {
-            icon: <Droplets size={20} />,
-            title: "Ativos / Ingredientes",
-            content: details?.ingredientes,
-            delay: "0.3s"
+            delay: "0.45s"
         },
         {
             icon: <ShieldAlert size={20} />,
             title: "Cuidados",
             content: details?.cuidados,
-            delay: "0.4s"
+            delay: "0.5s"
         },
         {
             icon: <Stethoscope size={20} />,
             title: "Contraindicações",
             content: details?.contraindicacoes,
-            delay: "0.5s"
+            delay: "0.6s"
         },
         {
             icon: <ClipboardList size={20} />,
             title: "Observações",
             content: details?.observacoes,
-            delay: "0.6s"
+            delay: "0.7s"
         },
     ];
 
@@ -267,10 +280,33 @@ export default function ProductTechnicalPage() {
             {/* ── CARDS SECTION ── */}
             <section className={styles.cardsSection}>
                 <div className={styles.cardsSectionInner}>
-                    <p className={styles.cardsSectionLabel}>ECOSOPIS NATURAIS</p>
-                    <h2 className={styles.cardsSectionTitle}>Ficha Técnica Completa</h2>
-                    <div className={styles.grid}>
-                        {infoCards.filter(card => card.content).map((card, idx) => (
+                    <p className={styles.cardsSectionLabel}>RITUAL E COMPOSIÇÃO</p>
+                    <h2 className={styles.cardsSectionTitle}>O Coração do Produto</h2>
+                    
+                    <div className={styles.primaryGrid}>
+                        {primaryCards.filter(card => card.content).map((card, idx) => (
+                            <div
+                                key={idx}
+                                className={`${styles.card} ${styles.primaryCard}`}
+                                style={{ animationDelay: card.delay }}
+                            >
+                                <div className={styles.cardHeader}>
+                                    <div className={styles.cardIcon}>{card.icon}</div>
+                                    <h3 className={styles.cardTitle}>{card.title}</h3>
+                                </div>
+                                <p className={styles.cardText}>{card.content}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className={styles.sectionDivider}>
+                        <span></span>
+                        <p>SEGURANÇA E CURIOSIDADES</p>
+                        <span></span>
+                    </div>
+
+                    <div className={styles.secondaryGrid}>
+                        {secondaryCards.filter(card => card.content).map((card, idx) => (
                             <div
                                 key={idx}
                                 className={styles.card}

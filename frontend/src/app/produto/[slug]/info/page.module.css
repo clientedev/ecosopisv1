@@ -250,10 +250,54 @@
     letter-spacing: 0.3px;
 }
 
-.grid {
+.primaryGrid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px;
+    margin-bottom: 60px;
+}
+
+.secondaryGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.sectionDivider {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin: 40px 0 50px;
+    opacity: 0.6;
+}
+
+.sectionDivider span {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #2d5a27, transparent);
+}
+
+.sectionDivider p {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: #2d5a27;
+    margin: 0;
+}
+
+.primaryCard {
+    border: 1px solid rgba(45, 90, 39, 0.15);
+    background: linear-gradient(to bottom right, #ffffff, #f9fbf8);
+}
+
+.primaryCard .cardIcon {
+    background: #2d5a27;
+    color: #fff;
+}
+
+.primaryCard .cardTitle {
+    color: #2d5a27;
+    font-size: 1.1rem;
 }
 
 .card {
@@ -608,7 +652,7 @@
    RESPONSIVE — TABLET
 ═══════════════════════════════════════════ */
 @media (max-width: 900px) {
-    .grid {
+    .primaryGrid, .secondaryGrid {
         grid-template-columns: repeat(2, 1fr);
     }
 
@@ -657,7 +701,7 @@
     }
 
     /* Cards: single column */
-    .grid {
+    .primaryGrid, .secondaryGrid {
         grid-template-columns: 1fr;
         gap: 16px;
     }
