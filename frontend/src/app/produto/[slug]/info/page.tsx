@@ -13,6 +13,7 @@ import {
     ShoppingBag,
     MessageSquare,
     Send,
+    Leaf,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -63,12 +64,13 @@ export default function ProductTechnicalPage() {
                             data.details.ingredientes = data.details.ingredientes || staticData.ativos;
                             data.details.modo_de_uso = data.details.modo_de_uso || staticData.modo_de_uso;
                             data.details.beneficios = data.details.beneficios || staticData.beneficios;
+                            data.details.curiosidades = data.details.curiosidades || staticData.curiosidades;
                         } else {
                             data.details = {
                                 ingredientes: staticData.ativos,
                                 modo_de_uso: staticData.modo_de_uso,
                                 beneficios: staticData.beneficios,
-                                curiosidades: null,
+                                curiosidades: staticData.curiosidades,
                                 cuidados: null,
                                 contraindicacoes: null,
                                 observacoes: null,
@@ -164,6 +166,12 @@ export default function ProductTechnicalPage() {
             title: "Curiosidades",
             content: details?.curiosidades,
             delay: "0.1s"
+        },
+        {
+            icon: <Leaf size={20} />,
+            title: "Destaque Sustentável",
+            content: "Nossas fórmulas são biodegradáveis e as embalagens são pensadas para reduzir o impacto ambiental. Ao escolher Ecosopis, você apoia o consumo consciente e a preservação das nossas águas.",
+            delay: "0.15s"
         },
         {
             icon: <Zap size={20} />,
