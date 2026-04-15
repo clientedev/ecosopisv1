@@ -1,5 +1,6 @@
 // Dados estáticos dos produtos - fonte de verdade para Ativos, Benefícios e Modo de Uso
-// Mapeados por slug do produtoexport interface StaticProductData {
+// Mapeados por slug do produto
+export interface StaticProductData {
   ativos: string;
   beneficios: string;
   modo_de_uso: string;
