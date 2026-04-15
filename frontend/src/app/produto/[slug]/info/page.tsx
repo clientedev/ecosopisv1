@@ -142,37 +142,37 @@ export default function ProductTechnicalPage() {
         {
             icon: <Sparkles size={20} />,
             title: "Curiosidades",
-            content: details?.curiosidades || "Nossas fórmulas são criadas com amor e respeito à natureza, focando em resultados reais sem agredir o meio ambiente. Cada ingrediente é selecionado por sua pureza e eficácia terapêutica.",
+            content: details?.curiosidades,
             delay: "0.1s"
         },
         {
             icon: <Zap size={20} />,
             title: "Modo de Uso",
-            content: details?.modo_de_uso || "Aplique sobre a pele úmida, massageando suavemente em movimentos circulares. Enxágue bem. Sinta a textura e o aroma natural envolverem seus sentidos.",
+            content: details?.modo_de_uso,
             delay: "0.2s"
         },
         {
             icon: <Droplets size={20} />,
             title: "Ativos / Ingredientes",
-            content: details?.ingredientes || "Composição baseada em óleos vegetais prensados a frio, extratos botânicos concentrados e óleos essenciais puros. Totalmente livre de sulfatos, parabenos, petrolatos e fragrâncias sintéticas.",
+            content: details?.ingredientes,
             delay: "0.3s"
         },
         {
             icon: <ShieldAlert size={20} />,
             title: "Cuidados",
-            content: details?.cuidados || "Mantenha em local seco, arejado e ao abrigo da luz solar direta. Após o uso, prefira saboneteiras que drenem a água para preservar a integridade e durabilidade do seu produto natural.",
+            content: details?.cuidados,
             delay: "0.4s"
         },
         {
             icon: <Stethoscope size={20} />,
             title: "Contraindicações",
-            content: details?.contraindicacoes || "Uso externo. Em caso de irritação, suspenda o uso. Recomendamos verificar a lista de ingredientes caso possua sensibilidade ou alergias conhecidas a óleos essenciais específicos.",
+            content: details?.contraindicacoes,
             delay: "0.5s"
         },
         {
             icon: <ClipboardList size={20} />,
             title: "Observações",
-            content: details?.observacoes || "Por ser um produto genuinamente artesanal e botânico, pode apresentar variações sutis de cor e formato. Estas características são a garantia de um processo humano e vivo, que não altera sua eficácia.",
+            content: details?.observacoes,
             delay: "0.6s"
         },
     ];
@@ -242,7 +242,7 @@ export default function ProductTechnicalPage() {
                     <p className={styles.cardsSectionLabel}>ECOSOPIS NATURAIS</p>
                     <h2 className={styles.cardsSectionTitle}>Ficha Técnica Completa</h2>
                     <div className={styles.grid}>
-                        {infoCards.map((card, idx) => (
+                        {infoCards.filter(card => card.content).map((card, idx) => (
                             <div
                                 key={idx}
                                 className={styles.card}
