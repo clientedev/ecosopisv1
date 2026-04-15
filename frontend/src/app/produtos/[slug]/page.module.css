@@ -1,7 +1,13 @@
 .productContainer {
-    padding: 120px 0 60px;
+    padding: 120px 20px 60px;
     max-width: 1200px;
     margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .productContainer {
+        padding: 100px 15px 40px;
+    }
 }
 
 .productLayout {
@@ -51,6 +57,15 @@
     font-weight: 700;
     color: #2d5a27;
     margin: 10px 0;
+}
+
+@media (max-width: 768px) {
+    .productName {
+        font-size: 2.2rem;
+    }
+    .price {
+        font-size: 2rem;
+    }
 }
 
 .description {
@@ -346,9 +361,28 @@
 @media (max-width: 768px) {
     .productLayout {
         grid-template-columns: 1fr;
+        gap: 30px;
     }
     .imageSection {
         position: relative;
         top: 0;
+    }
+    .chatSection {
+        padding: 20px;
+    }
+    .reviewsSection {
+        margin-top: 40px;
+        padding: 30px 20px;
+    }
+    .reviewsHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .reviewsHeader h2 {
+        font-size: 1.8rem;
+    }
+    .reviewForm {
+        padding: 20px;
     }
 }

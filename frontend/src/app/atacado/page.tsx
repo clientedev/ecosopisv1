@@ -19,6 +19,7 @@ export default function WholesalePage() {
     const [loading, setLoading] = useState(true);
     const [bundle, setBundle] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedProductForModal, setSelectedProductForModal] = useState<any>(null);
     const { addWholesaleBundleToCart } = useCart();
     const { showToast } = useToast();
     const [isLiaOpen, setIsLiaOpen] = useState(false);
@@ -62,7 +63,7 @@ export default function WholesalePage() {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const res = await fetch("/api/products");
+                const res = await fetch("/api/products", { cache: "no-store" });
                 if (res.ok) {
                     const data = await res.json();
                     setProducts(data.filter((p: any) => p.is_active && p.is_wholesale));
@@ -204,6 +205,16 @@ export default function WholesalePage() {
                                         <div key={p.id} className={`${styles.productCard} ${inBundle ? styles.selected : ''}`}>
                                             <div className={styles.imgWrapper}>
                                                 <img src={p.image_url || "/static/attached_assets/placeholder.png"} alt={p.name} />
+                                                <button 
+                                                    className={styles.detailsTrigger} 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedProductForModal(p);
+                                                    }}
+                                                    title="Ver Ficha Técnica"
+                                                >
+                                                    <Info size={20} />
+                                                </button>
                                                 {inBundle && (
                                                     <div className={styles.selectedOverlay}>
                                                         <CheckCircle2 size={32} />
@@ -391,6 +402,75 @@ export default function WholesalePage() {
                         </div>
                 )}
             </div>
+
+            {/* Product Details Modal */}
+            {selectedProductForModal && (
+                <div className={styles.modalOverlay} onClick={() => setSelectedProductForModal(null)}>
+                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <button className={styles.closeModal} onClick={() => setSelectedProductForModal(null)}>
+                            <X size={24} />
+                        </button>
+                        
+                        <div className={styles.modalLayout}>
+                            <div className={styles.modalImageSection}>
+                                <img 
+                                    src={selectedProductForModal.image_url || "/static/attached_assets/placeholder.png"} 
+                                    alt={selectedProductForModal.name} 
+                                />
+                                <div className={styles.modalPriceBadge}>
+                                    R$ {selectedProductForModal.price.toFixed(2)}
+                                </div>
+                            </div>
+                            
+                            <div className={styles.modalInfoSection}>
+                                <h2>{selectedProductForModal.name}</h2>
+                                <p className={styles.modalDescription}>{selectedProductForModal.description}</p>
+                                
+                                <div className={styles.technicalSpecs}>
+                                    {selectedProductForModal.details ? (
+                                        <>
+                                            {selectedProductForModal.details.modo_de_uso && (
+                                                <div className={styles.specItem}>
+                                                    <h3>🌿 Modo de Uso</h3>
+                                                    <p>{selectedProductForModal.details.modo_de_uso}</p>
+                                                </div>
+                                            )}
+                                            {selectedProductForModal.details.ingredientes && (
+                                                <div className={styles.specItem}>
+                                                    <h3>🔬 Ingredientes</h3>
+                                                    <p>{selectedProductForModal.details.ingredientes}</p>
+                                                </div>
+                                            )}
+                                            {selectedProductForModal.details.beneficios && (
+                                                <div className={styles.specItem}>
+                                                    <h3>✨ Benefícios</h3>
+                                                    <p>{selectedProductForModal.details.beneficios}</p>
+                                                </div>
+                                            )}
+                                            {selectedProductForModal.details.curiosidades && (
+                                                <div className={styles.specItem}>
+                                                    <h3>💎 Curiosidades</h3>
+                                                    <p>{selectedProductForModal.details.curiosidades}</p>
+                                                </div>
+                                            )}
+                                            {selectedProductForModal.details.contraindicacoes && (
+                                                <div className={styles.specItem}>
+                                                    <h3>⚠️ Contraindicações</h3>
+                                                    <p>{selectedProductForModal.details.contraindicacoes}</p>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={styles.noSpecs}>
+                                            <p>Informações técnicas detalhadas em breve para este produto.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <Footer />
         </main>

@@ -328,7 +328,7 @@ export default function Home() {
             <section className={styles.section}>
                 <div className="container">
                     <div className={styles.sectionHeader}>
-                        <h2 className={styles.sectionTitle}>LANÇAMENTOS RECENTES</h2>
+                        <h2 className={styles.sectionTitle}>PRODUTOS EM DESTAQUE</h2>
                         <Link href="/produtos" className={styles.viewAll}>Ver todos →</Link>
                     </div>
                     <div className={styles.productGrid}>
