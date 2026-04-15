@@ -8,6 +8,7 @@ import { ShoppingBag, ChevronRight, CheckCircle2, TrendingDown, Info, ShoppingCa
 import { useToast } from "@/components/Toast/Toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { getStaticProductData } from "@/lib/productData";
 
 interface LiaMessage {
     role: 'user' | 'lia';
@@ -66,7 +67,24 @@ export default function WholesalePage() {
                 const res = await fetch("/api/products", { cache: "no-store" });
                 if (res.ok) {
                     const data = await res.json();
-                    setProducts(data.filter((p: any) => p.is_active && p.is_wholesale));
+                    const wholesale = data.filter((p: any) => p.is_active && p.is_wholesale).map((p: any) => {
+                        const staticData = getStaticProductData(p.slug);
+                        if (staticData) {
+                            return {
+                                ...p,
+                                ingredients: staticData.ativos,
+                                benefits: staticData.beneficios,
+                                details: {
+                                    ...(p.details || {}),
+                                    ingredientes: staticData.ativos,
+                                    beneficios: staticData.beneficios,
+                                    modo_de_uso: staticData.modo_de_uso,
+                                }
+                            };
+                        }
+                        return p;
+                    });
+                    setProducts(wholesale);
                 }
             } catch (error) {
                 console.error("Error fetching products:", error);

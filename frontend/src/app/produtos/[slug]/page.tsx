@@ -8,6 +8,7 @@ import Image from "next/image";
 import { QrCode, Download } from "lucide-react";
 import { useToast } from "@/components/Toast/Toast";
 import { useCart } from "@/context/CartContext";
+import { getStaticProductData } from "@/lib/productData";
 
 export default function ProductDetailPage() {
     const params = useParams();
@@ -34,6 +35,19 @@ export default function ProductDetailPage() {
                 const res = await fetch(`/api/products/${params.slug}`, { cache: "no-store" });
                 if (res.ok) {
                     const data = await res.json();
+                    // Garante que textos estáticos (Ativos, Benefícios, Modo de uso) sempre apareçam
+                    const staticData = getStaticProductData(data.slug);
+                    if (staticData) {
+                        data.ingredients = staticData.ativos;
+                        data.benefits = staticData.beneficios;
+                        if (data.details) {
+                            data.details.modo_de_uso = staticData.modo_de_uso;
+                            data.details.ingredientes = staticData.ativos;
+                            data.details.beneficios = staticData.beneficios;
+                        } else {
+                            data.details = { modo_de_uso: staticData.modo_de_uso, ingredientes: staticData.ativos, beneficios: staticData.beneficios };
+                        }
+                    }
                     setProduct(data);
                     setActiveImage(data.image_url || (data.images && data.images[0]) || "");
                     logVisit(`/produtos/${params.slug}`);

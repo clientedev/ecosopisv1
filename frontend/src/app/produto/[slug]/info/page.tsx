@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { getStaticProductData } from "@/lib/productData";
 
 interface ProductDetail {
     curiosidades: string;
@@ -55,6 +56,25 @@ export default function ProductTechnicalPage() {
                 const res = await fetch(`/api/products/${params.slug}`);
                 if (res.ok) {
                     const data = await res.json();
+                    // Garante que textos estáticos sempre apareçam
+                    const staticData = getStaticProductData(data.slug);
+                    if (staticData) {
+                        if (data.details) {
+                            data.details.ingredientes = data.details.ingredientes || staticData.ativos;
+                            data.details.modo_de_uso = data.details.modo_de_uso || staticData.modo_de_uso;
+                            data.details.beneficios = data.details.beneficios || staticData.beneficios;
+                        } else {
+                            data.details = {
+                                ingredientes: staticData.ativos,
+                                modo_de_uso: staticData.modo_de_uso,
+                                beneficios: staticData.beneficios,
+                                curiosidades: null,
+                                cuidados: null,
+                                contraindicacoes: null,
+                                observacoes: null,
+                            };
+                        }
+                    }
                     setProduct(data);
                     setActiveImage(data.image_url || (data.images && data.images[0]) || "/logo_final.png");
                 } else {
