@@ -27,7 +27,7 @@ export default function CarrinhoPage() {
     const [customerName, setCustomerName] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
     const [customerCpf, setCustomerCpf] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState<"stripe" | "mercadopago">("stripe");
+    const [paymentMethod, setPaymentMethod] = useState<"stripe" | "mercadopago">("mercadopago");
 
     const formatCpf = (value: string) => {
         const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -782,14 +782,7 @@ export default function CarrinhoPage() {
                                 <div className={styles.paymentSectionInSummary}>
                                     <h4 style={{ fontSize: "0.9rem", color: "#64748b", margin: "20px 0 12px", fontWeight: 700 }}>MÉTODO DE PAGAMENTO</h4>
                                     <div className={styles.compactPaymentSelector}>
-                                        <div 
-                                            className={`${styles.compactPaymentOption} ${paymentMethod === 'stripe' ? styles.compactSelected : ''}`}
-                                            onClick={() => setPaymentMethod('stripe')}
-                                        >
-                                            <CreditCard size={20} color="#635bff" />
-                                            <span>Stripe (Pix, Cartão)</span>
-                                            <div className={styles.compactRadio}></div>
-                                        </div>
+                                        {/* Stripe option hidden per user request */}
                                         <div 
                                             className={`${styles.compactPaymentOption} ${paymentMethod === 'mercadopago' ? styles.compactSelected : ''}`}
                                             onClick={() => setPaymentMethod('mercadopago')}
@@ -827,7 +820,7 @@ export default function CarrinhoPage() {
                                 <ShieldCheck size={24} color="#2d5a27" />
                                 <div>
                                     <strong>Pagamento Seguro</strong>
-                                    <p>Stripe — Criptografia SSL</p>
+                                    <p>Mercado Pago — Proteção SSL</p>
                                 </div>
                             </div>
                         </div>
