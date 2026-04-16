@@ -513,8 +513,18 @@ export default function AdminPedidosPage() {
                                                         </div>
                                                         <div className={pedidoStyles.summaryRow}>
                                                             <span>Frete ({order.shipping_method || "—"})</span>
-                                                            <span>R$ {Number(order.shipping_price || 0).toFixed(2)}</span>
+                                                            <span>
+                                                                {Number(order.shipping_price || 0) === 0
+                                                                    ? <strong style={{ color: "#059669" }}>GRÁTIS (cliente)</strong>
+                                                                    : `R$ ${Number(order.shipping_price || 0).toFixed(2)}`
+                                                                }
+                                                            </span>
                                                         </div>
+                                                        {Number(order.shipping_price || 0) === 0 && (order.shipment_id || order.etiqueta_url) && (
+                                                            <div style={{ background: "#eff6ff", borderRadius: "8px", padding: "6px 10px", fontSize: "0.75rem", color: "#1e40af", marginTop: "4px", border: "1px solid #bfdbfe" }}>
+                                                                ℹ️ Frete grátis para o cliente — custo real processado internamente via Melhor Envio (admin paga).
+                                                            </div>
+                                                        )}
                                                         {(order.discount_amount || 0) > 0 && (
                                                             <div className={pedidoStyles.summaryRow} style={{ color: "#059669" }}>
                                                                 <span>Desconto {order.coupon_code ? `(${order.coupon_code})` : ""}</span>

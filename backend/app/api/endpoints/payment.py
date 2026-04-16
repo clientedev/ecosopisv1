@@ -14,6 +14,7 @@ from app.core.stripe_service import create_checkout_session, verify_webhook_sign
 from app.core.mercadopago_service import create_checkout_pro_preference, get_payment_status as get_mp_payment_status
 from app.services.melhorenvio_service import processar_envio
 from app.models import models
+from app.models.pedido import Pedido
 from app.core import emails
 from app.api.endpoints.cashback import create_cashback_for_order
 
@@ -154,13 +155,32 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
     logger.info(f"Order {order.id} status updated to PAID via {order.payment_method}")
 
     # ── LOGISTICS: MELHOR ENVIO ──────────────────────────────────────────────
+    # Sempre processa envio via Melhor Envio, mesmo para frete grátis.
+    # Quando o cliente recebe frete grátis, internamente selecionamos o frete
+    # mais barato do Melhor Envio e o administrador arca com o custo.
+    # O cliente continua vendo R$ 0,00 de frete.
     try:
         logger.info(f"Starting Melhor Envio processing for order {order.id}...")
-        envio_res = processar_envio(order, db)
+        is_free_shipping = (order.shipping_price or 0) == 0
+        if is_free_shipping:
+            logger.info(f"Order {order.id} has FREE SHIPPING for customer. "
+                        f"Internally selecting cheapest Melhor Envio option (admin pays).")
+
+        # Wrap Order in Pedido adapter — processar_envio requires
+        # properties like cep_cliente, valor, produto_nome that only
+        # the Pedido adapter exposes.
+        pedido = Pedido.from_order(order)
+        envio_res = processar_envio(pedido, db)
+
         if envio_res.get("erro"):
             logger.warning(f"Shipping processing had issues for order {order.id}: {envio_res['erro']}")
         else:
-            logger.info(f"Shipping label generated for order {order.id}: {envio_res.get('tracking_code')}")
+            logger.info(
+                f"Shipping label generated for order {order.id}: "
+                f"tracking={envio_res.get('tracking_code')} | "
+                f"shipment={envio_res.get('shipment_id')} | "
+                f"free_for_customer={is_free_shipping}"
+            )
     except Exception as e:
         logger.error(f"Critical error on shipping integration for order {order.id}: {e}", exc_info=True)
 
