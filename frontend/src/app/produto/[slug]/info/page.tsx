@@ -27,6 +27,7 @@ interface ProductDetail {
     cuidados: string;
     contraindicacoes: string;
     observacoes: string;
+    beneficios: string | null;
 }
 
 interface Product {
@@ -38,6 +39,7 @@ interface Product {
     image_url: string;
     images: string[];
     details?: ProductDetail;
+    beneficios?: string; // Adding this for safety if it comes directly
 }
 
 export default function ProductTechnicalPage() {
@@ -179,7 +181,7 @@ export default function ProductTechnicalPage() {
         {
             icon: <Heart size={24} />,
             title: "Benefícios Reais",
-            content: product.benefits || details?.beneficios,
+            content: details?.beneficios || (product as any).benefits,
             delay: "0.3s",
             featured: true
         },

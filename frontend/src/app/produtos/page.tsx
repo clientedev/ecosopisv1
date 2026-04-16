@@ -4,7 +4,7 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import ProductCard from "@/components/ProductCard/ProductCard";
 import styles from "./page.module.css";
-import { Sparkles, Filter, LayoutGrid, DollarSign } from "lucide-react";
+import { Sparkles, Filter, LayoutGrid, DollarSign, Search, SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
 
 const categories = [
@@ -34,6 +34,8 @@ export default function ProductsPage() {
     const [activeCategory, setActiveCategory] = useState("all");
     const [activeFilter, setActiveFilter] = useState("all");
     const [maxPrice, setMaxPrice] = useState(500);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
     const getImageUrl = (url: string) => {
         if (!url) return "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
@@ -73,6 +75,12 @@ export default function ProductsPage() {
     const filteredProducts = useMemo(() => {
         return allProducts.filter(p => {
             const tags = Array.isArray(p.tags) ? p.tags : JSON.parse(p.tags || "[]");
+            const name = (p.name || "").toLowerCase();
+            const description = (p.description || "").toLowerCase();
+            const search = searchTerm.toLowerCase();
+
+            // Search check
+            const searchMatch = !searchTerm || name.includes(search) || description.includes(search);
 
             // Category check
             const categoryMatch = activeCategory === "all" || tags.includes(activeCategory);
@@ -83,9 +91,9 @@ export default function ProductsPage() {
             // Price check
             const priceMatch = p.price <= maxPrice;
 
-            return categoryMatch && filterMatch && priceMatch;
+            return searchMatch && categoryMatch && filterMatch && priceMatch;
         });
-    }, [allProducts, activeCategory, activeFilter, maxPrice]);
+    }, [allProducts, activeCategory, activeFilter, maxPrice, searchTerm]);
 
     return (
         <>
@@ -183,6 +191,28 @@ export default function ProductsPage() {
                     </aside>
 
                     <div className={styles.mainContent}>
+                        <div className={styles.searchAndFilterRow}>
+                            <div className={styles.searchBarContainer}>
+                                <Search size={18} className={styles.searchIcon} />
+                                <input
+                                    type="text"
+                                    placeholder="O que você está procurando hoje?"
+                                    className={styles.searchBar}
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                                {searchTerm && (
+                                    <button className={styles.clearSearch} onClick={() => setSearchTerm("")}>
+                                        <X size={16} />
+                                    </button>
+                                )}
+                            </div>
+                            <button className={styles.drawerTrigger} onClick={() => setIsDrawerOpen(true)}>
+                                <SlidersHorizontal size={18} />
+                                <span>FILTROS</span>
+                            </button>
+                        </div>
+
                         <div className={styles.gridHeader}>
                             <h2>{activeCategory === 'all' ? 'Todos os Produtos' : categories.find(c => c.id === activeCategory)?.name}</h2>
                             <span className={styles.resultsCount}>{filteredProducts.length} itens encontrados</span>
@@ -213,6 +243,111 @@ export default function ProductsPage() {
                     </div>
                 </div>
             </main>
+
+            {/* Filter Drawer Overlay */}
+            {isDrawerOpen && (
+                <div className={styles.drawerOverlay} onClick={() => setIsDrawerOpen(false)}>
+                    <div className={styles.drawerContent} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.drawerHeader}>
+                            <h3>FILTRAR POR</h3>
+                            <button className={styles.closeDrawer} onClick={() => setIsDrawerOpen(false)}>
+                                <X size={24} />
+                            </button>
+                        </div>
+                        
+                        <div className={styles.drawerBody}>
+                            <div className={styles.filterGroup}>
+                                <h3><LayoutGrid size={14} /> Categorias</h3>
+                                <div className={styles.filterList}>
+                                    {categories.map(cat => (
+                                        <button
+                                            key={cat.id}
+                                            className={activeCategory === cat.id ? styles.filterItemActive : styles.filterItem}
+                                            onClick={() => { setActiveCategory(cat.id); setIsDrawerOpen(false); }}
+                                        >
+                                            {cat.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className={styles.filterGroup}>
+                                <h3><DollarSign size={14} /> Preço Máximo</h3>
+                                <div className={styles.priceRangeContainer}>
+                                    <div className={styles.priceDisplay}>
+                                        <span>R$ 0</span>
+                                        <span>R$ {maxPrice}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="500"
+                                        step="10"
+                                        value={maxPrice}
+                                        onChange={(e) => setMaxPrice(Number(e.target.value))}
+                                        className={styles.priceSlider}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={styles.filterGroup}>
+                                <h3><Filter size={14} /> Tipo de Pele</h3>
+                                <div className={styles.filterList}>
+                                    <button
+                                        className={activeFilter === "all" ? styles.filterItemActive : styles.filterItem}
+                                        onClick={() => { setActiveFilter("all"); setIsDrawerOpen(false); }}
+                                    >
+                                        Todos os tipos
+                                    </button>
+                                    {skinFilters.map(f => (
+                                        <button
+                                            key={f.id}
+                                            className={activeFilter === f.id ? styles.filterItemActive : styles.filterItem}
+                                            onClick={() => { setActiveFilter(f.id); setIsDrawerOpen(false); }}
+                                        >
+                                            {f.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className={styles.filterGroup}>
+                                <h3><Sparkles size={14} /> Tratamentos</h3>
+                                <div className={styles.filterList}>
+                                    {treatmentFilters.map(f => (
+                                        <button
+                                            key={f.id}
+                                            className={activeFilter === f.id ? styles.filterItemActive : styles.filterItem}
+                                            onClick={() => { setActiveFilter(f.id); setIsDrawerOpen(false); }}
+                                        >
+                                            {f.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.drawerFooter}>
+                            <button className={styles.applyBtn} onClick={() => setIsDrawerOpen(false)}>
+                                APLICAR FILTROS
+                            </button>
+                            <button 
+                                className={styles.resetBtn} 
+                                onClick={() => { 
+                                    setActiveCategory('all'); 
+                                    setActiveFilter('all'); 
+                                    setMaxPrice(500); 
+                                    setSearchTerm("");
+                                    setIsDrawerOpen(false); 
+                                }}
+                            >
+                                LIMPAR TUDO
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Footer />
         </>
     );
