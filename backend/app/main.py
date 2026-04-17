@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
@@ -162,6 +163,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Force HTTPS Redirects - Only for production
+if os.getenv("NODE_ENV") == "production" or os.getenv("RAILWAY_ENVIRONMENT") == "production":
+    app.add_middleware(HTTPSRedirectMiddleware)
 
 # HTTPS/Proxy awareness for Railway
 @app.middleware("http")

@@ -327,10 +327,11 @@ def delete_product(
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
-    # Soft delete: preserve referential integrity with orders
-    db_product.is_active = False
+    # Toggle status: allows both activation and deactivation via DELETE requests
+    # which is used by the frontend Dashboard toggle.
+    db_product.is_active = not db_product.is_active
     db.commit()
-    return {"message": "Product deactivated"}
+    return {"message": "Status updated", "is_active": db_product.is_active}
 class QRRegenerate(BaseModel):
     origin: Optional[str] = None
 

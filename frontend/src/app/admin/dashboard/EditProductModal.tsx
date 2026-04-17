@@ -124,14 +124,16 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
             if (res.ok) {
                 const data = await res.json();
 
-                // Also update details
+                // Clean technicalData for submission (strip id, product_id, qr_code_path, etc)
+                const { id: _id, product_id: _pid, slug: _s, qr_code_path: _qr, updated_at: _ua, ...technicalPayload } = technicalData as any;
+
                 const detailsRes = await fetch(`/api/products/${product.id}/details`, {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${token}`
                     },
-                    body: JSON.stringify(technicalData),
+                    body: JSON.stringify(technicalPayload),
                 });
 
                 if (detailsRes.ok) {

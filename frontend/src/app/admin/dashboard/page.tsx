@@ -53,8 +53,14 @@ export default function AdminDashboard() {
         return url;
     };
 
-    const handleDelete = async (productId: number, productName: string) => {
-        if (!confirm(`Desativar o produto "${productName}"? Ele ficará oculto no site mas pedidos antigos serão preservados.`)) return;
+    const handleDelete = async (productId: number, productName: string, isActive: boolean) => {
+        const action = isActive ? 'Desativar' : 'Reativar';
+        const confirmation = isActive 
+            ? `Desativar o produto "${productName}"? Ele ficará oculto no site mas pedidos antigos serão preservados.`
+            : `Reativar o produto "${productName}"? Ele voltará a aparecer no site para os clientes.`;
+
+        if (!confirm(confirmation)) return;
+        
         const token = localStorage.getItem("token");
         try {
             const res = await fetch(`/api/products/${productId}`, {
@@ -62,9 +68,10 @@ export default function AdminDashboard() {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
-                setProducts(products.map((p: any) => p.id === productId ? { ...p, is_active: false } : p));
+                const data = await res.json();
+                setProducts(products.map((p: any) => p.id === productId ? { ...p, is_active: data.is_active } : p));
             } else {
-                alert('Erro ao desativar produto');
+                alert(`Erro ao ${action.toLowerCase()} produto`);
             }
         } catch (err) {
             alert('Erro de conexão');
@@ -215,7 +222,7 @@ export default function AdminDashboard() {
                                             </button>
                                             <button
                                                 className={styles.deleteBtn}
-                                                onClick={() => handleDelete(p.id, p.name)}
+                                                onClick={() => handleDelete(p.id, p.name, p.is_active)}
                                             >
                                                 {p.is_active === false ? 'Reativar' : 'Desativar'}
                                             </button>
