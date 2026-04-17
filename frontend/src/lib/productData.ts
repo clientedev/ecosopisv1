@@ -158,6 +158,12 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
     modo_de_uso: "Aplicar pequena quantidade nos cabelos ou na pele, massageando bem. Para cabelos, pode ser usada como máscara.",
     curiosidades: "O Ojon é extraído da palmeira Elaeis Oleifera, sendo o único óleo natural capaz de penetrar no núcleo das fibras capilares mais danificadas.",
   },
+  "kit-acne": {
+    ativos: "Argila Verde, Carvão Ativado, Calêndula, Chá Verde, Vitamina E",
+    beneficios: "Tratamento completo para controle de acne, redução da oleosidade e purificação dos poros",
+    modo_de_uso: "1. Sabonete de Argila Verde: utilizar diariamente para limpeza da pele, aplicando sobre a pele úmida, massageando suavemente e enxaguando.\n\n2. Sabonete de Carvão Ativado & Calêndula: pode ser usado diariamente, alternando com o sabonete de argila verde, ou conforme necessidade para uma limpeza mais profunda.\n\n3. Creme Facial Anti Oleosidade: após a limpeza, aplicar uma pequena quantidade no rosto limpo e seco, espalhando até completa absorção. Usar diariamente.\n\nSugestão de uso: utilizar os sabonetes pela manhã e à noite, finalizando com o creme facial para melhores resultados no controle da acne e da oleosidade.",
+    curiosidades: "Este kit combina a força adstringente da argila verde com o poder purificante do carvão ativado, criando um cronograma de limpeza equilibrado.",
+  },
 };
 
 /** Retorna os dados estáticos de um produto pelo slug, ou null se não encontrar */
