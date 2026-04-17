@@ -103,6 +103,9 @@ def _apply_startup_migrations():
         ("is_published", "BOOLEAN DEFAULT TRUE"),
         ("category",     "VARCHAR")
     ]
+    PRODUCT_COLS = [
+        ("category",     "VARCHAR")
+    ]
     
     with engine.connect() as conn:
         tables_to_sync = [
@@ -111,7 +114,8 @@ def _apply_startup_migrations():
             ("addresses", ADDRESS_COLS),
             ("carousel_items", CAROUSEL_COLS),
             ("announcement_bar", ANNOUNCE_COLS),
-            ("news", NEWS_COLS)
+            ("news", NEWS_COLS),
+            ("products", PRODUCT_COLS)
         ]
         for table, cols in tables_to_sync:
             # Check if table exists, create if not
@@ -158,6 +162,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# HTTPS/Proxy awareness for Railway
+@app.middleware("http")
+async def https_middleware(request: Request, call_next):
+    # If Railway or other proxy terminates SSL, trust the header
+    forwarded_proto = request.headers.get("x-forwarded-proto")
+    if forwarded_proto == "https":
+        request.scope["scheme"] = "https"
+    
+    # Also handle 'x-forwarded-host' to ensure generated URLs use the correct domain
+    forwarded_host = request.headers.get("x-forwarded-host")
+    if forwarded_host:
+        request.scope["server"] = (forwarded_host, None)
+
+    response = await call_next(request)
+    return response
 
 # Exception Handler
 @app.exception_handler(Exception)

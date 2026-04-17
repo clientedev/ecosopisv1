@@ -116,13 +116,19 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                 return;
             }
 
+            // Clean form data for submission
+            const payload = {
+                ...formData,
+                origin: window.location.origin
+            };
+
             const res = await fetch(`/api/products`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify({ ...formData, origin: window.location.origin }),
+                body: JSON.stringify(payload),
             });
 
             if (res.status === 401) {
@@ -230,6 +236,29 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                             onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                             required
                         />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Categoria</label>
+                        <select
+                            value={formData.category}
+                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                border: '1px solid #ddd',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem'
+                            }}
+                            required
+                        >
+                            <option value="sabonete">Sabonete</option>
+                            <option value="kit">Kit</option>
+                            <option value="creme">Creme</option>
+                            <option value="oleo">Óleo</option>
+                            <option value="argila">Argila</option>
+                            <option value="outros">Outros</option>
+                        </select>
                     </div>
 
                     <div className={styles.formGrid}>

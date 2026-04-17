@@ -127,6 +127,7 @@ class Product(Base):
     is_wholesale = Column(Boolean, default=False)
     mercadolivre_url = Column(String, nullable=True)
     shopee_url = Column(String, nullable=True)
+    category = Column(String, nullable=True)
     
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

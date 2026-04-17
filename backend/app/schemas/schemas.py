@@ -184,6 +184,7 @@ class ProductBase(BaseModel):
     is_wholesale: Optional[bool] = False
     mercadolivre_url: Optional[str] = None
     shopee_url: Optional[str] = None
+    category: Optional[str] = None
     is_active: Optional[bool] = True
 
 # Product Details Schemas
@@ -231,6 +232,7 @@ class ProductUpdate(BaseModel):
     is_wholesale: Optional[bool] = None
     mercadolivre_url: Optional[str] = None
     shopee_url: Optional[str] = None
+    category: Optional[str] = None
     is_active: Optional[bool] = None
 
 # Carousel Schemas

@@ -103,13 +103,16 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                 return;
             }
 
+            // Strip id and details from payload to prevent backend validation (Err 400)
+            const { id, details, ...payload } = formData;
+
             const res = await fetch(`/api/products/${product.id}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             });
 
             if (res.status === 401) {
@@ -309,6 +312,30 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             required
                         />
+                    </div>
+
+                    {/* Categoria */}
+                    <div className={styles.formGroup}>
+                        <label>Categoria</label>
+                        <select
+                            value={formData.category}
+                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                border: '1px solid #ddd',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem'
+                            }}
+                            required
+                        >
+                            <option value="sabonete">Sabonete</option>
+                            <option value="kit">Kit</option>
+                            <option value="creme">Creme</option>
+                            <option value="oleo">Óleo</option>
+                            <option value="argila">Argila</option>
+                            <option value="outros">Outros</option>
+                        </select>
                     </div>
 
                     {/* Descrição - área ampliada */}
