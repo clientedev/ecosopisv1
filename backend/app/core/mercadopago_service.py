@@ -57,27 +57,43 @@ def create_checkout_pro_preference(order_id: int, items: list, shipping_price: f
     
     mp_items = []
     for item in items:
+        # Prepare image URL if available
+        image_url = item.get("image_url")
+        if image_url and not image_url.startswith("http"):
+            # Try to build absolute URL for the image
+            backend_base = os.getenv("BACKEND_URL", FRONTEND_URL.replace("3000", "8000")).rstrip("/")
+            # Assuming product images are in /static/uploads
+            image_url = f"{backend_base}/static/uploads/{image_url.split('/')[-1]}"
+
         mp_items.append({
             "id": str(item.get("product_id", "")),
             "title": item.get("product_name", "Produto ECOSOPIS"),
             "quantity": int(item.get("quantity", 1)),
             "unit_price": float(round(float(item.get("price", 0)), 2)),
             "currency_id": "BRL",
+            "picture_url": image_url
         })
 
     # Add shipping as a separate item if > 0
     if shipping_price and shipping_price > 0:
         mp_items.append({
             "id": "shipping",
-            "title": "Frete (Melhor Envio)",
+            "title": "Frete (Logística ECOSOPIS)",
             "quantity": 1,
             "unit_price": float(round(float(shipping_price), 2)),
             "currency_id": "BRL",
         })
 
+    # Split name for MP payer structure
+    name_parts = (customer_name or "Cliente").split()
+    first_name = name_parts[0]
+    last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else "ECOSOPIS"
+
     preference_data = {
         "items": mp_items,
         "payer": {
+            "name": first_name,
+            "surname": last_name,
             "email": customer_email,
         },
         "back_urls": {
@@ -90,7 +106,9 @@ def create_checkout_pro_preference(order_id: int, items: list, shipping_price: f
         "notification_url": webhook_url,
         "statement_descriptor": "ECOSOPIS",
         "payment_methods": {
-            "excluded_payment_types": []
+            "excluded_payment_methods": [],
+            "excluded_payment_types": [],
+            "installments": 12
         }
     }
 
