@@ -91,8 +91,6 @@ def create_checkout_pro_preference(order_id: int, items: list, shipping_price: f
     last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else "ECOSOPIS"
 
     payer_data = {
-        "first_name": first_name,
-        "last_name": last_name,
         "email": customer_email,
     }
 
