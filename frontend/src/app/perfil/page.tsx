@@ -15,7 +15,7 @@ export default function UserProfile() {
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("overview");
-    const [statusFilter, setStatusFilter] = useState("all");
+    const [statusFilter, setStatusFilter] = useState("paid");
     const [isPaying, setIsPaying] = useState<number | null>(null);
     const router = useRouter();
 
@@ -301,7 +301,7 @@ export default function UserProfile() {
     const getStatusInfo = (status: string) => {
         switch ((status || '').toLowerCase()) {
             case 'pending':
-                return { label: 'Aguardando Pagamento', icon: <Clock size={16}/>, className: styles.statusPending };
+                return { label: 'No Carrinho', icon: <Clock size={16}/>, className: styles.statusPending };
             case 'paid':
                 return { label: 'Pagamento Confirmado', icon: <CheckCircle size={16}/>, className: styles.statusPaid };
             case 'shipped':
@@ -509,7 +509,7 @@ export default function UserProfile() {
                                         onChange={(e) => setStatusFilter(e.target.value)}
                                     >
                                         <option value="all">Todos os Pedidos</option>
-                                        <option value="pending">Aguardando Pagamento</option>
+                                        <option value="pending">No Carrinho</option>
                                         <option value="paid">Pagamento Confirmado</option>
                                         <option value="shipped">Em Envio / Processando</option>
                                         <option value="delivered">Entregues</option>

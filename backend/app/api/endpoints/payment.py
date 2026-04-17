@@ -329,8 +329,21 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
 
     logger.info(f"MP Webhook received. Data: {data}, Query: {dict(request.query_params)}")
 
-    resource_id = data.get("data", {}).get("id") or data.get("id") or request.query_params.get("data.id") or request.query_params.get("id")
-    topic = data.get("type") or data.get("topic") or request.query_params.get("type") or request.query_params.get("topic")
+    # Extract resource ID and topic/type broadly
+    resource_id = (
+        data.get("data", {}).get("id") or 
+        data.get("id") or 
+        data.get("resource") or
+        request.query_params.get("data.id") or 
+        request.query_params.get("id") or
+        request.query_params.get("resource")
+    )
+    topic = (
+        data.get("type") or 
+        data.get("topic") or 
+        request.query_params.get("type") or 
+        request.query_params.get("topic")
+    )
 
     if topic == "payment" and resource_id:
         try:
@@ -338,16 +351,22 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
             if payment_info.get("status") == "approved":
                 pedido_id = payment_info.get("external_reference")
                 if pedido_id:
-                    order = db.query(models.Order).filter(models.Order.id == int(pedido_id)).first()
-                    if order:
-                        finalize_order_on_payment(
-                            order=order,
-                            db=db,
-                            payment_id=str(resource_id),
-                            buyer_email=payment_info.get("payer", {}).get("email")
-                        )
+                    # Robust lookup: try to find by ID
+                    try:
+                        order_id_int = int(pedido_id)
+                        order = db.query(models.Order).filter(models.Order.id == order_id_int).first()
+                        if order:
+                            finalize_order_on_payment(
+                                order=order,
+                                db=db,
+                                payment_id=str(resource_id),
+                                buyer_email=payment_info.get("payer", {}).get("email")
+                            )
+                            logger.info(f"MP Payment {resource_id} successfully processed for order {pedido_id}")
+                    except ValueError:
+                        logger.error(f"Invalid external_reference (not an int): {pedido_id}")
         except Exception as e:
-            logger.error(f"Error processing MP payment {resource_id}: {e}")
+            logger.error(f"Error processing MP payment {resource_id}: {e}", exc_info=True)
 
     return {"status": "ok"}
 

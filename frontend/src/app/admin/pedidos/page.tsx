@@ -36,7 +36,7 @@ interface Order {
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }> = {
-    pending:            { label: "Pendente",          color: "#d97706", icon: Clock },
+    pending:            { label: "No Carrinho",       color: "#d97706", icon: Clock },
     paid:               { label: "Pago",              color: "#059669", icon: CheckCircle },
     shipped:            { label: "Enviado",           color: "#2563eb", icon: Truck },
     delivered:          { label: "Entregue",          color: "#7c3aed", icon: Package },
@@ -62,7 +62,7 @@ export default function AdminPedidosPage() {
     const router = useRouter();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState("all");
+    const [filter, setFilter] = useState("paid");
     const [searchTerm, setSearchTerm] = useState("");
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
@@ -346,7 +346,7 @@ export default function AdminPedidosPage() {
                 <section className={pedidoStyles.statsGrid}>
                     {[
                         { label: "Total",       value: stats.total,     icon: "📊", color: "#1a1a1a" },
-                        { label: "Pendentes",   value: stats.pending,   icon: "⏳", color: "#d97706" },
+                        { label: "No Carrinho",   value: stats.pending,   icon: "🛒", color: "#d97706" },
                         { label: "Pagos",       value: stats.paid,      icon: "✅", color: "#059669" },
                         { label: "Enviados",    value: stats.shipped,   icon: "🚚", color: "#2563eb" },
                         { label: "Entregues",   value: stats.delivered, icon: "📦", color: "#7c3aed" },

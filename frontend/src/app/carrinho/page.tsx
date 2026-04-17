@@ -105,9 +105,12 @@ export default function CarrinhoPage() {
         ? [...shippingOptions].sort((a, b) => a.price - b.price)[0] 
         : null;
 
-    const isSelectedShippingFree = selectedShipping && cheapestOption && selectedShipping.id === cheapestOption.id && appliesFreeShipping;
+    const isSelectedShippingFree = (selectedShipping && cheapestOption && selectedShipping.id === cheapestOption.id && appliesFreeShipping) || (appliedCoupon?.type === "free_shipping");
     const shippingPrice = isSelectedShippingFree ? 0 : (selectedShipping ? selectedShipping.price : 0);
-    const discount = appliedCoupon ? (appliedCoupon.type === "fixed" ? appliedCoupon.value : (subtotal * appliedCoupon.value / 100)) : 0;
+    const discount = appliedCoupon ? (
+        appliedCoupon.type === "fixed" ? appliedCoupon.value : 
+        appliedCoupon.type === "percentage" ? (subtotal * appliedCoupon.value / 100) : 0
+    ) : 0;
     
     // Total Cashback to Apply
     const cashbackDiscount = useCashback ? Math.min(availableCashback, subtotal - discount) : 0;

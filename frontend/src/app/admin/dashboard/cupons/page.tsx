@@ -127,7 +127,11 @@ export default function CouponManagement() {
                             {coupons.map((c: any) => (
                                 <tr key={c.id}>
                                     <td><strong>{c.code}</strong></td>
-                                    <td>{c.discount_type === 'percentage' ? `${c.discount_value}%` : `R$ ${c.discount_value}`}</td>
+                                    <td>
+                                        {c.discount_type === 'percentage' ? `${c.discount_value}%` : 
+                                         c.discount_type === 'free_shipping' ? '🚚 Frete Grátis' : 
+                                         `R$ ${c.discount_value}`}
+                                    </td>
                                     <td>R$ {c.min_purchase_value}</td>
                                     <td>{c.usage_count} / {c.usage_limit || '∞'}</td>
                                     <td>{c.valid_until ? new Date(c.valid_until).toLocaleDateString() : 'N/A'}</td>
@@ -164,6 +168,7 @@ export default function CouponManagement() {
                                         >
                                             <option value="percentage">Porcentagem (%)</option>
                                             <option value="fixed">Valor Fixo (R$)</option>
+                                            <option value="free_shipping">🚚 Frete Grátis</option>
                                         </select>
                                     </div>
                                     <div className={styles.formGroup}>
