@@ -49,7 +49,8 @@ def create_pix_payment(order_id: int, total: float, customer_email: str,
 
 
 def create_checkout_pro_preference(order_id: int, items: list, shipping_price: float = 0.0, 
-                                    customer_email: str = "", customer_name: str = "") -> dict:
+                                    customer_email: str = "", customer_name: str = "",
+                                    customer_cpf: str = "") -> dict:
     """
     Creates a Checkout Pro preference including products and shipping.
     """
@@ -89,13 +90,25 @@ def create_checkout_pro_preference(order_id: int, items: list, shipping_price: f
     first_name = name_parts[0]
     last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else "ECOSOPIS"
 
+    payer_data = {
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": customer_email,
+    }
+
+    # Add CPF if available to help enable PIX
+    if customer_cpf:
+        # Sanitize CPF (keep only numbers)
+        clean_cpf = "".join(filter(str.isdigit, customer_cpf))
+        if clean_cpf and len(clean_cpf) >= 11:
+            payer_data["identification"] = {
+                "type": "CPF",
+                "number": clean_cpf
+            }
+
     preference_data = {
         "items": mp_items,
-        "payer": {
-            "name": first_name,
-            "surname": last_name,
-            "email": customer_email,
-        },
+        "payer": payer_data,
         "back_urls": {
             "success": f"{FRONTEND_URL}/pagamento?status=approved&order_id={order_id}",
             "failure": f"{FRONTEND_URL}/pagamento?status=failure&order_id={order_id}",
@@ -105,6 +118,7 @@ def create_checkout_pro_preference(order_id: int, items: list, shipping_price: f
         "external_reference": str(order_id),
         "notification_url": webhook_url,
         "statement_descriptor": "ECOSOPIS",
+        "binary_mode": False,
         "payment_methods": {
             "excluded_payment_methods": [],
             "excluded_payment_types": [],

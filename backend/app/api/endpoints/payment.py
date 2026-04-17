@@ -264,7 +264,8 @@ async def create_mp_payment(
             items=items_for_mp,
             shipping_price=order.shipping_price,
             customer_email=current_user.email,
-            customer_name=current_user.full_name
+            customer_name=current_user.full_name,
+            customer_cpf=order.customer_cpf
         )
         
         order.mercadopago_preference_id = preference["id"]
