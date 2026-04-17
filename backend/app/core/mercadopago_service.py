@@ -106,9 +106,7 @@ def create_checkout_pro_preference(order_id: int, items: list, shipping_price: f
 
     preference_data = {
         "items": mp_items,
-        "payer": {
-            "email": customer_email
-        },
+        "payer": payer_data,
         "back_urls": {
             "success": f"{FRONTEND_URL}/pagamento?status=approved&order_id={order_id}",
             "failure": f"{FRONTEND_URL}/pagamento?status=failure&order_id={order_id}",
@@ -117,7 +115,12 @@ def create_checkout_pro_preference(order_id: int, items: list, shipping_price: f
         "auto_return": "approved",
         "external_reference": str(order_id),
         "notification_url": webhook_url,
-        "statement_descriptor": "ECOSOPIS"
+        "statement_descriptor": "ECOSOPIS",
+        "payment_methods": {
+            "excluded_payment_methods": [],
+            "excluded_payment_types": [],
+            "installments": 12
+        }
     }
 
     result = sdk.preference().create(preference_data)
