@@ -26,7 +26,10 @@ export default function ProductDetailPage() {
     const faqs = [
         { q: "Qual o prazo de entrega?", a: "O prazo médio de entrega é de 5 a 10 dias úteis, dependendo da sua região." },
         { q: "O produto é vegano?", a: "Sim! Todos os nossos produtos são 100% veganos e livres de crueldade animal." },
-        { q: "Como usar o produto?", a: "Aplique sobre a pele molhada, massageando com movimentos circulares. Deixe agir por 3 minutos e, em seguida, enxágue completamente." }
+        { 
+            q: "Como usar o produto?", 
+            a: product?.details?.modo_de_uso || "Aplique sobre a pele molhada, massageando com movimentos circulares. Deixe agir por 3 minutos e, em seguida, enxágue completamente." 
+        }
     ];
 
     useEffect(() => {
