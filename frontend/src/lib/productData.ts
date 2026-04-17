@@ -45,9 +45,9 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
     curiosidades: "O barbatimão é conhecido na sabedoria popular como 'casca da virgindade' por sua forte ação adstringente e protetora.",
   },
   "sabonete-liquido-barbatimao": {
-    ativos: "Barbatimão, Calêndula",
+    ativos: "Barbatimão, Calêndula, Óleos Essenciais de Lavanda Francesa e Melaleuca",
     beneficios: "Limpa profundamente sem ressecar, auxilia no controle da acne e da oleosidade, ao mesmo tempo em que hidrata e mantém o equilíbrio da pele. Possui ação calmante e regeneradora, sendo ideal para todos os tipos de pele. Pode ser usado no rosto, corpo e região íntima, proporcionando uma limpeza suave, segura e eficaz.\n\nNa região íntima, auxilia na manutenção do equilíbrio da pele, promove sensação de frescor, conforto e cuidado diário, sem agredir ou ressecar.",
-    modo_de_uso: "Aplicar na região externa íntima durante o banho, massagear suavemente e enxaguar bem. Uso diário.",
+    modo_de_uso: "Pode ser utilizado no rosto, corpo e região íntima. Aplicar uma pequena quantidade sobre a pele úmida, massagear suavemente até formar espuma e enxaguar bem.\n\nSugestão de uso: utilizar diariamente, pela manhã e à noite. Na região íntima, aplicar apenas na parte externa.",
     curiosidades: "Esta fórmula 3 em 1 foi desenvolvida para simplificar o seu ritual, oferecendo o poder do barbatimão em uma textura líquida suave e pH balanceado.",
   },
 
@@ -59,14 +59,14 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
     curiosidades: "A variedade Rubiginosa é riquíssima em ácidos graxos essenciais, sendo um dos óleos mais potentes do mundo para regeneração celular.",
   },
   "oleo-rosa-mosqueta-20ml": {
-    ativos: "Óleo vegetal de rosa mosqueta canina (Rosa Canina Fruit Oil) 100% puro",
-    beneficios: "Hidrata profundamente, auxilia na regeneração da pele e melhora a elasticidade",
+    ativos: "Óleo Vegetal de Rosa Mosqueta Rubiginosa (Rosehip Fruit Oil) 100% puro",
+    beneficios: "Auxilia na regeneração da pele, melhora a aparência de cicatrizes, manchas e linhas finas",
     modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
     curiosidades: "O fruto da rosa mosqueta é uma das maiores fontes naturais de vitamina C, auxiliando na luminosidade natural da pele.",
   },
   "refil-rosa-mosqueta": {
-    ativos: "Óleo vegetal de rosa mosqueta canina (Rosa Canina Fruit Oil) 100% puro",
-    beneficios: "Hidrata profundamente, auxilia na regeneração da pele e melhora a elasticidade",
+    ativos: "Óleo Vegetal de Rosa Mosqueta Rubiginosa (Rosehip Fruit Oil) 100% puro",
+    beneficios: "Auxilia na regeneração da pele, melhora a aparência de cicatrizes, manchas e linhas finas",
     modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
     curiosidades: "Nosso refil garante que você continue seu tratamento sem gerar desperdício, mantendo o compromisso da Ecosopis com o planeta.",
   },
@@ -74,7 +74,7 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
     ativos: "Óleo vegetal de alecrim (Rosmarinus Officinalis Leaf Oil) 100% puro",
     beneficios: "Estimula a circulação, auxilia no fortalecimento capilar e ajuda no crescimento dos fios",
     modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
-    curiosidades: "O alecrim é conhecido como a erva da alegria e do foco, seu aroma ajuda a despertar a mente enquanto cuida dos fios.",
+    curiosidades: "O alecrim é conhecido como a erva da alegria, seu aroma ajuda a despertar a mente enquanto cuida dos fios.",
   },
   "oleo-abacate": {
     ativos: "Óleo vegetal de abacate (Persea Gratissima Oil) 100% puro",
@@ -163,6 +163,21 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
     beneficios: "Tratamento completo para controle de acne, redução da oleosidade e purificação dos poros",
     modo_de_uso: "1. Sabonete de Argila Verde: utilizar diariamente para limpeza da pele, aplicando sobre a pele úmida, massageando suavemente e enxaguando.\n\n2. Sabonete de Carvão Ativado & Calêndula: pode ser usado diariamente, alternando com o sabonete de argila verde, ou conforme necessidade para uma limpeza mais profunda.\n\n3. Creme Facial Anti Oleosidade: após a limpeza, aplicar uma pequena quantidade no rosto limpo e seco, espalhando até completa absorção. Usar diariamente.\n\nSugestão de uso: utilizar os sabonetes pela manhã e à noite, finalizando com o creme facial para melhores resultados no controle da acne e da oleosidade.",
     curiosidades: "Este kit combina a força adstringente da argila verde com o poder purificante do carvão ativado, criando um cronograma de limpeza equilibrado.",
+  },
+
+  // KITS
+  "kit-clareamento": {
+    ativos: "Argila Branca, Rosa Mosqueta Rubiginosa",
+    beneficios: "Auxilia no clareamento da pele, ajuda a reduzir manchas e uniformizar o tom, promovendo uma aparência mais iluminada, saudável e revitalizada. Combina limpeza e tratamento, potencializando os resultados no uso contínuo.",
+    modo_de_uso: "1. Sabonete Super Clareador: aplicar sobre a pele úmida, massagear suavemente, deixar agir por alguns segundos e enxaguar. Utilizar diariamente.\n\n2. Óleo de Rosa Mosqueta Rubiginosa: após a limpeza, aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso preferencial noturno.\n\nSugestão de uso: utilizar o sabonete diariamente (manhã e noite) e o óleo principalmente à noite para potencializar os resultados no clareamento e na regeneração da pele.",
+    curiosidades: "A Rosa Mosqueta Rubiginosa é um dos óleos mais poderosos para regeneração celular, tornando este kit uma dupla imbatível para peles com manchas e necessidade de renovação.",
+  },
+
+  "kit-acafrao-argila": {
+    ativos: "Açafrão (Cúrcuma), Dolomita, Argila Branca",
+    beneficios: "Auxilia no clareamento da pele, ajuda a reduzir manchas e uniformizar o tom, deixando a pele mais iluminada, suave e com aparência saudável. Também contribui para acalmar a pele, melhorar a textura e auxiliar na redução de sinais de foliculite e irritações causadas por depilação.",
+    modo_de_uso: "1. Sabonete de Açafrão & Dolomita: aplicar sobre a pele úmida, massagear suavemente, deixar agir por alguns segundos e enxaguar. Indicado especialmente para áreas com tendência à foliculite.\n\n2. Sabonete Super Clareador (Argila Branca): aplicar sobre a pele úmida, massagear suavemente e enxaguar.\n\nSugestão de uso: utilizar diariamente, podendo alternar entre os sabonetes ou usar conforme a necessidade da pele, pela manhã e à noite para potencializar os resultados no clareamento, uniformização e cuidado da pele.",
+    curiosidades: "O açafrão é utilizado há milênios na medicina ayurvédica. Combinado à argila branca, cria um ritual de clareamento e cuidado completo, atuando de forma sinérgica para resultados superiores.",
   },
 };
 

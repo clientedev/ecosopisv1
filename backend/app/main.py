@@ -134,6 +134,28 @@ def _apply_startup_migrations():
                     logger.warning(f"Migration: Could not ensure {table}.{col}: {e}")
                     conn.rollback()
 
+        # === Product description fixes ===
+        product_desc_updates = [
+            # Remove "e foco" from oleo-alecrim caption
+            ("Estimulante natural para couro cabeludo.", "oleo-alecrim"),
+            # Remove "noturno" from creme caption
+            ("Tratamento para controle de espinhas e brilho.", "creme-oleosidade-acne"),
+            # Update oleo-rosa-mosqueta-20ml caption
+            ("Hidrata profundamente, auxilia na melhora da elasticidade.", "oleo-rosa-mosqueta-20ml"),
+            # Remove "+ desodorante" from kit-clareamento if needed
+            ("Tratamento intensivo para manchas persistentes.", "kit-clareamento"),
+        ]
+        for new_desc, slug in product_desc_updates:
+            try:
+                conn.execute(
+                    text("UPDATE products SET description = :desc WHERE slug = :slug"),
+                    {"desc": new_desc, "slug": slug}
+                )
+                conn.commit()
+            except Exception as e:
+                logger.warning(f"Product desc update failed for {slug}: {e}")
+                conn.rollback()
+
 # Initialize FastAPI
 app = FastAPI(title="ECOSOPIS API", version="1.1.0")
 
