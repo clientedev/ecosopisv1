@@ -127,12 +127,12 @@ export default function AdminPedidosPage() {
             return { title: "Token Melhor Envio inválido", message: "O token de autenticação da Melhor Envio está inválido ou expirado. Atualize o token nas configurações do sistema." };
         }
         if (lower.includes("cep") || lower.includes("postal")) {
-            // Try to extract the bad CEP value from the error message
             const cepMatch = raw.match(/['"](\d{5,8})['"]|CEP[:\s]+([\d-]+)/i);
             const badCep = cepMatch ? (cepMatch[1] || cepMatch[2]) : null;
+            const rawDetail = raw.replace(/^Erro Melhor Envio:\s*/i, "").substring(0, 400);
             return {
-                title: "CEP inválido ou não encontrado",
-                message: `O CEP${badCep ? ` "${badCep}"` : " do destinatário"} não foi reconhecido pela Melhor Envio. Clique em "Editar Endereço" no pedido, corrija o CEP e tente novamente.`
+                title: "Erro no CEP / endereço",
+                message: `Erro retornado pela Melhor Envio: "${rawDetail}". ${badCep ? `CEP detectado: "${badCep}". ` : ""}Verifique o endereço e tente novamente.`
             };
         }
         if (lower.includes("status") && lower.includes("não pode")) {

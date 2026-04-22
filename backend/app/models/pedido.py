@@ -165,9 +165,31 @@ class Pedido:
 
     @property
     def address_state(self) -> str:
-        return (self._order.address or {}).get("state") \
+        state_raw = (self._order.address or {}).get("state") \
             or (self._order.address or {}).get("state_abbr") \
             or "SP"
+            
+        state_clean = str(state_raw).strip()
+        
+        if len(state_clean) > 2:
+            state_map = {
+                "acre": "AC", "alagoas": "AL", "amapá": "AP", "amapa": "AP",
+                "amazonas": "AM", "bahia": "BA", "ceará": "CE", "ceara": "CE",
+                "distrito federal": "DF", "espírito santo": "ES", "espirito santo": "ES",
+                "goiás": "GO", "goias": "GO", "maranhão": "MA", "maranhao": "MA",
+                "mato grosso": "MT", "mato grosso do sul": "MS", "minas gerais": "MG",
+                "pará": "PA", "para": "PA", "paraíba": "PB", "paraiba": "PB",
+                "paraná": "PR", "parana": "PR", "pernambuco": "PE", "piauí": "PI", "piaui": "PI",
+                "rio de janeiro": "RJ", "rio grande do norte": "RN", "rio grande do sul": "RS",
+                "rondônia": "RO", "rondonia": "RO", "roraima": "RR", "santa catarina": "SC",
+                "são paulo": "SP", "sao paulo": "SP", "sergipe": "SE", "tocantins": "TO"
+            }
+            state_lower = state_clean.lower()
+            if state_lower in state_map:
+                return state_map[state_lower]
+            return state_clean[:2].upper()
+            
+        return state_clean.upper()
 
     @classmethod
     def from_order(cls, order: Order) -> "Pedido":
