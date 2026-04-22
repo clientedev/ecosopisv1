@@ -15,7 +15,7 @@ export default function UserProfile() {
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("overview");
-    const [statusFilter, setStatusFilter] = useState("paid");
+    const [statusFilter, setStatusFilter] = useState("all");
     const [isPaying, setIsPaying] = useState<number | null>(null);
     const router = useRouter();
 
