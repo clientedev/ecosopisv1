@@ -53,8 +53,8 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
 
   // ÓLEOS VEGETAIS
   "oleo-rosa-mosqueta-puro": {
-    ativos: "Óleo vegetal de Rosa Mosqueta Rubiginosa (Rosehip Fruit Oil) 100% puro",
-    beneficios: "Auxilia na regeneração da pele, melhora a aparência de cicatrizes, manchas e linhas finas",
+    ativos: "Óleo vegetal de Rosa Mosqueta Canina 100% puro",
+    beneficios: "• Hidratação profunda da pele\n• Melhora a maciez e elasticidade\n• Deixa a pele mais viçosa e saudável",
     modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
     curiosidades: "A variedade Rubiginosa é riquíssima em ácidos graxos essenciais, sendo um dos óleos mais potentes do mundo para regeneração celular.",
   },
@@ -65,8 +65,8 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
     curiosidades: "O fruto da rosa mosqueta é uma das maiores fontes naturais de vitamina C, auxiliando na luminosidade natural da pele.",
   },
   "refil-rosa-mosqueta": {
-    ativos: "Óleo Vegetal de Rosa Mosqueta Rubiginosa (Rosehip Fruit Oil) 100% puro",
-    beneficios: "Auxilia na regeneração da pele, melhora a aparência de cicatrizes, manchas e linhas finas",
+    ativos: "Óleo vegetal de Rosa Mosqueta Canina 100% puro",
+    beneficios: "• Hidratação profunda da pele\n• Melhora a maciez e elasticidade\n• Deixa a pele mais viçosa e saudável",
     modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
     curiosidades: "Nosso refil garante que você continue seu tratamento sem gerar desperdício, mantendo o compromisso da Ecosopis com o planeta.",
   },
