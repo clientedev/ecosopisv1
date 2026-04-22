@@ -51,13 +51,17 @@ class Pedido:
     @property
     def cep_cliente(self) -> str:
         address = self._order.address or {}
+        # postal_code first (used by admin address form), then legacy field names
         cep = (
-            address.get("zip")
+            address.get("postal_code")
+            or address.get("zip")
             or address.get("cep")
-            or address.get("postal_code")
-            or "00000000"
+            or address.get("zipcode")
+            or address.get("zip_code")
+            or ""
         )
-        return str(cep).replace("-", "").strip()
+        digits = "".join(c for c in str(cep) if c.isdigit())
+        return digits if digits else "00000000"
 
     # Campos de rastreio / envio — lidos/escritos no Order diretamente
     @property

@@ -418,7 +418,18 @@ def processar_envio(pedido, db) -> dict:
         db.commit()
         logger.info(f"[ENVIO] Pedido {pedido.id} → processando_envio")
 
-        service_id = selecionar_servico(pedido.cep_cliente, pedido.valor, pedido.produto_nome)
+        # Validate CEP before proceeding
+        cep_raw = pedido.cep_cliente
+        cep_digits = "".join(c for c in (cep_raw or "") if c.isdigit())
+        logger.info(f"[ENVIO] CEP do destinatário: '{cep_raw}' → dígitos: '{cep_digits}'")
+        logger.info(f"[ENVIO] Endereço completo: {getattr(pedido._order, 'address', {})}")
+        if len(cep_digits) != 8 or cep_digits == "00000000":
+            raise RuntimeError(
+                f"CEP inválido: '{cep_raw}'. O CEP deve ter 8 dígitos numéricos. "
+                f"Edite o endereço do pedido e corrija o campo CEP/postal_code."
+            )
+
+        service_id = selecionar_servico(cep_digits, pedido.valor, pedido.produto_nome)
         resultado["service_id"] = service_id
 
         shipment_id, tracking_from_cart = criar_envio(pedido, service_id)
