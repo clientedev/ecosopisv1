@@ -191,6 +191,63 @@ class Pedido:
             
         return state_clean.upper()
 
+    @property
+    def items_list(self) -> list[dict]:
+        """
+        Retorna a lista detalhada de itens para o envio.
+        Inclui lógica de 'explosão' de kits para detalhamento no Melhor Envio.
+        """
+        raw_items = self._order.items or []
+        
+        # Fallback para a relação se o JSON estiver vazio
+        if not raw_items and hasattr(self._order, "order_items") and self._order.order_items:
+            raw_items = [
+                {
+                    "name": item.product_name,
+                    "quantity": item.quantity,
+                    "price": item.price
+                }
+                for item in self._order.order_items
+            ]
+
+        detailed_items = []
+        for item in raw_items:
+            name = str(item.get("name") or item.get("product_name") or "Produto ECOSOPIS")
+            qty = int(item.get("quantity") or 1)
+            price = float(item.get("price") or 0.01)
+            
+            # Lógica de Explosão de Kits
+            # Ex: "Kit Sabonetes – 60 unidades" -> 60x "Sabonete Artesanal"
+            if "60 unidades" in name.lower() or "60 un" in name.lower():
+                qty *= 60
+                name = "Sabonete Artesanal Natural (Unidade)"
+                price = price / 60
+            elif "10 unidades" in name.lower() or "10 un" in name.lower():
+                qty *= 10
+                name = "Sabonete Artesanal Natural (Unidade)"
+                price = price / 10
+            elif "atacado" in name.lower() and "sabonete" in name.lower():
+                # Se for um kit genérico de atacado sem número, assume-se que é o kit padrão (ex: 60)
+                # Mas para ser seguro, só explodimos se houver indicação numérica.
+                pass
+
+            # Peso estimado por unidade (em kg)
+            # Sabonetes ~ 0.1kg, Óleos ~ 0.15kg
+            weight = 0.1
+            if "óleo" in name.lower() or "oleo" in name.lower():
+                weight = 0.15
+            elif "sabonete" in name.lower():
+                weight = 0.1
+            
+            detailed_items.append({
+                "name": name[:100],
+                "quantity": qty,
+                "unitary_value": round(price, 2),
+                "weight": weight
+            })
+            
+        return detailed_items
+
     @classmethod
     def from_order(cls, order: Order) -> "Pedido":
         return cls(order)
@@ -201,6 +258,7 @@ class Pedido:
             "status": self.status,
             "valor": self.valor,
             "produto_nome": self.produto_nome,
+            "items_count": len(self.items_list),
             "cep_cliente": self.cep_cliente,
             "customer_name": self.customer_name,
             "customer_phone": self.customer_phone,

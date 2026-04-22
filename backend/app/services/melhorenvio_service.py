@@ -176,6 +176,28 @@ def criar_envio(pedido, service_id: int) -> tuple[str, str]:
     to_state      = getattr(pedido, "address_state", None) or "SP"
     to_complement = getattr(pedido, "address_complement", None) or ""
 
+    # Detalhamento de produtos para a etiqueta e seguro
+    products_payload = []
+    total_weight = 0
+    for item in pedido.items_list:
+        products_payload.append({
+            "name":          item["name"],
+            "quantity":      item["quantity"],
+            "unitary_value": max(float(item["unitary_value"]), 0.01),
+            "weight":        item["weight"],
+        })
+        total_weight += (item["weight"] * item["quantity"])
+
+    # Garante peso mínimo de 0.1kg e máximo razoável
+    total_weight = max(total_weight, 0.1)
+    
+    # Determina dimensões básicas com base no peso (estimativa)
+    width, height, length = 15, 5, 20
+    if total_weight > 2: # Caixa maior para atacado
+        width, height, length = 25, 15, 30
+    if total_weight > 10:
+        width, height, length = 40, 30, 40
+
     payload = {
         "service": service_id,
         "from": {
@@ -203,20 +225,12 @@ def criar_envio(pedido, service_id: int) -> tuple[str, str]:
             "city":        to_city,
             "state_abbr":  to_state,
         },
-        "products": [{
-            "name":          (pedido.produto_nome or "Produto ECOSOPIS")[:100],
-            "quantity":      1,
-            "unitary_value": max(float(pedido.valor), 0.01),
-            "weight":        1,
-            "length":        20,
-            "height":        5,
-            "width":         15,
-        }],
+        "products": products_payload,
         "volumes": [{
-            "weight": 1,
-            "width":  15,
-            "height": 5,
-            "length": 20,
+            "weight": round(total_weight, 3),
+            "width":  width,
+            "height": height,
+            "length": length,
         }],
         "options": {
             "receipt":         False,
