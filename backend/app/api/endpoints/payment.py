@@ -346,11 +346,15 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
         request.query_params.get("type") or 
         request.query_params.get("topic")
     )
+    
+    action = data.get("action") or request.query_params.get("action")
+    if action and action.startswith("payment."):
+        topic = "payment"
 
     if topic == "payment" and resource_id:
         try:
             payment_info = get_mp_payment_status(str(resource_id))
-            if payment_info.get("status") == "approved":
+            if payment_info.get("status") in ["approved", "authorized"]:
                 pedido_id = payment_info.get("external_reference")
                 if pedido_id:
                     # Robust lookup: try to find by ID
@@ -427,6 +431,11 @@ async def update_order_status(order_id: int, body: StatusUpdateIn, db: Session =
     if current_user.role != "admin": raise HTTPException(status_code=403)
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order: raise HTTPException(status_code=404)
-    order.status = body.status
-    db.commit()
+    
+    if body.status == "paid" and order.status != "paid":
+        finalize_order_on_payment(order, db)
+    else:
+        order.status = body.status
+        db.commit()
+        
     return {"status": "ok"}

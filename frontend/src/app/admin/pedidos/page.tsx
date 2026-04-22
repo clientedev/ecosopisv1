@@ -70,6 +70,9 @@ export default function AdminPedidosPage() {
     const [labelResults, setLabelResults] = useState<Record<number, { url: string; tracking: string; shipment: string }>>({});
     const [bannerDismissed, setBannerDismissed] = useState(false);
     const [notification, setNotification] = useState<{ type: "error" | "success" | "warning"; title: string; message: string } | null>(null);
+    const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
+    const [addressForm, setAddressForm] = useState<any>({});
+    const [savingAddress, setSavingAddress] = useState(false);
 
     const getToken = () => typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
     const authHeaders = () => ({
@@ -133,6 +136,42 @@ export default function AdminPedidosPage() {
         }
         const cleanedMessage = raw.replace(/^Erro Melhor Envio:\s*/i, "").substring(0, 250);
         return { title: "Não foi possível gerar a etiqueta", message: cleanedMessage || "Ocorreu um erro inesperado. Tente novamente em instantes." };
+    };
+
+    const handleEditAddress = (orderId: number, currentAddress: any) => {
+        setEditingAddressId(orderId);
+        setAddressForm({
+            postal_code: currentAddress.postal_code || currentAddress.cep || currentAddress.zip || "",
+            street: currentAddress.street || "",
+            number: currentAddress.number || "",
+            complement: currentAddress.complement || "",
+            neighborhood: currentAddress.neighborhood || "",
+            city: currentAddress.city || "",
+            state: currentAddress.state || ""
+        });
+    };
+
+    const saveAddress = async (orderId: number) => {
+        setSavingAddress(true);
+        try {
+            const res = await fetch(`/api/orders/${orderId}/address`, {
+                method: "PATCH",
+                headers: authHeaders(),
+                body: JSON.stringify({ address: addressForm })
+            });
+            if (res.ok) {
+                setNotification({ type: "success", title: "Endereço atualizado!", message: "Você já pode tentar processar o Melhor Envio novamente." });
+                setEditingAddressId(null);
+                await fetchOrders();
+            } else {
+                const err = await res.json();
+                setNotification({ type: "error", title: "Erro ao atualizar endereço", message: err.detail || "Revise os dados e tente novamente." });
+            }
+        } catch (e) {
+            setNotification({ type: "error", title: "Erro de conexão", message: "Falha na comunicação com o servidor." });
+        } finally {
+            setSavingAddress(false);
+        }
     };
 
     const handleClearAll = async () => {
@@ -541,7 +580,17 @@ export default function AdminPedidosPage() {
 
                                             {/* Dados do Destinatário */}
                                             <div className={pedidoStyles.customerInfo}>
-                                                <h4 className={pedidoStyles.sectionTitle}>👤 Dados de Entrega</h4>
+                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                                                    <h4 className={pedidoStyles.sectionTitle} style={{ margin: 0 }}>👤 Dados de Entrega</h4>
+                                                    {editingAddressId !== order.id && order.address && (
+                                                        <button 
+                                                            onClick={() => handleEditAddress(order.id, order.address)} 
+                                                            style={{ background: "none", border: "none", color: "#2563eb", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, textDecoration: "underline" }}
+                                                        >
+                                                            Editar Endereço
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", fontSize: "0.85rem" }}>
                                                     <div>
                                                         <strong>Nome:</strong> {name}<br />
@@ -549,7 +598,25 @@ export default function AdminPedidosPage() {
                                                         {order.customer_phone && <><strong>Tel:</strong> {order.customer_phone}<br /></>}
                                                         {order.customer_cpf && <><strong>CPF:</strong> {order.customer_cpf}<br /></>}
                                                     </div>
-                                                    {order.address && (
+                                                    {editingAddressId === order.id ? (
+                                                        <div style={{ background: "#f8fafc", padding: "10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginBottom: "8px" }}>
+                                                                <input placeholder="CEP" value={addressForm.postal_code} onChange={e => setAddressForm({...addressForm, postal_code: e.target.value})} style={{ padding: "4px 8px", border: "1px solid #cbd5e1", borderRadius: "4px", gridColumn: "span 2" }} />
+                                                                <input placeholder="Rua" value={addressForm.street} onChange={e => setAddressForm({...addressForm, street: e.target.value})} style={{ padding: "4px 8px", border: "1px solid #cbd5e1", borderRadius: "4px", gridColumn: "span 2" }} />
+                                                                <input placeholder="Número" value={addressForm.number} onChange={e => setAddressForm({...addressForm, number: e.target.value})} style={{ padding: "4px 8px", border: "1px solid #cbd5e1", borderRadius: "4px" }} />
+                                                                <input placeholder="Complemento" value={addressForm.complement} onChange={e => setAddressForm({...addressForm, complement: e.target.value})} style={{ padding: "4px 8px", border: "1px solid #cbd5e1", borderRadius: "4px" }} />
+                                                                <input placeholder="Bairro" value={addressForm.neighborhood} onChange={e => setAddressForm({...addressForm, neighborhood: e.target.value})} style={{ padding: "4px 8px", border: "1px solid #cbd5e1", borderRadius: "4px", gridColumn: "span 2" }} />
+                                                                <input placeholder="Cidade" value={addressForm.city} onChange={e => setAddressForm({...addressForm, city: e.target.value})} style={{ padding: "4px 8px", border: "1px solid #cbd5e1", borderRadius: "4px" }} />
+                                                                <input placeholder="UF" value={addressForm.state} onChange={e => setAddressForm({...addressForm, state: e.target.value})} style={{ padding: "4px 8px", border: "1px solid #cbd5e1", borderRadius: "4px" }} maxLength={2} />
+                                                            </div>
+                                                            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                                                                <button onClick={() => setEditingAddressId(null)} style={{ padding: "4px 10px", background: "#e2e8f0", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem" }}>Cancelar</button>
+                                                                <button onClick={() => saveAddress(order.id)} disabled={savingAddress} style={{ padding: "4px 10px", background: "#059669", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem" }}>
+                                                                    {savingAddress ? "Salvando..." : "Salvar"}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : order.address ? (
                                                         <div style={{ color: "#4b5563" }}>
                                                             <strong style={{ color: "#111" }}>Endereço:</strong><br />
                                                             {order.address.street}, {order.address.number}
@@ -557,7 +624,7 @@ export default function AdminPedidosPage() {
                                                             {order.address.neighborhood} — {order.address.city}/{order.address.state}<br />
                                                             CEP: {order.address.postal_code || order.address.cep || order.address.zip}
                                                         </div>
-                                                    )}
+                                                    ) : null}
                                                 </div>
                                             </div>
 

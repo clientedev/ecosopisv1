@@ -123,9 +123,13 @@ def update_order_status(
     if new_status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Status inválido. Use: {', '.join(valid_statuses)}")
 
-    order.status = new_status
-    db.commit()
-    db.refresh(order)
+    if new_status == "paid" and order.status != "paid":
+        from app.api.endpoints.payment import finalize_order_on_payment
+        finalize_order_on_payment(order, db)
+    else:
+        order.status = new_status
+        db.commit()
+        db.refresh(order)
 
     # Send Status Update Email
     try:
@@ -136,6 +140,39 @@ def update_order_status(
         print(f"Error sending status update email: {e}")
 
     return _order_to_response(order, db)
+
+
+@router.patch("/{order_id}/address")
+def update_order_address(
+    order_id: int,
+    body: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+    # The body should contain the new address dictionary, or fields to merge
+    if "address" in body:
+        new_address = body["address"]
+    else:
+        new_address = body
+
+    # We enforce dict replacement or merging
+    current_address = order.address or {}
+    current_address.update(new_address)
+    
+    # SQLAlchemy JSON objects must be reassigned strongly
+    order.address = dict(current_address)
+    
+    db.commit()
+    db.refresh(order)
+    
+    return _order_to_response(order, db)
+
 
 
 @router.delete("/admin/clear-all", status_code=204)
