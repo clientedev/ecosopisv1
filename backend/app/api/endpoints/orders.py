@@ -168,6 +168,9 @@ def update_order_address(
     # SQLAlchemy JSON objects must be reassigned strongly
     order.address = dict(current_address)
     
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(order, "address")
+    
     db.commit()
     db.refresh(order)
     
