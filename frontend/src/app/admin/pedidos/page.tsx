@@ -80,6 +80,19 @@ export default function AdminPedidosPage() {
         "Authorization": `Bearer ${getToken()}`
     });
 
+    // Centralized fetch that auto-redirects to login on 401
+    const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+        const res = await fetch(url, {
+            ...options,
+            headers: { ...authHeaders(), ...(options.headers || {}) }
+        });
+        if (res.status === 401) {
+            setNotification({ type: "error", title: "Sessão expirada", message: "Sua sessão expirou. Faça login novamente." });
+            setTimeout(() => router.push("/admin"), 2000);
+        }
+        return res;
+    };
+
     useEffect(() => {
         fetchOrders();
         const dismissed = localStorage.getItem("me_banner_dismissed");
@@ -153,19 +166,20 @@ export default function AdminPedidosPage() {
 
     const saveAddress = async (orderId: number) => {
         setSavingAddress(true);
+        setNotification(null);
         try {
-            const res = await fetch(`/api/orders/${orderId}/address`, {
+            const res = await authFetch(`/api/orders/${orderId}/address`, {
                 method: "PATCH",
-                headers: authHeaders(),
                 body: JSON.stringify({ address: addressForm })
             });
+            if (res.status === 401) return; // already handled by authFetch
+            const data = await res.json();
             if (res.ok) {
                 setNotification({ type: "success", title: "Endereço atualizado!", message: "Você já pode tentar processar o Melhor Envio novamente." });
                 setEditingAddressId(null);
                 await fetchOrders();
             } else {
-                const err = await res.json();
-                setNotification({ type: "error", title: "Erro ao atualizar endereço", message: err.detail || "Revise os dados e tente novamente." });
+                setNotification({ type: "error", title: "Erro ao atualizar endereço", message: data.detail || "Revise os dados e tente novamente." });
             }
         } catch (e) {
             setNotification({ type: "error", title: "Erro de conexão", message: "Falha na comunicação com o servidor." });
@@ -194,15 +208,16 @@ export default function AdminPedidosPage() {
     const updateStatus = async (orderId: number, newStatus: string) => {
         setUpdatingStatus(orderId);
         try {
-            const res = await fetch(`/api/orders/${orderId}/status`, {
-                method: "PATCH", headers: authHeaders(), body: JSON.stringify({ status: newStatus })
+            const res = await authFetch(`/api/orders/${orderId}/status`, {
+                method: "PATCH", body: JSON.stringify({ status: newStatus })
             });
+            if (res.status === 401) { setUpdatingStatus(null); return; }
+            const data = await res.json();
             if (res.ok) {
                 await fetchOrders();
                 setNotification({ type: "success", title: "Status atualizado!", message: `Pedido #${orderId} → ${STATUS_LABELS[newStatus]?.label || newStatus}` });
             } else {
-                const err = await res.json();
-                setNotification({ type: "error", title: "Falha ao atualizar status", message: err.detail || "Tente novamente." });
+                setNotification({ type: "error", title: "Falha ao atualizar status", message: data.detail || "Tente novamente." });
             }
         } catch {
             setNotification({ type: "error", title: "Erro de conexão", message: "Não foi possível conectar ao servidor." });
@@ -214,10 +229,10 @@ export default function AdminPedidosPage() {
         setGeneratingLabel(orderId);
         setNotification(null);
         try {
-            const res = await fetch(`/api/shipping/generate-label/${orderId}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${getToken()}` }
+            const res = await authFetch(`/api/shipping/generate-label/${orderId}`, {
+                method: "POST"
             });
+            if (res.status === 401) { setGeneratingLabel(null); return; }
             const data = await res.json();
             if (res.ok) {
                 await fetchOrders();
