@@ -414,15 +414,7 @@ export default function Home() {
                     
                     <div className={styles.diagnosticGrid}>
                         <div className={styles.diagnosticCard} onClick={() => openGoalModal('clareamento')}>
-                            <div className={styles.diagnosticImageWrapper}>
-                                <Image 
-                                    src="/static/attached_assets/generated_images/rosa_mosqueta_serum_bottle_photography.png" 
-                                    alt="Manchas - Óleo de Rosa Mosqueta" 
-                                    fill 
-                                    className={styles.diagnosticRealImage}
-                                />
-                                <div className={styles.diagnosticIconOverlay}><Sparkles size={20} /></div>
-                            </div>
+                            <div className={styles.diagnosticIcon}><Sparkles size={40} /></div>
                             <div className={styles.diagnosticContent}>
                                 <h3>Pele com Manchas</h3>
                                 <p>Uniformizar tom e clarear melasma/sol</p>
@@ -431,15 +423,7 @@ export default function Home() {
                         </div>
                         
                         <div className={styles.diagnosticCard} onClick={() => openGoalModal('acne')}>
-                            <div className={styles.diagnosticImageWrapper}>
-                                <Image 
-                                    src="/static/attached_assets/generated_images/natural_green_clay_soap_bar_photography.png" 
-                                    alt="Acne - Argila Verde" 
-                                    fill 
-                                    className={styles.diagnosticRealImage}
-                                />
-                                <div className={styles.diagnosticIconOverlay}><Zap size={20} /></div>
-                            </div>
+                            <div className={styles.diagnosticIcon}><Zap size={40} /></div>
                             <div className={styles.diagnosticContent}>
                                 <h3>Acne e Oleosidade</h3>
                                 <p>Controlar brilho e reduzir inflamações</p>
@@ -448,15 +432,7 @@ export default function Home() {
                         </div>
                         
                         <div className={styles.diagnosticCard} onClick={() => openGoalModal('foliculite')}>
-                            <div className={styles.diagnosticImageWrapper}>
-                                <Image 
-                                    src="/static/attached_assets/generated_images/natural_charcoal_soap_bar_photography.png" 
-                                    alt="Foliculite - Carvão Ativado" 
-                                    fill 
-                                    className={styles.diagnosticRealImage}
-                                />
-                                <div className={styles.diagnosticIconOverlay}><Droplets size={20} /></div>
-                            </div>
+                            <div className={styles.diagnosticIcon}><Droplets size={40} /></div>
                             <div className={styles.diagnosticContent}>
                                 <h3>Foliculite e Pelos</h3>
                                 <p>Pele lisa e sem bolinhas vermelhas</p>
