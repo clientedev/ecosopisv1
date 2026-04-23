@@ -490,7 +490,7 @@ export default function Home() {
                             A Ecosopis nasceu do desejo de unir a sabedoria da natureza com resultados que você pode ver e sentir. Acreditamos que o autocuidado deve ser simples, ético e transformador. Cada fórmula é pensada para que você recupere não apenas a saúde da sua pele, mas a sua confiança diária.
                         </p>
                         <blockquote className={styles.commitmentQuote}>
-                            "Quem usa, continua usando — porque sua pele sente a diferença nos primeiros usos."
+                            &quot;Quem usa, continua usando — porque sua pele sente a diferença nos primeiros usos.&quot;
                         </blockquote>
                     </div>
                 </div>
