@@ -619,24 +619,24 @@ export default function Home() {
                 <div className={styles.shortcutsOverlay}></div>
                 <div className="container" style={{ position: 'relative', zIndex: 2 }}>
                     <div className={styles.shortcutsHeader}>
-                        <h2>Não sabe por onde começar?</h2>
-                        <p>Atalhos rápidos para quem quer resultados agora.</p>
+                        <h2 style={{ color: 'white' }}>Não sabe por onde começar?</h2>
+                        <p style={{ color: 'rgba(255,255,255,0.8)' }}>Atalhos rápidos para quem quer resultados agora.</p>
                     </div>
                     <div className={styles.shortcutGrid}>
                         <div className={styles.shortcutCard}>
                             <h3>O mais vendido de todos</h3>
                             <p>Sabonete de Açafrão</p>
-                            <button onClick={() => scrollToSection('secao-foliculite')} className="btn-outline">VER DETALHES</button>
+                            <button onClick={() => openGoalModal('foliculite')} className="btn-outline" style={{ color: 'white', borderColor: 'white' }}>VER DETALHES</button>
                         </div>
                         <div className={styles.shortcutCard}>
                             <h3>Melhor kit para iniciantes</h3>
                             <p>Kit Clareamento Potente</p>
-                            <button onClick={() => scrollToSection('secao-clareamento')} className="btn-outline">EU QUERO</button>
+                            <button onClick={() => openGoalModal('clareamento')} className="btn-outline" style={{ color: 'white', borderColor: 'white' }}>EU QUERO</button>
                         </div>
                         <div className={styles.shortcutCard}>
                             <h3>Melhor opção para acne</h3>
                             <p>Kit Acne e Oleosidade</p>
-                            <button onClick={() => scrollToSection('secao-acne')} className="btn-outline">COMEÇAR AGORA</button>
+                            <button onClick={() => openGoalModal('acne')} className="btn-outline" style={{ color: 'white', borderColor: 'white' }}>COMEÇAR AGORA</button>
                         </div>
                     </div>
                 </div>

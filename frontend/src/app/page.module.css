@@ -497,15 +497,22 @@
 
 .shortcutCard h3 {
   font-size: 0.9rem;
-  opacity: 0.8;
+  color: rgba(255,255,255,0.7);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
+  margin-bottom: 5px;
 }
 
 .shortcutCard p {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 10px;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 20px;
+}
+
+.shortcutCard button:hover {
+  background: white !important;
+  color: var(--primary-green) !important;
 }
 
 .routineSection {
