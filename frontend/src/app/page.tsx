@@ -215,6 +215,7 @@ export default function Home() {
         setSelectedGoal(goal);
         setActiveGoal(goal);
         setIsModalOpen(true);
+        buildRoutine(goal);
         
         const tips: {[key: string]: string} = {
             clareamento: "Para clareamento, a constância é chave. Use o Sabonete de Açafrão diariamente no banho e o Óleo de Rosa Mosqueta apenas à noite para regeneração.",
@@ -254,6 +255,59 @@ export default function Home() {
         } finally {
             setChatLoading(false);
         }
+    };
+
+    const [routineSteps, setRoutineSteps] = useState<{am: any[], pm: any[]}>({am: [], pm: []});
+    const [routineLoading, setRoutineLoading] = useState(false);
+
+    const buildRoutine = (goal: string) => {
+        setRoutineLoading(true);
+        // Simulate AI thinking
+        setTimeout(() => {
+            const routines: {[key: string]: {am: any[], pm: any[]}} = {
+                clareamento: {
+                    am: [
+                        { ...findProductBySlug('sabonete-acafrao-dolomita'), step: 'Limpeza', instruction: 'Lavar o rosto com água fria' },
+                        { name: 'Protetor Solar', step: 'Proteção', instruction: 'Aplicar após a limpeza (não incluso no kit)', isExternal: true }
+                    ],
+                    pm: [
+                        { ...findProductBySlug('sabonete-acafrao-dolomita'), step: 'Limpeza', instruction: 'Remover impurezas do dia' },
+                        { ...findProductBySlug('kit-clareamento'), step: 'Tratamento', instruction: 'Aplicar o Óleo de Rosa Mosqueta' }
+                    ]
+                },
+                acne: {
+                    am: [
+                        { ...findProductBySlug('sabonete-argila-verde'), step: 'Limpeza', instruction: 'Controlar oleosidade matinal' }
+                    ],
+                    pm: [
+                        { ...findProductBySlug('sabonete-argila-verde'), step: 'Limpeza', instruction: 'Limpeza profunda' },
+                        { ...findProductBySlug('kit-acne'), step: 'Tratamento', instruction: 'Aplicar Argila Verde como máscara (2x semana)' }
+                    ]
+                },
+                foliculite: {
+                    am: [
+                        { ...findProductBySlug('sabonete-acafrao-dolomita'), step: 'Limpeza', instruction: 'Ação anti-inflamatória matinal' }
+                    ],
+                    pm: [
+                        { ...findProductBySlug('sabonete-acafrao-dolomita'), step: 'Limpeza', instruction: 'Preparar a pele para o descanso' },
+                        { ...findProductBySlug('sabonete-clareador-argila-branca'), step: 'Esfoliação', instruction: 'Esfoliar suavemente (3x semana)' }
+                    ]
+                }
+            };
+            setRoutineSteps(routines[goal] || {am: [], pm: []});
+            setRoutineLoading(false);
+            scrollToSection('minha-rotina');
+        }, 1500);
+    };
+
+    const addRoutineToCart = () => {
+        const allItems = [...routineSteps.am, ...routineSteps.pm];
+        allItems.forEach(item => {
+            if (item.id && !item.isExternal) {
+                addToCart(item);
+            }
+        });
+        alert('Todos os produtos da sua rotina foram adicionados ao carrinho!');
     };
 
     const findProductBySlug = (slug: string) => allProducts.find(p => p.slug === slug);
@@ -440,6 +494,94 @@ export default function Home() {
                             </div>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            {/* NEW: Minha Rotina Ideal Section */}
+            <section id="minha-rotina" className={styles.routineBuilderSection}>
+                <div className="container">
+                    <div className={styles.routineBuilderHeader}>
+                        <h2>Minha Rotina Ideal <span className={styles.liaBadge}>com Lia</span></h2>
+                        <p>Seu fluxograma personalizado de cuidados, gerado em tempo real pela nossa I.A.</p>
+                    </div>
+
+                    {!selectedGoal ? (
+                        <div className={styles.routinePlaceholder}>
+                            <div className={styles.liaLargeAvatar}>
+                                <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia" fill />
+                            </div>
+                            <h3>Vamos começar seu cronograma?</h3>
+                            <p>Selecione um dos objetivos acima (Manchas, Acne ou Foliculite) para a Lia montar sua rotina dinâmica.</p>
+                            <div className={styles.routinePlaceholderActions}>
+                                <button className="btn-primary" onClick={() => scrollToSection('diagnostico')}>FAZER DIAGNÓSTICO</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className={styles.routineFlowContainer}>
+                            {routineLoading ? (
+                                <div className={styles.routineLoading}>
+                                    <div className={styles.spinner}></div>
+                                    <p>Lia está analisando seus objetivos...</p>
+                                </div>
+                            ) : (
+                                <div className={styles.routineTimeline}>
+                                    {/* Morning Routine */}
+                                    <div className={styles.timelineBlock}>
+                                        <div className={styles.timelineHeader}>
+                                            <div className={styles.timelineIcon}><Sun size={32} /></div>
+                                            <h3>Rotina Diurna (AM)</h3>
+                                        </div>
+                                        <div className={styles.timelineFlow}>
+                                            {routineSteps.am.map((item, idx) => (
+                                                <div key={idx} className={styles.flowStep}>
+                                                    <div className={styles.stepNumber}>{idx + 1}</div>
+                                                    <div className={styles.stepContent}>
+                                                        <span className={styles.stepLabel}>{item.step}</span>
+                                                        <h4>{item.name}</h4>
+                                                        <p>{item.instruction}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.timelineConnector}>
+                                        <ArrowDown size={32} />
+                                    </div>
+
+                                    {/* Night Routine */}
+                                    <div className={styles.timelineBlock}>
+                                        <div className={styles.timelineHeader}>
+                                            <div className={styles.timelineIcon}><Moon size={32} /></div>
+                                            <h3>Rotina Noturna (PM)</h3>
+                                        </div>
+                                        <div className={styles.timelineFlow}>
+                                            {routineSteps.pm.map((item, idx) => (
+                                                <div key={idx} className={styles.flowStep}>
+                                                    <div className={styles.stepNumber}>{idx + 1}</div>
+                                                    <div className={styles.stepContent}>
+                                                        <span className={styles.stepLabel}>{item.step}</span>
+                                                        <h4>{item.name}</h4>
+                                                        <p>{item.instruction}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.routineFooter}>
+                                        <div className={styles.routineSummary}>
+                                            <div className={styles.summaryInfo}>
+                                                <h4>Total do Protocolo:</h4>
+                                                <span>{routineSteps.am.length + routineSteps.pm.length} etapas personalizadas</span>
+                                            </div>
+                                            <button className="btn-primary" onClick={addRoutineToCart}>ADICIONAR TUDO AO CARRINHO</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </section>
 
