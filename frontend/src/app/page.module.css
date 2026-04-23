@@ -583,21 +583,21 @@
 }
 
 .aiAvatar {
-  width: 45px;
-  height: 45px;
+  width: 60px;
+  height: 60px;
   background: var(--primary-green);
-  border-radius: 12px;
+  border-radius: 15px;
   position: relative;
   overflow: hidden;
 }
 
 .liaIconSmall {
-  width: 24px;
-  height: 24px;
+  width: 36px;
+  height: 36px;
   position: relative;
   overflow: hidden;
   border-radius: 50%;
-  margin-right: 8px;
+  margin-right: 12px;
 }
 
 /* Floating Lia Button System */
@@ -628,23 +628,24 @@
 .floatingLiaButton {
   background: var(--primary-green);
   border: none;
-  padding: 12px 20px;
+  padding: 10px 15px;
   border-radius: 40px;
   color: white;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
   cursor: pointer;
   box-shadow: 0 10px 30px rgba(45, 90, 39, 0.3);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  width: 60px;
+  width: 65px;
+  height: 65px;
   overflow: hidden;
   white-space: nowrap;
 }
 
 .floatingLiaIcon {
-  width: 36px;
-  height: 36px;
+  width: 45px;
+  height: 45px;
   position: relative;
   overflow: hidden;
   border-radius: 50%;
@@ -653,13 +654,14 @@
 
 .floatingLiaText {
   font-weight: 800;
-  font-size: 1rem;
+  font-size: 1.1rem;
   opacity: 0;
   transition: opacity 0.3s;
 }
 
 .floatingLiaContainer:hover .floatingLiaButton {
-  width: 220px;
+  width: 240px;
+  height: 65px;
   border-radius: 20px;
 }
 
