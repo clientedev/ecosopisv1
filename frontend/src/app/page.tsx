@@ -483,7 +483,6 @@ export default function Home() {
                             <p>Botânico e Seguro</p>
                         </div>
                     </div>
-                    </div>
                 </div>
             </section>
 
