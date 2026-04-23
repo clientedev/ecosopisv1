@@ -481,7 +481,9 @@ export default function Home() {
                                     <div className={styles.modalSideContent}>
                                         <div className={styles.modalAiBox}>
                                             <div className={styles.aiHeaderSmall}>
-                                                <ShieldCheck size={20} />
+                                                <div className={styles.liaIconSmall}>
+                                                    <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia" fill />
+                                                </div>
                                                 <span>Dica da Lia</span>
                                             </div>
                                             <p>&quot;Para clareamento, a constância é chave. Use o Sabonete de Açafrão diariamente no banho e o Óleo de Rosa Mosqueta apenas à noite para regeneração.&quot;</p>
@@ -534,7 +536,9 @@ export default function Home() {
                                     <div className={styles.modalSideContent}>
                                         <div className={styles.modalAiBox}>
                                             <div className={styles.aiHeaderSmall}>
-                                                <ShieldCheck size={20} />
+                                                <div className={styles.liaIconSmall}>
+                                                    <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia" fill />
+                                                </div>
                                                 <span>Dica da Lia</span>
                                             </div>
                                             <p>&quot;A argila verde é um ímã de impurezas. Lave o rosto em movimentos circulares para desobstruir os poros sem agredir a barreira cutânea.&quot;</p>
@@ -587,7 +591,9 @@ export default function Home() {
                                     <div className={styles.modalSideContent}>
                                         <div className={styles.modalAiBox}>
                                             <div className={styles.aiHeaderSmall}>
-                                                <ShieldCheck size={20} />
+                                                <div className={styles.liaIconSmall}>
+                                                    <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia" fill />
+                                                </div>
                                                 <span>Dica da Lia</span>
                                             </div>
                                             <p>&quot;O açafrão atua na raiz do problema, reduzindo a inflamação enquanto a dolomita acalma e clareia a região afetada.&quot;</p>
@@ -671,7 +677,9 @@ export default function Home() {
 
                         <div className={styles.aiChatContainer}>
                             <div className={styles.chatHeader}>
-                                <div className={styles.aiAvatar}><ShieldCheck size={20} /></div>
+                                <div className={styles.aiAvatar}>
+                                    <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia" fill />
+                                </div>
                                 <div>
                                     <h4>Tire sua dúvida com a Lia</h4>
                                     <span>Nossa consultora inteligente</span>
@@ -699,6 +707,19 @@ export default function Home() {
                     </div>
                 </div>
             </section>
+
+            {/* Floating Lia Chat Button */}
+            <div className={styles.floatingLiaContainer}>
+                <div className={styles.liaLargeGif}>
+                    <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia Avatar" width={180} height={180} />
+                </div>
+                <button className={styles.floatingLiaButton} onClick={() => scrollToSection('rotina-ia')}>
+                    <div className={styles.floatingLiaIcon}>
+                        <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia" fill />
+                    </div>
+                    <span className={styles.floatingLiaText}>Fale com a Lia</span>
+                </button>
+            </div>
 
             {/* Social Proof / Stats */}
             <section className={styles.statsSection}>
