@@ -463,7 +463,7 @@ export default function Home() {
             </section>
 
             {/* Goal Selector Section - Redesigned as a 'Diagnostic' */}
-            <section className={styles.diagnosticSection} ref={goalsRef}>
+            <section id="diagnostico" className={styles.diagnosticSection} ref={goalsRef}>
                 <div className="container">
                     <div className={styles.diagnosticHeader}>
                         <span className={styles.sectionBadge}>CONSULTORIA EXPRESS</span>
