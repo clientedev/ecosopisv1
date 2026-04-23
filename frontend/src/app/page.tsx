@@ -569,19 +569,22 @@ export default function Home() {
                     </div>
                     <div className={styles.shortcutGrid}>
                         <div className={styles.shortcutCard}>
+                            <div className={styles.shortcutBadge}>🔥 TOP 1</div>
                             <h3>O mais vendido de todos</h3>
                             <p>Sabonete de Açafrão</p>
-                            <button onClick={() => openGoalModal('foliculite')} className="btn-outline" style={{ color: 'white', borderColor: 'white' }}>VER DETALHES</button>
+                            <button onClick={() => openGoalModal('foliculite')} className="btn-outline">VER DETALHES</button>
                         </div>
                         <div className={styles.shortcutCard}>
+                            <div className={styles.shortcutBadge}>🎁 KIT INICIAL</div>
                             <h3>Melhor kit para iniciantes</h3>
                             <p>Kit Clareamento Potente</p>
-                            <button onClick={() => openGoalModal('clareamento')} className="btn-outline" style={{ color: 'white', borderColor: 'white' }}>EU QUERO</button>
+                            <button onClick={() => openGoalModal('clareamento')} className="btn-outline">EU QUERO</button>
                         </div>
                         <div className={styles.shortcutCard}>
+                            <div className={styles.shortcutBadge}>✨ MAIS EFICAZ</div>
                             <h3>Melhor opção para acne</h3>
                             <p>Kit Acne e Oleosidade</p>
-                            <button onClick={() => openGoalModal('acne')} className="btn-outline" style={{ color: 'white', borderColor: 'white' }}>COMEÇAR AGORA</button>
+                            <button onClick={() => openGoalModal('acne')} className="btn-outline">COMEÇAR AGORA</button>
                         </div>
                     </div>
                 </div>
