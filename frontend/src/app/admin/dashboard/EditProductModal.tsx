@@ -2,6 +2,7 @@
 import { useState } from "react";
 import styles from "./dashboard.module.css";
 import { Download, RefreshCw } from "lucide-react";
+import { getStaticProductData } from "@/lib/productData";
 
 interface Product {
     id: number;
@@ -31,6 +32,7 @@ interface ProductDetail {
     curiosidades: string;
     modo_de_uso: string;
     ingredientes: string;
+    beneficios: string;
     cuidados: string;
     contraindicacoes: string;
     observacoes: string;
@@ -45,8 +47,11 @@ interface Props {
 }
 
 export default function EditProductModal({ product, onClose, onSave }: Props) {
+    const staticData = getStaticProductData(product.slug);
     const [formData, setFormData] = useState<Product>({
         ...product,
+        ingredients: product.ingredients || staticData?.ativos || "",
+        benefits: product.benefits || staticData?.beneficios || "",
         is_wholesale: product.is_wholesale === true,
         is_active: product.is_active !== false,
         images: (product as any).images || [],
@@ -56,17 +61,23 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
     const [regeneratingQR, setRegeneratingQR] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [tagInput, setTagInput] = useState("");
-    const [showTechnicalInfo, setShowTechnicalInfo] = useState(false);
-    const [technicalData, setTechnicalData] = useState<Partial<ProductDetail>>(
-        product.details || {
-            curiosidades: "",
-            modo_de_uso: "",
-            ingredientes: "",
-            cuidados: "",
-            contraindicacoes: "",
-            observacoes: ""
-        }
-    );
+    const [showTechnicalInfo, setShowTechnicalInfo] = useState(true);
+    const [technicalData, setTechnicalData] = useState<Partial<ProductDetail>>({
+        curiosidades: product.details?.curiosidades || staticData?.curiosidades || "",
+        modo_de_uso: product.details?.modo_de_uso || staticData?.modo_de_uso || "",
+        ingredientes: product.details?.ingredientes || staticData?.ativos || "",
+        beneficios: (product.details as any)?.beneficios || staticData?.beneficios || "",
+        cuidados: product.details?.cuidados || "",
+        contraindicacoes: product.details?.contraindicacoes || "",
+        observacoes: product.details?.observacoes || "",
+        ...(product.details ? {
+            id: product.details.id,
+            product_id: product.details.product_id,
+            slug: product.details.slug,
+            qr_code_path: product.details.qr_code_path,
+            updated_at: product.details.updated_at
+        } : {})
+    });
 
     const toNumberOrZero = (value: string) => {
         if (value.trim() === "") return 0;
@@ -677,12 +688,21 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                         />
                                     </div>
                                     <div className={styles.formGroup}>
-                                        <label>Ingredientes Técnicos</label>
+                                        <label>Ingredientes Técnicos (Ficha)</label>
                                         <textarea
-                                            rows={2}
+                                            rows={3}
                                             value={technicalData.ingredientes || ""}
                                             onChange={(e) => setTechnicalData({ ...technicalData, ingredientes: e.target.value })}
                                             placeholder="Composição detalhada..."
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Benefícios (Ficha Técnica)</label>
+                                        <textarea
+                                            rows={3}
+                                            value={(technicalData as any).beneficios || ""}
+                                            onChange={(e) => setTechnicalData({ ...technicalData, beneficios: e.target.value } as any)}
+                                            placeholder="Benefícios que aparecem na ficha técnica..."
                                         />
                                     </div>
                                     <div className={styles.formGroup}>

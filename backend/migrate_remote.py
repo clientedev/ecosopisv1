@@ -33,6 +33,9 @@ def migrate_remote():
         conn.execute(text("ALTER TABLE carousel_items ADD COLUMN IF NOT EXISTS overlay_color VARCHAR DEFAULT '#000000';"))
         conn.execute(text("ALTER TABLE carousel_items ADD COLUMN IF NOT EXISTS overlay_opacity FLOAT DEFAULT 0.3;"))
         
+        print("Adding missing columns to 'product_details' table if they don't exist...")
+        conn.execute(text("ALTER TABLE product_details ADD COLUMN IF NOT EXISTS beneficios TEXT;"))
+        
         conn.commit()
     
     print("Creating any missing tables (e.g. roulette tables, product_details)...")

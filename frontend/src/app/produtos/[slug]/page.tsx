@@ -38,15 +38,14 @@ export default function ProductDetailPage() {
                 const res = await fetch(`/api/products/${params.slug}`, { cache: "no-store" });
                 if (res.ok) {
                     const data = await res.json();
-                    // Garante que textos estáticos (Ativos, Benefícios, Modo de uso) sempre apareçam
                     const staticData = getStaticProductData(data.slug);
                     if (staticData) {
-                        data.ingredients = staticData.ativos;
-                        data.benefits = staticData.beneficios;
+                        data.ingredients = data.ingredients || staticData.ativos;
+                        data.benefits = data.benefits || staticData.beneficios;
                         if (data.details) {
-                            data.details.modo_de_uso = staticData.modo_de_uso;
-                            data.details.ingredientes = staticData.ativos;
-                            data.details.beneficios = staticData.beneficios;
+                            data.details.modo_de_uso = data.details.modo_de_uso || staticData.modo_de_uso;
+                            data.details.ingredientes = data.details.ingredientes || staticData.ativos;
+                            data.details.beneficios = data.details.beneficios || staticData.beneficios;
                         } else {
                             data.details = { modo_de_uso: staticData.modo_de_uso, ingredientes: staticData.ativos, beneficios: staticData.beneficios };
                         }

@@ -6,6 +6,8 @@ interface Product {
     name: string;
     slug: string;
     description: string;
+    ingredients?: string;
+    benefits?: string;
     price: number;
     stock: number;
     image_url: string;
@@ -38,6 +40,8 @@ export default function NewProductModal({ onClose, onSave }: Props) {
         name: "",
         slug: "",
         description: "",
+        ingredients: "",
+        benefits: "",
         price: 0,
         stock: 0,
         image_url: "",
@@ -301,6 +305,46 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                             placeholder="Descreva o produto de forma clara e atraente..."
                             required
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Ingredientes</label>
+                        <textarea
+                            rows={3}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                border: '1px solid #ddd',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem',
+                                fontFamily: 'inherit',
+                                resize: 'vertical',
+                                lineHeight: '1.5'
+                            }}
+                            value={formData.ingredients || ""}
+                            onChange={(e) => setFormData({ ...formData, ingredients: e.target.value })}
+                            placeholder="Lista de ingredientes separados por vírgula..."
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Benefícios</label>
+                        <textarea
+                            rows={3}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                border: '1px solid #ddd',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem',
+                                fontFamily: 'inherit',
+                                resize: 'vertical',
+                                lineHeight: '1.5'
+                            }}
+                            value={formData.benefits || ""}
+                            onChange={(e) => setFormData({ ...formData, benefits: e.target.value })}
+                            placeholder="Principais benefícios do produto..."
                         />
                     </div>
 

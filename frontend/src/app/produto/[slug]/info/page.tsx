@@ -60,7 +60,6 @@ export default function ProductTechnicalPage() {
                 const res = await fetch(`/api/products/${params.slug}`);
                 if (res.ok) {
                     const data = await res.json();
-                    // Garante que textos estáticos sempre apareçam
                     const staticData = getStaticProductData(data.slug);
                     if (staticData) {
                         if (data.details) {

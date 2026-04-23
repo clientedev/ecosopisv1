@@ -63,6 +63,10 @@ MISSING_ORDERS_COLUMNS = [
     ("shipment_id",              "VARCHAR"),
 ]
 
+MISSING_PRODUCT_DETAILS_COLUMNS = [
+    ("beneficios", "TEXT"),
+]
+
 
 def add_missing_columns():
     """Safely add any columns that don't exist yet in the live database."""
@@ -124,6 +128,18 @@ def add_missing_columns():
                 logger.info(f"✓ Column orders.{col_name} ensured.")
             except Exception as e:
                 logger.warning(f"Could not add column orders.{col_name}: {e}")
+                try: conn.rollback()
+                except Exception: pass
+
+        for col_name, col_def in MISSING_PRODUCT_DETAILS_COLUMNS:
+            try:
+                conn.execute(text(
+                    f"ALTER TABLE product_details ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
+                ))
+                conn.commit()
+                logger.info(f"✓ Column product_details.{col_name} ensured.")
+            except Exception as e:
+                logger.warning(f"Could not add column product_details.{col_name}: {e}")
                 try: conn.rollback()
                 except Exception: pass
 

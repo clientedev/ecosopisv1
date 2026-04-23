@@ -107,6 +107,9 @@ def _apply_startup_migrations():
     PRODUCT_COLS = [
         ("category",     "VARCHAR")
     ]
+    PRODUCT_DETAILS_COLS = [
+        ("beneficios", "TEXT"),
+    ]
     
     with engine.connect() as conn:
         tables_to_sync = [
@@ -116,7 +119,8 @@ def _apply_startup_migrations():
             ("carousel_items", CAROUSEL_COLS),
             ("announcement_bar", ANNOUNCE_COLS),
             ("news", NEWS_COLS),
-            ("products", PRODUCT_COLS)
+            ("products", PRODUCT_COLS),
+            ("product_details", PRODUCT_DETAILS_COLS),
         ]
         for table, cols in tables_to_sync:
             # Check if table exists, create if not

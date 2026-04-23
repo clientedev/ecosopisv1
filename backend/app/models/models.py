@@ -145,6 +145,7 @@ class ProductDetail(Base):
     curiosidades = Column(Text, nullable=True)
     modo_de_uso = Column(Text, nullable=True)
     ingredientes = Column(Text, nullable=True)
+    beneficios = Column(Text, nullable=True)
     cuidados = Column(Text, nullable=True)
     contraindicacoes = Column(Text, nullable=True)
     observacoes = Column(Text, nullable=True)
