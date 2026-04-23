@@ -416,8 +416,8 @@ export default function Home() {
                         <div className={styles.diagnosticCard} onClick={() => openGoalModal('clareamento')}>
                             <div className={styles.diagnosticImageWrapper}>
                                 <Image 
-                                    src="/static/attached_assets/generated_images/manchas_skin.png" 
-                                    alt="Pele com Manchas" 
+                                    src="/static/attached_assets/generated_images/rosa_mosqueta_serum_bottle_photography.png" 
+                                    alt="Manchas - Óleo de Rosa Mosqueta" 
                                     fill 
                                     className={styles.diagnosticRealImage}
                                 />
@@ -433,8 +433,8 @@ export default function Home() {
                         <div className={styles.diagnosticCard} onClick={() => openGoalModal('acne')}>
                             <div className={styles.diagnosticImageWrapper}>
                                 <Image 
-                                    src="/static/attached_assets/generated_images/acne_skin.png" 
-                                    alt="Acne e Oleosidade" 
+                                    src="/static/attached_assets/generated_images/natural_green_clay_soap_bar_photography.png" 
+                                    alt="Acne - Argila Verde" 
                                     fill 
                                     className={styles.diagnosticRealImage}
                                 />
@@ -450,8 +450,8 @@ export default function Home() {
                         <div className={styles.diagnosticCard} onClick={() => openGoalModal('foliculite')}>
                             <div className={styles.diagnosticImageWrapper}>
                                 <Image 
-                                    src="/static/attached_assets/generated_images/acne_skin.png" 
-                                    alt="Foliculite" 
+                                    src="/static/attached_assets/generated_images/natural_charcoal_soap_bar_photography.png" 
+                                    alt="Foliculite - Carvão Ativado" 
                                     fill 
                                     className={styles.diagnosticRealImage}
                                 />

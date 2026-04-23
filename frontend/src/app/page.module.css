@@ -387,7 +387,7 @@
   padding: 30px;
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: 15px;
   border: 1px solid #edf2ed;
 }
 
@@ -395,6 +395,7 @@
   display: flex;
   align-items: center;
   gap: 15px;
+  margin-bottom: 5px;
 }
 
 .liaLargeAvatar {
@@ -419,7 +420,7 @@
 }
 
 .liaBubbleBox {
-  flex: 1;
+  margin-bottom: 5px;
 }
 
 .liaMessageBubble {
@@ -434,7 +435,7 @@
   font-size: 1.05rem;
   line-height: 1.6;
   margin: 0;
-  min-height: 80px;
+  min-height: auto;
 }
 
 .cursor {
