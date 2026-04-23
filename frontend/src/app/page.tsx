@@ -389,7 +389,15 @@ export default function Home() {
                     
                     <div className={styles.diagnosticGrid}>
                         <div className={styles.diagnosticCard} onClick={() => openGoalModal('clareamento')}>
-                            <div className={styles.diagnosticIcon}><Sparkles size={36} /></div>
+                            <div className={styles.diagnosticImageWrapper}>
+                                <Image 
+                                    src="/static/attached_assets/generated_images/manchas_skin.png" 
+                                    alt="Pele com Manchas" 
+                                    fill 
+                                    className={styles.diagnosticRealImage}
+                                />
+                                <div className={styles.diagnosticIconOverlay}><Sparkles size={20} /></div>
+                            </div>
                             <div className={styles.diagnosticContent}>
                                 <h3>Pele com Manchas</h3>
                                 <p>Uniformizar tom e clarear melasma/sol</p>
@@ -398,7 +406,15 @@ export default function Home() {
                         </div>
                         
                         <div className={styles.diagnosticCard} onClick={() => openGoalModal('acne')}>
-                            <div className={styles.diagnosticIcon}><Zap size={36} /></div>
+                            <div className={styles.diagnosticImageWrapper}>
+                                <Image 
+                                    src="/static/attached_assets/generated_images/acne_skin.png" 
+                                    alt="Acne e Oleosidade" 
+                                    fill 
+                                    className={styles.diagnosticRealImage}
+                                />
+                                <div className={styles.diagnosticIconOverlay}><Zap size={20} /></div>
+                            </div>
                             <div className={styles.diagnosticContent}>
                                 <h3>Acne e Oleosidade</h3>
                                 <p>Controlar brilho e reduzir inflamações</p>
@@ -407,7 +423,15 @@ export default function Home() {
                         </div>
                         
                         <div className={styles.diagnosticCard} onClick={() => openGoalModal('foliculite')}>
-                            <div className={styles.diagnosticIcon}><Droplets size={36} /></div>
+                            <div className={styles.diagnosticImageWrapper}>
+                                <Image 
+                                    src="/static/attached_assets/generated_images/manchas_skin.png" 
+                                    alt="Foliculite" 
+                                    fill 
+                                    className={styles.diagnosticRealImage}
+                                />
+                                <div className={styles.diagnosticIconOverlay}><Droplets size={20} /></div>
+                            </div>
                             <div className={styles.diagnosticContent}>
                                 <h3>Foliculite e Pelos</h3>
                                 <p>Pele lisa e sem bolinhas vermelhas</p>
@@ -592,8 +616,12 @@ export default function Home() {
 
             {/* Decision shortcuts */}
             <section className={styles.shortcutsSection}>
-                <div className="container">
-                    <h2 className={styles.sectionTitle} style={{ textAlign: 'center', marginBottom: '40px' }}>NÃO SABE POR ONDE COMEÇAR?</h2>
+                <div className={styles.shortcutsOverlay}></div>
+                <div className="container" style={{ position: 'relative', zIndex: 2 }}>
+                    <div className={styles.shortcutsHeader}>
+                        <h2>Não sabe por onde começar?</h2>
+                        <p>Atalhos rápidos para quem quer resultados agora.</p>
+                    </div>
                     <div className={styles.shortcutGrid}>
                         <div className={styles.shortcutCard}>
                             <h3>O mais vendido de todos</h3>
