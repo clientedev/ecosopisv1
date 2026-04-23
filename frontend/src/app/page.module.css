@@ -148,7 +148,7 @@
 
 /* New Stats & Brand Section */
 .statsSection {
-  padding: 80px 0;
+  padding: 60px 0 20px 0;
   background: white;
 }
 
@@ -156,38 +156,33 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 30px;
-  margin-bottom: 80px;
+  max-width: 1000px;
+  margin: 0 auto 40px auto;
 }
 
 .statCard {
   text-align: center;
-  padding: 40px;
-  background: #fdfdfd;
-  border: 1px solid #f0f0f0;
-  border-radius: 24px;
-  transition: transform 0.3s;
-}
-
-.statCard:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 30px rgba(0,0,0,0.05);
+  padding: 20px;
 }
 
 .statIcon {
   color: var(--primary-green);
-  margin-bottom: 20px;
+  margin-bottom: 15px;
+  opacity: 0.8;
 }
 
 .statCard h3 {
-  font-size: 2.5rem;
-  font-weight: 900;
+  font-size: 2rem;
+  font-weight: 800;
   color: var(--text-main);
   margin-bottom: 5px;
+  letter-spacing: -1px;
 }
 
 .statCard p {
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .brandCommitment {
