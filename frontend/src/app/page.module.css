@@ -216,11 +216,39 @@
 
 .diagnosticRealImage {
   object-fit: cover;
-  transition: transform 0.5s ease;
+  transition: transform 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+  filter: brightness(0.9) contrast(1.1);
+  transform: scale(1.2); /* Focus on texture */
 }
 
 .diagnosticCard:hover .diagnosticRealImage {
-  transform: scale(1.1);
+  transform: scale(1.4);
+  filter: brightness(1) contrast(1.2);
+}
+
+.diagnosticImageWrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent, rgba(45, 90, 39, 0.2));
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Specific inspiration colors */
+.diagnosticCard:nth-child(1) .diagnosticImageWrapper::after {
+  background: linear-gradient(to bottom, rgba(255, 165, 0, 0.1), rgba(139, 69, 19, 0.3));
+}
+
+.diagnosticCard:nth-child(2) .diagnosticImageWrapper::after {
+  background: linear-gradient(to bottom, rgba(0, 128, 0, 0.1), rgba(0, 64, 0, 0.3));
+}
+
+.diagnosticCard:nth-child(3) .diagnosticImageWrapper::after {
+  background: linear-gradient(to bottom, rgba(0, 128, 128, 0.1), rgba(0, 0, 0, 0.4));
 }
 
 .diagnosticIconOverlay {
