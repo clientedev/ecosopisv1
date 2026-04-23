@@ -146,177 +146,280 @@
   background-color: var(--neutral-gray-100);
 }
 
-/* New Conversion Styles */
-.goalsSection {
-  padding: 80px 0;
-  background-color: white;
+/* Diagnostic Section - Premium Selector */
+.diagnosticSection {
+  padding: 100px 0;
+  background: linear-gradient(to bottom, #ffffff, #f9fbf9);
 }
 
-.goalTitle {
+.diagnosticHeader {
   text-align: center;
-  font-size: 2.2rem;
-  margin-bottom: 50px;
-  color: var(--primary-green);
-  font-weight: 800;
+  max-width: 700px;
+  margin: 0 auto 60px;
 }
 
-.goalGrid {
+.diagnosticTitle {
+  font-size: 2.8rem;
+  color: var(--primary-green);
+  font-weight: 900;
+  margin: 15px 0;
+  letter-spacing: -1px;
+}
+
+.diagnosticSubtitle {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+.diagnosticGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 30px;
 }
 
-.goalCard {
+.diagnosticCard {
   background: white;
-  border: 2px solid var(--neutral-gray-200);
-  border-radius: 24px;
-  padding: 40px 30px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid #eee;
+  border-radius: 32px;
+  padding: 40px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 15px;
+  gap: 25px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
 }
 
-.goalCard:hover {
+.diagnosticCard:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 30px 60px rgba(45, 90, 39, 0.12);
   border-color: var(--primary-green);
-  transform: translateY(-8px);
-  box-shadow: 0 15px 30px rgba(45, 90, 39, 0.1);
 }
 
-.activeGoal {
-  border-color: var(--primary-green);
-  background-color: #f0f7f0;
-}
-
-.goalIcon {
-  width: 70px;
-  height: 70px;
+.diagnosticIcon {
+  width: 80px;
+  height: 80px;
   background: #f0f7f0;
-  border-radius: 20px;
+  color: var(--primary-green);
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary-green);
-  margin-bottom: 10px;
+  transition: all 0.3s;
 }
 
-.goalCard h3 {
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin: 0;
+.diagnosticCard:hover .diagnosticIcon {
+  background: var(--primary-green);
+  color: white;
+  transform: rotate(-5deg) scale(1.1);
 }
 
-.goalCard p {
-  font-size: 0.9rem;
+.diagnosticContent h3 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.diagnosticContent p {
+  font-size: 1rem;
   color: var(--text-secondary);
-  margin: 0;
+  margin-bottom: 20px;
+  line-height: 1.4;
 }
 
-.dynamicSection {
-  padding: 100px 0;
-  scroll-margin-top: 80px;
-}
-
-.highlightedSection {
-  animation: highlightGlow 2s ease-in-out;
-}
-
-@keyframes highlightGlow {
-  0% { background-color: white; }
-  50% { background-color: #f0f7f0; }
-  100% { background-color: white; }
-}
-
-.sectionBadge {
-  display: inline-block;
-  background: #e0ece0;
+.diagnosticAction {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+  font-size: 0.85rem;
   color: var(--primary-green);
-  padding: 5px 15px;
+  letter-spacing: 1px;
+}
+
+/* Modal Interactive System */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modalContent {
+  background: white;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  border-radius: 40px;
+  position: relative;
+  overflow-y: auto;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.25);
+  animation: slideUp 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modalClose {
+  position: absolute;
+  top: 25px;
+  right: 25px;
+  background: #f5f5f5;
+  border: none;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.modalClose:hover {
+  background: #eee;
+  transform: rotate(90deg);
+}
+
+.modalBody {
+  padding: 60px;
+}
+
+.modalHeader {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.modalBadge {
+  background: #f0f7f0;
+  color: var(--primary-green);
+  padding: 6px 16px;
   border-radius: 30px;
   font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 1px;
-  margin-bottom: 15px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
 }
 
-.sectionSubtitle {
-  font-size: 1.1rem;
-  color: var(--text-secondary);
-  max-width: 600px;
+.modalHeader h2 {
+  font-size: 2.2rem;
+  font-weight: 900;
+  margin: 15px 0;
 }
 
-.bgGray {
-  background-color: #f8f9f8;
-}
-
-.productDisplay {
+.modalProductLayout {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: 50px;
-  margin-top: 50px;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 40px;
   align-items: flex-start;
 }
 
-.mainRecommendation {
-  position: relative;
-}
-
-.featuredProduct {
-  background: white;
-  padding: 40px;
+.modalFeatured {
+  background: #fcfcfc;
+  border: 1px solid #f0f0f0;
   border-radius: 30px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.05);
-  border: 1px solid #eee;
+  padding: 30px;
 }
 
-.featuredLabel {
-  display: inline-block;
-  background: var(--primary-green);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 4px;
+.modalLabel {
   font-size: 0.7rem;
   font-weight: 900;
-  margin-bottom: 20px;
-}
-
-.featuredBenefits {
-  margin-top: 30px;
-  padding-top: 30px;
-  border-top: 1px solid #eee;
-}
-
-.featuredBenefits h4 {
+  color: #999;
   margin-bottom: 15px;
+  letter-spacing: 1px;
 }
 
-.featuredBenefits ul {
-  list-style: none;
-  padding: 0;
+.modalHighlights {
+  margin-top: 25px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
-.featuredBenefits li {
+.highlightItem {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.95rem;
-  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #555;
 }
 
-.featuredBenefits svg {
+.highlightItem svg {
   color: var(--primary-green);
 }
 
-.sideRecommendation h4 {
-  margin-bottom: 25px;
-  font-size: 1rem;
-  opacity: 0.8;
+.modalSideContent {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.modalAiBox {
+  background: var(--primary-green);
+  color: white;
+  padding: 25px;
+  border-radius: 24px;
+  position: relative;
+}
+
+.aiHeaderSmall {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 900;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.modalAiBox p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  font-style: italic;
+  opacity: 0.95;
+}
+
+.modalAlternative h4 {
+  font-size: 0.9rem;
+  color: #999;
+  margin-bottom: 15px;
+}
+
+.modalFooter {
+  padding: 0 60px 60px;
+}
+
+@media (max-width: 850px) {
+  .modalProductLayout {
+    grid-template-columns: 1fr;
+  }
+  .modalBody {
+    padding: 40px 20px;
+  }
+  .modalFooter {
+    padding: 0 20px 40px;
+  }
+  .diagnosticGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .shortcutsSection {
@@ -580,6 +683,7 @@
     font-size: 1.8rem;
   }
 }
+
 
 @media (max-width: 768px) {
   .heroContent h1 {

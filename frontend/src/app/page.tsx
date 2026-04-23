@@ -16,7 +16,10 @@ import {
     Star, 
     ShieldCheck, 
     MessageSquare,
-    Send
+    Send,
+    X,
+    ChevronRight,
+    Search
 } from "lucide-react";
 
 export default function Home() {
@@ -189,6 +192,21 @@ export default function Home() {
         fetchAll();
     }, []);
 
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
+
+    const openGoalModal = (goal: string) => {
+        setSelectedGoal(goal);
+        setActiveGoal(goal);
+        setIsModalOpen(true);
+        // Track the choice
+        fetch('/api/metrics/log/click', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_id: null, click_type: `goal_${goal}` })
+        }).catch(() => {});
+    };
+
     const sendChatMessage = async () => {
         if (!chatInput.trim() || chatLoading) return;
         const userMsg = { role: 'user', content: chatInput };
@@ -201,7 +219,7 @@ export default function Home() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     message: chatInput,
-                    context: activeGoal ? `O usuário está interessado em ${activeGoal}.` : ""
+                    context: selectedGoal ? `O usuário está interessado em ${selectedGoal}.` : ""
                 })
             });
             const data = await res.json();
@@ -360,179 +378,217 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Goal Selector Section */}
-            <section className={styles.goalsSection} ref={goalsRef}>
+            {/* Goal Selector Section - Redesigned as a 'Diagnostic' */}
+            <section className={styles.diagnosticSection} ref={goalsRef}>
                 <div className="container">
-                    <h2 className={styles.goalTitle}>Qual seu objetivo com a sua pele?</h2>
-                    <div className={styles.goalGrid}>
-                        <button 
-                            className={`${styles.goalCard} ${activeGoal === 'clareamento' ? styles.activeGoal : ''}`}
-                            onClick={() => {
-                                setActiveGoal('clareamento');
-                                scrollToSection('secao-clareamento');
-                            }}
-                        >
-                            <div className={styles.goalIcon}><Sparkles size={32} /></div>
-                            <h3>Clareamento de manchas</h3>
-                            <p>Uniformizar o tom da pele</p>
-                        </button>
-                        <button 
-                            className={`${styles.goalCard} ${activeGoal === 'acne' ? styles.activeGoal : ''}`}
-                            onClick={() => {
-                                setActiveGoal('acne');
-                                scrollToSection('secao-acne');
-                            }}
-                        >
-                            <div className={styles.goalIcon}><Zap size={32} /></div>
-                            <h3>Acne e oleosidade</h3>
-                            <p>Controlar oleosidade e poros</p>
-                        </button>
-                        <button 
-                            className={`${styles.goalCard} ${activeGoal === 'foliculite' ? styles.activeGoal : ''}`}
-                            onClick={() => {
-                                setActiveGoal('foliculite');
-                                scrollToSection('secao-foliculite');
-                            }}
-                        >
-                            <div className={styles.goalIcon}><Droplets size={32} /></div>
-                            <h3>Foliculite</h3>
-                            <p>Reduzir inflamações e pelos</p>
-                        </button>
+                    <div className={styles.diagnosticHeader}>
+                        <span className={styles.sectionBadge}>CONSULTORIA EXPRESS</span>
+                        <h2 className={styles.diagnosticTitle}>Selecione seu desafio hoje</h2>
+                        <p className={styles.diagnosticSubtitle}>Receba uma recomendação personalizada da nossa I.A. em segundos.</p>
                     </div>
-                </div>
-            </section>
-
-            {/* Clareamento Section */}
-            <section id="secao-clareamento" className={`${styles.dynamicSection} ${activeGoal === 'clareamento' ? styles.highlightedSection : ''}`}>
-                <div className="container">
-                    <div className={styles.sectionHeader}>
-                        <div>
-                            <span className={styles.sectionBadge}>RECOMENDAÇÃO ESPECIAL</span>
-                            <h2 className={styles.sectionTitle}>FOCO EM CLAREAMENTO</h2>
-                            <p className={styles.sectionSubtitle}>Resultados visíveis e pele uniforme com nossa rotina potente.</p>
+                    
+                    <div className={styles.diagnosticGrid}>
+                        <div className={styles.diagnosticCard} onClick={() => openGoalModal('clareamento')}>
+                            <div className={styles.diagnosticIcon}><Sparkles size={36} /></div>
+                            <div className={styles.diagnosticContent}>
+                                <h3>Pele com Manchas</h3>
+                                <p>Uniformizar tom e clarear melasma/sol</p>
+                                <span className={styles.diagnosticAction}>VER TRATAMENTO <ChevronRight size={16} /></span>
+                            </div>
                         </div>
-                    </div>
-                    <div className={styles.productDisplay}>
-                        <div className={styles.mainRecommendation}>
-                            {findProductBySlug('kit-clareamento') && (
-                                <div className={styles.featuredProduct}>
-                                    <div className={styles.featuredLabel}>A ESCOLHA Nº 1</div>
-                                    <ProductCard 
-                                        product={findProductBySlug('kit-clareamento')} 
-                                        badge="RESULTADO PROGRESSIVO"
-                                        isRecommended={activeGoal === 'clareamento'}
-                                    />
-                                    <div className={styles.featuredBenefits}>
-                                        <h4>Por que começar com este kit?</h4>
-                                        <ul>
-                                            <li><CheckCircle2 size={16} /> Clareamento gradual e seguro</li>
-                                            <li><CheckCircle2 size={16} /> Regeneração celular profunda</li>
-                                            <li><CheckCircle2 size={16} /> Ideal para manchas de sol e melasma</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            )}
+                        
+                        <div className={styles.diagnosticCard} onClick={() => openGoalModal('acne')}>
+                            <div className={styles.diagnosticIcon}><Zap size={36} /></div>
+                            <div className={styles.diagnosticContent}>
+                                <h3>Acne e Oleosidade</h3>
+                                <p>Controlar brilho e reduzir inflamações</p>
+                                <span className={styles.diagnosticAction}>VER TRATAMENTO <ChevronRight size={16} /></span>
+                            </div>
                         </div>
-                        <div className={styles.sideRecommendation}>
-                            <h4>Opção para quem quer começar aos poucos:</h4>
-                            {findProductBySlug('sabonete-acafrao-dolomita') && (
-                                <ProductCard 
-                                    product={findProductBySlug('sabonete-acafrao-dolomita')} 
-                                    badge="IDEAL PARA INICIANTES"
-                                />
-                            )}
+                        
+                        <div className={styles.diagnosticCard} onClick={() => openGoalModal('foliculite')}>
+                            <div className={styles.diagnosticIcon}><Droplets size={36} /></div>
+                            <div className={styles.diagnosticContent}>
+                                <h3>Foliculite e Pelos</h3>
+                                <p>Pele lisa e sem bolinhas vermelhas</p>
+                                <span className={styles.diagnosticAction}>VER TRATAMENTO <ChevronRight size={16} /></span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Acne Section */}
-            <section id="secao-acne" className={`${styles.dynamicSection} ${activeGoal === 'acne' ? styles.highlightedSection : ''} ${styles.bgGray}`}>
-                <div className="container">
-                    <div className={styles.sectionHeader}>
-                        <div>
-                            <span className={styles.sectionBadge}>CONTROLE E EQUILÍBRIO</span>
-                            <h2 className={styles.sectionTitle}>FOCO EM ACNE E OLEOSIDADE</h2>
-                            <p className={styles.sectionSubtitle}>Diga adeus ao brilho excessivo e recupere a saúde dos seus poros.</p>
-                        </div>
-                    </div>
-                    <div className={styles.productDisplay}>
-                        <div className={styles.mainRecommendation}>
-                            {findProductBySlug('kit-acne') && (
-                                <div className={styles.featuredProduct}>
-                                    <div className={styles.featuredLabel}>TRATAMENTO COMPLETO</div>
-                                    <ProductCard 
-                                        product={findProductBySlug('kit-acne')} 
-                                        badge="ALTA PROCURA"
-                                        isRecommended={activeGoal === 'acne'}
-                                    />
-                                    <div className={styles.featuredBenefits}>
-                                        <h4>Como este kit transforma sua pele:</h4>
-                                        <ul>
-                                            <li><CheckCircle2 size={16} /> Limpeza profunda sem ressecar</li>
-                                            <li><CheckCircle2 size={16} /> Ação secativa e anti-inflamatória</li>
-                                            <li><CheckCircle2 size={16} /> Controle da oleosidade o dia todo</li>
-                                        </ul>
+            {/* Goal Modal */}
+            {isModalOpen && (
+                <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
+                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                        <button className={styles.modalClose} onClick={() => setIsModalOpen(false)}><X size={24} /></button>
+                        
+                        {selectedGoal === 'clareamento' && (
+                            <div className={styles.modalBody}>
+                                <div className={styles.modalHeader}>
+                                    <span className={styles.modalBadge}>FOCO EM CLAREAMENTO</span>
+                                    <h2>Seu Caminho para uma Pele Uniforme</h2>
+                                    <p>Nossa I.A. selecionou o protocolo mais potente para o seu caso.</p>
+                                </div>
+                                
+                                <div className={styles.modalProductLayout}>
+                                    <div className={styles.modalFeatured}>
+                                        <div className={styles.modalLabel}>RECOMENDAÇÃO PRINCIPAL</div>
+                                        {findProductBySlug('kit-clareamento') && (
+                                            <ProductCard 
+                                                product={findProductBySlug('kit-clareamento')} 
+                                                badge="RESULTADO COMPROVADO"
+                                                isRecommended={true}
+                                            />
+                                        )}
+                                        <div className={styles.modalHighlights}>
+                                            <div className={styles.highlightItem}>
+                                                <CheckCircle2 size={18} />
+                                                <span>Ação clareadora profunda</span>
+                                            </div>
+                                            <div className={styles.highlightItem}>
+                                                <CheckCircle2 size={18} />
+                                                <span>Seguro para todos os tons</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className={styles.modalSideContent}>
+                                        <div className={styles.modalAiBox}>
+                                            <div className={styles.aiHeaderSmall}>
+                                                <ShieldCheck size={20} />
+                                                <span>Dica da Lia</span>
+                                            </div>
+                                            <p>&quot;Para clareamento, a constância é chave. Use o Sabonete de Açafrão diariamente no banho e o Óleo de Rosa Mosqueta apenas à noite para regeneração.&quot;</p>
+                                        </div>
+                                        
+                                        <div className={styles.modalAlternative}>
+                                            <h4>Quer começar com apenas um?</h4>
+                                            {findProductBySlug('sabonete-acafrao-dolomita') && (
+                                                <ProductCard 
+                                                    product={findProductBySlug('sabonete-acafrao-dolomita')} 
+                                                    badge="MAIS VENDIDO"
+                                                />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                        <div className={styles.sideRecommendation}>
-                            <h4>Cuidado diário essencial:</h4>
-                            {findProductBySlug('sabonete-argila-verde') && (
-                                <ProductCard 
-                                    product={findProductBySlug('sabonete-argila-verde')} 
-                                    badge="MAIS VENDIDO"
-                                />
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </section>
+                            </div>
+                        )}
 
-            {/* Foliculite Section */}
-            <section id="secao-foliculite" className={`${styles.dynamicSection} ${activeGoal === 'foliculite' ? styles.highlightedSection : ''}`}>
-                <div className="container">
-                    <div className={styles.sectionHeader}>
-                        <div>
-                            <span className={styles.sectionBadge}>PELE LISA E SEM IRRITAÇÃO</span>
-                            <h2 className={styles.sectionTitle}>FOCO EM FOLICULITE</h2>
-                            <p className={styles.sectionSubtitle}>Sinta a liberdade de uma pele sem bolinhas e pelos encravados.</p>
-                        </div>
-                    </div>
-                    <div className={styles.productDisplay}>
-                        <div className={styles.mainRecommendation}>
-                            {findProductBySlug('sabonete-acafrao-dolomita') && (
-                                <div className={styles.featuredProduct}>
-                                    <div className={styles.featuredLabel}>O FAVORITO</div>
-                                    <ProductCard 
-                                        product={findProductBySlug('sabonete-acafrao-dolomita')} 
-                                        badge="RESULTADO COMPROVADO"
-                                        isRecommended={activeGoal === 'foliculite'}
-                                    />
-                                    <div className={styles.featuredBenefits}>
-                                        <h4>O segredo do Açafrão com Dolomita:</h4>
-                                        <ul>
-                                            <li><CheckCircle2 size={16} /> Redução gradual dos pelos</li>
-                                            <li><CheckCircle2 size={16} /> Ação anti-inflamatória potente</li>
-                                            <li><CheckCircle2 size={16} /> Cicatrizante natural para áreas sensíveis</li>
-                                        </ul>
+                        {selectedGoal === 'acne' && (
+                            <div className={styles.modalBody}>
+                                <div className={styles.modalHeader}>
+                                    <span className={styles.modalBadge}>CONTROLE DE ACNE</span>
+                                    <h2>Pele Saudável e sem Oleosidade</h2>
+                                    <p>Recupere o equilíbrio da sua pele com ativos botânicos secativos.</p>
+                                </div>
+                                
+                                <div className={styles.modalProductLayout}>
+                                    <div className={styles.modalFeatured}>
+                                        <div className={styles.modalLabel}>PROTOCOLO SECATIVO</div>
+                                        {findProductBySlug('kit-acne') && (
+                                            <ProductCard 
+                                                product={findProductBySlug('kit-acne')} 
+                                                badge="ALTA EFICÁCIA"
+                                                isRecommended={true}
+                                            />
+                                        )}
+                                        <div className={styles.modalHighlights}>
+                                            <div className={styles.highlightItem}>
+                                                <CheckCircle2 size={18} />
+                                                <span>Reduz poros dilatados</span>
+                                            </div>
+                                            <div className={styles.highlightItem}>
+                                                <CheckCircle2 size={18} />
+                                                <span>Controle de brilho imediato</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className={styles.modalSideContent}>
+                                        <div className={styles.modalAiBox}>
+                                            <div className={styles.aiHeaderSmall}>
+                                                <ShieldCheck size={20} />
+                                                <span>Dica da Lia</span>
+                                            </div>
+                                            <p>&quot;A argila verde é um ímã de impurezas. Lave o rosto em movimentos circulares para desobstruir os poros sem agredir a barreira cutânea.&quot;</p>
+                                        </div>
+                                        
+                                        <div className={styles.modalAlternative}>
+                                            <h4>Destaque individual:</h4>
+                                            {findProductBySlug('sabonete-argila-verde') && (
+                                                <ProductCard 
+                                                    product={findProductBySlug('sabonete-argila-verde')} 
+                                                    badge="ESSENCIAL"
+                                                />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                        <div className={styles.sideRecommendation}>
-                            <h4>Combine para potencializar:</h4>
-                            {findProductBySlug('sabonete-clareador-argila-branca') && (
-                                <ProductCard 
-                                    product={findProductBySlug('sabonete-clareador-argila-branca')} 
-                                    badge="UNIFORMIZADOR"
-                                />
-                            )}
+                            </div>
+                        )}
+
+                        {selectedGoal === 'foliculite' && (
+                            <div className={styles.modalBody}>
+                                <div className={styles.modalHeader}>
+                                    <span className={styles.modalBadge}>PELE LISA</span>
+                                    <h2>Adeus Foliculite e Irritações</h2>
+                                    <p>O tratamento que acalma e renova a sua pele sensível.</p>
+                                </div>
+                                
+                                <div className={styles.modalProductLayout}>
+                                    <div className={styles.modalFeatured}>
+                                        <div className={styles.modalLabel}>O QUERIDINHO</div>
+                                        {findProductBySlug('sabonete-acafrao-dolomita') && (
+                                            <ProductCard 
+                                                product={findProductBySlug('sabonete-acafrao-dolomita')} 
+                                                badge="CAMPEÃO DE VENDAS"
+                                                isRecommended={true}
+                                            />
+                                        )}
+                                        <div className={styles.modalHighlights}>
+                                            <div className={styles.highlightItem}>
+                                                <CheckCircle2 size={18} />
+                                                <span>Redução de pelos encravados</span>
+                                            </div>
+                                            <div className={styles.highlightItem}>
+                                                <CheckCircle2 size={18} />
+                                                <span>Ação anti-inflamatória</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className={styles.modalSideContent}>
+                                        <div className={styles.modalAiBox}>
+                                            <div className={styles.aiHeaderSmall}>
+                                                <ShieldCheck size={20} />
+                                                <span>Dica da Lia</span>
+                                            </div>
+                                            <p>&quot;O açafrão atua na raiz do problema, reduzindo a inflamação enquanto a dolomita acalma e clareia a região afetada.&quot;</p>
+                                        </div>
+                                        
+                                        <div className={styles.modalAlternative}>
+                                            <h4>Combine com:</h4>
+                                            {findProductBySlug('sabonete-clareador-argila-branca') && (
+                                                <ProductCard 
+                                                    product={findProductBySlug('sabonete-clareador-argila-branca')} 
+                                                    badge="POTENCIALIZADOR"
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <div className={styles.modalFooter}>
+                            <button className="btn-primary" onClick={() => setIsModalOpen(false)} style={{ width: '100%' }}>CONTINUAR NAVEGANDO</button>
                         </div>
                     </div>
                 </div>
-            </section>
+            )}
 
             {/* Decision shortcuts */}
             <section className={styles.shortcutsSection}>
