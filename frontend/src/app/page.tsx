@@ -22,7 +22,9 @@ import {
     Search,
     Sun,
     Moon,
-    ArrowDown
+    ArrowDown,
+    Heart,
+    Users
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
@@ -220,7 +222,6 @@ export default function Home() {
         setSelectedGoal(goal);
         setActiveGoal(goal);
         setIsModalOpen(true);
-        buildRoutine(goal);
         
         const tips: {[key: string]: string} = {
             clareamento: "Para clareamento, a constância é chave. Use o Sabonete de Açafrão diariamente no banho e o Óleo de Rosa Mosqueta apenas à noite para regeneração.",
@@ -462,6 +463,39 @@ export default function Home() {
                 </div>
             </section>
 
+            {/* NEW: Stats & Brand Commitment Section */}
+            <section className={styles.statsSection}>
+                <div className="container">
+                    <div className={styles.statsGrid}>
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}><Heart size={32} /></div>
+                            <h3>+200 MIL</h3>
+                            <p>Pedidos enviados com amor</p>
+                        </div>
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}><Users size={32} /></div>
+                            <h3>+50 MIL</h3>
+                            <p>Clientes transformadas</p>
+                        </div>
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}><ShieldCheck size={32} /></div>
+                            <h3>100%</h3>
+                            <p>Botânico e Seguro</p>
+                        </div>
+                    </div>
+
+                    <div className={styles.brandCommitment}>
+                        <span className={styles.commitmentBadge}>MAIS QUE PRODUTOS, UM COMPROMISSO COM VOCÊ</span>
+                        <p className={styles.commitmentText}>
+                            A Ecosopis nasceu do desejo de unir a sabedoria da natureza com resultados que você pode ver e sentir. Acreditamos que o autocuidado deve ser simples, ético e transformador. Cada fórmula é pensada para que você recupere não apenas a saúde da sua pele, mas a sua confiança diária.
+                        </p>
+                        <blockquote className={styles.commitmentQuote}>
+                            "Quem usa, continua usando — porque sua pele sente a diferença nos primeiros usos."
+                        </blockquote>
+                    </div>
+                </div>
+            </section>
+
             {/* Goal Selector Section - Redesigned as a 'Diagnostic' */}
             <section id="diagnostico" className={styles.diagnosticSection} ref={goalsRef}>
                 <div className="container">
@@ -510,15 +544,17 @@ export default function Home() {
                         <p>Seu fluxograma personalizado de cuidados, gerado em tempo real pela nossa I.A.</p>
                     </div>
 
-                    {!selectedGoal ? (
+                    {!routineSteps.am.length && !routineLoading ? (
                         <div className={styles.routinePlaceholder}>
                             <div className={styles.liaLargeAvatar}>
                                 <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia" fill />
                             </div>
-                            <h3>Vamos começar seu cronograma?</h3>
-                            <p>Selecione um dos objetivos acima (Manchas, Acne ou Foliculite) para a Lia montar sua rotina dinâmica.</p>
-                            <div className={styles.routinePlaceholderActions}>
-                                <button className="btn-primary" onClick={() => scrollToSection('diagnostico')}>FAZER DIAGNÓSTICO</button>
+                            <h3>Vamos montar sua rotina ideal?</h3>
+                            <p>Escolha um objetivo abaixo para a Lia criar seu cronograma personalizado em segundos.</p>
+                            <div className={styles.routineGoalButtons}>
+                                <button className="btn-outline" onClick={() => buildRoutine('clareamento')}>CLAREAR MANCHAS</button>
+                                <button className="btn-outline" onClick={() => buildRoutine('acne')}>REDUZIR ACNE</button>
+                                <button className="btn-outline" onClick={() => buildRoutine('foliculite')}>TRATAR FOLICULITE</button>
                             </div>
                         </div>
                     ) : (

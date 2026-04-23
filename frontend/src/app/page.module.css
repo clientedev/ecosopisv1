@@ -146,6 +146,91 @@
   background-color: var(--neutral-gray-100);
 }
 
+/* New Stats & Brand Section */
+.statsSection {
+  padding: 80px 0;
+  background: white;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+  margin-bottom: 80px;
+}
+
+.statCard {
+  text-align: center;
+  padding: 40px;
+  background: #fdfdfd;
+  border: 1px solid #f0f0f0;
+  border-radius: 24px;
+  transition: transform 0.3s;
+}
+
+.statCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.05);
+}
+
+.statIcon {
+  color: var(--primary-green);
+  margin-bottom: 20px;
+}
+
+.statCard h3 {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--text-main);
+  margin-bottom: 5px;
+}
+
+.statCard p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
+.brandCommitment {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.commitmentBadge {
+  display: inline-block;
+  background: #f0f7f0;
+  color: var(--primary-green);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: 25px;
+}
+
+.commitmentText {
+  font-size: 1.3rem;
+  line-height: 1.8;
+  color: var(--text-main);
+  margin-bottom: 30px;
+}
+
+.commitmentQuote {
+  font-size: 1.5rem;
+  font-style: italic;
+  font-weight: 700;
+  color: var(--primary-green);
+  border-left: 4px solid var(--primary-green);
+  padding-left: 20px;
+  text-align: left;
+}
+
+@media (max-width: 768px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Diagnostic Section - Premium Selector */
 .diagnosticSection {
   padding: 100px 0;
@@ -1083,6 +1168,24 @@
 }
 
 /* Minha Rotina Ideal - Flowchart System */
+.routinePlaceholderActions {
+  margin-top: 10px;
+}
+
+.routineGoalButtons {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+.routineGoalButtons button {
+  padding: 12px 25px !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 1px;
+}
+
 .routineBuilderSection {
   padding: 100px 0;
   background: #fdfdfd;
