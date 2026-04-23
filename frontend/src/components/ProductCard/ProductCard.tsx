@@ -6,6 +6,7 @@ import { useCart } from "@/context/CartContext";
 
 interface ProductCardProps {
     product: {
+        id?: number;
         name: string;
         slug: string;
         description: string;
@@ -16,9 +17,11 @@ interface ProductCardProps {
         mercadolivre_url?: string;
         shopee_url?: string;
     };
+    badge?: string;
+    isRecommended?: boolean;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, badge, isRecommended }: ProductCardProps) {
     const getImageUrl = (url?: string) => {
         if (!url) return "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
         if (url.startsWith("http")) return url;
@@ -67,7 +70,9 @@ export default function ProductCard({ product }: ProductCardProps) {
     };
 
     return (
-        <div className={styles.card}>
+        <div className={`${styles.card} ${isRecommended ? styles.recommended : ""}`}>
+            {badge && <div className={styles.productBadge}>{badge}</div>}
+            {isRecommended && <div className={styles.recommendedLabel}>RECOMENDADO PARA VOCÊ</div>}
             <Link href={`/produtos/${product.slug}`}>
                 <div className={styles.imageWrapper}>
                     <Image
