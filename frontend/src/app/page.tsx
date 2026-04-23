@@ -575,7 +575,14 @@ export default function Home() {
                                         <div className={styles.timelineFlow}>
                                             {routineSteps.am.map((item, idx) => (
                                                 <div key={idx} className={styles.flowStep}>
-                                                    <div className={styles.stepNumber}>{idx + 1}</div>
+                                                    <div className={styles.stepImageWrapper}>
+                                                        {item.image_url ? (
+                                                            <Image src={item.image_url} alt={item.name} fill className={styles.stepImage} />
+                                                        ) : (
+                                                            <div className={styles.stepImagePlaceholder} />
+                                                        )}
+                                                        <div className={styles.stepNumberOverlay}>{idx + 1}</div>
+                                                    </div>
                                                     <div className={styles.stepContent}>
                                                         <span className={styles.stepLabel}>{item.step}</span>
                                                         <h4>{item.name}</h4>
@@ -599,7 +606,14 @@ export default function Home() {
                                         <div className={styles.timelineFlow}>
                                             {routineSteps.pm.map((item, idx) => (
                                                 <div key={idx} className={styles.flowStep}>
-                                                    <div className={styles.stepNumber}>{idx + 1}</div>
+                                                    <div className={styles.stepImageWrapper}>
+                                                        {item.image_url ? (
+                                                            <Image src={item.image_url} alt={item.name} fill className={styles.stepImage} />
+                                                        ) : (
+                                                            <div className={styles.stepImagePlaceholder} />
+                                                        )}
+                                                        <div className={styles.stepNumberOverlay}>{idx + 1}</div>
+                                                    </div>
                                                     <div className={styles.stepContent}>
                                                         <span className={styles.stepLabel}>{item.step}</span>
                                                         <h4>{item.name}</h4>
