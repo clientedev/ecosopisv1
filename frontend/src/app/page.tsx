@@ -19,7 +19,10 @@ import {
     Send,
     X,
     ChevronRight,
-    Search
+    Search,
+    Sun,
+    Moon,
+    ArrowDown
 } from "lucide-react";
 
 export default function Home() {
