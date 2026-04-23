@@ -530,9 +530,18 @@ export default function Home() {
 
                                     <div className={styles.modalChatBox}>
                                         <div className={styles.miniChatMessages}>
-                                            {chatMessages.length > 0 && chatMessages[chatMessages.length-1].role === 'assistant' && (
+                                            {chatMessages.length === 0 && !chatLoading && (
+                                                <p className={styles.miniChatEmpty}>Ainda não há mensagens. Pergunte algo!</p>
+                                            )}
+                                            {chatMessages.slice(-3).map((msg, idx) => (
+                                                <div key={idx} className={`${styles.miniMessage} ${styles[msg.role]}`}>
+                                                    <strong>{msg.role === 'user' ? 'Você: ' : 'Lia: '}</strong>
+                                                    {msg.content}
+                                                </div>
+                                            ))}
+                                            {chatLoading && (
                                                 <div className={styles.miniMessage}>
-                                                    {chatMessages[chatMessages.length-1].content}
+                                                    <em>Lia está processando...</em>
                                                 </div>
                                             )}
                                         </div>

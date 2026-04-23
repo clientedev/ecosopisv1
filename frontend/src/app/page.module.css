@@ -488,15 +488,40 @@
 
 .miniChatMessages {
   margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 150px;
+  overflow-y: auto;
 }
 
 .miniMessage {
-  background: #f0f7f0;
-  padding: 10px 15px;
+  padding: 8px 12px;
   border-radius: 12px;
-  font-size: 0.9rem;
-  color: var(--text-main);
+  font-size: 0.85rem;
+  line-height: 1.4;
   animation: slideUpShort 0.3s ease;
+}
+
+.miniMessage.user {
+  background: var(--primary-green);
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.miniMessage.assistant {
+  background: #f0f7f0;
+  color: var(--text-main);
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+.miniChatEmpty {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+  font-style: italic;
 }
 
 @keyframes slideUpShort {
