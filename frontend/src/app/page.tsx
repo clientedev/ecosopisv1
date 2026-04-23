@@ -24,8 +24,10 @@ import {
     Moon,
     ArrowDown
 } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
 export default function Home() {
+    const { addToCart } = useCart();
     const [recentProducts, setRecentProducts] = useState<any[]>([]);
     const [allProducts, setAllProducts] = useState<any[]>([]);
     const [activeGoal, setActiveGoal] = useState<string | null>(null);
