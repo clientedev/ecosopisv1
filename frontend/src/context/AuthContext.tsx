@@ -35,15 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const isTokenExpired = (jwt: string) => {
-    try {
-      const payloadPart = jwt.split('.')[1];
-      if (!payloadPart) return true;
-      const payload = JSON.parse(atob(payloadPart.replace(/-/g, '+').replace(/_/g, '/')));
-      if (!payload?.exp) return false;
-      return Date.now() >= payload.exp * 1000;
-    } catch {
-      return true;
-    }
+    // The user prefers sessions not to expire.
+    // Return false so we don't log them out on the client side.
+    return false;
   };
 
   useEffect(() => {
