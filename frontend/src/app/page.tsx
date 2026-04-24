@@ -835,36 +835,6 @@ export default function Home() {
                 </button>
             </div>
 
-            {/* Social Proof / Stats */}
-            <section className={styles.statsSection}>
-                <div className="container">
-                    <div className={styles.statsGrid}>
-                        <div className={styles.statItem}>
-                            <h3>+200 MIL</h3>
-                            <p>Pedidos enviados com amor</p>
-                        </div>
-                        <div className={styles.statItem}>
-                            <h3>+50 MIL</h3>
-                            <p>Clientes transformadas</p>
-                        </div>
-                        <div className={styles.statItem}>
-                            <h3>100%</h3>
-                            <p>Botânico e Seguro</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Brand History */}
-            <section className={styles.historySection}>
-                <div className="container">
-                    <div className={styles.historyContent}>
-                        <h2 className={styles.sectionTitle}>MAIS QUE PRODUTOS, UM COMPROMISSO COM VOCÊ</h2>
-                        <p>A Ecosopis nasceu do desejo de unir a sabedoria da natureza com resultados que você pode ver e sentir. Acreditamos que o autocuidado deve ser simples, ético e transformador. Cada fórmula é pensada para que você recupere não apenas a saúde da sua pele, mas a sua confiança diária.</p>
-                        <p className={styles.historyHighlight}>&quot;Quem usa, continua usando — porque sua pele sente a diferença nos primeiros usos.&quot;</p>
-                    </div>
-                </div>
-            </section>
 
             {/* Quiz Promo - Redesigned */}
             <section className={styles.quizPromo}>
