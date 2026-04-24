@@ -764,15 +764,15 @@
 .shortcutBadge {
   position: absolute;
   top: -15px;
-  background: var(--primary-green);
+  background: linear-gradient(135deg, #f59e0b, #d97706);
   color: white;
-  padding: 5px 15px;
+  padding: 8px 20px;
   border-radius: 20px;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 900;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4);
 }
 
 .shortcutCard h3 {
