@@ -486,6 +486,48 @@ export default function Home() {
                 </div>
             </section>
 
+            {/* Brand History */}
+            <section className={styles.historySection}>
+                <div className="container">
+                    <div className={styles.historyContent}>
+                        <h2 className={styles.sectionTitle}>MAIS QUE PRODUTOS, UM COMPROMISSO COM VOCÊ</h2>
+                        <p>A Ecosopis nasceu do desejo de unir a sabedoria da natureza com resultados que você pode ver e sentir. Acreditamos que o autocuidado deve ser simples, ético e transformador. Cada fórmula é pensada para que você recupere não apenas a saúde da sua pele, mas a sua confiança diária.</p>
+                        <p className={styles.historyHighlight}>&quot;Quem usa, continua usando — porque sua pele sente a diferença nos primeiros usos.&quot;</p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Bestsellers Ranking */}
+            <section className={styles.shortcutsSection}>
+                <div className={styles.shortcutsOverlay}></div>
+                <div className="container" style={{ position: 'relative', zIndex: 2 }}>
+                    <div className={styles.shortcutsHeader}>
+                        <h2 style={{ color: 'white' }}>Os Queridinhos da Ecosopis</h2>
+                        <p style={{ color: 'rgba(255,255,255,0.8)' }}>Conheça os protocolos mais vendidos e transformadores.</p>
+                    </div>
+                    <div className={styles.shortcutGrid}>
+                        <div className={styles.shortcutCard}>
+                            <div className={styles.shortcutBadge}>1º LUGAR 👑</div>
+                            <h3>O Mais Vendido</h3>
+                            <p>Sabonete de Açafrão</p>
+                            <button onClick={() => openGoalModal('foliculite')} className="btn-outline">VER DETALHES</button>
+                        </div>
+                        <div className={styles.shortcutCard}>
+                            <div className={styles.shortcutBadge}>2º LUGAR 👑</div>
+                            <h3>Para Clareamento</h3>
+                            <p>Kit Clareamento Potente</p>
+                            <button onClick={() => openGoalModal('clareamento')} className="btn-outline">EU QUERO</button>
+                        </div>
+                        <div className={styles.shortcutCard}>
+                            <div className={styles.shortcutBadge}>3º LUGAR 👑</div>
+                            <h3>Controle de Acne</h3>
+                            <p>Kit Acne e Oleosidade</p>
+                            <button onClick={() => openGoalModal('acne')} className="btn-outline">COMEÇAR AGORA</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* Goal Selector Section - Redesigned as a 'Diagnostic' */}
             <section id="diagnostico" className={styles.diagnosticSection} ref={goalsRef}>
                 <div className="container">
@@ -731,47 +773,7 @@ export default function Home() {
                 </div>
             )}
 
-            {/* Brand History */}
-            <section className={styles.historySection}>
-                <div className="container">
-                    <div className={styles.historyContent}>
-                        <h2 className={styles.sectionTitle}>MAIS QUE PRODUTOS, UM COMPROMISSO COM VOCÊ</h2>
-                        <p>A Ecosopis nasceu do desejo de unir a sabedoria da natureza com resultados que você pode ver e sentir. Acreditamos que o autocuidado deve ser simples, ético e transformador. Cada fórmula é pensada para que você recupere não apenas a saúde da sua pele, mas a sua confiança diária.</p>
-                        <p className={styles.historyHighlight}>&quot;Quem usa, continua usando — porque sua pele sente a diferença nos primeiros usos.&quot;</p>
-                    </div>
-                </div>
-            </section>
 
-            {/* Bestsellers Ranking */}
-            <section className={styles.shortcutsSection}>
-                <div className={styles.shortcutsOverlay}></div>
-                <div className="container" style={{ position: 'relative', zIndex: 2 }}>
-                    <div className={styles.shortcutsHeader}>
-                        <h2 style={{ color: 'white' }}>Os Queridinhos da Ecosopis</h2>
-                        <p style={{ color: 'rgba(255,255,255,0.8)' }}>Conheça os protocolos mais vendidos e transformadores.</p>
-                    </div>
-                    <div className={styles.shortcutGrid}>
-                        <div className={styles.shortcutCard}>
-                            <div className={styles.shortcutBadge}>1º LUGAR 👑</div>
-                            <h3>O Mais Vendido</h3>
-                            <p>Sabonete de Açafrão</p>
-                            <button onClick={() => openGoalModal('foliculite')} className="btn-outline">VER DETALHES</button>
-                        </div>
-                        <div className={styles.shortcutCard}>
-                            <div className={styles.shortcutBadge}>2º LUGAR 👑</div>
-                            <h3>Para Clareamento</h3>
-                            <p>Kit Clareamento Potente</p>
-                            <button onClick={() => openGoalModal('clareamento')} className="btn-outline">EU QUERO</button>
-                        </div>
-                        <div className={styles.shortcutCard}>
-                            <div className={styles.shortcutBadge}>3º LUGAR 👑</div>
-                            <h3>Controle de Acne</h3>
-                            <p>Kit Acne e Oleosidade</p>
-                            <button onClick={() => openGoalModal('acne')} className="btn-outline">COMEÇAR AGORA</button>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             {/* Routine Section with AI */}
             <section className={styles.routineSection}>
