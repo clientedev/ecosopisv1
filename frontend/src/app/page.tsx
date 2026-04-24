@@ -541,7 +541,7 @@ export default function Home() {
                             <div className={styles.diagnosticIcon}><Sparkles size={40} /></div>
                             <div className={styles.diagnosticContent}>
                                 <h3>Pele com Manchas</h3>
-                                <p>Uniformizar tom e clarear melasma/sol</p>
+                                <p>Para uniformizar a pele e clarear marcas</p>
                                 <span className={styles.diagnosticAction}>VER TRATAMENTO <ChevronRight size={16} /></span>
                             </div>
                         </div>
@@ -550,7 +550,7 @@ export default function Home() {
                             <div className={styles.diagnosticIcon}><Zap size={40} /></div>
                             <div className={styles.diagnosticContent}>
                                 <h3>Acne e Oleosidade</h3>
-                                <p>Controlar brilho e reduzir inflamações</p>
+                                <p>Para controlar oleosidade e reduzir espinhas</p>
                                 <span className={styles.diagnosticAction}>VER TRATAMENTO <ChevronRight size={16} /></span>
                             </div>
                         </div>
@@ -558,8 +558,8 @@ export default function Home() {
                         <div className={styles.diagnosticCard} onClick={() => openGoalModal('foliculite')}>
                             <div className={styles.diagnosticIcon}><Droplets size={40} /></div>
                             <div className={styles.diagnosticContent}>
-                                <h3>Foliculite e Pelos</h3>
-                                <p>Pele lisa e sem bolinhas vermelhas</p>
+                                <h3>Foliculite e Pelos <span className={styles.popularMiniBadge}>Nosso mais vendido</span></h3>
+                                <p>Adeus foliculite, pele lisa e uniforme</p>
                                 <span className={styles.diagnosticAction}>VER TRATAMENTO <ChevronRight size={16} /></span>
                             </div>
                         </div>
@@ -601,7 +601,7 @@ export default function Home() {
                                     <div className={styles.timelineBlock}>
                                         <div className={styles.timelineHeader}>
                                             <div className={styles.timelineIcon}><Sun size={32} /></div>
-                                            <h3>Rotina Diurna (AM)</h3>
+                                            <h3>Passos Principais</h3>
                                         </div>
                                         <div className={styles.timelineFlow}>
                                             {routineSteps.am.map((item, idx) => (
@@ -632,7 +632,7 @@ export default function Home() {
                                     <div className={styles.timelineBlock}>
                                         <div className={styles.timelineHeader}>
                                             <div className={styles.timelineIcon}><Moon size={32} /></div>
-                                            <h3>Rotina Noturna (PM)</h3>
+                                            <h3>Complementares e Extras</h3>
                                         </div>
                                         <div className={styles.timelineFlow}>
                                             {routineSteps.pm.map((item, idx) => (
@@ -689,6 +689,11 @@ export default function Home() {
                                         {selectedGoal === 'clareamento' ? 'Seu Caminho para uma Pele Uniforme' : 
                                          selectedGoal === 'acne' ? 'Pele Saudável e sem Oleosidade' : 'Adeus Foliculite e Irritações'}
                                     </h2>
+                                    <p className={styles.modalGoalDescription}>
+                                        {selectedGoal === 'clareamento' ? 'Uma rotina focada em uniformizar e iluminar sua pele.' : 
+                                         selectedGoal === 'acne' ? 'Controle a oleosidade e cuide da acne com uma rotina simples e eficaz. Comece com o sabonete ou potencialize os resultados com o kit completo. O sabonete pode ser usado de manhã e à noite. O kit inclui também o creme facial para uso diário, ambos para qualquer hora do dia.' : 
+                                         'Nosso mais vendido para quem busca uma pele mais uniforme, auxiliando no cuidado com foliculite e manchas.'}
+                                    </p>
                                     
                                     <div className={styles.modalMainProduct}>
                                         {selectedGoal === 'clareamento' ? findProductBySlug('kit-clareamento') && (
@@ -700,18 +705,18 @@ export default function Home() {
                                         )}
                                     </div>
                                     
-                                    <div className={styles.modalAlternativeSection}>
-                                        <h4>Também recomendamos:</h4>
-                                        <div className={styles.modalAltGrid}>
-                                            {selectedGoal === 'clareamento' ? findProductBySlug('sabonete-acafrao-dolomita') && (
-                                                <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} />
-                                            ) : selectedGoal === 'acne' ? findProductBySlug('sabonete-argila-verde') && (
-                                                <ProductCard product={findProductBySlug('sabonete-argila-verde')} />
-                                            ) : findProductBySlug('sabonete-clareador-argila-branca') && (
-                                                <ProductCard product={findProductBySlug('sabonete-clareador-argila-branca')} />
-                                            )}
+                                    {selectedGoal !== 'foliculite' && (
+                                        <div className={styles.modalAlternativeSection}>
+                                            <h4>Também recomendamos:</h4>
+                                            <div className={styles.modalAltGrid}>
+                                                {selectedGoal === 'clareamento' ? findProductBySlug('sabonete-acafrao-dolomita') && (
+                                                    <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} />
+                                                ) : selectedGoal === 'acne' ? findProductBySlug('sabonete-argila-verde') && (
+                                                    <ProductCard product={findProductBySlug('sabonete-argila-verde')} />
+                                                ) : null}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
 
                                 {/* Right Side: Lia Interactive Box */}
@@ -793,13 +798,13 @@ export default function Home() {
                             <div className={styles.shortcutBadge}>🎁 KIT INICIAL</div>
                             <h3>Melhor kit para iniciantes</h3>
                             <p>Kit Clareamento Potente</p>
-                            <button onClick={() => openGoalModal('clareamento')} className="btn-outline">EU QUERO</button>
+                            <button onClick={() => openGoalModal('clareamento')} className="btn-outline">ESCOLHER ESSE TRATAMENTO</button>
                         </div>
                         <div className={styles.shortcutCard}>
                             <div className={styles.shortcutBadge}>✨ MAIS EFICAZ</div>
                             <h3>Melhor opção para acne</h3>
                             <p>Kit Acne e Oleosidade</p>
-                            <button onClick={() => openGoalModal('acne')} className="btn-outline">COMEÇAR AGORA</button>
+                            <button onClick={() => openGoalModal('acne')} className="btn-outline">QUERO ESSE PRODUTO</button>
                         </div>
                     </div>
                 </div>

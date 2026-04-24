@@ -317,12 +317,24 @@
 .diagnosticAction {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  font-weight: 800;
+  font-weight: 700;
   font-size: 0.9rem;
   color: var(--primary-green);
-  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  margin-top: auto;
+}
+
+.popularMiniBadge {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  font-size: 0.6rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Modal Interactive System */

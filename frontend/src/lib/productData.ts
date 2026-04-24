@@ -5,14 +5,16 @@ export interface StaticProductData {
   beneficios: string;
   modo_de_uso: string;
   curiosidades?: string;
+  frase_decisao?: string;
 }
 
 export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
   "sabonete-acafrao-dolomita": {
     ativos: "Açafrão, Dolomita, Barbatimão",
-    beneficios: "Ajuda a combater a foliculite, auxilia na redução de pelos, cicatrizante e anti-inflamatório",
+    beneficios: "Ajuda a reduzir a foliculite, secar espinhas e uniformizar o tom da pele.",
     modo_de_uso: "Aplique sobre a pele molhada, massageando com movimentos circulares. Deixe agir por 3 minutos e, em seguida, enxágue completamente. Uso diário.",
     curiosidades: "O açafrão, também conhecido como cúrcuma, é utilizado há séculos na medicina ayurvédica por suas propriedades antissépticas e clareadoras naturais.",
+    frase_decisao: "Indicado para uso diário. Ideal para foliculite e manchas."
   },
   "sabonete-clareador-argila-branca": {
     ativos: "Argila Branca, Dolomita, Aloe Vera",
@@ -22,9 +24,10 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
   },
   "sabonete-argila-verde": {
     ativos: "Argila Verde, Aloe Vera, Óleo de Semente de Uva",
-    beneficios: "Controla a oleosidade, ajuda no combate à acne, desintoxica e purifica a pele",
+    beneficios: "Controla o brilho excessivo, reduz espinhas e desintoxica a pele.",
     modo_de_uso: "Aplicar sobre a pele úmida, massagear suavemente e enxaguar. Pode ser usado diariamente, principalmente em peles oleosas.",
     curiosidades: "A argila verde possui uma alta concentração de minerais e tem uma poderosa ação absorvente, perfeita para equilibrar peles com tendência à acne.",
+    frase_decisao: "Indicado para pele oleosa."
   },
   "sabonete-carvao-ativado": {
     ativos: "Carvão Ativado, Calêndula, Aloe Vera",
@@ -160,17 +163,19 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
   },
   "kit-acne": {
     ativos: "Argila Verde, Carvão Ativado, Calêndula, Chá Verde, Vitamina E",
-    beneficios: "Tratamento completo para controle de acne, redução da oleosidade e purificação dos poros",
+    beneficios: "Controla a oleosidade intensa, reduz inflamações e purifica os poros obstruídos.",
     modo_de_uso: "1. Sabonete de Argila Verde: utilizar diariamente para limpeza da pele, aplicando sobre a pele úmida, massageando suavemente e enxaguando.\n\n2. Sabonete de Carvão Ativado & Calêndula: pode ser usado diariamente, alternando com o sabonete de argila verde, ou conforme necessidade para uma limpeza mais profunda.\n\n3. Creme Facial Anti Oleosidade: após a limpeza, aplicar uma pequena quantidade no rosto limpo e seco, espalhando até completa absorção. Usar diariamente.\n\nSugestão de uso: utilizar os sabonetes pela manhã e à noite, finalizando com o creme facial para melhores resultados no controle da acne e da oleosidade.",
     curiosidades: "Este kit combina a força adstringente da argila verde com o poder purificante do carvão ativado, criando um cronograma de limpeza equilibrado.",
+    frase_decisao: "A rotina completa para pele oleosa e com acne."
   },
 
   // KITS
   "kit-clareamento": {
     ativos: "Argila Branca, Rosa Mosqueta Rubiginosa",
-    beneficios: "Auxilia no clareamento da pele, ajuda a reduzir manchas e uniformizar o tom, promovendo uma aparência mais iluminada, saudável e revitalizada. Combina limpeza e tratamento, potencializando os resultados no uso contínuo.",
+    beneficios: "Auxilia na redução de manchas de acne e melasma, uniformizando o tom e iluminando a pele.",
     modo_de_uso: "1. Sabonete Super Clareador: aplicar sobre a pele úmida, massagear suavemente, deixar agir por alguns segundos e enxaguar. Utilizar diariamente.\n\n2. Óleo de Rosa Mosqueta Rubiginosa: após a limpeza, aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso preferencial noturno.\n\nSugestão de uso: utilizar o sabonete diariamente (manhã e noite) e o óleo principalmente à noite para potencializar os resultados no clareamento e na regeneração da pele.",
     curiosidades: "A Rosa Mosqueta Rubiginosa é um dos óleos mais poderosos para regeneração celular, tornando este kit uma dupla imbatível para peles com manchas e necessidade de renovação.",
+    frase_decisao: "A melhor combinação para uniformizar e iluminar a pele."
   },
 
   "kit-acafrao-argila": {
