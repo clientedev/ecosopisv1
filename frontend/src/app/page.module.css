@@ -1234,20 +1234,52 @@
 
 .routineTimeline {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 30px;
-  max-width: 900px;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  gap: 20px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
 .timelineBlock {
+  flex: 1;
   background: white;
-  width: 100%;
   border-radius: 32px;
   padding: 40px;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.05);
-  border: 1px solid #f0f0f0;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.03);
+  border: 1px solid rgba(45, 90, 39, 0.05);
+  transition: transform 0.3s;
+}
+
+.timelineBlock:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 50px rgba(45, 90, 39, 0.06);
+}
+
+.timelineConnector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-green);
+  opacity: 0.4;
+}
+
+.connectorIcon {
+  transition: transform 0.3s;
+}
+
+@media (max-width: 992px) {
+  .routineTimeline {
+    flex-direction: column;
+    align-items: center;
+  }
+  .timelineBlock {
+    width: 100%;
+  }
+  .connectorIcon {
+    transform: rotate(90deg);
+  }
 }
 
 .timelineHeader {
@@ -1256,7 +1288,7 @@
   gap: 20px;
   margin-bottom: 30px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid rgba(45, 90, 39, 0.08);
 }
 
 .timelineIcon {

@@ -584,7 +584,7 @@ export default function Home() {
                                     </div>
 
                                     <div className={styles.timelineConnector}>
-                                        <ArrowDown size={32} />
+                                        <ArrowRight size={32} className={styles.connectorIcon} />
                                     </div>
 
                                     {/* Night Routine */}
