@@ -1582,3 +1582,97 @@
   background-color: #e3f2fd;
   color: #1565c0;
 }
+
+/* Bestsellers Ranking Section */
+.bestsellersSection {
+  padding: 80px 0;
+  background: linear-gradient(to bottom, #ffffff, #fdfdfd);
+  position: relative;
+}
+
+.bestsellersHeader {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.bestsellersHeader p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-top: 10px;
+}
+
+.bestsellersGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  position: relative;
+  align-items: flex-end;
+}
+
+.bestsellerWrapper {
+  position: relative;
+  transition: transform 0.3s ease;
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+  border: 1px solid rgba(45, 90, 39, 0.05);
+}
+
+.bestsellerWrapper:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(45, 90, 39, 0.08);
+}
+
+/* 1st Place is slightly larger */
+.bestsellerWrapper:nth-child(1) {
+  transform: scale(1.05);
+  z-index: 2;
+  border-color: rgba(245, 158, 11, 0.3);
+  box-shadow: 0 15px 40px rgba(245, 158, 11, 0.1);
+}
+
+.bestsellerWrapper:nth-child(1):hover {
+  transform: scale(1.08) translateY(-10px);
+}
+
+.rankBadge {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  padding: 6px 20px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4);
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.bestsellerWrapper:nth-child(1) .rankBadge {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+  font-size: 0.85rem;
+  padding: 8px 25px;
+  top: -20px;
+}
+
+@media (max-width: 992px) {
+  .bestsellersGrid {
+    grid-template-columns: 1fr;
+    gap: 50px;
+    align-items: stretch;
+  }
+  .bestsellerWrapper:nth-child(1) {
+    transform: none;
+    order: -1;
+  }
+  .bestsellerWrapper:nth-child(1):hover {
+    transform: translateY(-5px);
+  }
+}

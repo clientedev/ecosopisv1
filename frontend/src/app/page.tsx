@@ -497,32 +497,31 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Bestsellers Ranking */}
-            <section className={styles.shortcutsSection}>
-                <div className={styles.shortcutsOverlay}></div>
-                <div className="container" style={{ position: 'relative', zIndex: 2 }}>
-                    <div className={styles.shortcutsHeader}>
-                        <h2 style={{ color: 'white' }}>Os Queridinhos da Ecosopis</h2>
-                        <p style={{ color: 'rgba(255,255,255,0.8)' }}>Conheça os protocolos mais vendidos e transformadores.</p>
+            {/* Bestsellers Ranking - Product Cards */}
+            <section className={styles.bestsellersSection}>
+                <div className="container">
+                    <div className={styles.bestsellersHeader}>
+                        <h2 className={styles.sectionTitle}>Os Mais Vendidos 👑</h2>
+                        <p>Os produtos e protocolos que estão transformando a pele das nossas clientes.</p>
                     </div>
-                    <div className={styles.shortcutGrid}>
-                        <div className={styles.shortcutCard}>
-                            <div className={styles.shortcutBadge}>1º LUGAR 👑</div>
-                            <h3>O Mais Vendido</h3>
-                            <p>Sabonete de Açafrão</p>
-                            <button onClick={() => openGoalModal('foliculite')} className="btn-outline">VER DETALHES</button>
+                    <div className={styles.bestsellersGrid}>
+                        <div className={styles.bestsellerWrapper}>
+                            <div className={styles.rankBadge}>1º LUGAR</div>
+                            {findProductBySlug('sabonete-acafrao-dolomita') && (
+                                <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} />
+                            )}
                         </div>
-                        <div className={styles.shortcutCard}>
-                            <div className={styles.shortcutBadge}>2º LUGAR 👑</div>
-                            <h3>Para Clareamento</h3>
-                            <p>Kit Clareamento Potente</p>
-                            <button onClick={() => openGoalModal('clareamento')} className="btn-outline">EU QUERO</button>
+                        <div className={styles.bestsellerWrapper}>
+                            <div className={styles.rankBadge}>2º LUGAR</div>
+                            {findProductBySlug('kit-clareamento') && (
+                                <ProductCard product={findProductBySlug('kit-clareamento')} />
+                            )}
                         </div>
-                        <div className={styles.shortcutCard}>
-                            <div className={styles.shortcutBadge}>3º LUGAR 👑</div>
-                            <h3>Controle de Acne</h3>
-                            <p>Kit Acne e Oleosidade</p>
-                            <button onClick={() => openGoalModal('acne')} className="btn-outline">COMEÇAR AGORA</button>
+                        <div className={styles.bestsellerWrapper}>
+                            <div className={styles.rankBadge}>3º LUGAR</div>
+                            {findProductBySlug('kit-acne') && (
+                                <ProductCard product={findProductBySlug('kit-acne')} />
+                            )}
                         </div>
                     </div>
                 </div>
@@ -774,6 +773,37 @@ export default function Home() {
             )}
 
 
+
+            {/* Decision shortcuts */}
+            <section className={styles.shortcutsSection}>
+                <div className={styles.shortcutsOverlay}></div>
+                <div className="container" style={{ position: 'relative', zIndex: 2 }}>
+                    <div className={styles.shortcutsHeader}>
+                        <h2 style={{ color: 'white' }}>Não sabe por onde começar?</h2>
+                        <p style={{ color: 'rgba(255,255,255,0.8)' }}>Atalhos rápidos para quem quer resultados agora.</p>
+                    </div>
+                    <div className={styles.shortcutGrid}>
+                        <div className={styles.shortcutCard}>
+                            <div className={styles.shortcutBadge}>🔥 TOP 1</div>
+                            <h3>O mais vendido de todos</h3>
+                            <p>Sabonete de Açafrão</p>
+                            <button onClick={() => openGoalModal('foliculite')} className="btn-outline">VER DETALHES</button>
+                        </div>
+                        <div className={styles.shortcutCard}>
+                            <div className={styles.shortcutBadge}>🎁 KIT INICIAL</div>
+                            <h3>Melhor kit para iniciantes</h3>
+                            <p>Kit Clareamento Potente</p>
+                            <button onClick={() => openGoalModal('clareamento')} className="btn-outline">EU QUERO</button>
+                        </div>
+                        <div className={styles.shortcutCard}>
+                            <div className={styles.shortcutBadge}>✨ MAIS EFICAZ</div>
+                            <h3>Melhor opção para acne</h3>
+                            <p>Kit Acne e Oleosidade</p>
+                            <button onClick={() => openGoalModal('acne')} className="btn-outline">COMEÇAR AGORA</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             {/* Routine Section with AI */}
             <section className={styles.routineSection}>
