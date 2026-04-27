@@ -6,6 +6,7 @@ import ProductCard from "@/components/ProductCard/ProductCard";
 import styles from "./page.module.css";
 import { Sparkles, Filter, LayoutGrid, DollarSign, Search, SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
+import { fuzzySearch } from "@/utils/search";
 
 const categories = [
     { id: "all", name: "Todos os Produtos" },
@@ -73,14 +74,9 @@ export default function ProductsPage() {
     }, []);
 
     const filteredProducts = useMemo(() => {
-        return allProducts.filter(p => {
+        // First filter by non-search criteria
+        const baseFiltered = allProducts.filter(p => {
             const tags = Array.isArray(p.tags) ? p.tags : JSON.parse(p.tags || "[]");
-            const name = (p.name || "").toLowerCase();
-            const description = (p.description || "").toLowerCase();
-            const search = searchTerm.toLowerCase();
-
-            // Search check
-            const searchMatch = !searchTerm || name.includes(search) || description.includes(search);
 
             // Category check
             const categoryMatch = activeCategory === "all" || tags.includes(activeCategory);
@@ -91,8 +87,13 @@ export default function ProductsPage() {
             // Price check
             const priceMatch = p.price <= maxPrice;
 
-            return searchMatch && categoryMatch && filterMatch && priceMatch;
+            return categoryMatch && filterMatch && priceMatch;
         });
+
+        // Then apply fuzzy search if searchTerm exists
+        if (!searchTerm) return baseFiltered;
+
+        return fuzzySearch(baseFiltered, searchTerm, ["name", "description"]);
     }, [allProducts, activeCategory, activeFilter, maxPrice, searchTerm]);
 
     return (

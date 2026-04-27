@@ -8,6 +8,7 @@ import {
     AlertTriangle, ExternalLink, Tag, Loader2, Copy, MapPin
 } from "lucide-react";
 import pedidoStyles from "./pedidos.module.css";
+import { fuzzySearch } from "@/utils/search";
 
 interface Order {
     id: number;
@@ -285,17 +286,9 @@ export default function AdminPedidosPage() {
         localStorage.setItem("me_banner_dismissed", "1");
     };
 
-    const filteredOrders = orders.filter(o => {
-        const matchesStatus = filter === "all" || o.status === filter;
-        const term = searchTerm.toLowerCase();
-        const matchesSearch = !term ||
-            String(o.id).includes(term) ||
-            (o.buyer_name || o.customer_name || "").toLowerCase().includes(term) ||
-            (o.buyer_email || o.customer_email || "").toLowerCase().includes(term) ||
-            (o.codigo_rastreio || "").toLowerCase().includes(term) ||
-            (o.shipment_id || "").toLowerCase().includes(term);
-        return matchesStatus && matchesSearch;
-    });
+    const filteredOrders = searchTerm 
+        ? fuzzySearch(orders.filter(o => filter === "all" || o.status === filter), searchTerm, ["id", "buyer_name", "customer_name", "buyer_email", "customer_email", "codigo_rastreio", "shipment_id"])
+        : orders.filter(o => filter === "all" || o.status === filter);
 
     const stats = {
         total:    orders.length,

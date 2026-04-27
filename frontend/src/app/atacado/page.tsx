@@ -9,6 +9,7 @@ import { useToast } from "@/components/Toast/Toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getStaticProductData } from "@/lib/productData";
+import { fuzzySearch } from "@/utils/search";
 
 interface LiaMessage {
     role: 'user' | 'lia';
@@ -137,9 +138,9 @@ export default function WholesalePage() {
     const progress = Math.min((totalQuantity / 10) * 100, 100);
     const isUnlocked = totalQuantity >= 10;
     
-    const filteredProducts = products.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredProducts = searchTerm 
+        ? fuzzySearch(products, searchTerm, ["name", "description"])
+        : products;
     
     const rawTotal = bundle.reduce((acc, p) => acc + (p.price * p.quantity), 0);
     const discountedTotal = rawTotal * 0.7;

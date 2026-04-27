@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import styles from "@/app/admin/dashboard/dashboard.module.css";
 import reviewStyles from "./reviews.module.css";
 import { Search, Filter, CheckCircle2, Layers, Inbox, RefreshCw, Trash2, Clock } from "lucide-react";
+import { fuzzySearch } from "@/utils/search";
 
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
@@ -81,17 +82,15 @@ export default function AdminReviewsPage() {
     }, [reviews]);
 
     const filteredReviews = useMemo(() => {
-        const term = searchTerm.trim().toLowerCase();
-        return reviews.filter((rev) => {
+        const baseFiltered = reviews.filter((rev) => {
             const matchesProduct = productFilter === "all" || String(rev.product_id ?? 0) === productFilter;
             const matchesStatus = statusFilter === "all" || (statusFilter === "approved" ? rev.is_approved : !rev.is_approved);
-            const matchesSearch = !term || [
-                rev.user_name,
-                rev.comment,
-                rev.product_name || "Geral"
-            ].some((value) => value?.toLowerCase().includes(term));
-            return matchesProduct && matchesStatus && matchesSearch;
+            return matchesProduct && matchesStatus;
         });
+
+        if (!searchTerm.trim()) return baseFiltered;
+
+        return fuzzySearch(baseFiltered, searchTerm.trim(), ["user_name", "comment", "product_name"]);
     }, [reviews, productFilter, statusFilter, searchTerm]);
 
     const groupedReviews = useMemo(() => {
