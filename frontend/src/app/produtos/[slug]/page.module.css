@@ -435,3 +435,90 @@
   flex-direction: column;
   gap: 10px;
 }
+
+.wholesalePromoCard {
+    margin-top: 60px;
+    background: linear-gradient(135deg, #1a3a16 0%, #2d5a27 100%);
+    border: 1px solid #3d7a36;
+    padding: 40px;
+    border-radius: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+}
+
+.wholesaleBadge {
+    display: inline-block;
+    background: #f59e0b;
+    color: #1a3a16;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 8px 20px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.wholesaleContent h3 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 12px;
+    font-family: var(--font-header);
+}
+
+.wholesaleContent p {
+    font-size: 1.1rem;
+    color: #d1fae5;
+    margin-bottom: 30px;
+    max-width: 600px;
+    line-height: 1.6;
+}
+
+.wholesaleContent p strong {
+    color: #f59e0b;
+}
+
+.wholesaleBtn {
+    display: inline-block;
+    background: #f59e0b;
+    color: #1a3a16;
+    padding: 18px 40px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wholesaleBtn:hover {
+    background: #fbbf24;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4);
+}
+
+@media (max-width: 768px) {
+    .wholesalePromoCard {
+        margin-top: 40px;
+        padding: 30px 20px;
+        border-radius: 24px;
+    }
+    .wholesaleContent h3 {
+        font-size: 1.5rem;
+    }
+    .wholesaleContent p {
+        font-size: 0.95rem;
+    }
+    .wholesaleBtn {
+        width: 100%;
+        padding: 16px;
+    }
+}

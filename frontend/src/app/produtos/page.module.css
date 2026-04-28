@@ -416,7 +416,15 @@
     color: #666;
 }
 
+.mobileCardsContainer {
+    display: none;
+    margin-bottom: 30px;
+}
+
 @media (max-width: 1024px) {
+    .mobileCardsContainer {
+        display: block;
+    }
     .productsContainer {
         flex-direction: column;
         gap: 20px;

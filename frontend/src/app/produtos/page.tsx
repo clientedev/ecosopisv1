@@ -214,6 +214,17 @@ export default function ProductsPage() {
                             </button>
                         </div>
 
+                        <div className={styles.mobileCardsContainer}>
+                            <div className={styles.wholesaleSidebarCard}>
+                                <div className={styles.wholesaleBadge}>ECONOMIA REAL</div>
+                                <h4>Atacado ECOSOPIS</h4>
+                                <p>Desbloqueie <strong>30% de desconto</strong> direto de fábrica ao montar seu kit com 10+ produtos.</p>
+                                <Link href="/atacado" className={styles.wholesaleBtnSidebar}>
+                                    COMPRAR NO ATACADO
+                                </Link>
+                            </div>
+                        </div>
+
                         <div className={styles.gridHeader}>
                             <h2>{activeCategory === 'all' ? 'Todos os Produtos' : categories.find(c => c.id === activeCategory)?.name}</h2>
                             <span className={styles.resultsCount}>{filteredProducts.length} itens encontrados</span>

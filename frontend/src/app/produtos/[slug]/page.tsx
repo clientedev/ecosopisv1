@@ -353,7 +353,18 @@ export default function ProductDetailPage() {
                         </div>
                     </div>
                 </div>
-
+                
+                <div className={styles.wholesalePromoCard}>
+                    <div className={styles.wholesaleBadge}>ECONOMIA REAL</div>
+                    <div className={styles.wholesaleContent}>
+                        <h3>Atacado ECOSOPIS</h3>
+                        <p>Desbloqueie <strong>30% de desconto</strong> direto de fábrica ao montar seu kit com 10+ produtos.</p>
+                        <Link href="/atacado" className={styles.wholesaleBtn}>
+                            COMPRAR NO ATACADO
+                        </Link>
+                    </div>
+                </div>
+                
                 <div className={styles.reviewsSection}>
                     <div className={styles.reviewsHeader}>
                         <h2>Avaliações dos Clientes</h2>
