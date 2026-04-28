@@ -3,6 +3,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
+import Link from "next/link";
 import styles from "./page.module.css";
 import Image from "next/image";
 import { QrCode, Download } from "lucide-react";
