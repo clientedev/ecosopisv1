@@ -3,7 +3,7 @@ import Link from "next/link";
 import styles from "./Header.module.css";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart, Package, Newspaper, Zap, Info, Sparkles } from "lucide-react";
+import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart, Package, Newspaper, Zap, Info, Sparkles, Truck } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
@@ -131,6 +131,10 @@ export default function Header() {
                             <Link href="/produtos" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
                                 <Package size={22} />
                                 PRODUTOS
+                            </Link>
+                            <Link href="/atacado" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                <Truck size={22} />
+                                ATACADO
                             </Link>
                             <Link href="/novidades" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
                                 <Newspaper size={22} />
