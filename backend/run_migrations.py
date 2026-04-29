@@ -37,6 +37,7 @@ MISSING_USERS_COLUMNS = [
     ("verification_token", "VARCHAR"),
     ("cart_json",          "TEXT"),
     ("cart_updated_at",    "TIMESTAMP WITH TIME ZONE"),
+    ("phone",              "VARCHAR"),
 ]
 
 MISSING_PRODUCTS_COLUMNS = [
