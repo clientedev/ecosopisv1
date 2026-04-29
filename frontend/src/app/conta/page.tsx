@@ -295,14 +295,16 @@ export default function ContaPage() {
                             ) : (
                                 <form onSubmit={handleSubmit} className={styles.form}>
                                 {!isLogin && (
-                                    <div className={styles.field}>
-                                        <label>Nome Completo</label>
-                                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
-                                    </div>
-                                    <div className={styles.field}>
-                                        <label>WhatsApp</label>
-                                        <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" required />
-                                    </div>
+                                    <>
+                                        <div className={styles.field}>
+                                            <label>Nome Completo</label>
+                                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+                                        </div>
+                                        <div className={styles.field}>
+                                            <label>WhatsApp</label>
+                                            <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" required />
+                                        </div>
+                                    </>
                                 )}
                                 <div className={styles.field}>
                                     <label>E-mail</label>
