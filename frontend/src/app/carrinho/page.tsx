@@ -78,6 +78,7 @@ export default function CarrinhoPage() {
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
     const [couponCode, setCouponCode] = useState("");
     const [couponError, setCouponError] = useState("");
+    const [firstPurchaseChecked, setFirstPurchaseChecked] = useState(false);
 
     // Cashback states
     const [availableCashback, setAvailableCashback] = useState(0);
@@ -134,6 +135,22 @@ export default function CarrinhoPage() {
             }
         }
     }, []);
+
+    // Auto-apply first purchase coupon
+    useEffect(() => {
+        if (user && !firstPurchaseChecked) {
+            setFirstPurchaseChecked(true);
+            const rouletteDiscount = localStorage.getItem("active_roulette_discount");
+            if (!rouletteDiscount && user.total_compras === 0 && !appliedCoupon) {
+                setAppliedCoupon({
+                    code: "PRIMEIRACOMPRA",
+                    type: "percentage",
+                    value: 10,
+                    name: "10% OFF na Primeira Compra"
+                });
+            }
+        }
+    }, [user, appliedCoupon, firstPurchaseChecked]);
 
     // Fetch Cashback balance and config
     useEffect(() => {

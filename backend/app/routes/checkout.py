@@ -78,34 +78,38 @@ async def checkout(
     discount_amount = checkout_data.discount_amount or 0.0
 
     if checkout_data.coupon_code:
-        from app.models import models as app_models
-        from datetime import datetime, timezone
-
-        coupon = db.query(app_models.Coupon).filter(
-            app_models.Coupon.code == checkout_data.coupon_code.upper(),
-            app_models.Coupon.is_active == True
-        ).first()
-
-        if not coupon:
-            raise HTTPException(status_code=400, detail="Cupom inválido ou inativo")
-
-        if coupon.valid_until and coupon.valid_until < datetime.now(timezone.utc):
-            raise HTTPException(status_code=400, detail="Este cupom já expirou")
-
-        if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
-            raise HTTPException(status_code=400, detail="Este cupom atingiu o limite de uso")
-
-        if coupon.min_purchase_value > subtotal:
-            raise HTTPException(status_code=400, detail=f"Compra mínima de R$ {coupon.min_purchase_value} necessária")
-
-        coupon_code = coupon.code
-        if coupon.discount_type == "percentage":
-            discount_amount = (subtotal * coupon.discount_value) / 100
+        if checkout_data.coupon_code.upper() == "PRIMEIRACOMPRA" and current_user.total_compras == 0:
+            coupon_code = "PRIMEIRACOMPRA"
+            discount_amount = (subtotal * 10) / 100
         else:
-            discount_amount = coupon.discount_value
+            from app.models import models as app_models
+            from datetime import datetime, timezone
 
-        coupon.usage_count += 1
-        db.add(coupon)
+            coupon = db.query(app_models.Coupon).filter(
+                app_models.Coupon.code == checkout_data.coupon_code.upper(),
+                app_models.Coupon.is_active == True
+            ).first()
+
+            if not coupon:
+                raise HTTPException(status_code=400, detail="Cupom inválido ou inativo")
+
+            if coupon.valid_until and coupon.valid_until < datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="Este cupom já expirou")
+
+            if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
+                raise HTTPException(status_code=400, detail="Este cupom atingiu o limite de uso")
+
+            if coupon.min_purchase_value > subtotal:
+                raise HTTPException(status_code=400, detail=f"Compra mínima de R$ {coupon.min_purchase_value} necessária")
+
+            coupon_code = coupon.code
+            if coupon.discount_type == "percentage":
+                discount_amount = (subtotal * coupon.discount_value) / 100
+            else:
+                discount_amount = coupon.discount_value
+
+            coupon.usage_count += 1
+            db.add(coupon)
 
     # 2. Validação de Cashback
     from app.api.endpoints.cashback import _available_balance, _get_config

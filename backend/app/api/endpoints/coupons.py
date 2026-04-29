@@ -46,6 +46,18 @@ def delete_coupon(coupon_id: int, db: Session = Depends(get_db), admin: models.U
 
 @router.get("/validate/{code}", response_model=schemas.CouponResponse)
 def validate_coupon(code: str, db: Session = Depends(get_db)):
+    if code.upper() == "PRIMEIRACOMPRA":
+        return schemas.CouponResponse(
+            id=0,
+            code="PRIMEIRACOMPRA",
+            discount_type="percentage",
+            discount_value=10.0,
+            min_purchase_value=0.0,
+            is_active=True,
+            usage_count=0,
+            created_at=datetime.now(timezone.utc)
+        )
+
     coupon = db.query(models.Coupon).filter(models.Coupon.code == code, models.Coupon.is_active == True).first()
     if not coupon:
         raise HTTPException(status_code=404, detail="Cupom inválido ou expirado")
