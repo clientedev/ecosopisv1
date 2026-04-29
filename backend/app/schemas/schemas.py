@@ -6,6 +6,7 @@ from datetime import datetime
 class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
+    phone: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
@@ -13,6 +14,7 @@ class UserCreate(UserBase):
 class UserProfileUpdate(BaseModel):
     full_name: Optional[str] = None
     profile_picture: Optional[str] = None
+    phone: Optional[str] = None
 
 class UserPasswordUpdate(BaseModel):
     current_password: str
@@ -27,6 +29,7 @@ class UserResponse(UserBase):
     pode_girar_roleta: Optional[bool] = False
     tentativas_roleta: Optional[int] = 0
     profile_picture: Optional[str] = None
+    phone: Optional[str] = None
     cart_json: Optional[str] = None
     cart_updated_at: Optional[datetime] = None
     created_at: Optional[datetime] = None

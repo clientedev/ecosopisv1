@@ -35,6 +35,7 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
         email=user_in.email,
         hashed_password=hashed_password,
         full_name=user_in.full_name,
+        phone=user_in.phone,
         role="client",
         pode_girar_roleta=can_spin,
         is_verified=False,
@@ -119,6 +120,8 @@ def update_my_profile(
         current_user.full_name = profile_data.full_name
     if profile_data.profile_picture is not None:
         current_user.profile_picture = profile_data.profile_picture
+    if profile_data.phone is not None:
+        current_user.phone = profile_data.phone
     
     db.commit()
     db.refresh(current_user)

@@ -54,6 +54,7 @@ export default function CarrinhoPage() {
     useEffect(() => {
         if (user) {
             if (!customerName && step === "checkout") setCustomerName(user.full_name || "");
+            if (!customerPhone && step === "checkout") setCustomerPhone(user.phone || "");
             
             // Auto select default address if available
             if (user.addresses && user.addresses.length > 0 && !cep) {

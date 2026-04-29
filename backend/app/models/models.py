@@ -63,6 +63,7 @@ class User(Base):
     ultimo_premio_id = Column(Integer, ForeignKey("roulette_prizes.id"), nullable=True)
     
     profile_picture = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

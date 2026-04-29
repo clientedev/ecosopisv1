@@ -22,6 +22,7 @@ export default function ContaPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [name, setName] = useState("");
+    const [phone, setPhone] = useState("");
     const [isAdmin, setIsAdmin] = useState(false);
     const [orders, setOrders] = useState<any[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
@@ -90,7 +91,7 @@ export default function ContaPage() {
                 const res = await fetch('/api/auth/register', {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email, password, full_name: name })
+                    body: JSON.stringify({ email, password, full_name: name, phone })
                 });
 
                 if (res.ok) {
@@ -297,6 +298,10 @@ export default function ContaPage() {
                                     <div className={styles.field}>
                                         <label>Nome Completo</label>
                                         <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+                                    </div>
+                                    <div className={styles.field}>
+                                        <label>WhatsApp</label>
+                                        <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" required />
                                     </div>
                                 )}
                                 <div className={styles.field}>
