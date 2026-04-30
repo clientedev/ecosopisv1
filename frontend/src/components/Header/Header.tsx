@@ -280,11 +280,6 @@ export default function Header() {
                     fontWeight: 500
                 }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Package size={14} /> 
-                        Atacado (30% OFF): {cartCount >= 10 ? <strong style={{color: '#f59e0b'}}>DESBLOQUEADO!</strong> : <strong>Faltam {10 - cartCount} itens</strong>}
-                    </span>
-                    <span style={{ display: 'none', width: '1px', height: '14px', backgroundColor: '#86efac', '@media (min-width: 600px)': { display: 'block' } } as any}>|</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Truck size={14} /> 
                         Frete Grátis (Sul/Sudeste): {cartTotal >= 148.90 ? <strong style={{color: '#f59e0b'}}>ALCANÇADO!</strong> : <strong>Faltam R$ {(148.90 - cartTotal).toFixed(2).replace('.', ',')}</strong>}
                     </span>
