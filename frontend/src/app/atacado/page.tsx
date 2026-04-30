@@ -22,7 +22,7 @@ export default function WholesalePage() {
     const [bundle, setBundle] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedProductForModal, setSelectedProductForModal] = useState<any>(null);
-    const { addWholesaleBundleToCart } = useCart();
+    const { addWholesaleBundleToCart, cartCount } = useCart();
     const { showToast } = useToast();
     const [isLiaOpen, setIsLiaOpen] = useState(false);
     const [liaMessages, setLiaMessages] = useState<LiaMessage[]>([
@@ -118,8 +118,8 @@ export default function WholesalePage() {
     const handleConfirmBundle = () => {
         try {
             const totalItems = bundle.reduce((acc, p) => acc + p.quantity, 0);
-            if (totalItems < 10) {
-                showToast("Você precisa de pelo menos 10 itens para o Atacado!", "error");
+            if (totalItems + cartCount < 10) {
+                showToast(`Você precisa de pelo menos 10 itens no total para o Atacado! (Você tem ${cartCount} no carrinho e ${totalItems} no kit)`, "error");
                 return;
             }
             
@@ -135,8 +135,9 @@ export default function WholesalePage() {
     };
 
     const totalQuantity = bundle.reduce((acc, p) => acc + p.quantity, 0);
-    const progress = Math.min((totalQuantity / 10) * 100, 100);
-    const isUnlocked = totalQuantity >= 10;
+    const combinedQuantity = totalQuantity + cartCount;
+    const progress = Math.min((combinedQuantity / 10) * 100, 100);
+    const isUnlocked = combinedQuantity >= 10;
     
     const filteredProducts = searchTerm 
         ? fuzzySearch(products, searchTerm, ["name", "description"])
@@ -180,10 +181,10 @@ export default function WholesalePage() {
                                 {isUnlocked ? (
                                     <><CheckCircle2 size={20} color="#f59e0b" /> DESCONTO DESBLOQUEADO!</>
                                 ) : (
-                                    `Faltam ${10 - totalQuantity} itens para o Atacado`
+                                    `Faltam ${10 - combinedQuantity} itens para o Atacado`
                                 )}
                             </span>
-                            <span className={styles.itemCount}>{totalQuantity}/10 ITENS</span>
+                            <span className={styles.itemCount}>{combinedQuantity}/10 ITENS</span>
                         </div>
                         <div className={styles.barContainer}>
                             <div className={styles.barFill} style={{ width: `${progress}%` }}></div>
@@ -290,6 +291,10 @@ export default function WholesalePage() {
                         <div className={styles.summaryCard}>
                             <h3>Resumo do Kit</h3>
                             <div className={styles.summaryRow}>
+                                <span>Já no Carrinho</span>
+                                <span>{cartCount}</span>
+                            </div>
+                            <div className={styles.summaryRow}>
                                 <span>Itens Selecionados</span>
                                 <span>{totalQuantity}</span>
                             </div>
@@ -309,10 +314,11 @@ export default function WholesalePage() {
                             
                             <button 
                                 className={styles.finalizeBtn} 
-                                disabled={!isUnlocked}
+                                disabled={!isUnlocked && totalQuantity > 0 ? false : (totalQuantity === 0)}
                                 onClick={handleConfirmBundle}
+                                style={{ opacity: totalQuantity === 0 ? 0.5 : 1 }}
                             >
-                                {isUnlocked ? 'ADICIONAR AO CARRINHO' : `ADICIONE MAIS ${10 - totalQuantity} ITENS`}
+                                {isUnlocked ? 'ADICIONAR AO CARRINHO' : `ADICIONE MAIS ${10 - combinedQuantity} ITENS`}
                             </button>
                             
                             <p className={styles.hint}>
@@ -334,10 +340,10 @@ export default function WholesalePage() {
                 </div>
                 <button 
                     className={styles.mBtn} 
-                    disabled={!isUnlocked}
+                    disabled={totalQuantity === 0}
                     onClick={handleConfirmBundle}
                 >
-                    <ShoppingCart size={18} /> {isUnlocked ? 'CONCLUIR' : `${totalQuantity}/10`}
+                    <ShoppingCart size={18} /> {isUnlocked ? 'CONCLUIR' : `${combinedQuantity}/10`}
                 </button>
             </div>
 

@@ -8,7 +8,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Header() {
-    const { cartCount } = useCart();
+    const { cartCount, cartTotal } = useCart();
     const { user, logout } = useAuth();
     const isAdmin = user?.role === 'admin';
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -262,6 +262,34 @@ export default function Header() {
                     </button>
                 </div>
             </div>
+
+            {/* Global Cart Status Bar */}
+            {cartCount > 0 && (
+                <div style={{
+                    backgroundColor: '#f0fdf4',
+                    borderTop: '1px solid #dcfce7',
+                    borderBottom: '1px solid #dcfce7',
+                    padding: '8px 0',
+                    fontSize: '0.85rem',
+                    color: '#166534',
+                    textAlign: 'center',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '20px',
+                    flexWrap: 'wrap',
+                    fontWeight: 500
+                }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Package size={14} /> 
+                        Atacado (30% OFF): {cartCount >= 10 ? <strong style={{color: '#f59e0b'}}>DESBLOQUEADO!</strong> : <strong>Faltam {10 - cartCount} itens</strong>}
+                    </span>
+                    <span style={{ display: 'none', width: '1px', height: '14px', backgroundColor: '#86efac', '@media (min-width: 600px)': { display: 'block' } } as any}>|</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Truck size={14} /> 
+                        Frete Grátis (Sul/Sudeste): {cartTotal >= 148.90 ? <strong style={{color: '#f59e0b'}}>ALCANÇADO!</strong> : <strong>Faltam R$ {(148.90 - cartTotal).toFixed(2).replace('.', ',')}</strong>}
+                    </span>
+                </div>
+            )}
         </header>
     );
 }

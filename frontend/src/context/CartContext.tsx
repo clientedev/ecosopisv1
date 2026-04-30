@@ -22,6 +22,7 @@ interface CartContextType {
     cartCount: number;
     cartTotal: number;
     wholesaleTotalRaw: number; // Sum of original prices before wholesale discount
+    isWholesaleUnlocked: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -155,9 +156,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
     
-    // Calculate total: 30% discount for isWholesale items
+    const isWholesaleUnlocked = cartCount >= 10;
+    
+    // Calculate total: 30% discount if wholesale unlocked globally OR for specific isWholesale items
     const cartTotal = cart.reduce((acc, item) => {
-        const itemPrice = item.isWholesale ? item.price * 0.7 : item.price;
+        const itemPrice = (isWholesaleUnlocked || item.isWholesale) ? item.price * 0.7 : item.price;
         return acc + (itemPrice * item.quantity);
     }, 0);
 
@@ -175,7 +178,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             clearCart,
             cartCount,
             cartTotal,
-            wholesaleTotalRaw
+            wholesaleTotalRaw,
+            isWholesaleUnlocked
         }}>
             {children}
         </CartContext.Provider>
