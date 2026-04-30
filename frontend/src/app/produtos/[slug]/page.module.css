@@ -6,7 +6,9 @@
 
 @media (max-width: 768px) {
     .productContainer {
-        padding: 100px 15px 40px;
+        padding: 80px 15px 40px;
+        width: 100%;
+        overflow-x: hidden;
     }
 }
 
@@ -61,10 +63,13 @@
 
 @media (max-width: 768px) {
     .productName {
-        font-size: 2.2rem;
+        font-size: 1.8rem;
     }
     .price {
-        font-size: 2rem;
+        font-size: 1.8rem;
+    }
+    .description {
+        font-size: 1rem;
     }
 }
 
@@ -361,29 +366,49 @@
 @media (max-width: 768px) {
     .productLayout {
         grid-template-columns: 1fr;
-        gap: 30px;
+        gap: 20px;
     }
     .imageSection {
         position: relative;
         top: 0;
     }
+    .mainImageContainer {
+        border-radius: 16px;
+    }
     .chatSection {
         padding: 20px;
+        margin-top: 20px;
+        border-radius: 16px;
     }
     .reviewsSection {
         margin-top: 40px;
-        padding: 30px 20px;
+        padding: 20px 15px;
+        border-radius: 16px;
     }
     .reviewsHeader {
         flex-direction: column;
         align-items: flex-start;
-        gap: 20px;
+        gap: 15px;
+        margin-bottom: 20px;
     }
     .reviewsHeader h2 {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
     }
     .reviewForm {
-        padding: 20px;
+        padding: 15px;
+        border-radius: 16px;
+    }
+    .starRating {
+        font-size: 2rem;
+    }
+    .buyActions {
+        gap: 8px;
+    }
+    .detailSection {
+        padding: 15px;
+    }
+    .marketplaceButtons {
+        gap: 8px;
     }
 }
 
@@ -507,18 +532,32 @@
 
 @media (max-width: 768px) {
     .wholesalePromoCard {
-        margin-top: 40px;
-        padding: 30px 20px;
-        border-radius: 24px;
+        margin-top: 30px;
+        padding: 25px 15px;
+        border-radius: 20px;
     }
     .wholesaleContent h3 {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
     }
     .wholesaleContent p {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
     }
     .wholesaleBtn {
         width: 100%;
-        padding: 16px;
+        padding: 14px;
+        font-size: 0.9rem;
     }
+    .wholesaleBadge {
+        padding: 6px 15px;
+        font-size: 0.7rem;
+        margin-bottom: 15px;
+    }
+}
+
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
 }
