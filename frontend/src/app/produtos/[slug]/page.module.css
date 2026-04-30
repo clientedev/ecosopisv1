@@ -36,8 +36,8 @@
 }
 
 .productImage {
-    object-fit: cover;
-    padding: 0;
+    object-fit: contain;
+    padding: 20px;
 }
 
 .infoSection {
