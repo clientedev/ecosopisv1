@@ -15,7 +15,11 @@ interface ProductCardProps {
         tags: string[];
         buy_on_site: boolean;
         mercadolivre_url?: string;
-        showMarketplace?: boolean;
+        shopee_url?: string;
+    };
+    badge?: string;
+    isRecommended?: boolean;
+    showMarketplace?: boolean;
 }
 
 export default function ProductCard({ product, badge, isRecommended, showMarketplace = true }: ProductCardProps) {
