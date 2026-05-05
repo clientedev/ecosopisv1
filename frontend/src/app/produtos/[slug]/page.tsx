@@ -202,7 +202,7 @@ export default function ProductDetailPage() {
     return (
         <main>
             <Header />
-            <div className={`container ${styles.productContainer}`}>
+            <div className={styles.productContainer}>
                 <div className={styles.productLayout}>
                     <div className={styles.imageSection}>
                         <div className={styles.mainImageContainer}>
