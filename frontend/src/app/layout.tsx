@@ -29,6 +29,12 @@ export const metadata: Metadata = {
     description: "Descubra o poder da natureza com ciência. Cosméticos naturais, veganos e de alta performance.",
 };
 
+export const viewport = {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+};
+
 export default function RootLayout({
     children,
 }: Readonly<{

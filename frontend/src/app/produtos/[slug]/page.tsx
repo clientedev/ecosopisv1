@@ -207,7 +207,7 @@ export default function ProductDetailPage() {
                     <div className={styles.imageSection}>
                         <div className={styles.mainImageContainer}>
                             {(activeImage || product.image_url) && (
-                                <div className={styles.imageWrapper} style={{ position: 'relative', width: '100%', height: '100%' }}>
+                                <div className={styles.imageWrapper}>
                                     <Image
                                         src={getImageUrl(activeImage || product.image_url)}
                                         alt={product.name}

@@ -507,7 +507,8 @@
     .imageWrapper {
         border-radius: 0 !important;
         width: 100%;
-        height: 100%;
+        position: relative;
+        aspect-ratio: 1;
     }
     .infoSection {
         padding: 20px 15px;
