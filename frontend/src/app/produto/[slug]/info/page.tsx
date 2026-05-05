@@ -275,6 +275,9 @@ export default function ProductTechnicalPage() {
                         <span className={styles.skuTag}>SKU: {product.slug}</span>
                     </div>
 
+                    <Link href={`/produtos/${product.slug}`} className={styles.buyBtn}>
+                        <ShoppingBag size={20} /> COMPRAR AGORA E GARANTIR DESCONTO
+                    </Link>
                 </div>
             </section>
 

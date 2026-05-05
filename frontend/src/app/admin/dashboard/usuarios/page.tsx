@@ -9,6 +9,7 @@ import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
     const router = useRouter();
 
     const fetchUsers = async () => {
@@ -121,6 +122,47 @@ export default function UserManagement() {
                     </div>
                 </div>
 
+                <div style={{ padding: '0 2rem', marginBottom: '1.5rem' }}>
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        background: '#fff', 
+                        padding: '10px 20px', 
+                        borderRadius: '12px', 
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                    }}>
+                        <span style={{ marginRight: '10px', color: '#64748b' }}>🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Buscar por nome, email ou WhatsApp..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ 
+                                border: 'none', 
+                                outline: 'none', 
+                                width: '100%', 
+                                fontSize: '0.95rem',
+                                color: '#1e293b'
+                            }}
+                        />
+                        {searchTerm && (
+                            <button 
+                                onClick={() => setSearchTerm("")}
+                                style={{ 
+                                    background: 'none', 
+                                    border: 'none', 
+                                    cursor: 'pointer', 
+                                    color: '#94a3b8',
+                                    fontSize: '1.2rem'
+                                }}
+                            >
+                                ×
+                            </button>
+                        )}
+                    </div>
+                </div>
+
                 <div className={styles.productTable}>
                     <table>
                         <thead>
@@ -136,7 +178,13 @@ export default function UserManagement() {
                             </tr>
                         </thead>
                         <tbody>
-                            {users.map((user: any) => (
+                            {users
+                                .filter((u: any) => 
+                                    u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    u.email?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    u.phone?.includes(searchTerm)
+                                )
+                                .map((user: any) => (
                                 <tr key={user.id}>
                                     <td>{user.id}</td>
                                     <td><strong>{user.full_name}</strong></td>

@@ -96,6 +96,7 @@ export default function Header() {
                 {/* Desktop Navigation */}
                 <nav className={styles.desktopNav}>
                     <Link href="/produtos">PRODUTOS</Link>
+                    <Link href="/atacado">ATACADO</Link>
                     <Link href="/novidades">NOVIDADES</Link>
                     <Link href="/quizz">QUIZZ</Link>
                     <Link href="/lia" className={styles.liaLink}>
@@ -281,7 +282,23 @@ export default function Header() {
                 }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Truck size={14} /> 
-                        Frete Grátis (Sul/Sudeste): {cartTotal >= 148.90 ? <strong style={{color: '#f59e0b'}}>ALCANÇADO!</strong> : <strong>Faltam R$ {(148.90 - cartTotal).toFixed(2).replace('.', ',')}</strong>}
+                        {(() => {
+                            const sulSudesteStates = ['SP', 'RJ', 'MG', 'ES', 'PR', 'SC', 'RS'];
+                            const userState = user?.addresses?.[0]?.state?.toUpperCase();
+                            const isSulSudeste = !userState || sulSudesteStates.includes(userState);
+                            const threshold = isSulSudeste ? 148.90 : 250.00;
+                            const regionName = isSulSudeste ? "(Sul/Sudeste)" : "(Demais Regiões)";
+                            
+                            return (
+                                <>
+                                    Frete Grátis {regionName}: {cartTotal >= threshold ? 
+                                        <strong style={{color: '#f59e0b'}}>ALCANÇADO!</strong> : 
+                                        <strong>Faltam R$ {(threshold - cartTotal).toFixed(2).replace('.', ',')}</strong>
+                                    }
+                                    {!userState && <span style={{fontSize: '0.7rem', opacity: 0.8, marginLeft: '10px'}}>(Demais regiões: R$ 250,00)</span>}
+                                </>
+                            );
+                        })()}
                     </span>
                 </div>
             )}

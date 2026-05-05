@@ -83,8 +83,24 @@
 .thumbnails {
     display: flex;
     gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
+    overflow-x: auto;
+    padding: 10px 5px;
+    width: 100%;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Hide scrollbar for cleaner look */
+}
+
+.thumbnails::-webkit-scrollbar {
+    display: none;
+}
+
+@media (min-width: 641px) {
+    .thumbnails {
+        flex-wrap: wrap;
+        justify-content: center;
+        overflow-x: visible;
+    }
 }
 
 .thumbItem {
@@ -198,24 +214,27 @@
 .buyBtn {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    background: #2d5a27;
+    justify-content: center;
+    gap: 12px;
+    background: linear-gradient(135deg, #2d5a27 0%, #1a3a16 100%);
     color: #fff;
     text-decoration: none;
-    padding: 14px 32px;
-    border-radius: 50px;
-    font-size: 0.92rem;
-    font-weight: 700;
+    padding: 18px 40px;
+    border-radius: 16px;
+    font-size: 1.1rem;
+    font-weight: 800;
     letter-spacing: 0.5px;
-    width: fit-content;
-    transition: background 0.25s, transform 0.2s, box-shadow 0.25s;
-    box-shadow: 0 8px 22px rgba(45, 90, 39, 0.28);
+    width: 100%;
+    max-width: 400px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 10px 25px rgba(45, 90, 39, 0.25);
+    margin-top: 10px;
 }
 
 .buyBtn:hover {
-    background: #1a3a16;
-    transform: translateY(-2px);
-    box-shadow: 0 14px 30px rgba(45, 90, 39, 0.34);
+    background: linear-gradient(135deg, #3d7a36 0%, #2d5a27 100%);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 15px 35px rgba(45, 90, 39, 0.35);
 }
 
 /* ═══════════════════════════════════════════

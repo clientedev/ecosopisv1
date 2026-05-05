@@ -248,7 +248,7 @@ export default function ProductsPage() {
                         ) : (
                             <div className={styles.productGrid}>
                                 {filteredProducts.map((product: any) => (
-                                    <ProductCard key={product.id} product={product} />
+                                    <ProductCard key={product.id} product={product} showMarketplace={false} />
                                 ))}
                             </div>
                         )}

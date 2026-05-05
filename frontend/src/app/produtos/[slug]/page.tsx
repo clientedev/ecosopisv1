@@ -285,14 +285,13 @@ export default function ProductDetailPage() {
                             {product.buy_on_site && (
                                 <>
                                     <button
-                                        className="btn-primary"
+                                        className={styles.buyNowBtn}
                                         onClick={handleBuyNow}
                                         disabled={buyingNow}
-                                        style={{ position: 'relative' }}
                                     >
                                         {buyingNow ? '⏳ Redirecionando...' : 'COMPRAR AGORA'}
                                     </button>
-                                    <button className="btn-outline" onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
+                                    <button className={styles.addToCartBtn} onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
                                 </>
                             )}
 
@@ -307,12 +306,12 @@ export default function ProductDetailPage() {
                                     <p className={styles.marketplaceText}>Prefere comprar por marketplace? Escolha abaixo:</p>
                                     <div className={styles.marketplaceButtons}>
                                         {product.mercadolivre_url && (
-                                            <a href={product.mercadolivre_url} target="_blank" className="btn-outline" onClick={() => logClick("mercadolivre")}>
+                                            <a href={product.mercadolivre_url} target="_blank" className={styles.mlBtnProduct} onClick={() => logClick("mercadolivre")}>
                                                 COMPRAR NO MERCADO LIVRE
                                             </a>
                                         )}
                                         {product.shopee_url && (
-                                            <a href={product.shopee_url} target="_blank" className="btn-outline" onClick={() => logClick("shopee")}>
+                                            <a href={product.shopee_url} target="_blank" className={styles.shopeeBtnProduct} onClick={() => logClick("shopee")}>
                                                 COMPRAR NA SHOPEE
                                             </a>
                                         )}
