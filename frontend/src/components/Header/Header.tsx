@@ -270,15 +270,17 @@ export default function Header() {
                     backgroundColor: '#f0fdf4',
                     borderTop: '1px solid #dcfce7',
                     borderBottom: '1px solid #dcfce7',
-                    padding: '8px 0',
-                    fontSize: '0.85rem',
+                    padding: '8px 15px',
+                    fontSize: '0.8rem',
                     color: '#166534',
                     textAlign: 'center',
                     display: 'flex',
                     justifyContent: 'center',
-                    gap: '20px',
+                    gap: '10px',
                     flexWrap: 'wrap',
-                    fontWeight: 500
+                    fontWeight: 500,
+                    width: '100%',
+                    boxSizing: 'border-box'
                 }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Truck size={14} /> 

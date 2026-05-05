@@ -236,16 +236,24 @@
 
 @media (max-width: 640px) {
     .modal {
-        padding: 40px 20px;
+        padding: 40px 15px;
+        width: 95%;
+        margin: 0 auto;
     }
 
     .rouletteContainer {
-        width: 320px;
-        height: 320px;
+        width: 280px;
+        height: 280px;
     }
 
     .title {
-        font-size: 32px;
+        font-size: 28px;
+    }
+    
+    .spinBtn {
+        min-width: 200px;
+        padding: 15px 30px;
+        font-size: 18px;
     }
 }
 
