@@ -200,7 +200,7 @@ export default function ProductDetailPage() {
     };
 
     return (
-        <main>
+        <main style={{ width: '100%', overflowX: 'hidden' }}>
             <Header />
             <div className={styles.productContainer}>
                 <div className={styles.productLayout}>
@@ -320,29 +320,14 @@ export default function ProductDetailPage() {
                             )}
                         </div>
                         {/* Link para a Ficha Técnica Premium */}
-                        <a
+                        <Link
                             href={`/produto/${product.slug}/info`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                marginTop: '14px',
-                                marginBottom: '14px',
-                                padding: '12px 24px',
-                                borderRadius: '10px',
-                                border: '1.5px solid #2d5a27',
-                                color: '#2d5a27',
-                                textDecoration: 'none',
-                                fontWeight: 600,
-                                fontSize: '0.9rem',
-                                background: 'rgba(45, 90, 39, 0.04)',
-                                transition: 'all 0.2s',
-                            }}
+                            className={styles.techInfoLink}
                         >
                             <QrCode size={20} /> Ver Ficha Técnica Completa
-                        </a>
+                        </Link>
                         <div className={styles.detailSection}>
                             <h3>ATIVOS / INGREDIENTES</h3>
                             <p>{product.ingredients}</p>
