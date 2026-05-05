@@ -121,7 +121,6 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
                         </>
                     )}
                 </div>
-                </div>
             </div>
         </div>
     );
