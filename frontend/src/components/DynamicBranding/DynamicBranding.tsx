@@ -49,6 +49,14 @@ export default function DynamicBranding() {
                 }
                 body {
                     background-color: var(--site-bg) !important;
+                    overflow-x: hidden !important;
+                    width: 100% !important;
+                    position: relative !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+                * {
+                    box-sizing: border-box !important;
                 }
             `
         }} />

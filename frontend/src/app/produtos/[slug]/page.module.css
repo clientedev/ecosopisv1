@@ -6,12 +6,10 @@
 
 @media (max-width: 768px) {
     .productContainer {
-        padding: 40px 15px 20px;
+        padding: 20px 0;
         width: 100%;
         max-width: 100%;
         overflow-x: hidden;
-        word-break: break-word;
-        box-sizing: border-box;
     }
 }
 
@@ -237,8 +235,8 @@
 }
 
 .shopeeLogo {
-    width: 24px;
-    height: 24px;
+    width: 18px;
+    height: 18px;
     display: block;
 }
 
@@ -512,9 +510,11 @@
         aspect-ratio: 1;
     }
     .infoSection {
-        padding: 20px 15px;
+        padding: 20px 20px;
         gap: 16px;
         overflow-x: hidden;
+        width: 100%;
+        box-sizing: border-box;
     }
     .productName {
         font-size: 1.6rem;
@@ -565,6 +565,10 @@
     }
     .marketplaceButtons {
         gap: 8px;
+    }
+    .shopeeBtnProduct, .mlBtnProduct {
+        padding: 12px 10px;
+        font-size: 0.85rem;
     }
 }
 
