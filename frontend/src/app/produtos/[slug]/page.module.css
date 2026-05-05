@@ -6,11 +6,12 @@
 
 @media (max-width: 768px) {
     .productContainer {
-        padding: 40px 0 20px;
+        padding: 40px 15px 20px;
         width: 100%;
-        max-width: 100vw;
+        max-width: 100%;
         overflow-x: hidden;
         word-break: break-word;
+        box-sizing: border-box;
     }
 }
 
@@ -583,6 +584,14 @@
   flex-wrap: wrap;
 }
 
+@media (max-width: 768px) {
+  .priceContainer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
 .priceContainer .price {
   margin: 0;
 }
@@ -715,6 +724,19 @@
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 10px;
+    width: 100%;
+}
+
+.tag {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: normal;
+    word-break: break-all;
 }
 
 .techInfoLink {

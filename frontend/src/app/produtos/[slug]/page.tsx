@@ -200,9 +200,9 @@ export default function ProductDetailPage() {
     };
 
     return (
-        <main style={{ width: '100vw', maxWidth: '100%', overflowX: 'hidden', margin: 0, padding: 0 }}>
+        <main style={{ width: '100%', maxWidth: '100%', overflowX: 'hidden', margin: 0, padding: 0, boxSizing: 'border-box' }}>
             <Header />
-            <div className={styles.productContainer} style={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
+            <div className={styles.productContainer}>
                 <div className={styles.productLayout}>
                     <div className={styles.imageSection}>
                         <div className={styles.mainImageContainer}>
