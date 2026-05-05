@@ -508,19 +508,19 @@ export default function Home() {
                         <div className={styles.bestsellerWrapper}>
                             <div className={styles.rankBadge}>1º LUGAR</div>
                             {findProductBySlug('sabonete-acafrao-dolomita') && (
-                                <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} />
+                                <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} showMarketplace={false} />
                             )}
                         </div>
                         <div className={styles.bestsellerWrapper}>
                             <div className={styles.rankBadge}>2º LUGAR</div>
                             {findProductBySlug('kit-clareamento') && (
-                                <ProductCard product={findProductBySlug('kit-clareamento')} />
+                                <ProductCard product={findProductBySlug('kit-clareamento')} showMarketplace={false} />
                             )}
                         </div>
                         <div className={styles.bestsellerWrapper}>
                             <div className={styles.rankBadge}>3º LUGAR</div>
                             {findProductBySlug('kit-acne') && (
-                                <ProductCard product={findProductBySlug('kit-acne')} />
+                                <ProductCard product={findProductBySlug('kit-acne')} showMarketplace={false} />
                             )}
                         </div>
                     </div>
@@ -697,11 +697,11 @@ export default function Home() {
                                     
                                     <div className={styles.modalMainProduct}>
                                         {selectedGoal === 'clareamento' ? findProductBySlug('kit-clareamento') && (
-                                            <ProductCard product={findProductBySlug('kit-clareamento')} badge="RECOMENDADO" isRecommended={true} />
+                                            <ProductCard product={findProductBySlug('kit-clareamento')} badge="RECOMENDADO" isRecommended={true} showMarketplace={false} />
                                         ) : selectedGoal === 'acne' ? findProductBySlug('kit-acne') && (
-                                            <ProductCard product={findProductBySlug('kit-acne')} badge="MAIS EFICAZ" isRecommended={true} />
+                                            <ProductCard product={findProductBySlug('kit-acne')} badge="MAIS EFICAZ" isRecommended={true} showMarketplace={false} />
                                         ) : findProductBySlug('sabonete-acafrao-dolomita') && (
-                                            <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} badge="O FAVORITO" isRecommended={true} />
+                                            <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} badge="O FAVORITO" isRecommended={true} showMarketplace={false} />
                                         )}
                                     </div>
                                     
@@ -710,9 +710,9 @@ export default function Home() {
                                             <h4>Também recomendamos:</h4>
                                             <div className={styles.modalAltGrid}>
                                                 {selectedGoal === 'clareamento' ? findProductBySlug('sabonete-acafrao-dolomita') && (
-                                                    <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} />
+                                                    <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} showMarketplace={false} />
                                                 ) : selectedGoal === 'acne' ? findProductBySlug('sabonete-argila-verde') && (
-                                                    <ProductCard product={findProductBySlug('sabonete-argila-verde')} />
+                                                    <ProductCard product={findProductBySlug('sabonete-argila-verde')} showMarketplace={false} />
                                                 ) : null}
                                             </div>
                                         </div>

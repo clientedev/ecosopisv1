@@ -6,7 +6,7 @@
 
 @media (max-width: 768px) {
     .productContainer {
-        padding: 80px 15px 40px;
+        padding: 80px 0 40px;
         width: 100%;
         overflow-x: hidden;
     }
@@ -475,13 +475,27 @@
     .productLayout {
         grid-template-columns: 1fr;
         gap: 20px;
+        padding: 0 15px;
     }
     .imageSection {
         position: relative;
         top: 0;
     }
     .mainImageContainer {
-        border-radius: 16px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        box-shadow: none;
+        margin: 0;
+        width: 100%;
+        aspect-ratio: 1;
+    }
+    .productImage {
+        padding: 0;
+        object-fit: cover;
+    }
+    .imageWrapper {
+        border-radius: 0 !important;
     }
     .chatSection {
         padding: 20px;
