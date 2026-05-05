@@ -33,12 +33,15 @@
 }
 
 html, body {
-  max-width: 100vw;
+  width: 100%;
+  max-width: 100%;
   overflow-x: hidden;
+  position: relative;
   font-family: var(--font-body);
   color: var(--text-primary);
   background-color: var(--secondary-white);
   line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
 }
 
 h1, h2, h3, h4, h5, h6 {
