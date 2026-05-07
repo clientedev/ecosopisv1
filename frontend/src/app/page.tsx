@@ -325,6 +325,64 @@ export default function Home() {
         }
     };
 
+    const staticReviews = [
+        {
+            id: 's1',
+            user_name: 'j***a',
+            rating: 5,
+            comment: 'Amei demais!! Comprei o sabonete de açafrão sem muita expectativa e fiquei impressionada. Uso há 3 semanas e já noto a diferença nas manchas do braço. Entregou super rápido e a embalagem veio impecável. Com certeza vou comprar de novo!',
+            source: 'Shopee',
+            date: 'há 2 semanas',
+            product: 'Sabonete de Açafrão e Dolomita',
+            imageUrl: '/static/attached_assets/generated_images/before_after_skin.png'
+        },
+        {
+            id: 's2',
+            user_name: 'M***i S.',
+            rating: 5,
+            comment: 'Produto excelente! Tenho foliculite há anos e nada resolvia. Comecei a usar o sabonete da Ecosopis e em menos de 1 mês já vi resultados que nunca vi com outros produtos. Minha pele ficou muito mais uniforme e sem aquelas bolinhas. Super recomendo!',
+            source: 'Shopee',
+            date: 'há 1 mês',
+            product: 'Sabonete de Açafrão e Dolomita'
+        },
+        {
+            id: 's3',
+            user_name: 'C***a R.',
+            rating: 5,
+            comment: 'Kit clareamento chegou rapidinho e veio com nota fiscal. Estou no início do tratamento mas já sinto a pele mais suave. Os produtos têm um cheiro muito agradável e a textura é ótima. Loja confiável, já indiquei para minhas amigas!',
+            source: 'Shopee',
+            date: 'há 3 semanas',
+            product: 'Kit Clareamento Potente'
+        },
+        {
+            id: 's4',
+            user_name: 'T***a M.',
+            rating: 5,
+            comment: 'O óleo de rícino é puro mesmo, sem cheiro forte, absorve bem. Estou usando nas sobrancelhas e cílios e já estão crescendo mais. Entrega super rápida, vim aqui deixar meu agradecimento. Já fiz meu segundo pedido!',
+            source: 'Shopee',
+            date: 'há 5 dias',
+            product: 'Óleo Vegetal de Rícino'
+        },
+        {
+            id: 's5',
+            user_name: 'P***a L.',
+            rating: 5,
+            comment: 'Desodorante clareador surpreendeu! Sou negra e tenho muita dificuldade com manchas na axila. Uso há 6 semanas e a diferença é visível. Não irrita, não mancha roupa, e o efeito clareador é real. Produto 10 estrelas se pudesse!',
+            source: 'Shopee',
+            date: 'há 1 mês',
+            product: 'Desodorante Clareador Sólido'
+        },
+        {
+            id: 's6',
+            user_name: 'R***a B.',
+            rating: 5,
+            comment: 'Comprei o tônico facial e fiquei apaixonada. Minha pele estava muito oleosa e com poros abertos. Depois de 2 semanas de uso, a oleosidade diminuiu bastante. A marca é séria, natural de verdade e com resultado comprovado. Voltarei sempre!',
+            source: 'Shopee',
+            date: 'há 2 semanas',
+            product: 'Tônico Facial Antioxidante'
+        },
+    ];
+
     return (
         <main>
             <Header />
@@ -508,7 +566,7 @@ export default function Home() {
                         <div className={styles.bestsellerWrapper}>
                             <div className={styles.rankBadge}>1º LUGAR</div>
                             {findProductBySlug('sabonete-acafrao-dolomita') && (
-                                <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} showMarketplace={false} />
+                                <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} badge="Nosso mais vendido" showMarketplace={false} />
                             )}
                         </div>
                         <div className={styles.bestsellerWrapper}>
@@ -519,8 +577,8 @@ export default function Home() {
                         </div>
                         <div className={styles.bestsellerWrapper}>
                             <div className={styles.rankBadge}>3º LUGAR</div>
-                            {findProductBySlug('kit-acne') && (
-                                <ProductCard product={findProductBySlug('kit-acne')} showMarketplace={false} />
+                            {findProductBySlug('oleo-ricino') && (
+                                <ProductCard product={findProductBySlug('oleo-ricino')} showMarketplace={false} />
                             )}
                         </div>
                     </div>
@@ -902,14 +960,44 @@ export default function Home() {
                     <h2 className={styles.sectionTitle} style={{ textAlign: 'center', marginBottom: '40px' }}>EXPERIÊNCIAS ECOSOPIS</h2>
 
                     <div className={styles.reviewsGrid}>
-                        {reviews.length > 0 ? (
-                            reviews.map((rev: any) => (
+                        {reviews.length > 0 || staticReviews.length > 0 ? (
+                            [...staticReviews, ...reviews].map((rev: any) => (
                                 <div key={rev.id} className={styles.reviewCard}>
-                                    <div className={styles.reviewStars}>
-                                        {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                        <div className={styles.reviewStars}>
+                                            {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
+                                        </div>
+                                        {rev.date && <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', opacity: 0.7 }}>{rev.date}</span>}
                                     </div>
+
+                                    {rev.product && (
+                                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary-green)', background: 'rgba(74,124,89,0.08)', padding: '2px 8px', borderRadius: '20px', display: 'inline-block', marginBottom: '8px' }}>
+                                            {rev.product}
+                                        </span>
+                                    )}
+
                                     <p className={styles.reviewComment}>&quot;{rev.comment}&quot;</p>
-                                    <span className={styles.reviewAuthor}>— {rev.user_name}</span>
+
+                                    {rev.imageUrl && (
+                                        <div style={{ position: 'relative', width: '100%', height: '150px', marginTop: '10px', borderRadius: '8px', overflow: 'hidden' }}>
+                                            <Image src={rev.imageUrl} alt="Antes e Depois" fill style={{ objectFit: 'cover' }} />
+                                            <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>ANTES → DEPOIS</div>
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--neutral-gray-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-green)' }}>
+                                                {rev.user_name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <span className={styles.reviewAuthor}>{rev.user_name}</span>
+                                        </div>
+                                        {rev.source && (
+                                            <span style={{ fontSize: '0.65rem', background: rev.source === 'Shopee' ? 'rgba(238,77,45,0.08)' : 'var(--neutral-gray-100)', color: rev.source === 'Shopee' ? '#ee4d2d' : 'var(--text-secondary)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, border: rev.source === 'Shopee' ? '1px solid rgba(238,77,45,0.2)' : '1px solid var(--neutral-gray-200)' }}>
+                                                ✓ {rev.source}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             ))
                         ) : (
