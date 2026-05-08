@@ -24,7 +24,7 @@
     background-color: var(--secondary-white);
     position: sticky;
     top: 0;
-    z-index: 1000;
+    z-index: 99999;
 }
 
 .headerContent {

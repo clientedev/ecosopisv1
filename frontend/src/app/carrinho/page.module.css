@@ -728,3 +728,79 @@ input:checked + .slider:before {
         display: none !important;
     }
 }
+
+@media (max-width: 600px) {
+    .itemsList {
+        padding: 20px;
+        border-radius: 16px;
+    }
+
+    .detailSection {
+        padding: 20px;
+        border-radius: 16px;
+    }
+
+    .itemImageContainer {
+        width: 65px;
+        height: 65px;
+    }
+
+    .carrinhoContainer {
+        padding: 20px 15px 130px 15px;
+    }
+
+    .inputField {
+        padding: 12px;
+        font-size: 1rem; /* Prevent zoom on iOS */
+    }
+
+    .inputRow {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .shippingOption {
+        padding: 14px;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .shippingOption svg {
+        display: none; /* Hide truck icon on mobile for space */
+    }
+
+    .cartItem {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .itemActions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .summaryCard {
+        padding: 20px;
+    }
+    
+    .promoCode {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .promoCode button {
+        width: 100%;
+        padding: 12px;
+    }
+    
+    .paymentOption {
+        padding: 14px;
+        gap: 10px;
+    }
+    
+    .stepsHeader {
+        margin-bottom: 25px;
+    }
+}
