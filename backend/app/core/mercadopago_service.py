@@ -50,11 +50,13 @@ def create_pix_payment(order_id: int, total: float, customer_email: str,
 
 def create_checkout_pro_preference(order_id: int, items: list, shipping_price: float = 0.0, 
                                     customer_email: str = "", customer_name: str = "",
-                                    customer_cpf: str = "") -> dict:
+                                    customer_cpf: str = "", discount_amount: float = 0.0) -> dict:
     """
     Creates a Checkout Pro preference including products and shipping.
     """
     webhook_url = os.getenv("MP_WEBHOOK_URL") or f"{FRONTEND_URL.replace('3000', '8000')}/api/payment/webhook/mercadopago"
+    
+    total_items_price = sum(float(item.get("price", 0)) * int(item.get("quantity", 1)) for item in items)
     
     mp_items = []
     for item in items:
@@ -66,11 +68,20 @@ def create_checkout_pro_preference(order_id: int, items: list, shipping_price: f
             # Assuming product images are in /static/uploads
             image_url = f"{backend_base}/static/uploads/{image_url.split('/')[-1]}"
 
+        original_unit_price = float(item.get("price", 0))
+        quantity = int(item.get("quantity", 1))
+        
+        # Apply proportional discount
+        discounted_unit_price = original_unit_price
+        if discount_amount > 0 and total_items_price > 0:
+            ratio = max(0.0, 1 - (discount_amount / total_items_price))
+            discounted_unit_price = max(0.01, original_unit_price * ratio)
+
         mp_items.append({
             "id": str(item.get("product_id", "")),
             "title": item.get("product_name", "Produto ECOSOPIS"),
-            "quantity": int(item.get("quantity", 1)),
-            "unit_price": float(round(float(item.get("price", 0)), 2)),
+            "quantity": quantity,
+            "unit_price": float(round(discounted_unit_price, 2)),
             "currency_id": "BRL",
             "picture_url": image_url
         })
