@@ -277,4 +277,32 @@
         right: 20px;
         bottom: 90px;
     }
+
+    .chatButton {
+        width: 48px;
+        height: 48px;
+        bottom: 20px;
+        right: 20px;
+        padding: 0;
+        justify-content: center;
+    }
+    
+    .chatButton:hover {
+        width: 48px; /* disable expanding on hover for mobile */
+    }
+    
+    .buttonContent {
+        min-width: unset;
+        padding: 0;
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .btnText {
+        display: none;
+    }
+    
+    .chatIcon {
+        margin: auto;
+    }
 }

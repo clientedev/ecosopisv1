@@ -817,7 +817,7 @@ export default function CarrinhoPage() {
                             )}
 
                             {step === "cart" ? (
-                                <button className="btn-primary" style={{ width: "100%", marginTop: "24px", height: "56px" }} onClick={() => {
+                                <button className={`btn-primary ${styles.desktopCheckoutBtn}`} style={{ width: "100%", marginTop: "24px", height: "56px" }} onClick={() => {
                                     if (!token) {
                                         window.location.href = "/conta";
                                     } else {
@@ -828,7 +828,7 @@ export default function CarrinhoPage() {
                                 </button>
                             ) : (
                                 <button
-                                    className="btn-primary"
+                                    className={`btn-primary ${styles.desktopCheckoutBtn}`}
                                     style={{ width: "100%", marginTop: "24px", height: "64px", fontSize: "1.1rem" }}
                                     onClick={handleCheckout}
                                     disabled={loading}
@@ -848,6 +848,35 @@ export default function CarrinhoPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Mobile Sticky Checkout Bar */}
+            <div className={styles.mobileStickyCheckout}>
+                <div className={styles.mobileStickyTotal}>
+                    <span>Total</span>
+                    <strong>R$ {finalTotal.toFixed(2)}</strong>
+                </div>
+                {step === "cart" ? (
+                    <button className="btn-primary" onClick={() => {
+                        if (!token) {
+                            window.location.href = "/conta";
+                        } else {
+                            setStep("checkout");
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                    }}>
+                        CONTINUAR
+                    </button>
+                ) : (
+                    <button
+                        className="btn-primary"
+                        onClick={handleCheckout}
+                        disabled={loading}
+                    >
+                        {loading ? "PROCESSANDO..." : "FINALIZAR COMPRA"}
+                    </button>
+                )}
+            </div>
+
             <Footer />
         </main>
     );

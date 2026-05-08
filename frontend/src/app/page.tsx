@@ -3,6 +3,7 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import ProductCard from "@/components/ProductCard/ProductCard";
 import NewsSection from "@/components/NewsSection/NewsSection";
+import ChatIA from "@/components/ChatIA/ChatIA";
 import styles from "./page.module.css";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
@@ -44,6 +45,7 @@ export default function Home() {
     ]);
     const [chatInput, setChatInput] = useState("");
     const [chatLoading, setChatLoading] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(false);
     const chatScrollRef = useRef<HTMLDivElement>(null);
     const goalsRef = useRef<HTMLDivElement>(null);
 
@@ -928,18 +930,8 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Floating Lia Chat Button */}
-            <div className={styles.floatingLiaContainer}>
-                <div className={styles.liaLargeGif}>
-                    <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia Avatar" width={180} height={180} />
-                </div>
-                <button className={styles.floatingLiaButton} onClick={() => scrollToSection('rotina-ia')}>
-                    <div className={styles.floatingLiaIcon}>
-                        <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia" fill />
-                    </div>
-                    <span className={styles.floatingLiaText}>Fale com a Lia</span>
-                </button>
-            </div>
+            {/* Floating Lia Chat - ChatIA flutuante controlado pelo estado da pagina */}
+            <ChatIA isOpen={isChatOpen} onToggle={() => setIsChatOpen(prev => !prev)} />
 
 
             {/* Quiz Promo - Redesigned */}

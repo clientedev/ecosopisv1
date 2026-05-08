@@ -61,16 +61,38 @@
     margin-bottom: var(--spacing-md);
 }
 
-.actions {
+.actionsContainer {
     display: flex;
+    flex-direction: column;
     gap: var(--spacing-sm);
-    align-items: center;
+    margin-top: auto;
 }
 
-.actions button {
+.actionsContainer button {
     flex: 1;
     font-size: 0.8rem;
     padding: var(--spacing-sm);
+}
+
+.marketplaceSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 8px;
+    gap: 6px;
+}
+
+.marketplaceText {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    text-align: center;
+    opacity: 0.8;
+}
+
+.marketplaceLinks {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
 }
 
 .externalLink {
@@ -88,9 +110,9 @@
 }
 
 .shopeeLink {
-    border: 1px solid #ee4d2d;
+    border: 1px solid rgba(238, 77, 45, 0.5);
     padding: 6px;
-    color: #ee4d2d;
+    color: rgba(238, 77, 45, 0.8);
     border-radius: var(--border-radius);
     display: flex;
     align-items: center;

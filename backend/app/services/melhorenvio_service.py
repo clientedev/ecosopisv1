@@ -89,6 +89,21 @@ def _resolver_cpf_destinatario(cpf_raw: str, pedido_id: int) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Utilitários CEP
+# ---------------------------------------------------------------------------
+
+def _obter_dados_por_cep(cep: str) -> dict:
+    try:
+        resp = requests.get(f"https://viacep.com.br/ws/{cep}/json/", timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            if "erro" not in data:
+                return data
+    except Exception as e:
+        logger.warning(f"[ME] Erro ao consultar ViaCEP para {cep}: {e}")
+    return {}
+
+# ---------------------------------------------------------------------------
 # HTTP helper
 # ---------------------------------------------------------------------------
 
@@ -165,15 +180,19 @@ def selecionar_servico(cep_destino: str, valor: float, produto_nome: str = "Prod
 def criar_envio(pedido, service_id: int) -> tuple[str, str]:
     """POST /api/v2/me/cart — Retorna (shipment_id, tracking_code_inicial)."""
     cep_destino = str(pedido.cep_cliente).replace("-", "").strip()
+    
+    # Busca dados no ViaCEP para preencher campos vazios
+    via_cep_data = _obter_dados_por_cep(cep_destino)
 
     to_name       = getattr(pedido, "customer_name", None) or "Cliente"
     to_phone      = getattr(pedido, "customer_phone", None) or "11999999999"
     to_phone      = str(to_phone).replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
-    to_address    = getattr(pedido, "address_street", None) or "Endereço não informado"
+    
+    to_address    = getattr(pedido, "address_street", None) or via_cep_data.get("logradouro") or "Endereço não informado"
     to_number     = getattr(pedido, "address_number", None) or "S/N"
-    to_district   = getattr(pedido, "address_district", None) or "Bairro"
-    to_city       = getattr(pedido, "address_city", None) or "Cidade"
-    to_state      = getattr(pedido, "address_state", None) or "SP"
+    to_district   = getattr(pedido, "address_district", None) or via_cep_data.get("bairro") or "Bairro"
+    to_city       = getattr(pedido, "address_city", None) or via_cep_data.get("localidade") or "Cidade"
+    to_state      = getattr(pedido, "address_state", None) or via_cep_data.get("uf") or "SP"
     to_complement = getattr(pedido, "address_complement", None) or ""
 
     # Detalhamento de produtos para a etiqueta e seguro
