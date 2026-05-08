@@ -158,6 +158,9 @@ export default function WholesalePage() {
                         <span className={styles.badge}>DIFERENCIAL ECOSOPIS</span>
                         <h1 style={{ color: '#ffffff' }}>Atacado Nature-Premium</h1>
                         <p>Monte seu estoque com <strong>30% de DESCONTO REAL</strong>. Preço de fábrica para revenda ou uso pessoal consciente.</p>
+                        <p style={{ fontSize: '0.9rem', color: '#fcd34d', marginTop: '15px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                            <Info size={16} /> O desconto de atacado não é cumulativo com o cupom de Primeira Compra.
+                        </p>
                     </div>
                 </div>
                 {/* GLOBAL OVERRIDE FOR STICKY */}
@@ -321,6 +324,9 @@ export default function WholesalePage() {
                                 {isUnlocked ? 'ADICIONAR AO CARRINHO' : `ADICIONE MAIS ${10 - combinedQuantity} ITENS`}
                             </button>
                             
+                            <p className={styles.hint} style={{ marginBottom: '8px', color: '#b45309', fontWeight: 600 }}>
+                                <Info size={14} /> Cupom de Primeira Compra não se aplica ao atacado.
+                            </p>
                             <p className={styles.hint}>
                                 <Info size={14} /> Frete calculado no checkout
                             </p>

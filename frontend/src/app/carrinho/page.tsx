@@ -137,21 +137,32 @@ export default function CarrinhoPage() {
         }
     }, []);
 
-    // Auto-apply first purchase coupon
+    const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+    const isWholesaleEligible = totalItems >= 10 || cart.some(i => i.isWholesale);
+
+    // Auto-apply first purchase coupon (only if not wholesale)
     useEffect(() => {
-        if (user && !firstPurchaseChecked) {
-            setFirstPurchaseChecked(true);
-            const rouletteDiscount = localStorage.getItem("active_roulette_discount");
-            if (!rouletteDiscount && user.total_compras === 0 && !appliedCoupon) {
-                setAppliedCoupon({
-                    code: "PRIMEIRACOMPRA",
-                    type: "percentage",
-                    value: 10,
-                    name: "10% OFF na Primeira Compra"
-                });
+        if (user) {
+            if (isWholesaleEligible) {
+                if (appliedCoupon?.code === "PRIMEIRACOMPRA") {
+                    setAppliedCoupon(null);
+                }
+            } else {
+                if (!firstPurchaseChecked) {
+                    const rouletteDiscount = localStorage.getItem("active_roulette_discount");
+                    if (!rouletteDiscount && user.total_compras === 0 && !appliedCoupon) {
+                        setAppliedCoupon({
+                            code: "PRIMEIRACOMPRA",
+                            type: "percentage",
+                            value: 10,
+                            name: "10% OFF na Primeira Compra"
+                        });
+                    }
+                    setFirstPurchaseChecked(true);
+                }
             }
         }
-    }, [user, appliedCoupon, firstPurchaseChecked]);
+    }, [user, appliedCoupon, firstPurchaseChecked, isWholesaleEligible]);
 
     // Fetch Cashback balance and config
     useEffect(() => {
@@ -343,6 +354,13 @@ export default function CarrinhoPage() {
     const handleApplyCoupon = async () => {
         if (!couponCode) return;
         setCouponError("");
+        
+        if (couponCode.toUpperCase() === "PRIMEIRACOMPRA" && isWholesaleEligible) {
+            setCouponError("O cupom de primeira compra não é válido para pedidos de atacado.");
+            setAppliedCoupon(null);
+            return;
+        }
+        
         try {
             const res = await fetch(`/api/coupons/validate/${couponCode}`);
             if (res.ok) {
