@@ -226,7 +226,7 @@ export default function Home() {
         setIsModalOpen(true);
         
         const tips: {[key: string]: string} = {
-            clareamento: "Para clareamento, a constância é chave. Use o Sabonete de Açafrão diariamente no banho e o Óleo de Rosa Mosqueta apenas à noite para regeneração.",
+            clareamento: "Para clareamento, a constância é chave. Use o Sabonete de Argila Branca diariamente no banho e o Óleo de Rosa Mosqueta apenas à noite para regeneração.",
             acne: "A argila verde é um ímã de impurezas. Lave o rosto em movimentos circulares para desobstruir os poros sem agredir a barreira cutânea.",
             foliculite: "O açafrão atua na raiz do problema, reduzindo a inflamação enquanto a dolomita acalma e clareia a região afetada."
         };
@@ -289,7 +289,7 @@ export default function Home() {
                     ],
                     pm: [
                         { ...findProductBySlug('sabonete-argila-verde'), step: 'Limpeza', instruction: 'Limpeza profunda' },
-                        { ...findProductBySlug('kit-acne'), step: 'Tratamento', instruction: 'Aplicar Argila Verde como máscara (2x semana)' }
+                        { ...findProductBySlug('kit-acne'), step: 'Tratamento', instruction: 'Aplicar Argila Verde para tratamento profundo (2x semana)' }
                     ]
                 },
                 foliculite: {
@@ -335,8 +335,7 @@ export default function Home() {
             comment: 'Amei demais!! Comprei o sabonete de açafrão sem muita expectativa e fiquei impressionada. Uso há 3 semanas e já noto a diferença nas manchas do braço. Entregou super rápido e a embalagem veio impecável. Com certeza vou comprar de novo!',
             source: 'Shopee',
             date: 'há 2 semanas',
-            product: 'Sabonete de Açafrão e Dolomita',
-            imageUrl: '/static/attached_assets/generated_images/before_after_skin.png'
+            product: 'Sabonete de Açafrão e Dolomita'
         },
         {
             id: 's2',
@@ -984,8 +983,8 @@ export default function Home() {
                                             </div>
                                             <span className={styles.reviewAuthor}>{rev.user_name}</span>
                                         </div>
-                                        {rev.source && (
-                                            <span style={{ fontSize: '0.65rem', background: rev.source === 'Shopee' ? 'rgba(238,77,45,0.08)' : 'var(--neutral-gray-100)', color: rev.source === 'Shopee' ? '#ee4d2d' : 'var(--text-secondary)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, border: rev.source === 'Shopee' ? '1px solid rgba(238,77,45,0.2)' : '1px solid var(--neutral-gray-200)' }}>
+                                        {rev.source && rev.source !== 'Shopee' && (
+                                            <span style={{ fontSize: '0.65rem', background: 'var(--neutral-gray-100)', color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid var(--neutral-gray-200)' }}>
                                                 ✓ {rev.source}
                                             </span>
                                         )}

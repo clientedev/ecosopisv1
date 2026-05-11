@@ -58,49 +58,49 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
   "oleo-rosa-mosqueta-puro": {
     ativos: "Óleo vegetal de Rosa Mosqueta Rubiginosa (Rosehip Fruit Oil) 100% puro",
     beneficios: "Auxilia na regeneração da pele, melhora a aparência de cicatrizes, manchas e linhas finas",
-    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
+    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes capilares.",
     curiosidades: "A variedade Rubiginosa é riquíssima em ácidos graxos essenciais, sendo um dos óleos mais potentes do mundo para regeneração celular.",
   },
   "oleo-rosa-mosqueta-20ml": {
     ativos: "Óleo vegetal de Rosa Mosqueta Canina 100% puro",
     beneficios: "• Hidratação profunda da pele\n• Melhora a maciez e elasticidade\n• Deixa a pele mais viçosa e saudável",
-    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
+    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes capilares.",
     curiosidades: "O fruto da rosa mosqueta é uma das maiores fontes naturais de vitamina C, auxiliando na luminosidade natural da pele.",
   },
   "refil-rosa-mosqueta": {
     ativos: "Óleo Vegetal de Rosa Mosqueta Rubiginosa (Rosehip Fruit Oil) 100% puro",
     beneficios: "Auxilia na regeneração da pele, melhora a aparência de cicatrizes, manchas e linhas finas",
-    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
+    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes capilares.",
     curiosidades: "Nosso refil garante que você continue seu tratamento sem gerar desperdício, mantendo o compromisso da Ecosopis com o planeta.",
   },
   "oleo-alecrim": {
     ativos: "Óleo vegetal de alecrim (Rosmarinus Officinalis Leaf Oil) 100% puro",
     beneficios: "Estimula a circulação, auxilia no fortalecimento capilar e ajuda no crescimento dos fios",
-    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
+    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes capilares.",
     curiosidades: "O alecrim é conhecido como a erva da alegria, seu aroma ajuda a despertar a mente enquanto cuida dos fios.",
   },
   "oleo-abacate": {
     ativos: "Óleo vegetal de abacate (Persea Gratissima Oil) 100% puro",
     beneficios: "Hidratação profunda, nutrição da pele e dos cabelos, ajuda na recuperação de áreas ressecadas",
-    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
+    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes capilares.",
     curiosidades: "O óleo de abacate consegue penetrar nas camadas mais profundas da derme, sendo um dos melhores óleos para combater o ressecamento extremo.",
   },
   "oleo-semente-uva": {
     ativos: "Óleo vegetal de semente de uva (Grape Seed Oil) 100% puro",
     beneficios: "Hidratação leve, rápida absorção, ajuda na elasticidade da pele e ação antioxidante, auxilia na melhora de dermatites",
-    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
+    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes capilares.",
     curiosidades: "Rico em resveratrol e vitamina E, este óleo é um escudo natural contra os radicais livres e o envelhecimento precoce.",
   },
   "oleo-ricino": {
     ativos: "Óleo vegetal de rícino (Ricinus Communis Seed Oil) 100% puro",
     beneficios: "Fortalece os fios, auxilia no crescimento capilar e hidrata profundamente",
-    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
+    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes capilares.",
     curiosidades: "O rícino possui o raro ácido ricinoleico, que atua nas raízes capilares selando a cutícula e estimulando o crescimento saudável.",
   },
   "oleo-argan": {
     ativos: "Óleo vegetal de Argan (Argania Spinosa Kernel Oil) 100% puro",
     beneficios: "Nutrição intensa, controle do frizz, brilho e maciez para cabelos e pele",
-    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes e máscaras capilares.",
+    modo_de_uso: "Podem ser utilizados na pele e nos cabelos.\n\nNa pele: aplicar algumas gotas na pele limpa e seca, massageando até completa absorção. Uso noturno pois o óleo é fotossensível e o seu uso em contato com o sol pode ocasionar em manchas, utilize sempre o protetor solar.\n\nNos cabelos: aplicar no comprimento e pontas para hidratação e nutrição, ou no couro cabeludo com massagem antes da lavagem.\n\nTambém podem ser usados como potencializadores em cremes capilares.",
     curiosidades: "Conhecido como 'Ouro do Marrocos', o óleo de Argan é extraído manualmente através de um processo artesanal milenar.",
   },
 
@@ -108,25 +108,25 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
   "oe-lavanda": {
     ativos: "Óleo essencial de lavanda francesa (Lavandula Officinalis Oil) 100% puro",
     beneficios: "Ação calmante, auxilia no relaxamento, melhora a qualidade do sono e acalma a pele",
-    modo_de_uso: "Sempre utilizar diluído.\n\nNa pele: diluir algumas gotas em óleo vegetal e aplicar na região desejada.\nNos cabelos: misturar algumas gotas em óleos vegetais ou máscaras capilares.\nNo ambiente: utilizar em difusores aromáticos para promover bem-estar e aromatização.\n\nObservação: não aplicar diretamente na pele sem diluição.",
+    modo_de_uso: "Sempre utilizar diluído.\n\nNa pele: diluir algumas gotas em óleo vegetal e aplicar na região desejada.\nNos cabelos: misturar algumas gotas em óleos vegetais ou finalizadores capilares.\nNo ambiente: utilizar em difusores aromáticos para promover bem-estar e aromatização.\n\nObservação: não aplicar diretamente na pele sem diluição.",
     curiosidades: "A lavanda é o óleo essencial mais versátil da aromaterapia, sendo reverenciada por equilibrar as emoções e o corpo físico.",
   },
   "oe-melaleuca": {
     ativos: "Óleo essencial de melaleuca (Melaleuca Alternifolia Leaf Oil) 100% puro",
     beneficios: "Ação antibacteriana, auxilia no controle da acne, da oleosidade da pele e micose",
-    modo_de_uso: "Sempre utilizar diluído.\n\nNa pele: diluir algumas gotas em óleo vegetal e aplicar na região desejada.\nNos cabelos: misturar algumas gotas em óleos vegetais ou máscaras capilares.\nNo ambiente: utilizar em difusores aromáticos para promover bem-estar e aromatização.\n\nObservação: não aplicar diretamente na pele sem diluição.",
+    modo_de_uso: "Sempre utilizar diluído.\n\nNa pele: diluir algumas gotas em óleo vegetal e aplicar na região desejada.\nNos cabelos: misturar algumas gotas em óleos vegetais ou finalizadores capilares.\nNo ambiente: utilizar em difusores aromáticos para promover bem-estar e aromatização.\n\nObservação: não aplicar diretamente na pele sem diluição.",
     curiosidades: "A Melaleuca (Tea Tree) era usada por soldados na 2ª Guerra Mundial como antisséptico natural potente para tratar ferimentos.",
   },
   "oe-menta": {
     ativos: "Óleo essencial de Menta Piperita (Mentha Piperita Oil) 100% puro",
     beneficios: "Sensação refrescante, auxilia no foco mental e respiração",
-    modo_de_uso: "Sempre utilizar diluído.\n\nNa pele: diluir algumas gotas em óleo vegetal e aplicar na região desejada.\nNos cabelos: misturar algumas gotas em óleos vegetais ou máscaras capilares.\nNo ambiente: utilizar em difusores aromáticos para promover bem-estar e aromatização.\n\nObservação: não aplicar diretamente na pele sem diluição.",
+    modo_de_uso: "Sempre utilizar diluído.\n\nNa pele: diluir algumas gotas em óleo vegetal e aplicar na região desejada.\nNos cabelos: misturar algumas gotas em óleos vegetais ou finalizadores capilares.\nNo ambiente: utilizar em difusores aromáticos para promover bem-estar e aromatização.\n\nObservação: não aplicar diretamente na pele sem diluição.",
     curiosidades: "Basta uma gota de menta piperita para sentir um frescor instantâneo. É excelente para aliviar tensões e despertar a mente.",
   },
   "oe-laranja": {
     ativos: "Óleo essencial de laranja doce (Citrus Aurantium Dulcis Peel Oil) 100% puro",
     beneficios: "Ação relaxante, melhora o humor e proporciona sensação de bem-estar",
-    modo_de_uso: "Sempre utilizar diluído.\n\nNa pele: diluir algumas gotas em óleo vegetal e aplicar na região desejada.\nNos cabelos: misturar algumas gotas em óleos vegetais ou máscaras capilares.\nNo ambiente: utilizar em difusores aromáticos para promover bem-estar e aromatização.\n\nObservação: não aplicar diretamente na pele sem diluição.",
+    modo_de_uso: "Sempre utilizar diluído.\n\nNa pele: diluir algumas gotas em óleo vegetal e aplicar na região desejada.\nNos cabelos: misturar algumas gotas em óleos vegetais ou finalizadores capilares.\nNo ambiente: utilizar em difusores aromáticos para promover bem-estar e aromatização.\n\nObservação: não aplicar diretamente na pele sem diluição.",
     curiosidades: "O aroma cítrico da laranja doce libera serotonina no cérebro, ajudando a trazer uma sensação imediata de felicidade e leveza.",
   },
 
@@ -158,7 +158,7 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
   "manteiga-ojon": {
     ativos: "Manteiga de Ojon Hidrolisada",
     beneficios: "Nutrição profunda, restauração dos fios, brilho intenso e redução do ressecamento",
-    modo_de_uso: "Aplicar pequena quantidade nos cabelos ou na pele, massageando bem. Para cabelos, pode ser usada como máscara.",
+    modo_de_uso: "Aplicar pequena quantidade nos cabelos ou na pele, massageando bem. Para cabelos, pode ser usada para nutrição profunda.",
     curiosidades: "O Ojon é extraído da palmeira Elaeis Oleifera, sendo o único óleo natural capaz de penetrar no núcleo das fibras capilares mais danificadas.",
   },
   "kit-acne": {
