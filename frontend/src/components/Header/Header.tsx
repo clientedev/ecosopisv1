@@ -147,65 +147,6 @@ export default function Header() {
                     </Link>
                 </div>
 
-                {/* Desktop Search Bar */}
-                <div className={styles.desktopSearchContainer}>
-                    <div className={styles.desktopSearchInputWrapper}>
-                        <Search size={16} className={styles.desktopSearchIcon} />
-                        <input
-                            type="text"
-                            placeholder="Buscar produtos..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onFocus={() => setIsSearchFocused(true)}
-                            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                            className={styles.desktopSearchField}
-                        />
-                        {searchQuery && (
-                            <button className={styles.desktopSearchClear} onClick={() => setSearchQuery("")}>
-                                <X size={14} />
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Desktop Live Results Dropdown */}
-                    {isSearchFocused && searchQuery && (
-                        <div className={styles.desktopSearchResultsDropdown}>
-                            {searchResults.length === 0 ? (
-                                <div className={styles.desktopSearchNoResults}>
-                                    Nenhum produto encontrado.
-                                </div>
-                            ) : (
-                                <div className={styles.desktopSearchResultsList}>
-                                    {searchResults.map((p: any) => (
-                                        <Link
-                                            key={p.id}
-                                            href={`/produtos/${p.slug}`}
-                                            className={styles.desktopSearchProductCard}
-                                        >
-                                            <div className={styles.desktopSearchThumbWrapper}>
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img 
-                                                    src={getImageUrl(p.image_url)} 
-                                                    alt={p.name} 
-                                                    className={styles.desktopSearchThumb}
-                                                />
-                                            </div>
-                                            <div className={styles.desktopSearchInfo}>
-                                                <span className={styles.desktopSearchName}>{p.name}</span>
-                                                {p.price && (
-                                                    <span className={styles.desktopSearchPrice}>
-                                                        R$ {p.price.toFixed(2).replace(".", ",")}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </Link>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-
                 {/* Desktop Navigation */}
                 <nav className={styles.desktopNav}>
                     <Link href="/produtos">PRODUTOS</Link>
@@ -374,6 +315,67 @@ export default function Header() {
                     >
                         {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
+                </div>
+            </div>
+
+            {/* Desktop Search Band */}
+            <div className={styles.desktopSearchBand}>
+                <div className={`container ${styles.desktopSearchBandContent}`}>
+                    <div className={styles.desktopSearchInputWrapper}>
+                        <Search size={18} className={styles.desktopSearchIcon} />
+                        <input
+                            type="text"
+                            placeholder="O que você está procurando hoje?"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => setIsSearchFocused(true)}
+                            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                            className={styles.desktopSearchField}
+                        />
+                        {searchQuery && (
+                            <button className={styles.desktopSearchClear} onClick={() => setSearchQuery("")}>
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Desktop Live Results Dropdown */}
+                    {isSearchFocused && searchQuery && (
+                        <div className={styles.desktopSearchResultsDropdown}>
+                            {searchResults.length === 0 ? (
+                                <div className={styles.desktopSearchNoResults}>
+                                    Nenhum produto encontrado.
+                                </div>
+                            ) : (
+                                <div className={styles.desktopSearchResultsList}>
+                                    {searchResults.map((p: any) => (
+                                        <Link
+                                            key={p.id}
+                                            href={`/produtos/${p.slug}`}
+                                            className={styles.desktopSearchProductCard}
+                                        >
+                                            <div className={styles.desktopSearchThumbWrapper}>
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img 
+                                                    src={getImageUrl(p.image_url)} 
+                                                    alt={p.name} 
+                                                    className={styles.desktopSearchThumb}
+                                                />
+                                            </div>
+                                            <div className={styles.desktopSearchInfo}>
+                                                <span className={styles.desktopSearchName}>{p.name}</span>
+                                                {p.price && (
+                                                    <span className={styles.desktopSearchPrice}>
+                                                        R$ {p.price.toFixed(2).replace(".", ",")}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
