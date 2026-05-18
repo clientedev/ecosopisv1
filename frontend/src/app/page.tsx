@@ -433,14 +433,14 @@ export default function Home() {
                             }}
                         >
                             <div className={`${styles.heroContent}`} style={{
-                                maxWidth: slide.content_max_width || '500px',
-                                padding: '40px',
+                                maxWidth: slide.content_max_width || '520px',
+                                padding: isMobile ? '24px 20px' : '40px',
                                 borderRadius: '24px',
-                                background: slide.glassmorphism ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                                backdropFilter: slide.glassmorphism ? 'blur(12px)' : 'none',
-                                WebkitBackdropFilter: slide.glassmorphism ? 'blur(12px)' : 'none',
-                                border: slide.glassmorphism ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
-                                boxShadow: slide.glassmorphism ? '0 10px 40px rgba(0,0,0,0.15)' : 'none',
+                                background: 'rgba(20, 20, 20, 0.45)', // premium dark glassmorphism for supreme text contrast
+                                backdropFilter: 'blur(16px)',
+                                WebkitBackdropFilter: 'blur(16px)',
+                                border: '1px solid rgba(255, 255, 255, 0.12)',
+                                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 position: 'absolute',
@@ -449,7 +449,7 @@ export default function Home() {
                                 transform: 'translate(-50%, -50%)',
                                 textAlign: isMobile ? 'center' : (slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'right' : 'left') as any,
                                 pointerEvents: 'auto',
-                                width: isMobile ? '90%' : 'fit-content',
+                                width: isMobile ? '92%' : 'fit-content',
                             }}>
                                 {slide.badge && (
                                     <span
@@ -565,23 +565,115 @@ export default function Home() {
                     </div>
                     <div className={styles.bestsellersGrid}>
                         <div className={styles.bestsellerWrapper}>
-                            <div className={styles.rankBadge}>1º LUGAR</div>
+                            <div className={`${styles.rankBadge} ${styles.rankBadgeTop1}`}>👑 TOP 1 - MAIS VENDIDO</div>
                             {findProductBySlug('sabonete-acafrao-dolomita') && (
                                 <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} badge="Nosso mais vendido" showMarketplace={false} />
                             )}
                         </div>
                         <div className={styles.bestsellerWrapper}>
-                            <div className={styles.rankBadge}>2º LUGAR</div>
+                            <div className={`${styles.rankBadge} ${styles.rankBadgeHeart}`}>❤️ QUERIDINHO DAS CLIENTES</div>
                             {findProductBySlug('kit-clareamento') && (
                                 <ProductCard product={findProductBySlug('kit-clareamento')} showMarketplace={false} />
                             )}
                         </div>
                         <div className={styles.bestsellerWrapper}>
-                            <div className={styles.rankBadge}>3º LUGAR</div>
+                            <div className={`${styles.rankBadge} ${styles.rankBadgeHeart}`}>❤️ QUERIDINHO DAS CLIENTES</div>
                             {findProductBySlug('oleo-ricino') && (
                                 <ProductCard product={findProductBySlug('oleo-ricino')} showMarketplace={false} />
                             )}
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Reviews Section - Moved up for Social Proof */}
+            <section className={styles.reviewsSection}>
+                <div className="container">
+                    <h2 className={styles.sectionTitle} style={{ textAlign: 'center', marginBottom: '40px' }}>EXPERIÊNCIAS ECOSOPIS</h2>
+
+                    <div className={styles.reviewsGrid}>
+                        {reviews.length > 0 || staticReviews.length > 0 ? (
+                            [...staticReviews, ...reviews].map((rev: any) => (
+                                <div key={rev.id} className={styles.reviewCard}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                        <div className={styles.reviewStars}>
+                                            {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
+                                        </div>
+                                        {rev.date && <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', opacity: 0.7 }}>{rev.date}</span>}
+                                    </div>
+
+                                    {rev.product && (
+                                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary-green)', background: 'rgba(74,124,89,0.08)', padding: '2px 8px', borderRadius: '20px', display: 'inline-block', marginBottom: '8px' }}>
+                                            {rev.product}
+                                        </span>
+                                    )}
+
+                                    <p className={styles.reviewComment}>&quot;{rev.comment}&quot;</p>
+
+                                    {rev.imageUrl && (
+                                        <div style={{ position: 'relative', width: '100%', height: '150px', marginTop: '10px', borderRadius: '8px', overflow: 'hidden' }}>
+                                            <Image src={rev.imageUrl} alt="Antes e Depois" fill style={{ objectFit: 'cover' }} />
+                                            <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>ANTES → DEPOIS</div>
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--neutral-gray-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-green)' }}>
+                                                {rev.user_name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <span className={styles.reviewAuthor}>{rev.user_name}</span>
+                                        </div>
+                                        {rev.source && rev.source !== 'Shopee' && (
+                                            <span style={{ fontSize: '0.65rem', background: 'var(--neutral-gray-100)', color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid var(--neutral-gray-200)' }}>
+                                                ✓ {rev.source}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p style={{ textAlign: 'center', gridColumn: '1/-1', opacity: 0.7 }}>
+                                Seja a primeira a compartilhar sua jornada de autocuidado!
+                            </p>
+                        )}
+                    </div>
+
+                    <div className={styles.reviewFormContainer}>
+                        <h3>Deixe sua Avaliação</h3>
+                        <form onSubmit={handleReviewSubmit} className={styles.reviewForm}>
+                            <div className={styles.formRow}>
+                                <input
+                                    type="text"
+                                    placeholder="Seu Nome"
+                                    value={reviewForm.user_name}
+                                    onChange={(e) => setReviewForm({ ...reviewForm, user_name: e.target.value })}
+                                    required
+                                />
+                                <select
+                                    value={reviewForm.rating}
+                                    onChange={(e) => setReviewForm({ ...reviewForm, rating: parseInt(e.target.value) })}
+                                >
+                                    <option value="5">5 Estrelas ★★★★★</option>
+                                    <option value="4">4 Estrelas ★★★★☆</option>
+                                    <option value="3">3 Estrelas ★★★☆☆</option>
+                                    <option value="2">2 Estrelas ★★☆☆☆</option>
+                                    <option value="1">1 Estrela ★☆☆☆☆</option>
+                                </select>
+                            </div>
+                            <textarea
+                                placeholder="Conte sua experiência com nossos produtos botânicos..."
+                                value={reviewForm.comment}
+                                onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                                required
+                            />
+                            <button type="submit" className="btn-primary">ENVIAR AVALIAÇÃO</button>
+                            {formStatus.text && (
+                                <p className={`${styles.formMessage} ${styles[formStatus.type as keyof typeof styles]}`}>
+                                    {formStatus.text}
+                                </p>
+                            )}
+                        </form>
                     </div>
                 </div>
             </section>
@@ -601,7 +693,7 @@ export default function Home() {
                             <div className={styles.diagnosticContent}>
                                 <h3>Pele com Manchas</h3>
                                 <p>Para uniformizar a pele e clarear marcas</p>
-                                <span className={styles.diagnosticAction}>VER TRATAMENTO <ChevronRight size={16} /></span>
+                                <span className={styles.diagnosticAction}>QUERO TRATAR <ChevronRight size={16} /></span>
                             </div>
                         </div>
                         
@@ -610,7 +702,7 @@ export default function Home() {
                             <div className={styles.diagnosticContent}>
                                 <h3>Acne e Oleosidade</h3>
                                 <p>Para controlar oleosidade e reduzir espinhas</p>
-                                <span className={styles.diagnosticAction}>VER TRATAMENTO <ChevronRight size={16} /></span>
+                                <span className={styles.diagnosticAction}>QUERO TRATAR <ChevronRight size={16} /></span>
                             </div>
                         </div>
                         
@@ -619,7 +711,7 @@ export default function Home() {
                             <div className={styles.diagnosticContent}>
                                 <h3>Foliculite e Pelos <span className={styles.popularMiniBadge}>Nosso mais vendido</span></h3>
                                 <p>Adeus foliculite, pele lisa e uniforme</p>
-                                <span className={styles.diagnosticAction}>VER TRATAMENTO <ChevronRight size={16} /></span>
+                                <span className={styles.diagnosticAction}>QUERO TRATAR <ChevronRight size={16} /></span>
                             </div>
                         </div>
                     </div>
@@ -944,98 +1036,6 @@ export default function Home() {
 
             {/* News Section */}
             <NewsSection />
-
-            {/* Reviews Section */}
-            <section className={styles.reviewsSection}>
-                <div className="container">
-                    <h2 className={styles.sectionTitle} style={{ textAlign: 'center', marginBottom: '40px' }}>EXPERIÊNCIAS ECOSOPIS</h2>
-
-                    <div className={styles.reviewsGrid}>
-                        {reviews.length > 0 || staticReviews.length > 0 ? (
-                            [...staticReviews, ...reviews].map((rev: any) => (
-                                <div key={rev.id} className={styles.reviewCard}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                        <div className={styles.reviewStars}>
-                                            {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
-                                        </div>
-                                        {rev.date && <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', opacity: 0.7 }}>{rev.date}</span>}
-                                    </div>
-
-                                    {rev.product && (
-                                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary-green)', background: 'rgba(74,124,89,0.08)', padding: '2px 8px', borderRadius: '20px', display: 'inline-block', marginBottom: '8px' }}>
-                                            {rev.product}
-                                        </span>
-                                    )}
-
-                                    <p className={styles.reviewComment}>&quot;{rev.comment}&quot;</p>
-
-                                    {rev.imageUrl && (
-                                        <div style={{ position: 'relative', width: '100%', height: '150px', marginTop: '10px', borderRadius: '8px', overflow: 'hidden' }}>
-                                            <Image src={rev.imageUrl} alt="Antes e Depois" fill style={{ objectFit: 'cover' }} />
-                                            <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>ANTES → DEPOIS</div>
-                                        </div>
-                                    )}
-
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--neutral-gray-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-green)' }}>
-                                                {rev.user_name.charAt(0).toUpperCase()}
-                                            </div>
-                                            <span className={styles.reviewAuthor}>{rev.user_name}</span>
-                                        </div>
-                                        {rev.source && rev.source !== 'Shopee' && (
-                                            <span style={{ fontSize: '0.65rem', background: 'var(--neutral-gray-100)', color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid var(--neutral-gray-200)' }}>
-                                                ✓ {rev.source}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p style={{ textAlign: 'center', gridColumn: '1/-1', opacity: 0.7 }}>
-                                Seja a primeira a compartilhar sua jornada de autocuidado!
-                            </p>
-                        )}
-                    </div>
-
-                    <div className={styles.reviewFormContainer}>
-                        <h3>Deixe sua Avaliação</h3>
-                        <form onSubmit={handleReviewSubmit} className={styles.reviewForm}>
-                            <div className={styles.formRow}>
-                                <input
-                                    type="text"
-                                    placeholder="Seu Nome"
-                                    value={reviewForm.user_name}
-                                    onChange={(e) => setReviewForm({ ...reviewForm, user_name: e.target.value })}
-                                    required
-                                />
-                                <select
-                                    value={reviewForm.rating}
-                                    onChange={(e) => setReviewForm({ ...reviewForm, rating: parseInt(e.target.value) })}
-                                >
-                                    <option value="5">5 Estrelas ★★★★★</option>
-                                    <option value="4">4 Estrelas ★★★★☆</option>
-                                    <option value="3">3 Estrelas ★★★☆☆</option>
-                                    <option value="2">2 Estrelas ★★☆☆☆</option>
-                                    <option value="1">1 Estrela ★☆☆☆☆</option>
-                                </select>
-                            </div>
-                            <textarea
-                                placeholder="Conte sua experiência com nossos produtos botânicos..."
-                                value={reviewForm.comment}
-                                onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                                required
-                            />
-                            <button type="submit" className="btn-primary">ENVIAR AVALIAÇÃO</button>
-                            {formStatus.text && (
-                                <p className={`${styles.formMessage} ${styles[formStatus.type as keyof typeof styles]}`}>
-                                    {formStatus.text}
-                                </p>
-                            )}
-                        </form>
-                    </div>
-                </div>
-            </section>
 
             <Footer />
         </main >

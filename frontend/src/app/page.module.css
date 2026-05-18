@@ -47,17 +47,20 @@
 }
 
 .heroContent h1 {
-  font-size: 3.5rem;
-  line-height: 1.1;
-  margin-bottom: var(--spacing-md);
-  letter-spacing: -2px;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  line-height: 1.15;
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: -1.5px;
+  color: #ffffff;
+  font-weight: 800;
 }
 
 .heroContent p {
-  font-size: 1.2rem;
-  color: var(--text-secondary);
+  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+  color: rgba(255, 255, 255, 0.85);
   margin-bottom: var(--spacing-lg);
   max-width: 500px;
+  line-height: 1.6;
 }
 
 .heroActions {
@@ -65,8 +68,49 @@
   gap: var(--spacing-md);
 }
 
+.heroActions :global(.btn-primary) {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: white !important;
+  border-radius: 50px !important;
+  font-weight: 800 !important;
+  padding: 14px 32px !important;
+  box-shadow: 0 10px 25px rgba(217, 119, 6, 0.4) !important;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  border: none !important;
+  text-transform: uppercase !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 0.5px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.heroActions :global(.btn-primary):hover {
+  transform: translateY(-3px) scale(1.03) !important;
+  box-shadow: 0 15px 30px rgba(217, 119, 6, 0.5) !important;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+}
+
+.heroActions :global(.btn-outline) {
+  border-radius: 50px !important;
+  font-weight: 700 !important;
+  padding: 14px 32px !important;
+  transition: all 0.3s ease !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 0.5px !important;
+  color: white !important;
+  border: 2px solid rgba(255,255,255,0.6) !important;
+  background: transparent !important;
+}
+
+.heroActions :global(.btn-outline):hover {
+  background: rgba(255,255,255,0.15) !important;
+  border-color: white !important;
+  transform: translateY(-2px) !important;
+}
+
 .advantages {
-  padding: var(--spacing-xl) 0;
+  padding: 100px 0;
   border-bottom: 1px solid var(--neutral-gray-200);
 }
 
@@ -88,7 +132,7 @@
 }
 
 .section {
-  padding: var(--spacing-xl) 0;
+  padding: 120px 0;
 }
 
 .sectionHeader {
@@ -118,9 +162,9 @@
 .quizPromo {
   background-color: var(--primary-green);
   color: white;
-  padding: var(--spacing-xl) 0;
+  padding: 100px 0;
   text-align: center;
-  margin: var(--spacing-xl) 0;
+  margin: 100px 0;
 }
 
 .quizPromo h2 {
@@ -1664,6 +1708,19 @@
   box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4);
   z-index: 10;
   white-space: nowrap;
+}
+
+.rankBadgeTop1 {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+  font-size: 0.85rem;
+  padding: 8px 25px;
+  top: -20px;
+}
+
+.rankBadgeHeart {
+  background: linear-gradient(135deg, #ec4899, #be185d);
+  box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
 }
 
 .bestsellerWrapper:nth-child(1) .rankBadge {

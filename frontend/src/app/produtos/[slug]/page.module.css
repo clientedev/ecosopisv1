@@ -191,9 +191,10 @@
 }
 
 .shopeeBtnProduct {
-    background-color: #ee4d2d;
-    color: white;
-    padding: 14px 20px;
+    background-color: transparent;
+    color: #ee4d2d;
+    border: 2px solid #ee4d2d;
+    padding: 12px 20px;
     border-radius: 12px;
     font-weight: 700;
     text-decoration: none;
@@ -202,20 +203,20 @@
     justify-content: center;
     gap: 10px;
     transition: all 0.3s;
-    border: none;
     font-size: 0.95rem;
 }
 
 .shopeeBtnProduct:hover {
-    background-color: #ff5722;
+    background-color: rgba(238, 77, 45, 0.05);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.2);
+    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.1);
 }
 
 .mlBtnProduct {
-    background-color: #fff159;
-    color: #333;
-    padding: 14px 20px;
+    background-color: transparent;
+    color: #cca300;
+    border: 2px solid #e5d850;
+    padding: 12px 20px;
     border-radius: 12px;
     font-weight: 700;
     text-decoration: none;
@@ -224,14 +225,13 @@
     justify-content: center;
     gap: 10px;
     transition: all 0.3s;
-    border: none;
     font-size: 0.95rem;
 }
 
 .mlBtnProduct:hover {
-    background-color: #fff589;
+    background-color: rgba(255, 241, 89, 0.1);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 241, 89, 0.2);
+    box-shadow: 0 4px 12px rgba(255, 241, 89, 0.15);
 }
 
 .shopeeLogo {

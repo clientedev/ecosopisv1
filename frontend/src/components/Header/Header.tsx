@@ -150,7 +150,7 @@ export default function Header() {
                 {/* Desktop Navigation */}
                 <nav className={styles.desktopNav}>
                     <Link href="/produtos">PRODUTOS</Link>
-                    <Link href="/atacado">ATACADO</Link>
+                    <Link href="/atacado" className={styles.highlightNavLink}>QUERO REVENDER</Link>
                     <Link href="/novidades">NOVIDADES</Link>
                     <Link href="/quizz">QUIZZ</Link>
                     <Link href="/lia" className={styles.liaLink}>
@@ -189,7 +189,7 @@ export default function Header() {
                             </Link>
                             <Link href="/atacado" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
                                 <Truck size={22} />
-                                ATACADO
+                                QUERO REVENDER
                             </Link>
                             <Link href="/novidades" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
                                 <Newspaper size={22} />
