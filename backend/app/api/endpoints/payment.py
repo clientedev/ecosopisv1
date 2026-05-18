@@ -119,8 +119,8 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
     5. GENERATE SHIPPING LABEL (Melhor Envio).
     6. Send Confirmation Emails.
     """
-    if order.status == "paid":
-        logger.info(f"Order {order.id} already marked as PAID. Skipping redundancy.")
+    if order.status in ("paid", "shipped", "delivered"):
+        logger.info(f"Order {order.id} already in status '{order.status}'. Skipping finalize.")
         return
 
     order.status = "paid"
@@ -388,6 +388,21 @@ async def get_payment_status(
     if not order: raise HTTPException(status_code=404)
     if current_user.role != "admin" and order.user_id != current_user.id:
         raise HTTPException(status_code=403)
+
+    # Proactive sync
+    if order.status == "pending":
+        from app.repositories.order_repository import OrderRepository
+        from app.services.order_service import OrderService
+        repo = OrderRepository(db)
+        service = OrderService(repo)
+        if getattr(order, "stripe_session_id", None):
+            service.sync_order_status(order.id)
+            db.commit()
+            db.refresh(order)
+        elif getattr(order, "mercadopago_preference_id", None):
+            service.sync_mp_order_status(order.id)
+            db.commit()
+            db.refresh(order)
 
     payment_details = {}
     if order.status == "pending":

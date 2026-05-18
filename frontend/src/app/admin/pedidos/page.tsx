@@ -50,11 +50,15 @@ const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }>
 };
 
 const NEXT_STATUS: Record<string, string[]> = {
-    pending:   ["paid", "cancelled"],
-    paid:      ["shipped", "cancelled"],
-    shipped:   ["delivered"],
-    delivered: [],
-    cancelled: [],
+    pending:            ["paid", "cancelled"],
+    paid:               ["shipped", "cancelled"],
+    shipped:            ["delivered", "paid"],
+    delivered:          ["shipped"],
+    cancelled:          ["paid"],
+    erro_envio:         ["shipped", "paid"],
+    ERRO_ENVIO:         ["shipped", "paid"],
+    processando_envio:  ["shipped", "paid"],
+    PROCESSANDO_ENVIO:  ["shipped", "paid"],
 };
 
 const ME_BALANCE_URL = "https://melhorenvio.com.br/painel/carteira";

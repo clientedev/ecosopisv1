@@ -528,3 +528,168 @@
     gap: 10px;
     position: relative;
 }
+
+/* Desktop Search Bar Styles */
+.desktopSearchContainer {
+    position: relative;
+    flex: 1;
+    max-width: 260px;
+    margin: 0 15px;
+    z-index: 10005;
+}
+
+@media (max-width: 900px) {
+    .desktopSearchContainer {
+        display: none !important;
+    }
+}
+
+.desktopSearchInputWrapper {
+    display: flex;
+    align-items: center;
+    background-color: #f1f5f9;
+    border-radius: 50px;
+    padding: 0 14px;
+    height: 38px;
+    border: 1px solid transparent;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.desktopSearchInputWrapper:focus-within {
+    border-color: var(--primary-green);
+    background-color: #ffffff;
+    box-shadow: 0 4px 15px rgba(45, 90, 39, 0.08);
+}
+
+.desktopSearchIcon {
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.desktopSearchField {
+    border: none;
+    background: none;
+    outline: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1e293b;
+    width: 100%;
+    margin-left: 8px;
+    font-family: var(--font-body), sans-serif;
+}
+
+.desktopSearchField::placeholder {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.desktopSearchClear {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.desktopSearchClear:hover {
+    color: #ef4444;
+}
+
+.desktopSearchResultsDropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background-color: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    animation: fadeInDropdown 0.2s ease-out;
+}
+
+@keyframes fadeInDropdown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.desktopSearchResultsList {
+    display: flex;
+    flex-direction: column;
+}
+
+.desktopSearchProductCard {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    text-decoration: none;
+    border-bottom: 1px solid #f8fafc;
+    transition: all 0.2s ease;
+}
+
+.desktopSearchProductCard:last-child {
+    border-bottom: none;
+}
+
+.desktopSearchProductCard:hover {
+    background-color: #f8fafc;
+}
+
+.desktopSearchThumbWrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    background-color: #f8fafc;
+    flex-shrink: 0;
+}
+
+.desktopSearchThumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.desktopSearchInfo {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.desktopSearchName {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--font-header), sans-serif;
+}
+
+.desktopSearchPrice {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--primary-green);
+    margin-top: 2px;
+    font-family: var(--font-body), sans-serif;
+}
+
+.desktopSearchNoResults {
+    padding: 16px;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    font-family: var(--font-body), sans-serif;
+}

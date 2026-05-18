@@ -133,3 +133,35 @@ class OrderService:
                 print(f"Erro ao sincronizar pedido {order_id} com Stripe: {e}")
         
         return order
+
+    def sync_mp_order_status(self, order_id: int):
+        """
+        Sincroniza proativamente o status do pedido com o Mercado Pago.
+        Busca pagamentos relacionados ao external_reference (order_id).
+        """
+        order = self.repo.get_order_by_id(order_id)
+        if not order or order.status != "pending" or not getattr(order, 'mercadopago_preference_id', None):
+            return order
+
+        try:
+            from app.core.mercadopago_service import sdk as mp_sdk
+            filters = {"external_reference": str(order_id)}
+            result = mp_sdk.payment().search(filters)
+            if result.get("status") in [200, 201]:
+                payments = result.get("response", {}).get("results", [])
+                for payment in payments:
+                    if payment.get("status") in ["approved", "authorized"]:
+                        print(f"Sincronização: Pedido {order_id} detectado como pago no Mercado Pago.")
+                        
+                        from app.api.endpoints.payment import finalize_order_on_payment
+                        finalize_order_on_payment(
+                            order=order,
+                            db=self.repo.db,
+                            payment_id=str(payment.get("id")),
+                            buyer_email=payment.get("payer", {}).get("email")
+                        )
+                        return order
+        except Exception as e:
+            print(f"Erro ao sincronizar pedido {order_id} com Mercado Pago: {e}")
+        
+        return order

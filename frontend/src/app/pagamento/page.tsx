@@ -11,7 +11,7 @@ function PaymentContent() {
     const status = searchParams.get("status") || "pending";
     const orderId = searchParams.get("order_id");
 
-    const [orderStatus, setOrderStatus] = useState<string>(status);
+    const [orderStatus, setOrderStatus] = useState<string>(status === "approved" ? "pending" : status);
     const [paymentDetails, setPaymentDetails] = useState<any>(null);
     const [polling, setPolling] = useState(true);
     const [attempts, setAttempts] = useState(0);
@@ -19,11 +19,6 @@ function PaymentContent() {
 
     useEffect(() => {
         if (!orderId || status === "failure") {
-            setPolling(false);
-            return;
-        }
-        if (status === "approved") {
-            setOrderStatus("approved");
             setPolling(false);
             return;
         }

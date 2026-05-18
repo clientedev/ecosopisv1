@@ -67,10 +67,15 @@ def list_all_orders(
     repo = OrderRepository(db)
     service = OrderService(repo)
     for o in orders:
-        if o.status == "pending" and o.stripe_session_id:
-            service.sync_order_status(o.id)
-            db.commit()
-            db.refresh(o)
+        if o.status == "pending":
+            if getattr(o, "stripe_session_id", None):
+                service.sync_order_status(o.id)
+                db.commit()
+                db.refresh(o)
+            elif getattr(o, "mercadopago_preference_id", None):
+                service.sync_mp_order_status(o.id)
+                db.commit()
+                db.refresh(o)
 
     result = []
     for o in orders:
@@ -118,7 +123,7 @@ def update_order_status(
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
 
-    valid_statuses = {"pending", "paid", "shipped", "delivered", "cancelled"}
+    valid_statuses = {"pending", "paid", "shipped", "delivered", "cancelled", "erro_envio", "ERRO_ENVIO", "processando_envio", "PROCESSANDO_ENVIO"}
     new_status = body.get("status", order.status)
     if new_status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Status inválido. Use: {', '.join(valid_statuses)}")
@@ -210,10 +215,15 @@ def list_orders(
     repo = OrderRepository(db)
     service = OrderService(repo)
     for o in orders:
-        if o.status == "pending" and o.stripe_session_id:
-            service.sync_order_status(o.id)
-            db.commit()
-            db.refresh(o)
+        if o.status == "pending":
+            if getattr(o, "stripe_session_id", None):
+                service.sync_order_status(o.id)
+                db.commit()
+                db.refresh(o)
+            elif getattr(o, "mercadopago_preference_id", None):
+                service.sync_mp_order_status(o.id)
+                db.commit()
+                db.refresh(o)
 
     return [_order_to_response(o, db) for o in orders]
 
@@ -235,12 +245,17 @@ def get_order(
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
     
     # Proactive sync
-    if order.status == "pending" and order.stripe_session_id:
+    if order.status == "pending":
         repo = OrderRepository(db)
         service = OrderService(repo)
-        service.sync_order_status(order.id)
-        db.commit()
-        db.refresh(order)
+        if getattr(order, "stripe_session_id", None):
+            service.sync_order_status(order.id)
+            db.commit()
+            db.refresh(order)
+        elif getattr(order, "mercadopago_preference_id", None):
+            service.sync_mp_order_status(order.id)
+            db.commit()
+            db.refresh(order)
 
     return _order_to_response(order, db)
 

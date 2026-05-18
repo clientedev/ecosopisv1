@@ -5,12 +5,13 @@ import Link from "next/link";
 import styles from "./dashboard.module.css";
 import EditProductModal from "./EditProductModal";
 import NewProductModal from "./NewProductModal";
-import { Download, ExternalLink } from "lucide-react";
+import { Download, ExternalLink, Search, X } from "lucide-react";
 
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
 export default function AdminDashboard() {
     const [products, setProducts] = useState<any[]>([]);
+    const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
     const [editingProduct, setEditingProduct] = useState<any>(null);
     const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -119,6 +120,11 @@ export default function AdminDashboard() {
         }
     };
 
+    const filteredProducts = products.filter((p: any) =>
+        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.slug && p.slug.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
     return (
         <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/dashboard" />
@@ -132,6 +138,22 @@ export default function AdminDashboard() {
                         + Novo Produto
                     </button>
                 </header>
+
+                <div className={styles.adminSearchContainer}>
+                    <Search size={18} className={styles.adminSearchIcon} />
+                    <input
+                        type="text"
+                        placeholder="Buscar produto por nome ou slug..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className={styles.adminSearchInput}
+                    />
+                    {searchTerm && (
+                        <button className={styles.adminSearchClear} onClick={() => setSearchTerm("")}>
+                            <X size={16} />
+                        </button>
+                    )}
+                </div>
 
                 <div className={styles.stats}>
                     <div className={styles.statCard}>
@@ -152,7 +174,7 @@ export default function AdminDashboard() {
                             </tr>
                         </thead>
                         <tbody>
-                            {products.map((p: any) => (
+                            {filteredProducts.map((p: any) => (
                                 <tr key={p.id} style={{ opacity: p.is_active === false ? 0.5 : 1 }}>
                                     <td>
                                         <img

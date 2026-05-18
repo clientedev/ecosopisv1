@@ -3,7 +3,7 @@ import Link from "next/link";
 import styles from "./Header.module.css";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart, Package, Newspaper, Zap, Info, Sparkles, Truck } from "lucide-react";
+import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart, Package, Newspaper, Zap, Info, Sparkles, Truck, Search } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
@@ -23,6 +23,12 @@ export default function Header() {
         repeat_text: boolean
     } | null>(null);
 
+    // Search functionality states
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [allProducts, setAllProducts] = useState<any[]>([]);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+
     useEffect(() => {
         const fetchAnnouncement = async () => {
             try {
@@ -35,8 +41,56 @@ export default function Header() {
                 console.error("Error fetching announcement", err);
             }
         };
+        
+        const fetchProducts = async () => {
+            try {
+                const res = await fetch("/api/products");
+                if (res.ok) {
+                    const data = await res.json();
+                    setAllProducts(Array.isArray(data) ? data : []);
+                }
+            } catch (error) {
+                console.error("Error fetching products in header:", error);
+            }
+        };
+
         fetchAnnouncement();
+        fetchProducts();
     }, []);
+
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            setSearchResults([]);
+            return;
+        }
+        
+        const query = searchQuery.toLowerCase();
+        const filtered = allProducts.filter((p: any) => {
+            const nameMatch = p.name?.toLowerCase().includes(query);
+            const descMatch = p.description?.toLowerCase().includes(query);
+            const categoryMatch = p.category?.toLowerCase().includes(query);
+            const tags = Array.isArray(p.tags) ? p.tags : JSON.parse(p.tags || "[]");
+            const tagsMatch = tags.some((tag: string) => tag.toLowerCase().includes(query));
+            
+            return nameMatch || descMatch || categoryMatch || tagsMatch;
+        });
+        
+        setSearchResults(filtered.slice(0, 5));
+    }, [searchQuery, allProducts]);
+
+    const getImageUrl = (url?: string) => {
+        if (!url) return "/logo_nova_transparent.png";
+        if (url.startsWith("http")) return url;
+        if (url.startsWith("/api/")) return url;
+        if (url.startsWith("/static/")) return url;
+        if (url.startsWith("/images/")) return `/api${url}`;
+        if (url.startsWith("images/")) return `/api/${url}`;
+        if (url.startsWith("/attached_assets/")) return `/static${url}`;
+        if (url.startsWith("attached_assets/")) return `/static/${url}`;
+        if (url.startsWith("/uploads/")) return `/static${url}`;
+        if (url.startsWith("uploads/")) return `/static/${url}`;
+        return url;
+    };
 
     const handleLogout = () => {
         logout();
@@ -91,6 +145,65 @@ export default function Header() {
                             />
                         </div>
                     </Link>
+                </div>
+
+                {/* Desktop Search Bar */}
+                <div className={styles.desktopSearchContainer}>
+                    <div className={styles.desktopSearchInputWrapper}>
+                        <Search size={16} className={styles.desktopSearchIcon} />
+                        <input
+                            type="text"
+                            placeholder="Buscar produtos..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => setIsSearchFocused(true)}
+                            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                            className={styles.desktopSearchField}
+                        />
+                        {searchQuery && (
+                            <button className={styles.desktopSearchClear} onClick={() => setSearchQuery("")}>
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Desktop Live Results Dropdown */}
+                    {isSearchFocused && searchQuery && (
+                        <div className={styles.desktopSearchResultsDropdown}>
+                            {searchResults.length === 0 ? (
+                                <div className={styles.desktopSearchNoResults}>
+                                    Nenhum produto encontrado.
+                                </div>
+                            ) : (
+                                <div className={styles.desktopSearchResultsList}>
+                                    {searchResults.map((p: any) => (
+                                        <Link
+                                            key={p.id}
+                                            href={`/produtos/${p.slug}`}
+                                            className={styles.desktopSearchProductCard}
+                                        >
+                                            <div className={styles.desktopSearchThumbWrapper}>
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img 
+                                                    src={getImageUrl(p.image_url)} 
+                                                    alt={p.name} 
+                                                    className={styles.desktopSearchThumb}
+                                                />
+                                            </div>
+                                            <div className={styles.desktopSearchInfo}>
+                                                <span className={styles.desktopSearchName}>{p.name}</span>
+                                                {p.price && (
+                                                    <span className={styles.desktopSearchPrice}>
+                                                        R$ {p.price.toFixed(2).replace(".", ",")}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Desktop Navigation */}

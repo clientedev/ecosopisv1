@@ -479,9 +479,19 @@ def processar_envio(pedido, db) -> dict:
         db.commit()
         resultado["etiqueta_url"] = etiqueta_url
 
-        tracking_code = obter_tracking(shipment_id, tracking_from_cart)
-        pedido.tracking_code = tracking_code
-        resultado["tracking_code"] = tracking_code
+        # Tracking retrieval is non-critical — if it fails, the order
+        # should still be marked as shipped since the label exists.
+        tracking_code = ""
+        try:
+            tracking_code = obter_tracking(shipment_id, tracking_from_cart)
+            pedido.tracking_code = tracking_code
+            resultado["tracking_code"] = tracking_code
+        except Exception as track_exc:
+            logger.warning(f"[ENVIO] ⚠️ Tracking retrieval failed for {pedido.id}, but label exists. Continuing: {track_exc}")
+            # Use tracking from cart if available
+            if tracking_from_cart:
+                pedido.tracking_code = tracking_from_cart
+                resultado["tracking_code"] = tracking_from_cart
 
         pedido.status = "shipped"
         db.commit()
@@ -494,13 +504,27 @@ def processar_envio(pedido, db) -> dict:
 
     except Exception as exc:
         logger.error(f"[ENVIO] ❌ Pedido {pedido.id}: {exc}", exc_info=True)
-        try:
-            pedido.status = "erro_envio"
-            db.commit()
-        except Exception:
-            pass
-        resultado["status"] = "erro_envio"
-        resultado["erro"] = str(exc)
+
+        # If we already have a label URL, mark as shipped anyway
+        # (the critical work was done, only a late step failed)
+        has_label = resultado.get("etiqueta_url") or getattr(pedido, "etiqueta_url", None)
+        if has_label:
+            logger.info(f"[ENVIO] Pedido {pedido.id} had a label generated. Marking as shipped despite error.")
+            try:
+                pedido.status = "shipped"
+                db.commit()
+            except Exception:
+                pass
+            resultado["status"] = "shipped"
+            resultado["erro"] = f"Etiqueta gerada, mas houve um aviso: {str(exc)}"
+        else:
+            try:
+                pedido.status = "erro_envio"
+                db.commit()
+            except Exception:
+                pass
+            resultado["status"] = "erro_envio"
+            resultado["erro"] = str(exc)
 
     return resultado
 

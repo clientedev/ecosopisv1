@@ -7,6 +7,7 @@ import DynamicBranding from "@/components/DynamicBranding/DynamicBranding";
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/components/Toast/Toast";
 import { CartProvider } from "@/context/CartContext";
+import MobileBottomNav from "@/components/MobileBottomNav/MobileBottomNav";
 
 const raleway = Raleway({
     subsets: ["latin"],
@@ -50,6 +51,7 @@ export default function RootLayout({
                             {children}
                             <ChatIA />
                             <RouletteModal />
+                            <MobileBottomNav />
                         </CartProvider>
                     </ToastProvider>
                 </AuthProvider>
