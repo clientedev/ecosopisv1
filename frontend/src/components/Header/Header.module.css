@@ -550,7 +550,16 @@
     position: relative;
     display: flex;
     justify-content: center;
+    align-items: center;
     width: 100%;
+    gap: 20px;
+}
+
+.desktopSearchInputGroup {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    flex-shrink: 0;
 }
 
 .desktopSearchInputWrapper {
@@ -562,7 +571,6 @@
     height: 42px;
     border: 1px solid #cbd5e1;
     width: 100%;
-    max-width: 580px;
     box-sizing: border-box;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -607,6 +615,42 @@
 
 .desktopSearchClear:hover {
     color: #ef4444;
+}
+
+/* Quick Suggestions Styling */
+.desktopSearchSuggestions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.suggestionsLabel {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+    font-family: var(--font-header), sans-serif;
+}
+
+.desktopSuggestionTag {
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 50px;
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    font-family: var(--font-body), sans-serif;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.desktopSuggestionTag:hover {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+    color: #ffffff;
+    box-shadow: 0 4px 10px rgba(45, 90, 39, 0.12);
+    transform: translateY(-1px);
 }
 
 .desktopSearchResultsDropdown {
