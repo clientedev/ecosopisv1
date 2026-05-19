@@ -32,7 +32,6 @@ export default function Contato() {
                     <div>
                         {[
                             { icon: "📧", title: "E-mail", value: "contato@ecosopis.com.br" },
-                            { icon: "📱", title: "WhatsApp", value: "(11) 99999-9999" },
                             { icon: "🕐", title: "Horário de Atendimento", value: "Seg–Sex: 9h às 18h" },
                             { icon: "📍", title: "Localização", value: "Brasil" }
                         ].map((item, i) => (
