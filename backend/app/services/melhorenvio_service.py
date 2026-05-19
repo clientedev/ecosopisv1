@@ -462,22 +462,44 @@ def processar_envio(pedido, db) -> dict:
                 f"Edite o endereço do pedido e corrija o campo CEP/postal_code."
             )
 
-        service_id = selecionar_servico(cep_digits, pedido.valor, pedido.produto_nome)
-        resultado["service_id"] = service_id
+        # Check if we already have a valid label URL in the database
+        existing_label = getattr(pedido, "etiqueta_url", None)
+        shipment_id = getattr(pedido, "shipment_id", None)
+        tracking_from_cart = ""
 
-        shipment_id, tracking_from_cart = criar_envio(pedido, service_id)
-        pedido.shipment_id = shipment_id
-        db.commit()
-        resultado["shipment_id"] = shipment_id
+        if existing_label and (existing_label.startswith("http") or existing_label.startswith("/api/static")):
+            logger.info(f"[ENVIO] Pedido {pedido.id} already has a valid label URL in DB: {existing_label}. Reusing it.")
+            etiqueta_url = existing_label
+            resultado["etiqueta_url"] = etiqueta_url
+            resultado["shipment_id"] = shipment_id
+        else:
+            if not shipment_id:
+                service_id = selecionar_servico(cep_digits, pedido.valor, pedido.produto_nome)
+                resultado["service_id"] = service_id
 
-        comprar_etiqueta(shipment_id)
+                shipment_id, tracking_from_cart = criar_envio(pedido, service_id)
+                pedido.shipment_id = shipment_id
+                db.commit()
+            else:
+                logger.info(f"[ENVIO] Reusing existing shipment_id: {shipment_id}")
 
-        gerar_etiqueta(shipment_id)
+            resultado["shipment_id"] = shipment_id
 
-        etiqueta_url = imprimir_etiqueta(shipment_id)
-        pedido.etiqueta_url = etiqueta_url
-        db.commit()
-        resultado["etiqueta_url"] = etiqueta_url
+            try:
+                comprar_etiqueta(shipment_id)
+            except Exception as buy_exc:
+                buy_exc_str = str(buy_exc).lower()
+                if any(x in buy_exc_str for x in ["already", "pago", "checkout", "released", "faturado", "paga", "done"]):
+                    logger.info(f"[ENVIO] Shipment {shipment_id} was already paid/checked out. Proceeding to generate/print.")
+                else:
+                    raise buy_exc
+
+            gerar_etiqueta(shipment_id)
+
+            etiqueta_url = imprimir_etiqueta(shipment_id)
+            pedido.etiqueta_url = etiqueta_url
+            db.commit()
+            resultado["etiqueta_url"] = etiqueta_url
 
         # Tracking retrieval is non-critical — if it fails, the order
         # should still be marked as shipped since the label exists.

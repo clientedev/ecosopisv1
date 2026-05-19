@@ -119,7 +119,12 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
     5. GENERATE SHIPPING LABEL (Melhor Envio).
     6. Send Confirmation Emails.
     """
-    if order.status in ("paid", "shipped", "delivered"):
+    try:
+        db.refresh(order)
+    except Exception as ref_err:
+        logger.warning(f"Could not refresh order {order.id} state from DB: {ref_err}")
+
+    if order.status in ("paid", "shipped", "delivered", "processando_envio", "erro_envio", "PROCESSANDO_ENVIO", "ERRO_ENVIO"):
         logger.info(f"Order {order.id} already in status '{order.status}'. Skipping finalize.")
         return
 
