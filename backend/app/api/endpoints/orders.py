@@ -129,8 +129,13 @@ def update_order_status(
         raise HTTPException(status_code=400, detail=f"Status inválido. Use: {', '.join(valid_statuses)}")
 
     if new_status == "paid" and order.status != "paid":
-        from app.api.endpoints.payment import finalize_order_on_payment
-        finalize_order_on_payment(order, db)
+        if order.status == "pending":
+            from app.api.endpoints.payment import finalize_order_on_payment
+            finalize_order_on_payment(order, db)
+        else:
+            order.status = "paid"
+            db.commit()
+            db.refresh(order)
     else:
         order.status = new_status
         db.commit()
