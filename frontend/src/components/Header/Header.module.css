@@ -29,22 +29,26 @@
 
 .headerContent {
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    flex-wrap: nowrap;
+    gap: 10px;
     padding: 10px 0;
     max-width: 100%;
-    flex-wrap: nowrap;
 }
 
 .desktopNav {
     display: flex;
+    align-items: center;
     gap: var(--spacing-lg);
     font-family: var(--font-header);
     font-weight: 600;
     font-size: 0.9rem;
     letter-spacing: 1px;
-    margin-left: 30px;
+    margin-left: 2rem;
     margin-right: auto;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .desktopNav a:hover {
@@ -266,9 +270,9 @@
 
 @media (max-width: 1200px) {
     .desktopNav {
-        gap: 12px;
-        font-size: 0.8rem;
-        margin-left: 20px;
+        gap: var(--spacing-md);
+        font-size: 0.85rem;
+        margin-left: 1.5rem;
     }
 
     .actions {
@@ -278,9 +282,8 @@
 
 @media (max-width: 1024px) {
     .desktopNav {
-        gap: 8px;
-        font-size: 0.75rem;
-        margin-left: 15px;
+        gap: 10px;
+        font-size: 0.8rem;
     }
 
     .actions {
