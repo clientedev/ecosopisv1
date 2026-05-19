@@ -742,17 +742,25 @@ export default function AdminPedidosPage() {
                                                 )}
 
                                                 {/* Transições de Status */}
-                                                {transitions.map(ns => (
-                                                    <button
-                                                        key={ns}
-                                                        onClick={() => updateStatus(order.id, ns)}
-                                                        disabled={updatingStatus === order.id}
-                                                        className={`${pedidoStyles.btnAction} ${pedidoStyles.btnSecondary}`}
-                                                        style={{ color: STATUS_LABELS[ns]?.color }}
-                                                    >
-                                                        {updatingStatus === order.id ? "..." : `Marcar como ${STATUS_LABELS[ns]?.label}`}
-                                                    </button>
-                                                ))}
+                                                {transitions.map(ns => {
+                                                    const isRevert = ns === "paid" && ["erro_envio", "ERRO_ENVIO"].includes(order.status);
+                                                    const label = isRevert ? "Reverter para Pago" : `Marcar como ${STATUS_LABELS[ns]?.label || ns}`;
+                                                    return (
+                                                        <button
+                                                            key={ns}
+                                                            onClick={() => updateStatus(order.id, ns)}
+                                                            disabled={updatingStatus === order.id}
+                                                            className={`${pedidoStyles.btnAction} ${isRevert ? pedidoStyles.btnPrimary : pedidoStyles.btnSecondary}`}
+                                                            style={{ 
+                                                                color: isRevert ? "#ffffff" : STATUS_LABELS[ns]?.color,
+                                                                backgroundColor: isRevert ? "#10b981" : undefined,
+                                                                borderColor: isRevert ? "#10b981" : undefined
+                                                            }}
+                                                        >
+                                                            {updatingStatus === order.id ? "..." : label}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     )}

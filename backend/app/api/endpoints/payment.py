@@ -454,7 +454,11 @@ async def update_order_status(order_id: int, body: StatusUpdateIn, db: Session =
     if not order: raise HTTPException(status_code=404)
     
     if body.status == "paid" and order.status != "paid":
-        finalize_order_on_payment(order, db)
+        if order.status == "pending":
+            finalize_order_on_payment(order, db)
+        else:
+            order.status = "paid"
+            db.commit()
     else:
         order.status = body.status
         db.commit()
