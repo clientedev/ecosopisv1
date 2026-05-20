@@ -551,7 +551,10 @@ export default function Home() {
                     <div className={styles.historyContent}>
                         <h2 className={styles.sectionTitle}>MAIS QUE PRODUTOS, UM COMPROMISSO COM VOCÊ</h2>
                         <p>A Ecosopis nasceu do desejo de unir a sabedoria da natureza com resultados que você pode ver e sentir. Acreditamos que o autocuidado deve ser simples, ético e transformador. Cada fórmula é pensada para que você recupere não apenas a saúde da sua pele, mas a sua confiança diária.</p>
-                        <p className={styles.historyHighlight}>&quot;Quem usa, continua usando — porque sua pele sente a diferença nos primeiros usos.&quot;</p>
+                        <p className={styles.historyHighlight}>O natural que funciona.</p>
+<div style={{ marginTop: '20px', textAlign: 'center' }}>
+  <Image src="https://images.unsplash.com/photo-1582831524613-65d5c33cf54d" alt="Produto natural" width={300} height={300} />
+</div>
                     </div>
                 </div>
             </section>
