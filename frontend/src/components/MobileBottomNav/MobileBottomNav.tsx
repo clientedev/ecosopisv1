@@ -12,6 +12,11 @@ export default function MobileBottomNav() {
     const { cartCount } = useCart();
     const { user } = useAuth();
     
+    // Hide bottom navigation in the cart/checkout flow to maximize conversion and avoid layout conflicts
+    if (pathname === "/carrinho") {
+        return null;
+    }
+    
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [allProducts, setAllProducts] = useState<any[]>([]);
