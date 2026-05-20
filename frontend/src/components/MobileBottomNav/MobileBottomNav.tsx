@@ -11,18 +11,19 @@ export default function MobileBottomNav() {
     const pathname = usePathname();
     const { cartCount } = useCart();
     const { user } = useAuth();
-    
-    // Hide bottom navigation in the cart/checkout flow to maximize conversion and avoid layout conflicts
-    if (pathname === "/carrinho") {
-        return null;
-    }
-    
+
+    // All hooks must be declared before any conditional returns (Rules of Hooks)
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [allProducts, setAllProducts] = useState<any[]>([]);
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Hide bottom navigation in the cart/checkout flow to avoid overlapping checkout buttons
+    if (pathname === "/carrinho") {
+        return null;
+    }
 
     // Fetch all products when search is opened
     useEffect(() => {
