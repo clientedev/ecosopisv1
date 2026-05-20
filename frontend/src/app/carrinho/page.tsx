@@ -4,8 +4,9 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
 import Link from "next/link";
-import { Trash2, ShoppingBag, ShieldCheck, Truck, CreditCard, ChevronRight, Loader2, Info, ShoppingCart, Coins } from "lucide-react";
+import { Trash2, ShoppingBag, ShieldCheck, Truck, CreditCard, ChevronRight, ChevronLeft, Loader2, Info, ShoppingCart, Coins, Lock, Plus, Minus, Check } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useToast } from "@/components/Toast/Toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -16,6 +17,32 @@ export default function CarrinhoPage() {
     const { user, token, refreshProfile } = useAuth();
     const [step, setStep] = useState<"cart" | "checkout">("cart");
     const [loading, setLoading] = useState(false);
+    const { showToast } = useToast();
+
+    // Mobile States
+    const [isMobile, setIsMobile] = useState(false);
+    const [mobileStep, setMobileStep] = useState<"cart" | "profile" | "shipping" | "payment">("cart");
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        handleResize();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    const changeMobileStep = (nextStep: "cart" | "profile" | "shipping" | "payment") => {
+        setMobileStep(nextStep);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    const formatPhone = (value: string) => {
+        const digits = value.replace(/\D/g, "").slice(0, 11);
+        if (digits.length <= 2) return digits;
+        if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+        return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    };
 
     // Shipping states
     const [shippingOptions, setShippingOptions] = useState<any[]>([]);
@@ -53,8 +80,8 @@ export default function CarrinhoPage() {
     // Initialize data from logged in user
     useEffect(() => {
         if (user) {
-            if (!customerName && step === "checkout") setCustomerName(user.full_name || "");
-            if (!customerPhone && step === "checkout") setCustomerPhone(user.phone || "");
+            if (!customerName && (step === "checkout" || mobileStep !== "cart")) setCustomerName(user.full_name || "");
+            if (!customerPhone && (step === "checkout" || mobileStep !== "cart")) setCustomerPhone(user.phone || "");
             
             // Auto select default address if available
             if (user.addresses && user.addresses.length > 0 && !cep) {
@@ -68,12 +95,12 @@ export default function CarrinhoPage() {
                     city: defaultAddr.city,
                     state: defaultAddr.state
                 });
-                if (step === "checkout") setShowAddressForm(false);
+                if (step === "checkout" || mobileStep !== "cart") setShowAddressForm(false);
             } else if (!user.addresses || user.addresses.length === 0) {
-                if (step === "checkout") setShowAddressForm(true);
+                if (step === "checkout" || mobileStep !== "cart") setShowAddressForm(true);
             }
         }
-    }, [user, step]);
+    }, [user, step, mobileStep]);
 
     // Payment/Coupon states
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
@@ -166,7 +193,7 @@ export default function CarrinhoPage() {
 
     // Fetch Cashback balance and config
     useEffect(() => {
-        if (token && step === "checkout") {
+        if (token && (step === "checkout" || (isMobile && mobileStep === "payment"))) {
             const fetchCashback = async () => {
                 try {
                     const [balRes, cfgRes] = await Promise.all([
@@ -189,7 +216,7 @@ export default function CarrinhoPage() {
             };
             fetchCashback();
         }
-    }, [token, step]);
+    }, [token, step, isMobile, mobileStep]);
 
     // Auto-select cheapest option when free shipping is earned
     useEffect(() => {
@@ -205,7 +232,7 @@ export default function CarrinhoPage() {
 
     useEffect(() => {
         const cleanCep = cep.replace(/\D/g, "");
-        if (cleanCep.length === 8 && cart.length > 0 && step === "checkout") {
+        if (cleanCep.length === 8 && cart.length > 0 && (step === "checkout" || (isMobile && (mobileStep === "shipping" || mobileStep === "payment")))) {
             const calculateShipping = async () => {
                 setLoadingShipping(true);
                 setShippingError(null);
@@ -270,7 +297,7 @@ export default function CarrinhoPage() {
             setSelectedShipping(null);
             setShippingError(null);
         }
-    }, [cep, cart, step]);
+    }, [cep, cart, step, isMobile, mobileStep]);
 
     const handleCepLookup = async () => {
         const cleanCep = cep.replace(/\D/g, "");
@@ -469,6 +496,636 @@ export default function CarrinhoPage() {
             setLoading(false);
         }
     };
+
+    const handleProfileSubmit = () => {
+        if (!customerName.trim()) {
+            showToast("Por favor, preencha seu nome completo.", "error");
+            return;
+        }
+        if (!customerPhone.trim() || customerPhone.replace(/\D/g, "").length < 10) {
+            showToast("Por favor, insira um WhatsApp válido com DDD.", "error");
+            return;
+        }
+        if (!customerCpf.trim() || customerCpf.replace(/\D/g, "").length !== 11) {
+            showToast("Por favor, insira um CPF válido.", "error");
+            return;
+        }
+        changeMobileStep("shipping");
+    };
+
+    const handleShippingSubmit = () => {
+        const cleanCep = cep.replace(/\D/g, "");
+        if (cleanCep.length !== 8) {
+            showToast("Por favor, informe um CEP válido.", "error");
+            return;
+        }
+        if (!address.street || !address.number || !address.neighborhood || !address.city || !address.state) {
+            showToast("Por favor, preencha todos os campos do endereço.", "error");
+            return;
+        }
+        if (!selectedShipping) {
+            showToast("Por favor, selecione uma opção de frete.", "error");
+            return;
+        }
+        changeMobileStep("payment");
+    };
+
+    if (isMobile) {
+        if (cart.length === 0) {
+            return (
+                <main className={styles.mobileCheckoutWrapper}>
+                    <header className={styles.mobileHeader}>
+                        <button className={styles.mobileBackBtn} onClick={() => window.location.href = "/produtos"}>
+                            <ChevronLeft size={20} />
+                            <span>Voltar</span>
+                        </button>
+                        <div className={styles.mobileHeaderTitle}>
+                            <h3>Sacola Vazia</h3>
+                        </div>
+                    </header>
+                    <div className={styles.mobileEmptyCartContainer}>
+                        <div className={styles.mobileEmptyCart}>
+                            <ShoppingBag size={64} style={{ color: "#2d5a27", opacity: 0.3, marginBottom: "1.5rem" }} />
+                            <h2 style={{ fontSize: "1.3rem", color: "#1a3a16", marginBottom: "0.5rem" }}>Sua sacola está vazia</h2>
+                            <p style={{ fontSize: "0.9rem", color: "#64748b", margin: "0 0 1.5rem", lineHeight: 1.5 }}>
+                                Aproveite nossa seleção botânica e encontre o cuidado ideal para sua pele.
+                            </p>
+                            <Link href="/produtos" className="btn-primary" style={{ display: "inline-block", padding: "12px 24px" }}>
+                                VER PRODUTOS
+                            </Link>
+                        </div>
+                    </div>
+                </main>
+            );
+        }
+
+        const progressPercent = 
+            mobileStep === "cart" ? 25 :
+            mobileStep === "profile" ? 50 :
+            mobileStep === "shipping" ? 75 : 100;
+
+        const stepTitle = 
+            mobileStep === "cart" ? "Revisar Sacola" :
+            mobileStep === "profile" ? "Identificação" :
+            mobileStep === "shipping" ? "Entrega e Frete" : "Pagamento Seguro";
+
+        return (
+            <main className={styles.mobileCheckoutWrapper}>
+                {/* Mobile Navigation Header */}
+                <header className={styles.mobileHeader}>
+                    <button 
+                        className={styles.mobileBackBtn} 
+                        onClick={() => {
+                            if (mobileStep === "cart") {
+                                window.location.href = "/produtos";
+                            } else if (mobileStep === "profile") {
+                                changeMobileStep("cart");
+                            } else if (mobileStep === "shipping") {
+                                changeMobileStep("profile");
+                            } else if (mobileStep === "payment") {
+                                changeMobileStep("shipping");
+                            }
+                        }}
+                    >
+                        <ChevronLeft size={20} />
+                        <span>Voltar</span>
+                    </button>
+                    <div className={styles.mobileHeaderTitle}>
+                        <h3>{stepTitle}</h3>
+                        <span className={styles.mobileHeaderSubtitle}>Passo {mobileStep === "cart" ? 1 : mobileStep === "profile" ? 2 : mobileStep === "shipping" ? 3 : 4} de 4</span>
+                    </div>
+                    <div className={styles.mobileHeaderSecure}>
+                        <ShieldCheck size={20} color="#2d5a27" />
+                    </div>
+                </header>
+
+                {/* Progress bar */}
+                <div className={styles.mobileProgressContainer}>
+                    <div className={styles.mobileProgressBar} style={{ width: `${progressPercent}%` }}></div>
+                </div>
+
+                {/* Step content */}
+                <div className={styles.mobileStepContent}>
+                    {mobileStep === "cart" && (
+                        <div className={styles.mobileCartStep}>
+                            {cart.map(item => (
+                                <div key={item.id} className={styles.mobileProductCard}>
+                                    <div className={styles.mobileProductImgContainer}>
+                                        <img 
+                                            src={item.image_url || "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png"} 
+                                            alt={item.name} 
+                                            className={styles.mobileProductImg}
+                                        />
+                                    </div>
+                                    <div className={styles.mobileProductDetails}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                                            <h4 className={styles.mobileProductName}>{item.name}</h4>
+                                            <button className={styles.mobileProductRemove} onClick={() => removeFromCart(item.id)}>
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
+                                        {item.isWholesale && <span className={styles.wholesaleBadgeSmall}>ATACADO</span>}
+                                        
+                                        <div className={styles.mobileProductBottom}>
+                                            <div className={styles.mobilePrices}>
+                                                {item.isWholesale ? (
+                                                    <>
+                                                        <span className={styles.oldPriceSmall}>R$ {item.price.toFixed(2)}</span>
+                                                        <span className={styles.newPriceSmall}>R$ {(item.price * 0.7).toFixed(2)}</span>
+                                                    </>
+                                                ) : (
+                                                    <p className={styles.mobileSinglePrice}>R$ {item.price.toFixed(2)}</p>
+                                                )}
+                                            </div>
+                                            <div className={styles.mobileQtySelector}>
+                                                <button onClick={() => updateQuantity(item.id, -1)} className={styles.qtyBtn}>−</button>
+                                                <span className={styles.qtyVal}>{item.quantity}</span>
+                                                <button onClick={() => updateQuantity(item.id, 1)} className={styles.qtyBtn}>+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {/* Free Shipping Bar */}
+                            <div className={styles.mobileFreeShippingCard}>
+                                {missingForFreeShipping !== null && missingForFreeShipping > 0 ? (
+                                    <>
+                                        <p className={styles.freeShippingText}>
+                                            Faltam <strong>R$ {missingForFreeShipping.toFixed(2)}</strong> para <strong>FRETE GRÁTIS</strong>!
+                                        </p>
+                                        <div className={styles.freeShippingBarContainer}>
+                                            <div 
+                                                className={styles.freeShippingBarFill} 
+                                                style={{ width: `${Math.min(100, (subtotal / threshold!) * 100)}%` }}
+                                            />
+                                        </div>
+                                        <span className={styles.freeShippingHint}>Adicione mais produtos para economizar no frete.</span>
+                                    </>
+                                ) : (
+                                    <div className={styles.freeShippingEarned}>
+                                        <Truck size={20} />
+                                        <span>🎉 Parabéns! Você ganhou <strong>FRETE GRÁTIS</strong>!</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ marginTop: '20px', textAlign: 'center', marginBottom: '100px' }}>
+                                <Link href="/produtos" className={styles.mobileContinueShopping}>
+                                    + Adicionar mais produtos
+                                </Link>
+                            </div>
+
+                            {/* Sticky footer for Cart */}
+                            <div className={styles.mobileStickyFooter}>
+                                <div className={styles.mobileStickyTotalInfo}>
+                                    <span className={styles.mobileStickyTotalLabel}>Subtotal</span>
+                                    <strong className={styles.mobileStickyTotalPrice}>R$ {subtotal.toFixed(2)}</strong>
+                                </div>
+                                <button 
+                                    className="btn-primary" 
+                                    style={{ flex: 1, height: '48px', fontSize: '0.95rem' }}
+                                    onClick={() => {
+                                        if (!token) {
+                                            window.location.href = "/conta";
+                                        } else {
+                                            changeMobileStep("profile");
+                                        }
+                                    }}
+                                >
+                                    Identificar-se ➔
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {mobileStep === "profile" && (
+                        <div className={styles.mobileProfileStep}>
+                            <div className={styles.mobileFormSection}>
+                                <h3 className={styles.mobileSectionTitle}>Quem está comprando?</h3>
+                                <p className={styles.mobileSectionSubtitle}>Preencha seus dados para prosseguir com o pedido de forma segura.</p>
+                                
+                                <div className={styles.mobileInputGroup}>
+                                    <label className={styles.mobileLabel}>Nome Completo</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Digite seu nome completo" 
+                                        className={styles.mobileInputField} 
+                                        value={customerName} 
+                                        onChange={(e) => setCustomerName(e.target.value)}
+                                    />
+                                </div>
+                                <div className={styles.mobileInputGroup}>
+                                    <label className={styles.mobileLabel}>WhatsApp / Telefone</label>
+                                    <input 
+                                        type="tel" 
+                                        placeholder="(00) 00000-0000" 
+                                        className={styles.mobileInputField} 
+                                        value={customerPhone} 
+                                        onChange={(e) => setCustomerPhone(formatPhone(e.target.value))}
+                                    />
+                                    <span className={styles.mobileInputHelper}>Para receber as notificações de envio do seu pedido.</span>
+                                </div>
+                                <div className={styles.mobileInputGroup}>
+                                    <label className={styles.mobileLabel}>CPF</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="000.000.000-00" 
+                                        className={styles.mobileInputField} 
+                                        value={customerCpf} 
+                                        onChange={(e) => setCustomerCpf(formatCpf(e.target.value))}
+                                        maxLength={14}
+                                        inputMode="numeric"
+                                    />
+                                    <span className={styles.mobileInputHelper}>Obrigatório para emissão da etiqueta de envio da transportadora.</span>
+                                </div>
+                            </div>
+
+                            <div className={styles.mobileStickyFooter}>
+                                <button 
+                                    className="btn-primary" 
+                                    style={{ width: '100%', height: '48px', fontSize: '0.95rem' }}
+                                    onClick={handleProfileSubmit}
+                                >
+                                    Continuar para Entrega ➔
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {mobileStep === "shipping" && (
+                        <div className={styles.mobileShippingStep}>
+                            <div className={styles.mobileFormSection}>
+                                <h3 className={styles.mobileSectionTitle}>Onde devemos entregar?</h3>
+                                
+                                {user && user.addresses && user.addresses.length > 0 && !showAddressForm ? (
+                                    <div className={styles.mobileSavedAddresses}>
+                                        <p className={styles.mobileSectionSubtitle}>Selecione um endereço salvo:</p>
+                                        {user.addresses.map((addr: any) => {
+                                            const isSelected = cep === addr.postal_code && address.number === addr.number;
+                                            return (
+                                                <div 
+                                                    key={addr.id} 
+                                                    className={`${styles.mobileAddressCard} ${isSelected ? styles.mobileAddressSelected : ""}`}
+                                                    onClick={() => selectAddress(addr)}
+                                                >
+                                                    <div className={styles.mobileAddressInfo}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <strong style={{ fontSize: '0.9rem', color: '#1a3a16' }}>{addr.name || "Endereço"}</strong>
+                                                            {addr.is_default && <span className={styles.defaultBadge}>Principal</span>}
+                                                        </div>
+                                                        <p style={{ fontSize: '0.8rem', color: '#475569', margin: '4px 0 2px' }}>{addr.street}, {addr.number}{addr.complement ? ` - ${addr.complement}` : ""}</p>
+                                                        <p style={{ fontSize: '0.8rem', color: '#475569', margin: 0 }}>{addr.neighborhood}, {addr.city} - {addr.state}</p>
+                                                        <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0' }}>CEP: {addr.postal_code}</p>
+                                                    </div>
+                                                    <div className={styles.mobileAddressRadio}>
+                                                        <div className={`${styles.mobileRadioCircle} ${isSelected ? styles.mobileRadioChecked : ""}`}>
+                                                            {isSelected && <Check size={10} color="white" />}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        <button 
+                                            className={styles.mobileAddAddressBtn}
+                                            onClick={() => {
+                                                setShowAddressForm(true);
+                                                setCep("");
+                                                setAddress({ street: "", number: "", complement: "", neighborhood: "", city: "", state: "" });
+                                            }}
+                                        >
+                                            + Cadastrar novo endereço
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className={styles.mobileInputGroupList}>
+                                        <div className={styles.mobileInputGroup}>
+                                            <label className={styles.mobileLabel}>CEP</label>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Digite o CEP" 
+                                                    className={styles.mobileInputField} 
+                                                    value={cep} 
+                                                    onChange={(e) => setCep(e.target.value)}
+                                                />
+                                                <button 
+                                                    type="button" 
+                                                    className={styles.mobileCepSearchBtn}
+                                                    onClick={handleCepLookup}
+                                                >
+                                                    Buscar
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className={styles.mobileInputGroup}>
+                                            <label className={styles.mobileLabel}>Endereço / Logradouro</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Nome da rua, avenida, etc." 
+                                                className={styles.mobileInputField} 
+                                                value={address.street} 
+                                                onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '12px' }}>
+                                            <div className={styles.mobileInputGroup} style={{ flex: 1 }}>
+                                                <label className={styles.mobileLabel}>Número</label>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Nº" 
+                                                    className={styles.mobileInputField} 
+                                                    value={address.number} 
+                                                    onChange={(e) => setAddress({ ...address, number: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className={styles.mobileInputGroup} style={{ flex: 2 }}>
+                                                <label className={styles.mobileLabel}>Complemento</label>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Apto, bloco, etc." 
+                                                    className={styles.mobileInputField} 
+                                                    value={address.complement} 
+                                                    onChange={(e) => setAddress({ ...address, complement: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className={styles.mobileInputGroup}>
+                                            <label className={styles.mobileLabel}>Bairro</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Bairro" 
+                                                className={styles.mobileInputField} 
+                                                value={address.neighborhood} 
+                                                onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '12px' }}>
+                                            <div className={styles.mobileInputGroup} style={{ flex: 2 }}>
+                                                <label className={styles.mobileLabel}>Cidade</label>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Cidade" 
+                                                    className={styles.mobileInputField} 
+                                                    value={address.city} 
+                                                    onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className={styles.mobileInputGroup} style={{ flex: 1 }}>
+                                                <label className={styles.mobileLabel}>Estado</label>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="UF" 
+                                                    className={styles.mobileInputField} 
+                                                    value={address.state} 
+                                                    onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                        {token && (
+                                            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                                                <button 
+                                                    className="btn-primary" 
+                                                    style={{ flex: 1, height: '40px', fontSize: '0.85rem' }} 
+                                                    onClick={handleSaveAddress} 
+                                                    disabled={savingAddress}
+                                                >
+                                                    {savingAddress ? "SALVANDO..." : "SALVAR E USAR"}
+                                                </button>
+                                                {user && user.addresses && user.addresses.length > 0 && (
+                                                    <button 
+                                                        className={styles.mobileCancelAddressBtn} 
+                                                        onClick={() => setShowAddressForm(false)}
+                                                    >
+                                                        CANCELAR
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Shipping Options */}
+                            <div className={styles.mobileFormSection} style={{ marginTop: '20px', marginBottom: '100px' }}>
+                                <h3 className={styles.mobileSectionTitle}>Opção de Envio</h3>
+                                
+                                {loadingShipping ? (
+                                    <div className={styles.mobileShippingLoading}>
+                                        <Loader2 size={24} className="spin" style={{ color: '#2d5a27' }} />
+                                        <span>Calculando frete...</span>
+                                    </div>
+                                ) : shippingError === "__INDISPONIVEL__" ? (
+                                    <div className={styles.mobileShippingNotice}>
+                                        <div className={styles.mobileNoticeHeader}>
+                                            <Truck size={18} />
+                                            <span>Frete disponível em produção</span>
+                                        </div>
+                                        <p>As transportadoras (PAC, SEDEX e Jadlog) serão exibidas normalmente ao finalizar sua compra no site oficial publicado.</p>
+                                    </div>
+                                ) : shippingError ? (
+                                    <div className={styles.mobileShippingError}>
+                                        ⚠️ {shippingError}
+                                    </div>
+                                ) : shippingOptions.length > 0 ? (
+                                    <div className={styles.mobileShippingList}>
+                                        {shippingOptions.map((opt: any) => {
+                                            const isSelected = selectedShipping?.id === opt.id;
+                                            return (
+                                                <div 
+                                                    key={opt.id}
+                                                    className={`${styles.mobileShippingCard} ${isSelected ? styles.mobileShippingSelected : ""}`}
+                                                    onClick={() => setSelectedShipping(opt)}
+                                                >
+                                                    <div className={styles.mobileShippingIcon}>
+                                                        <div className={`${styles.mobileRadioCircle} ${isSelected ? styles.mobileRadioChecked : ""}`}>
+                                                            {isSelected && <Check size={10} color="white" />}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <strong style={{ fontSize: '0.9rem', color: '#1e293b', display: 'block' }}>{opt.company} - {opt.name}</strong>
+                                                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Entrega em até {opt.delivery_time} dias úteis</span>
+                                                    </div>
+                                                    <span className={styles.mobileShippingPriceText}>
+                                                        {appliesFreeShipping && cheapestOption && opt.id === cheapestOption.id ? "GRÁTIS" : `R$ ${opt.price.toFixed(2)}`}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : cep.replace(/\D/g, "").length === 8 ? (
+                                    <p style={{ fontSize: '0.85rem', color: '#ef4444', textAlign: 'center' }}>Nenhuma opção de frete disponível.</p>
+                                ) : (
+                                    <p style={{ fontSize: '0.85rem', color: '#64748b', textAlign: 'center' }}>Digite seu CEP acima para ver as opções de frete.</p>
+                                )}
+                            </div>
+
+                            <div className={styles.mobileStickyFooter}>
+                                <button 
+                                    className="btn-primary" 
+                                    style={{ width: '100%', height: '48px', fontSize: '0.95rem' }}
+                                    onClick={handleShippingSubmit}
+                                >
+                                    Ir para o Pagamento ➔
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {mobileStep === "payment" && (
+                        <div className={styles.mobilePaymentStep} style={{ marginBottom: '100px' }}>
+                            {/* Summary Card */}
+                            <div className={styles.mobileFormSection}>
+                                <h3 className={styles.mobileSectionTitle}>Revisão do Pedido</h3>
+                                
+                                <div className={styles.mobileOrderSummaryBox}>
+                                    <div className={styles.mobileSummaryItemRow}>
+                                        <span>Itens no carrinho:</span>
+                                        <strong>{cart.reduce((acc, item) => acc + item.quantity, 0)} produtos</strong>
+                                    </div>
+                                    <div className={styles.mobileSummaryItemRow}>
+                                        <span>Entregar em:</span>
+                                        <span style={{ color: '#475569', fontSize: '0.8rem', textAlign: 'right' }}>
+                                            {address.street}, {address.number} - {address.city}
+                                        </span>
+                                    </div>
+                                    <div className={styles.mobileSummaryItemRow}>
+                                        <span>Transportadora:</span>
+                                        <strong>{selectedShipping?.company} ({selectedShipping?.name})</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Promo Code & Coupons */}
+                            <div className={styles.mobileFormSection} style={{ marginTop: '16px' }}>
+                                <h3 className={styles.mobileSectionTitle}>Cupom de Desconto</h3>
+                                <div className={styles.mobileCouponInputWrapper}>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Possui cupom?" 
+                                        className={styles.mobileCouponInput}
+                                        value={couponCode}
+                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                    />
+                                    <button className={styles.mobileCouponBtn} onClick={handleApplyCoupon}>Aplicar</button>
+                                </div>
+                                {couponError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '6px', margin: 0 }}>{couponError}</p>}
+                                {appliedCoupon && (
+                                    <div className={styles.mobileAppliedCouponBox}>
+                                        <span>Cupom ativo: <strong>{appliedCoupon.code}</strong></span>
+                                        <button onClick={() => setAppliedCoupon(null)}>Remover</button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Cashback Toggle */}
+                            {availableCashback > 0 && (
+                                <div className={styles.mobileFormSection} style={{ marginTop: '16px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Coins size={20} color="#059669" />
+                                            <div>
+                                                <strong style={{ fontSize: '0.85rem', color: '#1e293b', display: 'block' }}>Usar R$ {availableCashback.toFixed(2)}</strong>
+                                                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Saldo de Cashback acumulado</span>
+                                            </div>
+                                        </div>
+                                        <label className={styles.switch}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={useCashback} 
+                                                onChange={(e) => {
+                                                    if (appliedCoupon && cashbackConfig && !cashbackConfig.allow_with_coupons) {
+                                                        showToast("Não é possível acumular cupom e cashback no mesmo pedido.", "error");
+                                                        return;
+                                                    }
+                                                    setUseCashback(e.target.checked);
+                                                }}
+                                            />
+                                            <span className={styles.slider}></span>
+                                        </label>
+                                    </div>
+                                    {useCashback && cashbackConfig && subtotal < cashbackConfig.min_purchase_to_use && (
+                                        <p style={{ color: '#ef4444', fontSize: '0.7rem', marginTop: '8px', margin: 0 }}>
+                                            ⚠️ Mínimo de R$ {cashbackConfig.min_purchase_to_use.toFixed(2)} em produtos necessário.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Financial Summary */}
+                            <div className={styles.mobileFormSection} style={{ marginTop: '16px', background: '#f8fafc' }}>
+                                <div className={styles.mobilePriceSummaryRow}>
+                                    <span>Subtotal</span>
+                                    <span>R$ {subtotal.toFixed(2)}</span>
+                                </div>
+                                <div className={styles.mobilePriceSummaryRow}>
+                                    <span>Frete ({selectedShipping?.company})</span>
+                                    <span>{appliesFreeShipping ? "Grátis" : `R$ ${shippingPrice.toFixed(2)}`}</span>
+                                </div>
+                                {discount > 0 && (
+                                    <div className={styles.mobilePriceSummaryRow} style={{ color: '#16a34a' }}>
+                                        <span>Desconto</span>
+                                        <span>- R$ {discount.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                {cashbackDiscount > 0 && (
+                                    <div className={styles.mobilePriceSummaryRow} style={{ color: '#059669' }}>
+                                        <span>Cashback Usado</span>
+                                        <span>- R$ {cashbackDiscount.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                
+                                <div className={styles.mobileSummaryDivider}></div>
+                                
+                                <div className={styles.mobilePriceSummaryTotalRow}>
+                                    <span>Total Geral</span>
+                                    <span>R$ {finalTotal.toFixed(2)}</span>
+                                </div>
+                                
+                                {earnedCashback > 0 && (
+                                    <div className={styles.mobileEarnedCashbackNotice}>
+                                        <Coins size={14} />
+                                        <span>Você ganhará <strong>R$ {earnedCashback.toFixed(2)}</strong> de cashback nesta compra!</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Safety info */}
+                            <div className={styles.mobileSecurityNoticeBox}>
+                                <Lock size={16} color="#15803d" />
+                                <div>
+                                    <strong>Pagamento 100% Seguro</strong>
+                                    <p>Processado via Mercado Pago com criptografia SSL.</p>
+                                </div>
+                            </div>
+
+                            {/* Giant Pay Button */}
+                            <div className={styles.mobileStickyFooter}>
+                                <button
+                                    className="btn-primary"
+                                    style={{ width: '100%', height: '56px', fontSize: '1.05rem', fontWeight: 800 }}
+                                    onClick={handleCheckout}
+                                    disabled={loading}
+                                >
+                                    {loading ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                            <Loader2 size={20} className="spin" style={{ color: 'white' }} />
+                                            <span>PROCESSANDO...</span>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                            <Lock size={18} />
+                                            <span>FINALIZAR E PAGAR AGORA</span>
+                                        </div>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </main>
+        );
+    }
 
     if (cart.length === 0) {
         return (
