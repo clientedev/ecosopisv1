@@ -11,7 +11,7 @@
     display: flex;
     justify-content: space-around;
     align-items: center;
-    z-index: 99999;
+    z-index: 500;
     box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.04);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     box-sizing: border-box;
