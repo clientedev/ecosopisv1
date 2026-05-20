@@ -21,7 +21,7 @@ export default function MobileBottomNav() {
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     // Hide bottom navigation in the cart/checkout flow to avoid overlapping checkout buttons
-    if (pathname === "/carrinho") {
+    if (pathname.startsWith("/carrinho")) {
         return null;
     }
 
