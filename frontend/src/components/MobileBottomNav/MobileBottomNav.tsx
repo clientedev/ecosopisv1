@@ -20,11 +20,6 @@ export default function MobileBottomNav() {
     const [loading, setLoading] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
-    // Hide bottom navigation in the cart/checkout flow to avoid overlapping checkout buttons
-    if (pathname.startsWith("/carrinho")) {
-        return null;
-    }
-
     // Fetch all products when search is opened
     useEffect(() => {
         if (isSearchOpen) {
@@ -99,6 +94,11 @@ export default function MobileBottomNav() {
         if (url.startsWith("uploads/")) return `/static/${url}`;
         return url;
     };
+
+    // Hide bottom navigation in the cart/checkout flow to avoid overlapping checkout buttons
+    if (pathname.startsWith("/carrinho")) {
+        return null;
+    }
 
     return (
         <>
