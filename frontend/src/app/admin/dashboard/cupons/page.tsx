@@ -30,7 +30,7 @@ export default function CouponManagement() {
     const fetchCoupons = async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`/coupons`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/coupons`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (res.ok) {
@@ -61,7 +61,7 @@ export default function CouponManagement() {
                 ...formData,
                 valid_until: formData.valid_until || null
             };
-            const res = await fetch(`/coupons`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/coupons`, {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${token}`,
@@ -90,7 +90,7 @@ export default function CouponManagement() {
         if (!confirm("Remover este cupom?")) return;
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`/coupons/${id}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/coupons/${id}`, {
                 method: "DELETE",
                 headers: { "Authorization": `Bearer ${token}` }
             });
