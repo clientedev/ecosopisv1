@@ -160,6 +160,14 @@ def _apply_startup_migrations():
                 logger.warning(f"Product desc update failed for {slug}: {e}")
                 conn.rollback()
 
+        # Verify users that don't have a token (created via seed/scripts) or all admin users
+        try:
+            conn.execute(text("UPDATE users SET is_verified = TRUE WHERE is_verified IS NULL OR (is_verified = FALSE AND verification_token IS NULL) OR role = 'admin'"))
+            conn.commit()
+        except Exception as e:
+            logger.warning(f"Failed to auto-verify users: {e}")
+            conn.rollback()
+
 # Initialize FastAPI
 app = FastAPI(title="ECOSOPIS API", version="1.1.0")
 

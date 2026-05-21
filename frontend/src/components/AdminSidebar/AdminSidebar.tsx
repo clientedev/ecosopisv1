@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -21,7 +23,9 @@ import {
     ChevronDown,
     ChevronRight,
     History,
-    CreditCard
+    CreditCard,
+    Menu,
+    X
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -80,18 +84,14 @@ export default function AdminSidebar({ activePath }: AdminSidebarProps) {
     const router = useRouter();
     const [openCategories, setOpenCategories] = useState<string[]>(["Catálogo"]);
     const [recentPaths, setRecentPaths] = useState<NavItem[]>([]);
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     useEffect(() => {
-        // Load recent paths from localStorage
-        // We only store the string paths to avoid React element serialization issues
         const storedRecents = JSON.parse(localStorage.getItem("admin_recents_paths") || "[]");
-
-        // Reconstruct NavItems from stored paths
         const allItems = CATEGORIES.flatMap(c => c.items);
         const reconstructed = storedRecents.map((path: string) => allItems.find(i => i.path === path)).filter(Boolean) as NavItem[];
         setRecentPaths(reconstructed);
 
-        // Update recents if current path is a nav item
         const currentItem = allItems.find(i => i.path === activePath);
         if (currentItem) {
             const filtered = storedRecents.filter((path: string) => path !== activePath);
@@ -101,12 +101,16 @@ export default function AdminSidebar({ activePath }: AdminSidebarProps) {
             const newReconstructed = newRecents.map((path: string) => allItems.find(i => i.path === path)).filter(Boolean) as NavItem[];
             setRecentPaths(newReconstructed);
 
-            // Auto open current category
             const cat = CATEGORIES.find(c => c.items.some(i => i.path === activePath));
             if (cat && !openCategories.includes(cat.label)) {
                 setOpenCategories(prev => [...prev, cat.label]);
             }
         }
+    }, [activePath]);
+
+    // Close mobile drawer on route change
+    useEffect(() => {
+        setMobileOpen(false);
     }, [activePath]);
 
     const handleLogout = () => {
@@ -120,11 +124,23 @@ export default function AdminSidebar({ activePath }: AdminSidebarProps) {
         );
     };
 
-    return (
-        <aside className={styles.sidebar}>
+    const handleNavClick = () => {
+        setMobileOpen(false);
+    };
+
+    const sidebarContent = (
+        <>
             <div className={styles.logo}>
                 <div className={styles.logoCircle}>ES</div>
                 <span>ECOSOPIS</span>
+                {/* Close button inside drawer on mobile */}
+                <button
+                    className={styles.mobileCloseBtn}
+                    onClick={() => setMobileOpen(false)}
+                    aria-label="Fechar menu"
+                >
+                    <X size={20} />
+                </button>
             </div>
 
             <nav className={styles.nav}>
@@ -138,6 +154,7 @@ export default function AdminSidebar({ activePath }: AdminSidebarProps) {
                                 key={item.path}
                                 href={item.path}
                                 className={`${styles.navItem} ${activePath === item.path ? styles.active : ''}`}
+                                onClick={handleNavClick}
                             >
                                 <span className={styles.iconWrapper}>{item.icon}</span>
                                 {item.label}
@@ -163,6 +180,7 @@ export default function AdminSidebar({ activePath }: AdminSidebarProps) {
                                     key={item.path}
                                     href={item.path}
                                     className={`${styles.navItem} ${activePath === item.path ? styles.active : ''}`}
+                                    onClick={handleNavClick}
                                 >
                                     <span className={styles.iconWrapper}>{item.icon}</span>
                                     {item.label}
@@ -173,7 +191,7 @@ export default function AdminSidebar({ activePath }: AdminSidebarProps) {
                 ))}
 
                 <div className={styles.footerNav}>
-                    <Link href="/" className={styles.navItem}>
+                    <Link href="/" className={styles.navItem} onClick={handleNavClick}>
                         <span className={styles.iconWrapper}><ExternalLink size={18} /></span>
                         Ver Site
                     </Link>
@@ -182,6 +200,47 @@ export default function AdminSidebar({ activePath }: AdminSidebarProps) {
                     </button>
                 </div>
             </nav>
-        </aside>
+        </>
+    );
+
+    return (
+        <>
+            {/* ── Desktop Sidebar ── */}
+            <aside className={styles.sidebar}>
+                {sidebarContent}
+            </aside>
+
+            {/* ── Mobile Top Bar ── */}
+            <div className={styles.mobileTopBar}>
+                <button
+                    className={styles.hamburgerBtn}
+                    onClick={() => setMobileOpen(true)}
+                    aria-label="Abrir menu"
+                >
+                    <Menu size={22} />
+                </button>
+                <div className={styles.mobileLogoSmall}>
+                    <div className={styles.logoCircleSmall}>ES</div>
+                    <span>ECOSOPIS</span>
+                </div>
+                <button onClick={handleLogout} className={styles.mobileLogoutBtn} aria-label="Sair">
+                    <LogOut size={18} />
+                </button>
+            </div>
+
+            {/* ── Mobile Drawer Overlay ── */}
+            {mobileOpen && (
+                <div
+                    className={styles.mobileOverlay}
+                    onClick={() => setMobileOpen(false)}
+                    aria-hidden="true"
+                />
+            )}
+
+            {/* ── Mobile Drawer ── */}
+            <aside className={`${styles.mobileDrawer} ${mobileOpen ? styles.mobileDrawerOpen : ''}`}>
+                {sidebarContent}
+            </aside>
+        </>
     );
 }

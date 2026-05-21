@@ -1,0 +1,31 @@
+/* Admin page wrapper — shared by all /admin/* pages */
+.adminPageWrapper {
+    display: flex;
+    height: 100vh;
+    background: #f8fafc;
+    overflow: hidden;
+}
+
+/* ── Main content area ── */
+.adminPageWrapper > main {
+    flex: 1;
+    overflow-y: auto;
+    height: 100%;
+}
+
+/* ─── Mobile ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .adminPageWrapper {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+        /* 56px = height of the fixed mobileTopBar */
+        padding-top: 56px;
+    }
+
+    .adminPageWrapper > main {
+        height: auto;
+        overflow-y: visible;
+    }
+}

@@ -6,8 +6,8 @@ import styles from "./dashboard.module.css";
 import EditProductModal from "./EditProductModal";
 import NewProductModal from "./NewProductModal";
 import { Download, ExternalLink, Search, X } from "lucide-react";
-
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 
 export default function AdminDashboard() {
     const [products, setProducts] = useState<any[]>([]);
@@ -126,9 +126,9 @@ export default function AdminDashboard() {
     );
 
     return (
-        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard" />
-            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
+            <main className={styles.mainContent}>
                 <header className={styles.header}>
                     <h1>Gerenciar Produtos</h1>
                     <button
@@ -176,7 +176,7 @@ export default function AdminDashboard() {
                         <tbody>
                             {filteredProducts.map((p: any) => (
                                 <tr key={p.id} style={{ opacity: p.is_active === false ? 0.5 : 1 }}>
-                                    <td>
+                                    <td data-label="Imagem">
                                         <img
                                             src={getImageUrl(p.image_url)}
                                             alt={p.name}
@@ -184,7 +184,7 @@ export default function AdminDashboard() {
                                             onError={(e) => { (e.target as HTMLImageElement).src = '/logo_final.png'; }}
                                         />
                                     </td>
-                                    <td>
+                                    <td data-label="Nome">
                                         <strong>{p.name}</strong>
                                         {p.is_active === false && (
                                             <span style={{
@@ -195,13 +195,13 @@ export default function AdminDashboard() {
                                             }}>INATIVO</span>
                                         )}
                                     </td>
-                                    <td><span className={styles.priceTag}>{p.price ? `R$ ${p.price.toFixed(2)}` : 'R$ 0,00'}</span></td>
-                                    <td>
+                                    <td data-label="Preço"><span className={styles.priceTag}>{p.price ? `R$ ${p.price.toFixed(2)}` : 'R$ 0,00'}</span></td>
+                                    <td data-label="Estoque">
                                         <span className={`${styles.stockBadge} ${p.stock <= 5 ? styles.stockLow : styles.stockOk}`}>
                                             {p.stock ?? 0} unidades
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Ações">
                                         <div className={styles.actions}>
                                             <a
                                                 href={`/produto/${p.slug}/info`}
@@ -275,6 +275,6 @@ export default function AdminDashboard() {
                     />
                 )}
             </main>
-        </div>
+        </AdminLayout>
     );
 }

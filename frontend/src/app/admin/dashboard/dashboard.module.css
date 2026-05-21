@@ -5,6 +5,17 @@
     overflow: hidden;
 }
 
+/* ── Mobile: account for fixed top bar ─────────────────────────────────── */
+@media (max-width: 768px) {
+    .dashboard {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+        padding-top: 56px; /* height of mobileTopBar */
+    }
+}
+
 .sidebar {
     width: 260px;
     background-color: #0f172a;
@@ -80,11 +91,34 @@
     height: 100%;
 }
 
+@media (max-width: 768px) {
+    .mainContent {
+        padding: 1rem;
+        height: auto;
+        overflow-y: visible;
+    }
+}
+
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    .header h1 {
+        font-size: 1.4rem;
+    }
+    .header > button {
+        width: 100%;
+    }
 }
 
 .header h1 {
@@ -98,6 +132,14 @@
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2.5rem;
+}
+
+@media (max-width: 768px) {
+    .stats {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
 }
 
 .statCard {
@@ -134,6 +176,74 @@
     width: 100%;
     min-width: 1000px;
     border-collapse: collapse;
+}
+
+/* Mobile: product cards instead of table */
+@media (max-width: 768px) {
+    .productTable {
+        border-radius: 0.75rem;
+    }
+
+    .productTable table,
+    .productTable thead,
+    .productTable tbody,
+    .productTable th,
+    .productTable td,
+    .productTable tr {
+        display: block;
+    }
+
+    .productTable thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        visibility: hidden;
+    }
+
+    .productTable tr {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        margin: 0.75rem;
+        padding: 0.75rem;
+        background: white;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+
+    .productTable td {
+        padding: 0.4rem 0.5rem;
+        border: none;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+    }
+
+    .productTable td:last-child {
+        border-bottom: none;
+    }
+
+    .productTable td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        font-size: 0.7rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        flex-shrink: 0;
+        margin-right: 0.5rem;
+    }
+
+    .actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.375rem;
+    }
+
+    .editBtn, .deleteBtn {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.6rem;
+    }
 }
 
 .productTable th {
@@ -407,6 +517,13 @@
     max-width: 480px;
     position: relative;
     align-items: center;
+}
+
+@media (max-width: 768px) {
+    .adminSearchContainer {
+        max-width: 100%;
+        margin-bottom: 1rem;
+    }
 }
 
 .adminSearchInput {

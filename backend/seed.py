@@ -13,7 +13,8 @@ def seed():
             email="admin@admin.com",
             hashed_password=get_password_hash("admin123"),
             full_name="Admin Principal",
-            role="admin"
+            role="admin",
+            is_verified=True
         )
         db.add(admin)
 

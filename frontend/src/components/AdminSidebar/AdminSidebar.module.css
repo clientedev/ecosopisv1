@@ -1,7 +1,7 @@
+/* ─── Desktop Sidebar ─────────────────────────────────────────────────────── */
 .sidebar {
     width: 280px;
     background: #1a3a16;
-    /* Deeper green for a premium feel */
     color: white;
     padding: 1.5rem 1rem;
     display: flex;
@@ -12,18 +12,16 @@
     box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
     overflow-y: auto;
     z-index: 100;
+    flex-shrink: 0;
 }
 
-/* Scrollbar styling for a clean look */
-.sidebar::-webkit-scrollbar {
-    width: 4px;
-}
-
+.sidebar::-webkit-scrollbar { width: 4px; }
 .sidebar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
 }
 
+/* ─── Logo ────────────────────────────────────────────────────────────────── */
 .logo {
     display: flex;
     align-items: center;
@@ -36,7 +34,6 @@
     width: 38px;
     height: 38px;
     background: #b8860b;
-    /* Gold accent */
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -45,16 +42,34 @@
     font-size: 0.9rem;
     color: white;
     box-shadow: 0 4px 10px rgba(184, 134, 11, 0.3);
+    flex-shrink: 0;
 }
 
 .logo span {
-    font-family: var(--font-raleway);
     font-size: 1.3rem;
     font-weight: 800;
     letter-spacing: 2px;
     color: white;
 }
 
+/* Mobile close button — hidden on desktop */
+.mobileCloseBtn {
+    display: none;
+    margin-left: auto;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+.mobileCloseBtn:hover { background: rgba(255,255,255,0.2); }
+
+/* ─── Nav ─────────────────────────────────────────────────────────────────── */
 .nav {
     display: flex;
     flex-direction: column;
@@ -63,9 +78,7 @@
 }
 
 /* Recent Section */
-.recentSection {
-    margin-bottom: 1rem;
-}
+.recentSection { margin-bottom: 1rem; }
 
 .sectionHeader {
     font-size: 0.65rem;
@@ -102,12 +115,9 @@
     cursor: pointer;
     transition: color 0.2s;
 }
+.categoryToggle:hover { color: white; }
 
-.categoryToggle:hover {
-    color: white;
-}
-
-/* Drawer Logic */
+/* Drawer */
 .drawer {
     max-height: 0;
     overflow: hidden;
@@ -116,13 +126,12 @@
     flex-direction: column;
     gap: 4px;
 }
-
 .drawer.open {
     max-height: 500px;
     margin-bottom: 0.5rem;
 }
 
-/* Nav Item Styling */
+/* Nav Item */
 .navItem {
     display: flex;
     align-items: center;
@@ -135,7 +144,6 @@
     border-radius: 8px;
     transition: all 0.2s ease;
 }
-
 .iconWrapper {
     display: flex;
     align-items: center;
@@ -143,25 +151,21 @@
     width: 20px;
     opacity: 0.6;
 }
-
 .navItem:hover {
     background: rgba(255, 255, 255, 0.05);
     color: white;
 }
-
 .navItem.active {
     background: rgba(255, 255, 255, 0.1);
     color: #ffd700;
-    /* Subtle gold for active */
     font-weight: 600;
 }
-
 .navItem.active .iconWrapper {
     opacity: 1;
     color: #ffd700;
 }
 
-/* Footer Section */
+/* Footer */
 .footerNav {
     margin-top: auto;
     padding-top: 2rem;
@@ -185,9 +189,143 @@
     font-weight: 500;
     transition: all 0.2s;
 }
-
 .logoutBtn:hover {
     background: rgba(239, 68, 68, 0.1);
     border-color: rgba(239, 68, 68, 0.2);
     color: #ef4444;
+}
+
+/* ─── Mobile-only elements (hidden on desktop) ────────────────────────────── */
+.mobileTopBar {
+    display: none;
+}
+
+.mobileOverlay {
+    display: none;
+}
+
+.mobileDrawer {
+    display: none;
+}
+
+.mobileLogoSmall {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logoCircleSmall {
+    width: 30px;
+    height: 30px;
+    background: #b8860b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.75rem;
+    color: white;
+}
+
+.mobileLogoSmall span {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: white;
+}
+
+.hamburgerBtn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.hamburgerBtn:hover { background: rgba(255,255,255,0.2); }
+
+.mobileLogoutBtn {
+    background: rgba(239,68,68,0.15);
+    border: 1px solid rgba(239,68,68,0.2);
+    color: #ef4444;
+    border-radius: 8px;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.mobileLogoutBtn:hover { background: rgba(239,68,68,0.25); }
+
+/* ─── Mobile responsive ───────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    /* Hide desktop sidebar */
+    .sidebar {
+        display: none;
+    }
+
+    /* Show top bar */
+    .mobileTopBar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: #1a3a16;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 200;
+        height: 56px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+
+    /* Show overlay */
+    .mobileOverlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(2px);
+        z-index: 299;
+        animation: fadeIn 0.2s ease;
+    }
+
+    /* Show drawer */
+    .mobileDrawer {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 290px;
+        background: #1a3a16;
+        z-index: 300;
+        padding: 1.5rem 1rem;
+        overflow-y: auto;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+    }
+    .mobileDrawer.mobileDrawerOpen {
+        transform: translateX(0);
+    }
+
+    /* Show close button in drawer */
+    .mobileCloseBtn {
+        display: flex;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }

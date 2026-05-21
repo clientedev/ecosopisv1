@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import {
     Package, CheckCircle, Truck, Clock, Download,
     ChevronDown, ChevronUp, XCircle, RefreshCw, Search,
@@ -305,7 +306,7 @@ export default function AdminPedidosPage() {
     };
 
     return (
-        <div style={{ display: "flex", height: "100vh", background: "#fdfdfd", overflow: "hidden" }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/pedidos" />
 
             <main style={{ flex: 1, padding: "2rem", overflowY: "auto", height: "100%" }}>
@@ -784,6 +785,6 @@ export default function AdminPedidosPage() {
                     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 `}</style>
             </main>
-        </div>
+        </AdminLayout>
     );
 }

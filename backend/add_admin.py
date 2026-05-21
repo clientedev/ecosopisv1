@@ -9,7 +9,8 @@ if not user:
         email='admin@ecosopis.com.br',
         hashed_password=get_password_hash('admin123'),
         full_name='Admin Ecosopis',
-        role='admin'
+        role='admin',
+        is_verified=True
     )
     db.add(new_admin)
     db.commit()
