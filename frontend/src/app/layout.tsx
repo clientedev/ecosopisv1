@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import "@/styles/globals.css";
 import { Raleway, Karla, Cinzel } from "next/font/google";
-import ChatIA from "@/components/ChatIA/ChatIA";
-import RouletteModal from "@/components/RouletteModal/RouletteModal";
+import dynamic from "next/dynamic";
+
+const ChatIA = dynamic(() => import("@/components/ChatIA/ChatIA"), { ssr: false });
+const RouletteModal = dynamic(() => import("@/components/RouletteModal/RouletteModal"), { ssr: false });
 import DynamicBranding from "@/components/DynamicBranding/DynamicBranding";
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/components/Toast/Toast";

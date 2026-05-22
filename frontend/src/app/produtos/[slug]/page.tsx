@@ -64,11 +64,10 @@ export default function ProductDetailPage() {
 
         const fetchApprovedReviews = async (productId: number) => {
             try {
-                const res = await fetch(`/api/reviews/approved`, { cache: "no-store" });
+                const res = await fetch(`/api/reviews/approved?product_id=${productId}`, { cache: "no-store" });
                 if (!res.ok) return;
-                const allReviews = await res.json();
-                const filtered = (allReviews || []).filter((rev: any) => rev.product_id === productId);
-                setApprovedReviews(filtered);
+                const filtered = await res.json();
+                setApprovedReviews(filtered || []);
             } catch (error) {
                 console.error("Error fetching approved reviews:", error);
             }
@@ -213,7 +212,7 @@ export default function ProductDetailPage() {
                                         alt={product.name}
                                         fill
                                         className={styles.productImage}
-                                        unoptimized={true}
+                                        sizes="(max-width: 768px) 100vw, 50vw"
                                         priority
                                     />
                                 </div>
@@ -232,7 +231,6 @@ export default function ProductDetailPage() {
                                             alt={`Thumb ${idx}`}
                                             width={80}
                                             height={80}
-                                            unoptimized={true}
                                         />
                                     </div>
                                 ))}

@@ -19,12 +19,24 @@ export default function RouletteModal() {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const [isSpinning, setIsSpinning] = useState(false);
-    // ... rest of state
     const [result, setResult] = useState<Prize | null>(null);
     const [prizes, setPrizes] = useState<Prize[]>([]);
     const [config, setConfig] = useState<any>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rotationRef = useRef(0);
+    const [canvasSize, setCanvasSize] = useState(800);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth < 768;
+            setIsMobile(mobile);
+            setCanvasSize(mobile ? 500 : 800);
+        };
+        handleResize();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     // Initial check for eligibility - runs on mount and path/auth changes
     useEffect(() => {
@@ -109,8 +121,10 @@ export default function RouletteModal() {
         rimGradient.addColorStop(0.5, "#ffd700"); // bright Gold
         rimGradient.addColorStop(1, "#b8860b");
         ctx.fillStyle = rimGradient;
-        ctx.shadowColor = "rgba(0,0,0,0.6)";
-        ctx.shadowBlur = 20;
+        if (!isMobile) {
+            ctx.shadowColor = "rgba(0,0,0,0.6)";
+            ctx.shadowBlur = 20;
+        }
         ctx.fill();
         ctx.shadowBlur = 0;
 
@@ -134,8 +148,10 @@ export default function RouletteModal() {
 
             const isPoint = Math.floor(i + rotation * 8) % 4 === 0;
             ctx.fillStyle = isPoint ? "#fff" : "#ffd700";
-            ctx.shadowColor = isPoint ? "#fff" : "#ffd700";
-            ctx.shadowBlur = isPoint ? 15 : 5;
+            if (!isMobile) {
+                ctx.shadowColor = isPoint ? "#fff" : "#ffd700";
+                ctx.shadowBlur = isPoint ? 15 : 5;
+            }
             ctx.fill();
         }
         ctx.shadowBlur = 0;
@@ -177,20 +193,25 @@ export default function RouletteModal() {
             ctx.rotate(angle + sliceAngle / 2);
             ctx.textAlign = "right";
             ctx.fillStyle = "white";
-            ctx.font = "bold 32px Outfit";
-            ctx.shadowColor = "rgba(0,0,0,0.5)";
-            ctx.shadowBlur = 4;
+            const fontSize = Math.floor(canvas.width * 0.04);
+            ctx.font = `bold ${fontSize}px Outfit`;
+            if (!isMobile) {
+                ctx.shadowColor = "rgba(0,0,0,0.5)";
+                ctx.shadowBlur = 4;
+            }
 
             // Truncate and add ellipsis if needed
             const text = prize.nome.length > 20 ? prize.nome.substring(0, 17) + "..." : prize.nome;
-            ctx.fillText(text, wheelRadius - 60, 10);
+            const textOffset = Math.floor(canvas.width * 0.075);
+            ctx.fillText(text, wheelRadius - textOffset, 10);
             ctx.restore();
         });
 
         // Center hub (The "Pin")
         ctx.beginPath();
-        ctx.arc(centerX, centerY, 55, 0, 2 * Math.PI);
-        const hubGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 55);
+        const hubRadius = Math.floor(canvas.width * 0.068);
+        ctx.arc(centerX, centerY, hubRadius, 0, 2 * Math.PI);
+        const hubGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, hubRadius);
         hubGrad.addColorStop(0, "#ffd700");
         hubGrad.addColorStop(0.7, "#b8860b");
         hubGrad.addColorStop(1, "#8b6508");
@@ -202,11 +223,14 @@ export default function RouletteModal() {
 
         // Inner hub detail
         ctx.beginPath();
-        ctx.arc(centerX, centerY, 20, 0, 2 * Math.PI);
+        const innerHubRadius = Math.floor(canvas.width * 0.025);
+        ctx.arc(centerX, centerY, innerHubRadius, 0, 2 * Math.PI);
         ctx.fillStyle = "#1a3a16";
         ctx.fill();
-        ctx.shadowColor = "rgba(0,0,0,0.5)";
-        ctx.shadowBlur = 5;
+        if (!isMobile) {
+            ctx.shadowColor = "rgba(0,0,0,0.5)";
+            ctx.shadowBlur = 5;
+        }
         ctx.stroke();
     };
 
@@ -350,8 +374,8 @@ export default function RouletteModal() {
                             </div>
                             <canvas
                                 ref={canvasRef}
-                                width={800}
-                                height={800}
+                                width={canvasSize}
+                                height={canvasSize}
                                 className={styles.canvas}
                             />
                         </div>

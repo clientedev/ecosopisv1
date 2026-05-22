@@ -168,6 +168,36 @@ def _apply_startup_migrations():
             logger.warning(f"Failed to auto-verify users: {e}")
             conn.rollback()
 
+        # Create indexes for frequently queried columns and foreign keys to speed up performance
+        indexes_to_create = [
+            ("idx_reviews_product_id", "reviews", "product_id"),
+            ("idx_reviews_is_approved", "reviews", "is_approved"),
+            ("idx_order_items_order_id", "order_items", "order_id"),
+            ("idx_order_items_product_id", "order_items", "product_id"),
+            ("idx_orders_user_id", "orders", "user_id"),
+            ("idx_orders_status", "orders", "status"),
+            ("idx_addresses_user_id", "addresses", "user_id"),
+            ("idx_news_user_id", "news", "user_id"),
+            ("idx_news_likes_news_id", "news_likes", "news_id"),
+            ("idx_news_likes_user_id", "news_likes", "user_id"),
+            ("idx_news_comments_news_id", "news_comments", "news_id"),
+            ("idx_news_comments_user_id", "news_comments", "user_id"),
+            ("idx_product_clicks_product_id", "product_clicks", "product_id"),
+            ("idx_cashback_transactions_user_id", "cashback_transactions", "user_id"),
+            ("idx_cashback_transactions_order_id", "cashback_transactions", "order_id"),
+            ("idx_products_is_active", "products", "is_active")
+        ]
+        
+        for idx_name, table, column in indexes_to_create:
+            try:
+                conn.execute(text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table} ({column})"))
+                conn.commit()
+                logger.info(f"✓ Index {idx_name} on {table}({column}) ensured.")
+            except Exception as e:
+                logger.warning(f"Migration: Could not ensure index {idx_name} on {table}: {e}")
+                try: conn.rollback()
+                except Exception: pass
+
 # Initialize FastAPI
 app = FastAPI(title="ECOSOPIS API", version="1.1.0")
 

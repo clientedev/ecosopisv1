@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from typing import List
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session, joinedload
+from typing import List, Optional
 from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
@@ -39,14 +39,24 @@ def create_review(data: ReviewCreate, db: Session = Depends(get_db)):
     return {"message": "Review submitted for approval"}
 
 @router.get("/approved")
-def get_approved_reviews(db: Session = Depends(get_db)):
-    """Public endpoint to list all approved reviews."""
-    return db.query(models.Review).filter(models.Review.is_approved == True).all()
+def get_approved_reviews(
+    product_id: Optional[int] = None,
+    limit: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """Public endpoint to list all approved reviews, with optional filtering and limit."""
+    query = db.query(models.Review).filter(models.Review.is_approved == True)
+    if product_id is not None:
+        query = query.filter(models.Review.product_id == product_id)
+    query = query.order_by(models.Review.created_at.desc())
+    if limit is not None:
+        query = query.limit(limit)
+    return query.all()
 
 @router.get("/pending", response_model=List[dict])
 def get_pending_reviews(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     """Admin endpoint to list pending reviews."""
-    reviews = db.query(models.Review).filter(models.Review.is_approved == False).all()
+    reviews = db.query(models.Review).options(joinedload(models.Review.product)).filter(models.Review.is_approved == False).all()
     return [{
         "id": r.id, 
         "user_name": r.user_name, 
@@ -60,7 +70,7 @@ def get_pending_reviews(db: Session = Depends(get_db), admin: models.User = Depe
 @router.get("/admin/all", response_model=List[dict])
 def get_all_reviews(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     """Admin endpoint to list all reviews (pending and approved)."""
-    reviews = db.query(models.Review).order_by(models.Review.created_at.desc()).all()
+    reviews = db.query(models.Review).options(joinedload(models.Review.product)).order_by(models.Review.created_at.desc()).all()
     return [{
         "id": r.id, 
         "user_name": r.user_name, 

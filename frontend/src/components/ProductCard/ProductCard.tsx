@@ -90,7 +90,7 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
                         alt={product.name}
                         fill
                         className={styles.image}
-                        unoptimized={true}
+                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                     />
                 </div>
             </Link>

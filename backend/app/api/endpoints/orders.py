@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import Response
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text
 from typing import List, Dict, Any, Optional
 from app.core.database import get_db
@@ -61,27 +61,9 @@ def list_all_orders(
 ):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
-    orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
+    orders = db.query(models.Order).options(joinedload(models.Order.user)).order_by(models.Order.created_at.desc()).all()
     
-    # Proactive sync for pending orders
-    repo = OrderRepository(db)
-    service = OrderService(repo)
-    for o in orders:
-        if o.status == "pending":
-            if getattr(o, "stripe_session_id", None):
-                service.sync_order_status(o.id)
-                db.commit()
-                db.refresh(o)
-            elif getattr(o, "mercadopago_preference_id", None):
-                service.sync_mp_order_status(o.id)
-                db.commit()
-                db.refresh(o)
-
-    result = []
-    for o in orders:
-        r = _order_to_response(o, db)
-        result.append(r)
-    return result
+    return [_order_to_response(o, db) for o in orders]
 
 
 @router.get("/{order_id}/label")
@@ -210,25 +192,11 @@ def list_orders(
     current_user: models.User = Depends(get_current_user),
 ):
     if current_user.role != "admin":
-        orders = db.query(models.Order).filter(
+        orders = db.query(models.Order).options(joinedload(models.Order.user)).filter(
             models.Order.user_id == current_user.id
         ).order_by(models.Order.created_at.desc()).all()
     else:
-        orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
-    
-    # Proactive sync for pending orders
-    repo = OrderRepository(db)
-    service = OrderService(repo)
-    for o in orders:
-        if o.status == "pending":
-            if getattr(o, "stripe_session_id", None):
-                service.sync_order_status(o.id)
-                db.commit()
-                db.refresh(o)
-            elif getattr(o, "mercadopago_preference_id", None):
-                service.sync_mp_order_status(o.id)
-                db.commit()
-                db.refresh(o)
+        orders = db.query(models.Order).options(joinedload(models.Order.user)).order_by(models.Order.created_at.desc()).all()
 
     return [_order_to_response(o, db) for o in orders]
 
@@ -240,9 +208,9 @@ def get_order(
     current_user: models.User = Depends(get_current_user),
 ):
     if current_user.role == "admin":
-        order = db.query(models.Order).filter(models.Order.id == order_id).first()
+        order = db.query(models.Order).options(joinedload(models.Order.user)).filter(models.Order.id == order_id).first()
     else:
-        order = db.query(models.Order).filter(
+        order = db.query(models.Order).options(joinedload(models.Order.user)).filter(
             models.Order.id == order_id,
             models.Order.user_id == current_user.id
         ).first()
@@ -322,8 +290,10 @@ def _order_to_response(o: models.Order, db: Session = None) -> dict:
     buyer_name = getattr(o, "buyer_name", None) or getattr(o, "customer_name", None) or ""
     buyer_email = getattr(o, "buyer_email", None) or getattr(o, "customer_email", None) or ""
 
-    if (not buyer_name or not buyer_email) and o.user_id and db:
-        user = db.query(models.User).filter(models.User.id == o.user_id).first()
+    if (not buyer_name or not buyer_email) and o.user_id:
+        user = getattr(o, "user", None)
+        if not user and db:
+            user = db.query(models.User).filter(models.User.id == o.user_id).first()
         if user:
             if not buyer_name:
                 buyer_name = user.full_name or ""
