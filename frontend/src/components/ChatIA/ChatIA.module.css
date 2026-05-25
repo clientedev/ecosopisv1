@@ -78,7 +78,7 @@
     border: 2px solid white;
     box-shadow: 0 0 8px #4cd137;
     z-index: 3;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 @media (min-width: 769px) {
@@ -92,9 +92,10 @@
         z-index: 10;
         filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
     }
-    .chatButton[data-animated="true"]:hover .onlineDot {
-        transform: scale(1.6) translateY(-18px);
-        z-index: 11;
+    .chatButton:hover .onlineDot {
+        opacity: 0;
+        transform: scale(0.5);
+        pointer-events: none;
     }
 }
 
