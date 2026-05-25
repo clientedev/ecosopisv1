@@ -608,49 +608,92 @@ export default function Home() {
                 <div className="container">
                     <h2 className={styles.sectionTitle} style={{ textAlign: 'center', marginBottom: '40px' }}>EXPERIÊNCIAS ECOSOPIS</h2>
 
-                    <div className={styles.reviewsGrid}>
+                    <div className={styles.reviewsMarqueeWrapper}>
                         {reviews.length > 0 || staticReviews.length > 0 ? (
-                            [...staticReviews, ...reviews].map((rev: any) => (
-                                <div key={rev.id} className={styles.reviewCard}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                        <div className={styles.reviewStars}>
-                                            {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
-                                        </div>
-                                        {rev.date && <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', opacity: 0.7 }}>{rev.date}</span>}
-                                    </div>
-
-                                    {rev.product && (
-                                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary-green)', background: 'rgba(74,124,89,0.08)', padding: '2px 8px', borderRadius: '20px', display: 'inline-block', marginBottom: '8px' }}>
-                                            {rev.product}
-                                        </span>
-                                    )}
-
-                                    <p className={styles.reviewComment}>&quot;{rev.comment}&quot;</p>
-
-                                    {rev.imageUrl && (
-                                        <div style={{ position: 'relative', width: '100%', height: '150px', marginTop: '10px', borderRadius: '8px', overflow: 'hidden' }}>
-                                            <Image src={rev.imageUrl} alt="Antes e Depois" fill style={{ objectFit: 'cover' }} />
-                                            <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>ANTES → DEPOIS</div>
-                                        </div>
-                                    )}
-
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--neutral-gray-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-green)' }}>
-                                                {rev.user_name.charAt(0).toUpperCase()}
+                            <div className={styles.reviewsTrack}>
+                                {/* Render First Set */}
+                                {[...staticReviews, ...reviews].map((rev: any, index: number) => (
+                                    <div key={`rev-1-${rev.id || index}`} className={styles.reviewCard}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                            <div className={styles.reviewStars}>
+                                                {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
                                             </div>
-                                            <span className={styles.reviewAuthor}>{rev.user_name}</span>
+                                            {rev.date && <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', opacity: 0.7 }}>{rev.date}</span>}
                                         </div>
-                                        {rev.source && rev.source !== 'Shopee' && (
-                                            <span style={{ fontSize: '0.65rem', background: 'var(--neutral-gray-100)', color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid var(--neutral-gray-200)' }}>
-                                                ✓ {rev.source}
+
+                                        {rev.product && (
+                                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary-green)', background: 'rgba(74,124,89,0.08)', padding: '2px 8px', borderRadius: '20px', display: 'inline-block', marginBottom: '8px' }}>
+                                                {rev.product}
                                             </span>
                                         )}
+
+                                        <p className={styles.reviewComment}>&quot;{rev.comment}&quot;</p>
+
+                                        {rev.imageUrl && (
+                                            <div style={{ position: 'relative', width: '100%', height: '150px', marginTop: '10px', borderRadius: '8px', overflow: 'hidden' }}>
+                                                <Image src={rev.imageUrl} alt="Antes e Depois" fill style={{ objectFit: 'cover' }} />
+                                                <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>ANTES → DEPOIS</div>
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--neutral-gray-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-green)' }}>
+                                                    {rev.user_name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <span className={styles.reviewAuthor}>{rev.user_name}</span>
+                                            </div>
+                                            {rev.source && rev.source !== 'Shopee' && (
+                                                <span style={{ fontSize: '0.65rem', background: 'var(--neutral-gray-100)', color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid var(--neutral-gray-200)' }}>
+                                                    ✓ {rev.source}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))
+                                ))}
+                                {/* Render Second Set for Seamless Infinite Scroll */}
+                                {[...staticReviews, ...reviews].map((rev: any, index: number) => (
+                                    <div key={`rev-2-${rev.id || index}`} className={styles.reviewCard}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                            <div className={styles.reviewStars}>
+                                                {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
+                                            </div>
+                                            {rev.date && <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', opacity: 0.7 }}>{rev.date}</span>}
+                                        </div>
+
+                                        {rev.product && (
+                                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary-green)', background: 'rgba(74,124,89,0.08)', padding: '2px 8px', borderRadius: '20px', display: 'inline-block', marginBottom: '8px' }}>
+                                                {rev.product}
+                                            </span>
+                                        )}
+
+                                        <p className={styles.reviewComment}>&quot;{rev.comment}&quot;</p>
+
+                                        {rev.imageUrl && (
+                                            <div style={{ position: 'relative', width: '100%', height: '150px', marginTop: '10px', borderRadius: '8px', overflow: 'hidden' }}>
+                                                <Image src={rev.imageUrl} alt="Antes e Depois" fill style={{ objectFit: 'cover' }} />
+                                                <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>ANTES → DEPOIS</div>
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--neutral-gray-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-green)' }}>
+                                                    {rev.user_name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <span className={styles.reviewAuthor}>{rev.user_name}</span>
+                                            </div>
+                                            {rev.source && rev.source !== 'Shopee' && (
+                                                <span style={{ fontSize: '0.65rem', background: 'var(--neutral-gray-100)', color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid var(--neutral-gray-200)' }}>
+                                                    ✓ {rev.source}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         ) : (
-                            <p style={{ textAlign: 'center', gridColumn: '1/-1', opacity: 0.7 }}>
+                            <p style={{ textAlign: 'center', opacity: 0.7 }}>
                                 Seja a primeira a compartilhar sua jornada de autocuidado!
                             </p>
                         )}

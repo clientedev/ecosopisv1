@@ -1509,11 +1509,28 @@
   background-color: #f9fbf9;
 }
 
-.reviewsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 30px;
+.reviewsMarqueeWrapper {
+  overflow: hidden;
+  width: 100%;
   margin-bottom: 60px;
+  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+
+.reviewsTrack {
+  display: flex;
+  gap: 24px;
+  width: max-content;
+  animation: marqueeScroll 45s linear infinite;
+}
+
+.reviewsTrack:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marqueeScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 .reviewCard {
@@ -1524,6 +1541,9 @@
   display: flex;
   flex-direction: column;
   gap: 15px;
+  min-width: 320px;
+  max-width: 320px;
+  flex-shrink: 0;
 }
 
 .reviewStars {
