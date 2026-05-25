@@ -569,9 +569,6 @@ export default function Home() {
                         <h2 className={styles.sectionTitle}>MAIS QUE PRODUTOS, UM COMPROMISSO COM VOCÊ</h2>
                         <p>A Ecosopis nasceu do desejo de unir a sabedoria da natureza com resultados que você pode ver e sentir. Acreditamos que o autocuidado deve ser simples, ético e transformador. Cada fórmula é pensada para que você recupere não apenas a saúde da sua pele, mas a sua confiança diária.</p>
                         <p className={styles.historyHighlight}>O natural que funciona.</p>
-                        <div style={{ marginTop: '20px', textAlign: 'center', borderRadius: '16px', overflow: 'hidden', maxWidth: '340px', margin: '24px auto 0' }}>
-                            <Image src="/static/attached_assets/generated_images/natural_skincare_kit_gift_box.png" alt="Kit de produtos naturais Ecosopis" width={340} height={340} style={{ width: '100%', height: 'auto', objectFit: 'cover' }} />
-                        </div>
                     </div>
                 </div>
             </section>
