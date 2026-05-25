@@ -33,16 +33,45 @@
     gap: 12px;
 }
 
+.chatIconWrapper {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+}
+
 .chatIcon {
-    width: 24px;
-    height: 24px;
-    min-width: 24px;
-    transition: transform 0.3s ease;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.chatIconAnimated {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 @media (min-width: 769px) {
     .chatButton[data-animated="true"]:hover .chatIcon {
-        transform: rotate(10deg) scale(1.1);
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    .chatButton[data-animated="true"]:hover .chatIconAnimated {
+        opacity: 1;
+        transform: scale(1.1) rotate(10deg);
     }
 }
 
@@ -306,5 +335,11 @@
     
     .chatIcon {
         margin: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .chatButton {
+        display: none !important;
     }
 }

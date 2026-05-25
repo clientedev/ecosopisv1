@@ -88,6 +88,16 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                             className={styles.chatIcon}
                             style={{ borderRadius: '50%', objectFit: 'cover' }}
                         />
+                        {isHomePage && (
+                            <Image
+                                src="/static/attached_assets/generated_images/lia_avatar.webp"
+                                alt="Lia Animada"
+                                width={28}
+                                height={28}
+                                className={styles.chatIconAnimated}
+                                style={{ borderRadius: '50%', objectFit: 'cover' }}
+                            />
+                        )}
                         <span className={styles.onlineDot}></span>
                     </div>
                     <span className={styles.btnText}>Fale com a Lia</span>
