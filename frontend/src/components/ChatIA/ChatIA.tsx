@@ -96,6 +96,8 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                                 height={28}
                                 className={styles.chatIconAnimated}
                                 style={{ borderRadius: '50%', objectFit: 'cover' }}
+                                priority
+                                unoptimized
                             />
                         )}
                         <span className={styles.onlineDot}></span>
