@@ -59,7 +59,7 @@ export default function Home() {
     useEffect(() => {
         const fetchReviews = async () => {
             try {
-                const res = await fetch('/api/reviews/approved');
+                const res = await fetch('/api/reviews/approved?limit=8');
                 if (res.ok) {
                     const data = await res.json();
                     setReviews(data);
@@ -421,22 +421,38 @@ export default function Home() {
                             key={index}
                             className={`${styles.carouselSlide} ${index === currentSlide ? styles.activeSlide : ''}`}
                             style={{
-                                backgroundImage: activeImageUrl ? `linear-gradient(${overlay}, ${overlay}), url(${activeImageUrl})` : 'none',
-                                backgroundSize: slide.image_fit || 'cover',
-                                backgroundPosition: 'center',
-                                backgroundRepeat: 'no-repeat',
                                 display: index === currentSlide ? 'block' : 'none',
                                 width: '100%',
                                 height: activeHeight,
                                 position: 'relative',
+                                overflow: 'hidden',
                                 transition: 'opacity 0.8s ease-in-out'
                             }}
                         >
+                            {activeImageUrl && (
+                                <>
+                                    <Image
+                                        src={activeImageUrl}
+                                        alt={slide.title || 'Slide'}
+                                        fill
+                                        style={{ objectFit: (slide.image_fit as any) || 'cover', objectPosition: 'center', zIndex: 0 }}
+                                        priority={index === 0}
+                                        sizes="100vw"
+                                        unoptimized={activeImageUrl.startsWith('/api/')}
+                                    />
+                                    <div style={{
+                                        position: 'absolute',
+                                        inset: 0,
+                                        background: overlay,
+                                        zIndex: 1
+                                    }} />
+                                </>
+                            )}
                             <div className={`${styles.heroContent}`} style={{
                                 maxWidth: slide.content_max_width || '520px',
                                 padding: isMobile ? '24px 20px' : '40px',
                                 borderRadius: '24px',
-                                background: 'rgba(20, 20, 20, 0.45)', // premium dark glassmorphism for supreme text contrast
+                                background: 'rgba(20, 20, 20, 0.45)',
                                 backdropFilter: 'blur(16px)',
                                 WebkitBackdropFilter: 'blur(16px)',
                                 border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -450,6 +466,7 @@ export default function Home() {
                                 textAlign: isMobile ? 'center' : (slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'right' : 'left') as any,
                                 pointerEvents: 'auto',
                                 width: isMobile ? '92%' : 'fit-content',
+                                zIndex: 2,
                             }}>
                                 {slide.badge && (
                                     <span
@@ -732,7 +749,7 @@ export default function Home() {
                     {!routineSteps.am.length && !routineLoading ? (
                         <div className={styles.routinePlaceholder}>
                             <div className={styles.liaLargeAvatar}>
-                                <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia" fill />
+                                <Image src="/static/attached_assets/generated_images/lia_avatar.webp" alt="Lia" fill />
                             </div>
                             <h3>Vamos montar sua rotina ideal?</h3>
                             <p>Escolha um objetivo abaixo para a Lia criar seu cronograma personalizado em segundos.</p>
@@ -877,7 +894,7 @@ export default function Home() {
                                 <div className={styles.modalLiaSide}>
                                     <div className={styles.liaHeaderLarge}>
                                         <div className={styles.liaLargeAvatar}>
-                                            <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia" fill />
+                                            <Image src="/static/attached_assets/generated_images/lia_avatar.webp" alt="Lia" fill />
                                         </div>
                                         <div className={styles.liaHeaderText}>
                                             <h3>Consultoria com a Lia</h3>
@@ -994,7 +1011,7 @@ export default function Home() {
                         <div className={styles.aiChatContainer}>
                             <div className={styles.chatHeader}>
                                 <div className={styles.aiAvatar}>
-                                    <Image src="/static/attached_assets/generated_images/lia_avatar.gif" alt="Lia" fill />
+                                    <Image src="/static/attached_assets/generated_images/lia_avatar.webp" alt="Lia" fill />
                                 </div>
                                 <div>
                                     <h4>Tire sua dúvida com a Lia</h4>

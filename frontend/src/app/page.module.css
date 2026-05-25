@@ -755,7 +755,7 @@
 
 .shortcutsSection {
   padding: 100px 0;
-  background-image: url('/static/attached_assets/leaves_bg.png');
+  background-image: url('/static/attached_assets/leaves_bg.webp');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -1228,7 +1228,7 @@
   padding: 100px 0;
   background-image: 
     linear-gradient(rgba(255, 255, 255, 0.96), rgba(250, 253, 250, 0.97)),
-    url('/static/attached_assets/leaves_bg.png');
+    url('/static/attached_assets/leaves_bg.webp');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
