@@ -83,8 +83,8 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                         <Image
                             src="/lia.jpg"
                             alt="Lia"
-                            width={28}
-                            height={28}
+                            width={56}
+                            height={56}
                             className={styles.chatIcon}
                             style={{ borderRadius: '50%', objectFit: 'cover' }}
                         />
@@ -92,8 +92,8 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                             <Image
                                 src="/static/attached_assets/generated_images/lia_avatar.webp"
                                 alt="Lia Animada"
-                                width={28}
-                                height={28}
+                                width={56}
+                                height={56}
                                 className={styles.chatIconAnimated}
                                 style={{ borderRadius: '50%', objectFit: 'cover' }}
                                 priority
