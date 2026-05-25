@@ -40,8 +40,10 @@
     transition: transform 0.3s ease;
 }
 
-.chatButton:hover .chatIcon {
-    transform: rotate(10deg) scale(1.1);
+@media (min-width: 769px) {
+    .chatButton[data-animated="true"]:hover .chatIcon {
+        transform: rotate(10deg) scale(1.1);
+    }
 }
 
 .btnText {

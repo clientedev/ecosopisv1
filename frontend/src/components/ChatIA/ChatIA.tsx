@@ -3,6 +3,8 @@ import { useState, useRef, useEffect } from "react";
 import styles from "./ChatIA.module.css";
 import Image from "next/image";
 
+import { usePathname } from "next/navigation";
+
 interface ChatIAProps {
     isOpen?: boolean;
     onToggle?: () => void;
@@ -11,6 +13,9 @@ interface ChatIAProps {
 export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps = {}) {
     const [internalOpen, setInternalOpen] = useState(false);
     const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+    const pathname = usePathname();
+    const isHomePage = pathname === "/";
+
 
     const [messages, setMessages] = useState([
         { role: "assistant", content: "Olá! Eu sou a Lia 🌿 Sua consultora de beleza natural da Ecosopis. Pode me contar qual é o seu maior desafio com a pele agora?" }
@@ -71,6 +76,7 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                 className={styles.chatButton}
                 onClick={handleToggle}
                 aria-label="Converse com a Lia"
+                data-animated={isHomePage ? "true" : "false"}
             >
                 <div className={styles.buttonContent}>
                     <div className={styles.chatIconWrapper}>
