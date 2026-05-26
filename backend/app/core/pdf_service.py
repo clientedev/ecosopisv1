@@ -209,8 +209,7 @@ def generate_shipping_label_pdf(order: dict) -> bytes:
 
     # 1. Header (Brand details on left, Order info on right)
     header_left = [
-        Paragraph(STORE_NAME, title_style),
-        Paragraph("Beleza Consciente | Saboaria & Cosmetica Natural", tagline_style)
+        Paragraph(STORE_NAME, title_style)
     ]
     header_right = [
         Paragraph("COMPROVANTE DE PEDIDO", doc_title_style),
