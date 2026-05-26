@@ -210,7 +210,7 @@ def generate_shipping_label_pdf(order: dict) -> bytes:
     # 1. Header (Brand details on left, Order info on right)
     header_left = [
         Paragraph(STORE_NAME, title_style),
-        Paragraph("Beleza Consciente • Saboaria & Cosmética Natural", tagline_style)
+        Paragraph("Beleza Consciente | Saboaria & Cosmetica Natural", tagline_style)
     ]
     header_right = [
         Paragraph("COMPROVANTE DE PEDIDO", doc_title_style),
@@ -230,18 +230,18 @@ def generate_shipping_label_pdf(order: dict) -> bytes:
 
     # 2. Customer & Shipping Info Side-by-Side Table
     customer_html = (
-        "<b>👤 DADOS DO CLIENTE</b><br/><br/>"
+        "<b>DADOS DO CLIENTE</b><br/><br/>"
         f"<b>Nome:</b> {customer_name}<br/>"
         f"<b>E-mail:</b> {customer_email}<br/>"
         f"<b>WhatsApp:</b> {customer_phone}<br/>"
         f"<b>CPF:</b> {customer_cpf}"
     )
     delivery_html = (
-        "<b>🚚 ENDEREÇO DE ENTREGA</b><br/><br/>"
-        f"<b>Logradouro:</b> {address.get('street', '—')}, {address.get('number', '—')}<br/>"
-        f"<b>Complemento:</b> {address.get('complement') or '—'}<br/>"
-        f"<b>Bairro:</b> {address.get('neighborhood', '—')}<br/>"
-        f"<b>Cidade/UF:</b> {address.get('city', '—')} - {address.get('state', '—')}<br/>"
+        "<b>ENDERECO DE ENTREGA</b><br/><br/>"
+        f"<b>Logradouro:</b> {address.get('street', '-')}, {address.get('number', '-')}<br/>"
+        f"<b>Complemento:</b> {address.get('complement') or '-'}<br/>"
+        f"<b>Bairro:</b> {address.get('neighborhood', '-')}<br/>"
+        f"<b>Cidade/UF:</b> {address.get('city', '-')} - {address.get('state', '-')}<br/>"
         f"<b>CEP:</b> {cep}"
     )
 
@@ -352,10 +352,9 @@ def generate_shipping_label_pdf(order: dict) -> bytes:
     story.append(container_table)
     story.append(Spacer(1, 30))
 
-    # 5. Footer (divider, thank you note and store info)
+    # 5. Footer (divider + thank you only, no contact info)
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#cbd5e1"), spaceBefore=10, spaceAfter=10))
-    story.append(Paragraph("Obrigado por apoiar a beleza consciente e natural! 💚", footer_thanks_style))
-    story.append(Paragraph(f"{STORE_NAME} — {STORE_ADDRESS} — Tel: {STORE_PHONE} — E-mail: {STORE_EMAIL}", footer_info_style))
+    story.append(Paragraph("Obrigado por apoiar a beleza consciente e natural!", footer_thanks_style))
 
     # Build document
     doc.build(story)
