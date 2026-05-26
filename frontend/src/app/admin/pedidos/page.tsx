@@ -79,6 +79,7 @@ export default function AdminPedidosPage() {
     const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
     const [addressForm, setAddressForm] = useState<any>({});
     const [savingAddress, setSavingAddress] = useState(false);
+    const [downloadingPdf, setDownloadingPdf] = useState<number | null>(null);
 
     const getToken = () => typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
     const authHeaders = () => ({
@@ -284,6 +285,48 @@ export default function AdminPedidosPage() {
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text).then(() => alert(`Copiado: ${text}`));
+    };
+
+    const downloadOrderPdf = async (orderId: number) => {
+        setDownloadingPdf(orderId);
+        setNotification(null);
+        try {
+            const res = await fetch(`/api/orders/${orderId}/label`, {
+                headers: authHeaders()
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                setNotification({
+                    type: "error",
+                    title: "Erro ao extrair PDF",
+                    message: data.detail || "Não foi possível gerar o PDF do pedido."
+                });
+                return;
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `pedido-${orderId}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            setNotification({
+                type: "success",
+                title: "PDF extraído com sucesso!",
+                message: `O PDF do pedido #${orderId} foi baixado.`
+            });
+        } catch (e) {
+            console.error("Erro ao baixar PDF:", e);
+            setNotification({
+                type: "error",
+                title: "Erro de conexão",
+                message: "Não foi possível conectar ao servidor para baixar o PDF."
+            });
+        } finally {
+            setDownloadingPdf(null);
+        }
     };
 
     const dismissBanner = () => {
@@ -695,6 +738,20 @@ export default function AdminPedidosPage() {
 
                                             {/* Ações */}
                                             <div className={pedidoStyles.actionFooter}>
+                                                {/* Extrair PDF */}
+                                                <button
+                                                    onClick={() => downloadOrderPdf(order.id)}
+                                                    disabled={downloadingPdf === order.id}
+                                                    className={`${pedidoStyles.btnAction} ${pedidoStyles.btnSecondary}`}
+                                                    title="Extrair dados do pedido em PDF"
+                                                >
+                                                    {downloadingPdf === order.id ? (
+                                                        <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Extraindo...</>
+                                                    ) : (
+                                                        <><Download size={14} /> Extrair PDF</>
+                                                    )}
+                                                </button>
+
                                                 {/* Etiqueta Melhor Envio */}
                                                 {etiquetaUrl ? (
                                                     <>

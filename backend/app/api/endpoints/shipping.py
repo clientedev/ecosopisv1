@@ -177,7 +177,7 @@ def _simulate_label_pdf(order: models.Order) -> bytes:
             Paragraph(dest_name, normal_style),
             Paragraph(f"{address.get('street', 'Rua não informada')}, {address.get('number', 'S/N')} {address.get('complement', '')}", normal_style),
             Paragraph(f"{address.get('neighborhood', 'Bairro')} - {address.get('city', 'Cidade')} / {address.get('state', 'UF')}", normal_style),
-            Paragraph(f"<b>CEP: {address.get('zip', address.get('cep', '00000-000'))}</b>", bold_style),
+            Paragraph(f"<b>CEP: {address.get('zip', address.get('postal_code', address.get('cep', '00000-000')))}</b>", bold_style),
         ]
         
         # Remetente

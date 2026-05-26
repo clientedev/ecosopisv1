@@ -54,6 +54,7 @@ def generate_shipping_label_pdf(order: dict) -> bytes:
     order_id = order.get("id", "")
     total = order.get("total", 0)
     created_at = order.get("created_at", datetime.now())
+    cep = address.get("zip") or address.get("postal_code") or address.get("cep") or ""
 
     if isinstance(created_at, str):
         try:
@@ -83,7 +84,7 @@ def generate_shipping_label_pdf(order: dict) -> bytes:
         Paragraph("DESTINATÁRIO", section_title_style),
         Paragraph(customer_name.upper(), main_text_style),
         Paragraph(address.get("street", "—"), sub_text_style),
-        Paragraph(f"Bairro: {address.get('neighborhood', '')}  —  CEP: {address.get('zip', '')}", sub_text_style),
+        Paragraph(f"Bairro: {address.get('neighborhood', '')}  —  CEP: {cep}", sub_text_style),
         Paragraph(f"{address.get('city', '')} - {address.get('state', '')}", sub_text_style),
     ]
     sender_block = [
