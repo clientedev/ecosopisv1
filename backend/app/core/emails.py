@@ -13,21 +13,25 @@ STORE_NAME = os.getenv("STORE_NAME", "ECOSOPIS")
 FROM_EMAIL = os.getenv("FROM_EMAIL", f"{STORE_NAME} <nao-responda@ecosopis.com.br>")
 
 # DEBUG: Force push to resolve indentation issues
-def send_email(to_email: str, subject: str, html_content: str):
+def send_email(to_email: str, subject: str, html_content: str, attachments: List[Dict[str, Any]] | None = None):
+    """Send an email via Resend. Supports optional attachments.
+    Attachments should be a list of dicts with keys: 'filename', 'content' (base64 string), 'type'."""
     try:
-        params = {
+        params: Dict[str, Any] = {
             "from": FROM_EMAIL,
             "to": to_email,
             "subject": subject,
             "html": html_content,
         }
+        if attachments:
+            params["attachments"] = attachments
         r = resend.Emails.send(params)
         print(f"Email sent successfully to {to_email}. Response ID: {r.get('id')}")
         return True
     except Exception as e:
         print(f"CRITICAL ERROR: Failed to send email to {to_email}. Error: {str(e)}")
-        # If it's a domain verification issue, it will show up here
         return False
+
 
 def send_verification_email(email: str, token: str):
     verification_link = f"{FRONTEND_URL}/verify-email?token={token}"
@@ -46,10 +50,10 @@ def send_verification_email(email: str, token: str):
     """
     return send_email(email, subject, html)
 
-def send_order_confirmation_email(email: str, order_id: int, items: List[Dict[str, Any]], total: float):
+def send_order_confirmation_with_pdf(email: str, order_id: int, items: List[Dict[str, Any]], total: float, pdf_bytes: bytes):
+    """Send order confirmation email with PDF attachment of the order invoice/label."""
     subject = f"✨ Pedido #{order_id} Confirmado! - ECOSOPIS"
     items_html = "".join([f"<li>{item['name']} (x{item['quantity']}) - R$ {item['price']:.2f}</li>" for item in items])
-    
     html = f"""
     <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
         <h2 style="color: #4B8411;">Obrigada por escolher a ECOSOPIS!</h2>
@@ -63,7 +67,14 @@ def send_order_confirmation_email(email: str, order_id: int, items: List[Dict[st
         </div>
     </div>
     """
-    return send_email(email, subject, html)
+    import base64
+    b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+    attachments = [{
+        "filename": f"pedido_{order_id}.pdf",
+        "content": b64_pdf,
+        "type": "application/pdf"
+    }]
+    return send_email(email, subject, html, attachments)
 
 def send_order_update_email(email: str, order_id: int, status: str):
     status_map = {

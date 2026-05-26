@@ -128,6 +128,23 @@ def update_order_status(
         user_email = order.customer_email or (order.user.email if order.user else None)
         if user_email:
             emails.send_order_update_email(user_email, order.id, new_status)
+            # If order just got paid, send confirmation email with PDF invoice attached
+            if new_status == "paid":
+                try:
+                    order_dict = _order_to_response(order, db)
+                    pdf_bytes = pdf_service.generate_shipping_label_pdf(order_dict)
+                    # Prepare items list for email (need name, quantity, price)
+                    items_for_email = []
+                    for item in order_dict.get("items", []):
+                        # Assume item dict has keys name/quantity/price
+                        items_for_email.append({
+                            "name": item.get("product_name") or item.get("name") or "Item",
+                            "quantity": item.get("quantity", 1),
+                            "price": item.get("price", 0),
+                        })
+                    emails.send_order_confirmation_with_pdf(user_email, order.id, items_for_email, order.total, pdf_bytes)
+                except Exception as pdf_err:
+                    print(f"Error sending order confirmation with PDF: {pdf_err}")
     except Exception as e:
         print(f"Error sending status update email: {e}")
 
