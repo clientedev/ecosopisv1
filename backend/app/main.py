@@ -282,6 +282,7 @@ from app.api.endpoints import (
     images, news, metrics, chat, roulette, admin_roulette, 
     shipping, addresses, cart, payment, crm, cashback, raw_materials
 )
+from app.routes import webhook_me
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(products.router, prefix="/products", tags=["products"])
@@ -303,6 +304,7 @@ app.include_router(payment.router, prefix="/payment", tags=["payment"])
 app.include_router(crm.router, prefix="/crm", tags=["crm"])
 app.include_router(cashback.router, tags=["cashback"])
 app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
+app.include_router(webhook_me.router)
 
 if __name__ == "__main__":
     import uvicorn

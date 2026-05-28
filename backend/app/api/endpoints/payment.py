@@ -208,7 +208,8 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
             admin_email=admin_email,
             order_id=order.id,
             total=order.total,
-            customer_name=order.buyer_name or order.customer_name
+            customer_name=order.buyer_name or order.customer_name,
+            order=order
         )
     except Exception as e:
         logger.error(f"Error sending confirmation emails for order {order.id}: {e}")

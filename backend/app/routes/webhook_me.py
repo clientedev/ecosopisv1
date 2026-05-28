@@ -18,10 +18,30 @@ router = APIRouter(tags=["webhook"])
 
 # Mapeamento de eventos do Melhor Envio → status interno do pedido
 EVENT_STATUS_MAP = {
-    "shipment_posted": "ENVIADO",
+    # Etiqueta Paga / Gerada / Postada / Em Trânsito
+    "order.released": "shipped",
+    "order.generated": "shipped",
+    "order.posted": "shipped",
+    "order.received": "shipped",
+    "shipment_released": "shipped",
+    "shipment_posted": "shipped",
+    "shipment_generated": "shipped",
+    "shipment_received": "shipped",
+    "released": "shipped",
+    "posted": "shipped",
+    "generated": "shipped",
+    
+    # Etiqueta Entregue (Concluído)
+    "order.delivered": "delivered",
     "shipment_delivered": "delivered",
+    "delivered": "delivered",
+    
+    # Etiqueta Cancelada
+    "order.cancelled": "cancelled",
     "shipment_canceled": "cancelled",
-    "shipment_generated": "ENVIADO",
+    "shipment_cancelled": "cancelled",
+    "cancelled": "cancelled",
+    "canceled": "cancelled",
 }
 
 
@@ -34,10 +54,9 @@ async def webhook_melhor_envio(
     Recebe notificações de status do Melhor Envio e atualiza o pedido correspondente.
 
     Eventos tratados:
-    - shipment_posted    → ENVIADO
-    - shipment_delivered → delivered
-    - shipment_canceled  → cancelled
-    - shipment_generated → ENVIADO
+    - order.released/generated/posted/received → shipped (Enviado)
+    - order.delivered                        → delivered (Entregue/Concluído)
+    - order.cancelled                        → cancelled (Cancelado)
     """
     try:
         payload = await request.json()
@@ -47,12 +66,25 @@ async def webhook_melhor_envio(
     logger.info(f"[WEBHOOK ME] Payload recebido: {payload}")
 
     event = payload.get("event") or payload.get("type") or payload.get("status")
+    
+    # Suporte a campos planos e aninhados no campo 'data'
+    data = payload.get("data") or {}
+    
     shipment_id = (
         payload.get("shipment_id")
         or payload.get("order_id")
+        or (data.get("id") if isinstance(data, dict) else None)
+        or (data.get("shipment_id") if isinstance(data, dict) else None)
+        or (data.get("order_id") if isinstance(data, dict) else None)
         or str(payload.get("id", ""))
     )
-    tracking_code = payload.get("tracking") or payload.get("tracking_code")
+    
+    tracking_code = (
+        payload.get("tracking")
+        or payload.get("tracking_code")
+        or (data.get("tracking") if isinstance(data, dict) else None)
+        or (data.get("tracking_code") if isinstance(data, dict) else None)
+    )
 
     if not event:
         logger.warning("[WEBHOOK ME] Evento não identificado no payload.")

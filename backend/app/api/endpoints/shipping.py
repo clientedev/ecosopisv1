@@ -225,8 +225,10 @@ async def generate_label(
     current_user: models.User = Depends(get_current_user),
 ):
     """
-    Executa o fluxo completo Melhor Envio para o pedido:
-    cart → checkout (compra) → generate → print → tracking
+    Controla a geração da etiqueta:
+    1. Se o envio não foi criado no cart, cria.
+    2. Se já foi criado, verifica se o pagamento foi feito no Melhor Envio.
+    3. Se pago, gera o PDF e atualiza status para 'shipped'.
     """
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
@@ -240,11 +242,11 @@ async def generate_label(
     if order.status not in allowed:
         raise HTTPException(
             status_code=400,
-            detail=f"Pedido com status '{order.status}' não pode ter etiqueta gerada. Status esperado: pago (paid)."
+            detail=f"Pedido com status '{order.status}' não pode ter etiqueta gerada."
         )
 
-    # Se já tem etiqueta salva e pedido está enviado, apenas retorna
-    if order.status == "shipped" and getattr(order, "etiqueta_url", None):
+    # Se já tem etiqueta salva e o pedido está enviado/entregue, apenas retorna
+    if order.status in ("shipped", "delivered") and getattr(order, "etiqueta_url", None):
         return {
             "order_id": order_id,
             "label_url": order.etiqueta_url,
@@ -252,34 +254,84 @@ async def generate_label(
             "shipment_id": getattr(order, "shipment_id", None),
             "status": order.status,
             "reused": True,
+            "simulated": False,
         }
 
     from app.models.pedido import Pedido
     from app.services import melhorenvio_service as me_service
 
     pedido = Pedido.from_order(order)
-    resultado = me_service.processar_envio(pedido, db)
-
-    if resultado.get("erro"):
-        erro_str = resultado["erro"]
-
-        # Garante que o status do pedido volta a 'paid' se falhou no envio
-        # (processando_envio → paid) para permitir nova tentativa
-        if order.status in ("processando_envio", "erro_envio", "PROCESSANDO_ENVIO", "ERRO_ENVIO"):
-            order.status = "paid"
-            db.commit()
-
+    
+    # 1. Garantir que o shipment_id existe no carrinho
+    if not order.shipment_id:
+        resultado = me_service.processar_envio(pedido, db)
+        if resultado.get("erro"):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Erro ao criar envio no carrinho do Melhor Envio: {resultado['erro']}"
+            )
+        
+        shipment_id = resultado.get("shipment_id")
         raise HTTPException(
             status_code=422,
-            detail=f"Erro Melhor Envio: {erro_str}"
+            detail=f"A etiqueta foi enviada para o carrinho do Melhor Envio (ID: {shipment_id}). "
+                   f"Efetue o pagamento da etiqueta no painel do Melhor Envio e depois clique aqui novamente para gerá-la."
+        )
+
+    # 2. Verificar se a etiqueta já foi paga/comprada no Melhor Envio
+    shipment_details = me_service.obter_detalhes_envio(order.shipment_id)
+    if not shipment_details:
+        raise HTTPException(
+            status_code=422,
+            detail="Não foi possível consultar os detalhes do envio no Melhor Envio. Verifique a sua conexão ou se o token está ativo."
+        )
+
+    me_status = str(shipment_details.get("status", "")).lower()
+    
+    # Status que indicam que a etiqueta foi paga/comprada:
+    # "released", "generated", "posted", "delivered", "received", "attending"
+    paid_statuses = {"released", "generated", "posted", "delivered", "received", "attending"}
+    
+    if me_status not in paid_statuses:
+        raise HTTPException(
+            status_code=422,
+            detail=f"A etiqueta (Status ME: '{me_status}') ainda não foi paga no Melhor Envio. "
+                   f"Acesse o carrinho no painel do Melhor Envio, realize o pagamento da etiqueta, e tente novamente."
+        )
+
+    # 3. Gerar, imprimir e obter tracking
+    try:
+        me_service.gerar_etiqueta(order.shipment_id)
+        etiqueta_url = me_service.imprimir_etiqueta(order.shipment_id)
+        tracking_code = me_service.obter_tracking(order.shipment_id) or shipment_details.get("tracking") or ""
+        
+        order.etiqueta_url = etiqueta_url
+        order.correios_label_url = etiqueta_url
+        if tracking_code:
+            order.codigo_rastreio = tracking_code
+            
+        # Determinar status correspondente
+        if me_status == "delivered":
+            order.status = "delivered"
+        else:
+            order.status = "shipped"
+            
+        db.commit()
+        db.refresh(order)
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao processar/imprimir etiqueta paga do Melhor Envio: {str(e)}"
         )
 
     return {
         "order_id": order_id,
-        "label_url": resultado.get("etiqueta_url"),
-        "tracking_code": resultado.get("tracking_code"),
-        "shipment_id": resultado.get("shipment_id"),
-        "status": resultado.get("status"),
+        "label_url": order.etiqueta_url,
+        "tracking_code": order.codigo_rastreio,
+        "shipment_id": order.shipment_id,
+        "status": order.status,
         "reused": False,
         "simulated": False,
     }

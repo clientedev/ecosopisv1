@@ -423,34 +423,48 @@ def obter_tracking(shipment_id: str, tracking_from_cart: str = "") -> str:
 # FLUXO PRINCIPAL — processar_envio
 # ---------------------------------------------------------------------------
 
+def obter_detalhes_envio(shipment_id: str) -> dict:
+    """
+    GET /api/v2/me/shipment/tracking
+    Retorna os detalhes do envio, incluindo status e rastreamento.
+    """
+    try:
+        resp = _request_with_retry(
+            "GET", "/api/v2/me/shipment/tracking",
+            params={"orders[]": str(shipment_id)},
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, dict):
+                item = data.get(str(shipment_id)) or next(iter(data.values()), {})
+                return item
+            elif isinstance(data, list) and data:
+                return data[0]
+    except Exception as exc:
+        logger.warning(f"[ME] Erro ao obter detalhes do envio {shipment_id}: {exc}")
+    return {}
+
+
 def processar_envio(pedido, db) -> dict:
     """
-    Executa o fluxo completo pós-pagamento:
-      1. Status → processando_envio
-      2. selecionar_servico
-      3. criar_envio (cart)
-      4. comprar_etiqueta (checkout — debita saldo ME)
-      5. gerar_etiqueta (dispara geração)
-      6. imprimir_etiqueta (obtém URL PDF)
-      7. obter_tracking
-      8. Salva todos os dados no banco
-      9. Status → shipped
+    Executa a criação do envio no carrinho do Melhor Envio:
+      1. Valida o CEP do destinatário
+      2. selecionar_servico (calcula frete mais barato)
+      3. criar_envio (cart — envia ao carrinho do Melhor Envio)
+      4. Salva o shipment_id no banco
+      Note: A etiqueta NÃO é comprada ou gerada automaticamente aqui.
     """
     resultado = {
         "pedido_id": pedido.id,
-        "status": None,
+        "status": pedido.status,
         "service_id": None,
-        "shipment_id": None,
-        "tracking_code": None,
-        "etiqueta_url": None,
+        "shipment_id": getattr(pedido, "shipment_id", None),
+        "tracking_code": getattr(pedido, "tracking_code", None),
+        "etiqueta_url": getattr(pedido, "etiqueta_url", None),
         "erro": None,
     }
 
     try:
-        pedido.status = "processando_envio"
-        db.commit()
-        logger.info(f"[ENVIO] Pedido {pedido.id} → processando_envio")
-
         # Validate CEP before proceeding
         cep_raw = pedido.cep_cliente
         cep_digits = "".join(c for c in (cep_raw or "") if c.isdigit())
@@ -462,91 +476,36 @@ def processar_envio(pedido, db) -> dict:
                 f"Edite o endereço do pedido e corrija o campo CEP/postal_code."
             )
 
-        # Check if we already have a valid label URL in the database
-        existing_label = getattr(pedido, "etiqueta_url", None)
         shipment_id = getattr(pedido, "shipment_id", None)
         tracking_from_cart = ""
 
-        if existing_label and (existing_label.startswith("http") or existing_label.startswith("/api/static")):
-            logger.info(f"[ENVIO] Pedido {pedido.id} already has a valid label URL in DB: {existing_label}. Reusing it.")
-            etiqueta_url = existing_label
-            resultado["etiqueta_url"] = etiqueta_url
-            resultado["shipment_id"] = shipment_id
-        else:
-            if not shipment_id:
-                service_id = selecionar_servico(cep_digits, pedido.valor, pedido.produto_nome)
-                resultado["service_id"] = service_id
+        if not shipment_id:
+            service_id = selecionar_servico(cep_digits, pedido.valor, pedido.produto_nome)
+            resultado["service_id"] = service_id
 
-                shipment_id, tracking_from_cart = criar_envio(pedido, service_id)
-                pedido.shipment_id = shipment_id
-                db.commit()
-            else:
-                logger.info(f"[ENVIO] Reusing existing shipment_id: {shipment_id}")
-
-            resultado["shipment_id"] = shipment_id
-
-            try:
-                comprar_etiqueta(shipment_id)
-            except Exception as buy_exc:
-                buy_exc_str = str(buy_exc).lower()
-                if any(x in buy_exc_str for x in ["already", "pago", "checkout", "released", "faturado", "paga", "done"]):
-                    logger.info(f"[ENVIO] Shipment {shipment_id} was already paid/checked out. Proceeding to generate/print.")
-                else:
-                    raise buy_exc
-
-            gerar_etiqueta(shipment_id)
-
-            etiqueta_url = imprimir_etiqueta(shipment_id)
-            pedido.etiqueta_url = etiqueta_url
-            db.commit()
-            resultado["etiqueta_url"] = etiqueta_url
-
-        # Tracking retrieval is non-critical — if it fails, the order
-        # should still be marked as shipped since the label exists.
-        tracking_code = ""
-        try:
-            tracking_code = obter_tracking(shipment_id, tracking_from_cart)
-            pedido.tracking_code = tracking_code
-            resultado["tracking_code"] = tracking_code
-        except Exception as track_exc:
-            logger.warning(f"[ENVIO] ⚠️ Tracking retrieval failed for {pedido.id}, but label exists. Continuing: {track_exc}")
-            # Use tracking from cart if available
+            shipment_id, tracking_from_cart = criar_envio(pedido, service_id)
+            pedido.shipment_id = shipment_id
             if tracking_from_cart:
                 pedido.tracking_code = tracking_from_cart
                 resultado["tracking_code"] = tracking_from_cart
+            db.commit()
+            logger.info(f"[ENVIO] Envio criado no carrinho do Melhor Envio para o pedido {pedido.id}. shipment_id={shipment_id}")
+        else:
+            logger.info(f"[ENVIO] Envio já existe para o pedido {pedido.id}. shipment_id={shipment_id}")
 
-        pedido.status = "shipped"
-        db.commit()
-        resultado["status"] = "shipped"
+        resultado["shipment_id"] = shipment_id
+
+        # O status do pedido permanece intacto (geralmente 'paid')
+        resultado["status"] = pedido.status
 
         logger.info(
-            f"[ENVIO] ✅ Pedido {pedido.id} enviado | "
-            f"shipment={shipment_id} | tracking={tracking_code} | etiqueta={etiqueta_url}"
+            f"[ENVIO] ✅ Pedido {pedido.id} processado para carrinho | "
+            f"shipment={shipment_id} | status={pedido.status}"
         )
 
     except Exception as exc:
         logger.error(f"[ENVIO] ❌ Pedido {pedido.id}: {exc}", exc_info=True)
-
-        # If we already have a label URL, mark as shipped anyway
-        # (the critical work was done, only a late step failed)
-        has_label = resultado.get("etiqueta_url") or getattr(pedido, "etiqueta_url", None)
-        if has_label:
-            logger.info(f"[ENVIO] Pedido {pedido.id} had a label generated. Marking as shipped despite error.")
-            try:
-                pedido.status = "shipped"
-                db.commit()
-            except Exception:
-                pass
-            resultado["status"] = "shipped"
-            resultado["erro"] = f"Etiqueta gerada, mas houve um aviso: {str(exc)}"
-        else:
-            try:
-                pedido.status = "erro_envio"
-                db.commit()
-            except Exception:
-                pass
-            resultado["status"] = "erro_envio"
-            resultado["erro"] = str(exc)
+        resultado["erro"] = str(exc)
 
     return resultado
 
