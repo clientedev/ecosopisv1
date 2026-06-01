@@ -46,6 +46,20 @@
   max-width: 700px;
 }
 
+/* Hidden state for content overlay before animation */
+.heroContentHidden {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.5s ease;
+}
+
+/* Visible state with fade-in and slide-up */
+.heroContentVisible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.8s ease, transform 0.5s ease;
+}
+
 .heroContent h1 {
   font-size: clamp(2rem, 5vw, 3.2rem);
   line-height: 1.15;

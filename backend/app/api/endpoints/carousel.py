@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+import io
+from PIL import Image
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
@@ -71,6 +73,23 @@ async def create_carousel_item(
         db.refresh(stored_image)
         final_mobile_image_url = f"/api/images/{stored_image.id}"
 
+    # Detect GIF duration if file is a GIF and no explicit duration provided
+    def detect_gif_duration(data: bytes, filename: str) -> int | None:
+        if not filename.lower().endswith('.gif'):
+            return None
+        try:
+            img = Image.open(io.BytesIO(data))
+            total = 0
+            while True:
+                duration = img.info.get('duration', 100)  # default 100ms per frame
+                total += duration
+                img.seek(img.tell() + 1)
+        except EOFError:
+            pass
+        except Exception:
+            return None
+        return total if total > 0 else None
+
     db_item = models.CarouselItem(
         badge=badge,
         title=title,
@@ -99,6 +118,12 @@ async def create_carousel_item(
         mobile_carousel_height=mobile_carousel_height,
         image_fit=image_fit,
     )
+
+    if file and file.filename and file.filename.lower().endswith('.gif'):
+        await file.seek(0)
+        gif_content = await file.read()
+        db_item.slide_duration_ms = detect_gif_duration(gif_content, file.filename)
+
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
@@ -143,7 +168,6 @@ async def update_carousel_item(
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    # "" means user cleared the image; non-empty string means keep/use that URL; new file overrides all
     final_image_url = (image_url if image_url else None) if image_url is not None else db_item.image_url
     if file and file.filename:
         content = await file.read()
@@ -154,6 +178,11 @@ async def update_carousel_item(
         db.commit()
         db.refresh(stored_image)
         final_image_url = f"/api/images/{stored_image.id}"
+        await file.seek(0)
+        gif_content = await file.read()
+        detected = detect_gif_duration(gif_content, file.filename)
+        if detected:
+            db_item.slide_duration_ms = detected
 
     final_mobile_image_url = (mobile_image_url if mobile_image_url else None) if mobile_image_url is not None else db_item.mobile_image_url
     if mobile_file and mobile_file.filename:

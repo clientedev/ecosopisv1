@@ -177,11 +177,15 @@ export default function Home() {
             ? slides.filter(s => s.mobile_image_url)
             : slides.filter(s => s.image_url);
         if (currentDeviceSlides.length <= 1) return;
-        const timer = setInterval(() => {
-            setCurrentSlide((prev) => (prev + 1) % currentDeviceSlides.length);
-        }, 8000);
-        return () => clearInterval(timer);
-    }, [isMobile, slides]);
+
+        const duration = currentDeviceSlides[currentSlide]?.slide_duration_ms ?? 8000;
+
+        const timer = setTimeout(() => {
+            setCurrentSlide(prev => (prev + 1) % currentDeviceSlides.length);
+        }, duration);
+
+        return () => clearTimeout(timer);
+    }, [isMobile, slides, currentSlide]);
 
     useEffect(() => {
         setCurrentSlide(0);
@@ -203,8 +207,21 @@ export default function Home() {
         fetchAll();
     }, []);
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
+    const [overlayVisible, setOverlayVisible] = useState(false);
+    // Reset overlay on slide change
+    useEffect(() => {
+        setOverlayVisible(false);
+        const timer = setTimeout(() => setOverlayVisible(true), 1500); // slight longer delay for image display
+        return () => clearTimeout(timer);
+    }, [currentSlide]);
+
+    // Temporarily hide overlay to view image only
+    const handleViewImage = () => {
+        setOverlayVisible(false);
+        // Show image-only for 3 seconds then bring back overlay
+        const restoreTimer = setTimeout(() => setOverlayVisible(true), 3000);
+        return () => clearTimeout(restoreTimer);
+    };
     const [displayedTip, setDisplayedTip] = useState("");
     const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -450,7 +467,34 @@ export default function Home() {
                                     }} />
                                 </>
                             )}
-                            <div className={`${styles.heroContent}`} style={{
+                            <div
+                        className={
+                            `${styles.heroContent} ` +
+                            (overlayVisible ? styles.heroContentVisible : styles.heroContentHidden)
+                        }
+                        style={{
+                            maxWidth: slide.content_max_width || '520px',
+                            padding: isMobile ? '24px 20px' : '40px',
+                            borderRadius: '24px',
+                            background: 'rgba(20, 20, 20, 0.45)',
+                            backdropFilter: 'blur(16px)',
+                            WebkitBackdropFilter: 'blur(16px)',
+                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            position: 'absolute',
+                            left: isMobile ? '50%' : `${coordinateMap[slide.alignment] + (parseInt(slide.offset_x) || 0)}%`,
+                            top: isMobile ? '50%' : `${coordinateMap[slide.vertical_alignment] + (parseInt(slide.offset_y) || 0)}%`,
+                            transform: 'translate(-50%, -50%)',
+                            textAlign: isMobile ? 'center' : (slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'right' : 'left') as any,
+                            pointerEvents: 'auto',
+                            width: isMobile ? '92%' : 'fit-content',
+                            zIndex: 2,
+                            opacity: overlayVisible ? 1 : 0,
+                            transition: 'opacity 0.8s ease',
+                        }}
+                    >
                                 maxWidth: slide.content_max_width || '520px',
                                 padding: isMobile ? '24px 20px' : '40px',
                                 borderRadius: '24px',
@@ -511,6 +555,14 @@ export default function Home() {
                                     justifyContent: isMobile ? 'center' : (slide.alignment === 'right' ? 'flex-end' : slide.alignment === 'center' ? 'center' : 'flex-start')
                                 }}>
                                     {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary" style={{ padding: '0.8rem 2rem' }}>{slide.ctaPrimary.text}</Link>}
+                                    {/* Button to view image without overlay */}
+                                    <button className="btn-outline" onClick={handleViewImage} style={{
+                                        color: 'white',
+                                        borderColor: 'white',
+                                        background: 'rgba(255,255,255,0.1)',
+                                        padding: '0.8rem 2rem',
+                                        marginLeft: '0.5rem'
+                                    }}>Ver Imagem</button>
                                     {slide.ctaSecondary && (
                                         <Link
                                             href={slide.ctaSecondary.link}

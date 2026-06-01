@@ -265,7 +265,7 @@ class CarouselItemBase(BaseModel):
     mobile_image_url: Optional[str] = None
     carousel_height: Optional[str] = "600px"
     mobile_carousel_height: Optional[str] = "400px"
-    image_fit: Optional[str] = "cover"
+    slide_duration_ms: Optional[int] = None  # Duration in ms (optional)
     is_active: bool = True
 
 class CarouselItemCreate(CarouselItemBase):
