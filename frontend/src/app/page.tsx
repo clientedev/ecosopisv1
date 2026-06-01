@@ -173,13 +173,15 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
+        const currentDeviceSlides = isMobile
+            ? slides.filter(s => s.mobile_image_url)
+            : slides.filter(s => s.image_url);
+        if (currentDeviceSlides.length <= 1) return;
         const timer = setInterval(() => {
-            if (deviceSlides.length > 0) {
-                setCurrentSlide((prev) => (prev + 1) % deviceSlides.length);
-            }
+            setCurrentSlide((prev) => (prev + 1) % currentDeviceSlides.length);
         }, 8000);
         return () => clearInterval(timer);
-    }, [deviceSlides.length]);
+    }, [isMobile, slides]);
 
     useEffect(() => {
         setCurrentSlide(0);
