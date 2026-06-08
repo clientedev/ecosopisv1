@@ -25,6 +25,8 @@ export default function HeartAnimation() {
 
         const spawnHearts = (e: MouseEvent) => {
             const target = e.target as HTMLElement;
+            if (!target || typeof target.closest !== "function") return;
+
             const isButton =
                 target.tagName === "BUTTON" ||
                 target.closest("button") !== null ||
