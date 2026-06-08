@@ -1774,6 +1774,11 @@
   box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
 }
 
+.rankBadgeStar {
+  background: linear-gradient(135deg, #4a7c59, #2d5a27);
+  box-shadow: 0 4px 15px rgba(74, 124, 89, 0.4);
+}
+
 .bestsellerWrapper:nth-child(1) .rankBadge {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
   box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);

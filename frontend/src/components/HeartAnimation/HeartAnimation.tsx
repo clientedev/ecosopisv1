@@ -36,7 +36,20 @@ export default function HeartAnimation() {
                     (target.classList.contains("btn-primary") ||
                         target.classList.contains("btn-outline")));
 
-            if (!isButton) return;
+            // Detect navigation, menu drawer, or header action clicks
+            const isMenuClick =
+                target.closest("header") !== null ||
+                target.closest("nav") !== null ||
+                target.closest("[class*='menu']") !== null ||
+                target.closest("[class*='Menu']") !== null ||
+                target.closest("[class*='nav']") !== null ||
+                target.closest("[class*='Nav']") !== null ||
+                target.closest("[class*='actionIcon']") !== null ||
+                target.closest("[class*='mobileBottomNav']") !== null;
+
+            const isLink = target.tagName === "A" || target.closest("a") !== null;
+
+            if (!isButton && !(isLink && isMenuClick)) return;
 
             const count = Math.floor(Math.random() * 4) + 4; // 4-7 hearts per click
 

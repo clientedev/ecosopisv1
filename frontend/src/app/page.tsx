@@ -515,7 +515,9 @@ export default function Home() {
                             <div
                         className={
                             `${styles.heroContent} ` +
-                            (overlayVisible ? styles.heroContentVisible : styles.heroContentHidden)
+                            (slide.show_content !== false
+                                ? (overlayVisible ? styles.heroContentVisible : styles.heroContentHidden)
+                                : '')
                         }
                         style={{
                             maxWidth: slide.content_max_width || '520px',
@@ -526,7 +528,7 @@ export default function Home() {
                             WebkitBackdropFilter: 'blur(16px)',
                             border: '1px solid rgba(255, 255, 255, 0.12)',
                             boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
-                            display: slide.show_content !== false ? 'flex' : 'none',
+                            display: 'flex',
                             flexDirection: 'column',
                             position: 'absolute',
                             left: isMobile ? '50%' : `${coordinateMap[slide.alignment] + (parseInt(slide.offset_x) || 0)}%`,
@@ -536,8 +538,8 @@ export default function Home() {
                             pointerEvents: 'auto',
                             width: isMobile ? '92%' : 'fit-content',
                             zIndex: 3,
-                            opacity: overlayVisible ? 1 : 0,
-                            transition: 'opacity 0.8s ease',
+                            opacity: slide.show_content !== false ? (overlayVisible ? 1 : 0) : 1,
+                            transition: slide.show_content !== false ? 'opacity 0.8s ease' : 'none',
                         }}
                     >
                                 {slide.badge && (
@@ -660,13 +662,17 @@ export default function Home() {
                             )}
                         </div>
                         <div className={styles.bestsellerWrapper}>
-                            <div className={`${styles.rankBadge} ${styles.rankBadgeHeart}`}>❤️ QUERIDINHO DAS CLIENTES</div>
+                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : styles.rankBadgeStar}`}>
+                                {isValentines ? '❤️' : '✨'} QUERIDINHO DAS CLIENTES
+                            </div>
                             {findProductBySlug('kit-clareamento') && (
                                 <ProductCard product={findProductBySlug('kit-clareamento')} showMarketplace={false} />
                             )}
                         </div>
                         <div className={styles.bestsellerWrapper}>
-                            <div className={`${styles.rankBadge} ${styles.rankBadgeHeart}`}>❤️ QUERIDINHO DAS CLIENTES</div>
+                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : styles.rankBadgeStar}`}>
+                                {isValentines ? '❤️' : '✨'} QUERIDINHO DAS CLIENTES
+                            </div>
                             {findProductBySlug('oleo-ricino') && (
                                 <ProductCard product={findProductBySlug('oleo-ricino')} showMarketplace={false} />
                             )}
