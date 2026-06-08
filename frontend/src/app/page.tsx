@@ -208,6 +208,8 @@ export default function Home() {
     }, []);
 
     const [overlayVisible, setOverlayVisible] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
     // Reset overlay on slide change
     useEffect(() => {
         setOverlayVisible(false);
@@ -495,25 +497,6 @@ export default function Home() {
                             transition: 'opacity 0.8s ease',
                         }}
                     >
-                                maxWidth: slide.content_max_width || '520px',
-                                padding: isMobile ? '24px 20px' : '40px',
-                                borderRadius: '24px',
-                                background: 'rgba(20, 20, 20, 0.45)',
-                                backdropFilter: 'blur(16px)',
-                                WebkitBackdropFilter: 'blur(16px)',
-                                border: '1px solid rgba(255, 255, 255, 0.12)',
-                                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                position: 'absolute',
-                                left: isMobile ? '50%' : `${coordinateMap[slide.alignment] + (parseInt(slide.offset_x) || 0)}%`,
-                                top: isMobile ? '50%' : `${coordinateMap[slide.vertical_alignment] + (parseInt(slide.offset_y) || 0)}%`,
-                                transform: 'translate(-50%, -50%)',
-                                textAlign: isMobile ? 'center' : (slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'right' : 'left') as any,
-                                pointerEvents: 'auto',
-                                width: isMobile ? '92%' : 'fit-content',
-                                zIndex: 2,
-                            }}>
                                 {slide.badge && (
                                     <span
                                         className="scientific-badge"
