@@ -48,6 +48,7 @@ async def create_carousel_item(
     carousel_height: str = Form("600px"),
     mobile_carousel_height: str = Form("400px"),
     image_fit: str = Form("cover"),
+    show_content: bool = Form(True),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -117,6 +118,7 @@ async def create_carousel_item(
         carousel_height=carousel_height,
         mobile_carousel_height=mobile_carousel_height,
         image_fit=image_fit,
+        show_content=show_content,
     )
 
     if file and file.filename and file.filename.lower().endswith('.gif'):
@@ -161,6 +163,7 @@ async def update_carousel_item(
     carousel_height: str = Form("600px"),
     mobile_carousel_height: str = Form("400px"),
     image_fit: str = Form("cover"),
+    show_content: bool = Form(True),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -222,6 +225,7 @@ async def update_carousel_item(
     db_item.carousel_height = carousel_height
     db_item.mobile_carousel_height = mobile_carousel_height
     db_item.image_fit = image_fit
+    db_item.show_content = show_content
 
     db.commit()
     db.refresh(db_item)

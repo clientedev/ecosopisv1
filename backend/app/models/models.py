@@ -190,6 +190,7 @@ class CarouselItem(Base):
     mobile_carousel_height = Column(String, default="400px")
     image_fit = Column(String, default="cover")
     slide_duration_ms = Column(Integer, nullable=True)  # Duration in ms (optional)
+    show_content = Column(Boolean, default=True)  # Whether to show text/button overlay
 
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

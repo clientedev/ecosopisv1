@@ -266,6 +266,7 @@ class CarouselItemBase(BaseModel):
     carousel_height: Optional[str] = "600px"
     mobile_carousel_height: Optional[str] = "400px"
     slide_duration_ms: Optional[int] = None  # Duration in ms (optional)
+    show_content: Optional[bool] = True  # Whether to show text/button overlay
     is_active: bool = True
 
 class CarouselItemCreate(CarouselItemBase):

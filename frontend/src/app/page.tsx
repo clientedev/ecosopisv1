@@ -162,7 +162,8 @@ export default function Home() {
                             mobile_carousel_height: item.mobile_carousel_height || "400px",
                             image_fit: item.image_fit || "cover",
                             ctaPrimary: item.cta_primary_text && item.cta_primary_text !== "-" ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
-                            ctaSecondary: item.cta_secondary_text && item.cta_secondary_text !== "-" ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null
+                            ctaSecondary: item.cta_secondary_text && item.cta_secondary_text !== "-" ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null,
+                            show_content: item.show_content !== false,
                             };
                           });
                         setSlides(dbSlides);
@@ -216,17 +217,23 @@ export default function Home() {
     // Reset overlay on slide change
     useEffect(() => {
         setOverlayVisible(false);
-        const timer = setTimeout(() => setOverlayVisible(true), 1500); // slight longer delay for image display
+        const timer = setTimeout(() => setOverlayVisible(true), 1500);
         return () => clearTimeout(timer);
     }, [currentSlide]);
 
-    // Temporarily hide overlay to view image only
-    const handleViewImage = () => {
-        setOverlayVisible(false);
-        // Show image-only for 3 seconds then bring back overlay
-        const restoreTimer = setTimeout(() => setOverlayVisible(true), 3000);
-        return () => clearTimeout(restoreTimer);
-    };
+    // Valentine's floating hearts
+    const [hearts, setHearts] = useState<{id: number; x: number; size: number; delay: number; duration: number}[]>([]);
+    useEffect(() => {
+        if (!isValentines) { setHearts([]); return; }
+        const generated = Array.from({ length: 16 }, (_, i) => ({
+            id: i,
+            x: Math.random() * 100,
+            size: 16 + Math.random() * 24,
+            delay: Math.random() * 4,
+            duration: 5 + Math.random() * 6,
+        }));
+        setHearts(generated);
+    }, [isValentines]);
     const [displayedTip, setDisplayedTip] = useState("");
     const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -414,6 +421,24 @@ export default function Home() {
 
             {/* Hero Carousel */}
             <section className={styles.heroCarousel}>
+                {/* Valentine's floating hearts */}
+                {isValentines && hearts.map(h => (
+                    <div
+                        key={h.id}
+                        aria-hidden="true"
+                        style={{
+                            position: 'fixed',
+                            left: `${h.x}vw`,
+                            bottom: '-60px',
+                            fontSize: `${h.size}px`,
+                            opacity: 0,
+                            pointerEvents: 'none',
+                            zIndex: 9999,
+                            animation: `floatHeart ${h.duration}s ${h.delay}s ease-in forwards`,
+                            userSelect: 'none',
+                        }}
+                    >❤️</div>
+                ))}
                 {deviceSlides.map((slide, index) => {
                     // Helper to convert hex to rgba for overlay
                     const hexToRgba = (hex: string, opacity: number) => {
@@ -501,7 +526,7 @@ export default function Home() {
                             WebkitBackdropFilter: 'blur(16px)',
                             border: '1px solid rgba(255, 255, 255, 0.12)',
                             boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
-                            display: 'flex',
+                            display: slide.show_content !== false ? 'flex' : 'none',
                             flexDirection: 'column',
                             position: 'absolute',
                             left: isMobile ? '50%' : `${coordinateMap[slide.alignment] + (parseInt(slide.offset_x) || 0)}%`,
@@ -556,14 +581,6 @@ export default function Home() {
                                     justifyContent: isMobile ? 'center' : (slide.alignment === 'right' ? 'flex-end' : slide.alignment === 'center' ? 'center' : 'flex-start')
                                 }}>
                                     {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary" style={{ padding: '0.8rem 2rem' }}>{slide.ctaPrimary.text}</Link>}
-                                    {/* Button to view image without overlay */}
-                                    <button className="btn-outline" onClick={handleViewImage} style={{
-                                        color: 'white',
-                                        borderColor: 'white',
-                                        background: 'rgba(255,255,255,0.1)',
-                                        padding: '0.8rem 2rem',
-                                        marginLeft: '0.5rem'
-                                    }}>Ver Imagem</button>
                                     {slide.ctaSecondary && (
                                         <Link
                                             href={slide.ctaSecondary.link}

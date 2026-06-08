@@ -253,6 +253,11 @@ export default function DynamicBranding() {
                 [data-valentines-overlay] {
                     display: none;
                 }
+                @keyframes floatHeart {
+                    0%   { transform: translateY(0) scale(1); opacity: 0.85; }
+                    50%  { transform: translateY(-45vh) scale(1.15) rotate(12deg); opacity: 0.6; }
+                    100% { transform: translateY(-100vh) scale(0.8) rotate(-8deg); opacity: 0; }
+                }
                 ${valentinesExtras}
             `
         }} />

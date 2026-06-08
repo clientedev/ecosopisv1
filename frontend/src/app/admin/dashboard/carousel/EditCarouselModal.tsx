@@ -39,6 +39,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         carousel_height: item?.carousel_height || "600px",
         mobile_carousel_height: item?.mobile_carousel_height || "400px",
         image_fit: item?.image_fit || "cover",
+        show_content: item?.show_content ?? true,
     });
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -298,6 +299,25 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                                 <label htmlFor="is_active_check" style={{ cursor: 'pointer', color: formData.is_active ? '#10b981' : '#ef4444', fontWeight: 600 }}>
                                                     {formData.is_active ? 'Ativo' : 'Inativo'}
                                                 </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* show_content toggle */}
+                                    <div style={{ padding: '14px', background: '#fdf4ff', border: '1px solid #e9d5ff', borderRadius: '10px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <input
+                                                type="checkbox"
+                                                id="show_content_check"
+                                                checked={formData.show_content}
+                                                onChange={e => setFormData({ ...formData, show_content: e.target.checked })}
+                                                style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#a855f7' }}
+                                            />
+                                            <div>
+                                                <label htmlFor="show_content_check" style={{ cursor: 'pointer', fontWeight: 700, color: '#7c3aed', display: 'block' }}>
+                                                    ✨ Mostrar conteúdo gradual
+                                                </label>
+                                                <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>Quando ativo, exibe título, descrição e botões com animação de entrada. Desative para banners de imagem pura.</span>
                                             </div>
                                         </div>
                                     </div>
