@@ -157,10 +157,10 @@ def _apply_startup_migrations():
                         res = conn.execute(text(f"PRAGMA table_info({table})")).fetchall()
                         cols_in_db = [r[1] for r in res]
                         if col not in cols_in_db:
-                            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {defn}"))
+                            conn.execute(text(f'ALTER TABLE {table} ADD COLUMN "{col}" {defn}'))
                             conn.commit()
                     else:
-                        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {defn}"))
+                        conn.execute(text(f'ALTER TABLE {table} ADD COLUMN IF NOT EXISTS "{col}" {defn}'))
                         conn.commit()
                 except Exception as e:
                     logger.warning(f"Migration: Could not ensure {table}.{col}: {e}")
