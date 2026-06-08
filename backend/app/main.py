@@ -86,7 +86,17 @@ def _apply_startup_migrations():
         ("offset_y",           "VARCHAR DEFAULT '0px'"),
         ("title_color",        "VARCHAR DEFAULT '#ffffff'"),
         ("description_color",  "VARCHAR DEFAULT '#ffffff'"),
-        ("order",              "INTEGER DEFAULT 0")
+        ("order",              "INTEGER DEFAULT 0"),
+        ("mobile_image_url",   "VARCHAR"),
+        ("carousel_height",    "VARCHAR DEFAULT '600px'"),
+        ("mobile_carousel_height", "VARCHAR DEFAULT '400px'"),
+        ("image_fit",          "VARCHAR DEFAULT 'cover'"),
+        ("slide_duration_ms",  "INTEGER"),
+        ("is_active",          "BOOLEAN DEFAULT TRUE"),
+        ("badge_color",        "VARCHAR DEFAULT '#ffffff'"),
+        ("badge_bg_color",     "VARCHAR DEFAULT '#4a7c59'"),
+        ("overlay_color",      "VARCHAR DEFAULT '#000000'"),
+        ("overlay_opacity",    "DOUBLE PRECISION DEFAULT 0.3")
     ]
     ANNOUNCE_COLS = [
         ("text",         "VARCHAR"),
@@ -132,8 +142,15 @@ def _apply_startup_migrations():
 
             for col, defn in cols:
                 try:
-                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {defn}"))
-                    conn.commit()
+                    if "sqlite" in str(conn.engine.url):
+                        res = conn.execute(text(f"PRAGMA table_info({table})")).fetchall()
+                        cols_in_db = [r[1] for r in res]
+                        if col not in cols_in_db:
+                            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {defn}"))
+                            conn.commit()
+                    else:
+                        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {defn}"))
+                        conn.commit()
                 except Exception as e:
                     logger.warning(f"Migration: Could not ensure {table}.{col}: {e}")
                     conn.rollback()

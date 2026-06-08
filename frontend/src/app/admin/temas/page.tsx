@@ -65,7 +65,7 @@ export default function AdminTemas() {
         setSaving(true);
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("/api/settings/", {
+            const res = await fetch("/api/settings", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

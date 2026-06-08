@@ -7,12 +7,12 @@ from app.core import emails
 
 router = APIRouter()
 
-@router.get("/")
+@router.get("")
 def get_settings(db: Session = Depends(get_db)):
     settings = db.query(SystemSetting).all()
     return {s.key: s.value for s in settings}
 
-@router.post("/")
+@router.post("")
 def update_setting(data: dict, db: Session = Depends(get_db), current_user = Depends(get_current_admin_user)):
     for key, value in data.items():
         setting = db.query(SystemSetting).filter(SystemSetting.key == key).first()
