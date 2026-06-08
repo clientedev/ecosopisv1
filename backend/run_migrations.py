@@ -73,45 +73,45 @@ MISSING_PRODUCT_DETAILS_COLUMNS = [
 
 def add_missing_columns():
     """Safely add any columns that don't exist yet in the live database."""
+    # Detect engine dialect once
     with engine.connect() as conn:
         is_sqlite = conn.dialect.name == "sqlite"
 
-        def add_col(table, col_name, col_def):
-            try:
+    def add_col(table, col_name, col_def):
+        # Open an independent connection and transaction for each column to isolate failures
+        try:
+            with engine.begin() as conn:
                 if is_sqlite:
                     # SQLite does not support IF NOT EXISTS in ALTER TABLE
                     sql = f'ALTER TABLE {table} ADD COLUMN "{col_name}" {col_def}'
                 else:
                     sql = f'ALTER TABLE {table} ADD COLUMN IF NOT EXISTS "{col_name}" {col_def}'
                 conn.execute(text(sql))
-                conn.commit()
-                logger.info(f"✓ Column {table}.{col_name} ensured.")
-            except Exception as e:
-                err_str = str(e).lower()
-                if "already exists" in err_str or "duplicate column" in err_str or "duplicate column name" in err_str:
-                    logger.info(f"✓ Column {table}.{col_name} already exists.")
-                else:
-                    logger.warning(f"Could not add column {table}.{col_name}: {e}")
-                    try: conn.rollback()
-                    except Exception: pass
+            logger.info(f"✓ Column {table}.{col_name} ensured.")
+        except Exception as e:
+            err_str = str(e).lower()
+            if "already exists" in err_str or "duplicate column" in err_str or "duplicate column name" in err_str:
+                logger.info(f"✓ Column {table}.{col_name} already exists.")
+            else:
+                logger.warning(f"Could not add column {table}.{col_name}: {e}")
 
-        for col_name, col_def in MISSING_CAROUSEL_COLUMNS:
-            add_col("carousel_items", col_name, col_def)
+    for col_name, col_def in MISSING_CAROUSEL_COLUMNS:
+        add_col("carousel_items", col_name, col_def)
 
-        for col_name, col_def in MISSING_ANNOUNCEMENT_COLUMNS:
-            add_col("announcement_bar", col_name, col_def)
+    for col_name, col_def in MISSING_ANNOUNCEMENT_COLUMNS:
+        add_col("announcement_bar", col_name, col_def)
 
-        for col_name, col_def in MISSING_USERS_COLUMNS:
-            add_col("users", col_name, col_def)
+    for col_name, col_def in MISSING_USERS_COLUMNS:
+        add_col("users", col_name, col_def)
 
-        for col_name, col_def in MISSING_PRODUCTS_COLUMNS:
-            add_col("products", col_name, col_def)
+    for col_name, col_def in MISSING_PRODUCTS_COLUMNS:
+        add_col("products", col_name, col_def)
 
-        for col_name, col_def in MISSING_ORDERS_COLUMNS:
-            add_col("orders", col_name, col_def)
+    for col_name, col_def in MISSING_ORDERS_COLUMNS:
+        add_col("orders", col_name, col_def)
 
-        for col_name, col_def in MISSING_PRODUCT_DETAILS_COLUMNS:
-            add_col("product_details", col_name, col_def)
+    for col_name, col_def in MISSING_PRODUCT_DETAILS_COLUMNS:
+        add_col("product_details", col_name, col_def)
 
 def run_migrations():
     success = True
