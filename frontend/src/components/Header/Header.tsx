@@ -6,11 +6,14 @@ import { useEffect, useState } from "react";
 import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart, Package, Newspaper, Zap, Info, Sparkles, Truck, Search } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function Header() {
     const { cartCount, cartTotal } = useCart();
     const { user, logout } = useAuth();
+    const { activeTheme } = useTheme();
     const isAdmin = user?.role === 'admin';
+    const isValentines = activeTheme === 'valentines_day';
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [announcement, setAnnouncement] = useState<{
@@ -103,9 +106,10 @@ export default function Header() {
             {announcement && announcement.is_active && (
                 <div
                     className={styles.announcementBar}
+                    data-valentines-announcement={isValentines ? "true" : undefined}
                     style={{
-                        backgroundColor: announcement.bg_color,
-                        color: announcement.text_color,
+                        backgroundColor: isValentines ? '#e63f6f' : announcement.bg_color,
+                        color: isValentines ? '#ffffff' : announcement.text_color,
                     }}
                 >
                     {announcement.is_scrolling ? (
@@ -401,22 +405,24 @@ export default function Header() {
 
             {/* Global Cart Status Bar */}
             {cartCount > 0 && (
-                <div style={{
-                    backgroundColor: '#f0fdf4',
-                    borderTop: '1px solid #dcfce7',
-                    borderBottom: '1px solid #dcfce7',
-                    padding: '8px 15px',
-                    fontSize: '0.8rem',
-                    color: '#166534',
-                    textAlign: 'center',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    flexWrap: 'wrap',
-                    fontWeight: 500,
-                    width: '100%',
-                    boxSizing: 'border-box'
-                }}>
+                <div
+                    data-cart-status-bar="true"
+                    style={{
+                        backgroundColor: isValentines ? '#fff0f3' : '#f0fdf4',
+                        borderTop: isValentines ? '1px solid #f9c0d0' : '1px solid #dcfce7',
+                        borderBottom: isValentines ? '1px solid #f9c0d0' : '1px solid #dcfce7',
+                        padding: '8px 15px',
+                        fontSize: '0.8rem',
+                        color: isValentines ? '#9e1f3e' : '#166534',
+                        textAlign: 'center',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        flexWrap: 'wrap',
+                        fontWeight: 500,
+                        width: '100%',
+                        boxSizing: 'border-box'
+                    }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Truck size={14} /> 
                         {(() => {

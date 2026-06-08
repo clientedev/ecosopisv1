@@ -28,9 +28,12 @@ import {
     Users
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function Home() {
     const { addToCart } = useCart();
+    const { activeTheme } = useTheme();
+    const isValentines = activeTheme === 'valentines_day';
     const [recentProducts, setRecentProducts] = useState<any[]>([]);
     const [allProducts, setAllProducts] = useState<any[]>([]);
     const [activeGoal, setActiveGoal] = useState<string | null>(null);
@@ -461,12 +464,27 @@ export default function Home() {
                                         sizes="100vw"
                                         unoptimized={activeImageUrl.startsWith('/api/')}
                                     />
+                                    {/* Normal overlay */}
                                     <div style={{
                                         position: 'absolute',
                                         inset: 0,
                                         background: overlay,
                                         zIndex: 1
                                     }} />
+                                    {/* Valentine's Day pink film */}
+                                    {isValentines && (
+                                        <div
+                                            data-valentines-overlay="true"
+                                            style={{
+                                                position: 'absolute',
+                                                inset: 0,
+                                                background: 'rgba(230, 63, 111, 0.28)',
+                                                zIndex: 2,
+                                                pointerEvents: 'none',
+                                                mixBlendMode: 'multiply',
+                                            }}
+                                        />
+                                    )}
                                 </>
                             )}
                             <div
@@ -492,7 +510,7 @@ export default function Home() {
                             textAlign: isMobile ? 'center' : (slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'right' : 'left') as any,
                             pointerEvents: 'auto',
                             width: isMobile ? '92%' : 'fit-content',
-                            zIndex: 2,
+                            zIndex: 3,
                             opacity: overlayVisible ? 1 : 0,
                             transition: 'opacity 0.8s ease',
                         }}

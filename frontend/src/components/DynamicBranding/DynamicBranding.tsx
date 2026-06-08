@@ -73,11 +73,24 @@ export default function DynamicBranding() {
         fetchSettings();
     }, [activeTheme]);
 
+    // Set data-theme attribute on <html> element for global CSS targeting
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', themeId);
+        return () => {
+            document.documentElement.removeAttribute('data-theme');
+        };
+    }, [themeId]);
+
     const valentinesExtras = themeId === "valentines_day" ? `
-        /* Valentine's Day extra accents */
+        /* ============================================
+           VALENTINES DAY THEME - COMPREHENSIVE OVERRIDES
+           ============================================ */
+
+        /* --- Buttons --- */
         .btn-primary {
             background: linear-gradient(135deg, #e63f6f 0%, #c0294f 100%) !important;
             box-shadow: 0 4px 15px rgba(230, 63, 111, 0.35) !important;
+            border-color: #e63f6f !important;
         }
         .btn-primary:hover {
             background: linear-gradient(135deg, #c0294f 0%, #9e1f3e 100%) !important;
@@ -91,8 +104,126 @@ export default function DynamicBranding() {
         .btn-outline:hover {
             background-color: rgba(230, 63, 111, 0.08) !important;
         }
+
+        /* --- Logo: shift green hue to pink/rose --- */
+        html[data-theme="valentines_day"] img[alt="ECOSOPIS Logo"] {
+            filter: hue-rotate(249deg) saturate(1.6) brightness(1.1) !important;
+            transition: filter 0.4s ease;
+        }
+
+        /* --- Announcement Bar --- */
+        html[data-theme="valentines_day"] [data-valentines-announcement] {
+            background-color: #e63f6f !important;
+        }
+
+        /* --- Cart badge --- */
+        html[data-theme="valentines_day"] [class*="cartBadge"] {
+            background: #e63f6f !important;
+        }
+
+        /* --- Cart status bar (shipping threshold bar) --- */
+        html[data-theme="valentines_day"] [data-cart-status-bar] {
+            background-color: #fff0f3 !important;
+            border-color: #f9c0d0 !important;
+            color: #9e1f3e !important;
+        }
+
+        /* --- Highlight nav link (QUERO REVENDER) --- */
+        html[data-theme="valentines_day"] [class*="highlightNavLink"] {
+            color: #e63f6f !important;
+            border-color: #e63f6f !important;
+        }
+        html[data-theme="valentines_day"] [class*="highlightNavLink"]:hover {
+            background: rgba(230, 63, 111, 0.1) !important;
+        }
+
+        /* --- LIA AI nav link --- */
+        html[data-theme="valentines_day"] [class*="liaLink"] {
+            color: #e63f6f !important;
+        }
+
+        /* --- Links on hover --- */
         a:hover {
             color: #e63f6f;
+        }
+
+        /* --- Section badges / pills --- */
+        html[data-theme="valentines_day"] [class*="sectionBadge"],
+        html[data-theme="valentines_day"] [class*="scientificBadge"],
+        html[data-theme="valentines_day"] .scientific-badge {
+            background: rgba(230, 63, 111, 0.15) !important;
+            color: #c0294f !important;
+            border-color: rgba(230, 63, 111, 0.3) !important;
+        }
+
+        /* --- Stat cards icons --- */
+        html[data-theme="valentines_day"] [class*="statIcon"] {
+            color: #e63f6f !important;
+        }
+        html[data-theme="valentines_day"] [class*="statCard"] h3 {
+            color: #e63f6f !important;
+        }
+
+        /* --- History section highlight --- */
+        html[data-theme="valentines_day"] [class*="historyHighlight"] {
+            color: #e63f6f !important;
+        }
+
+        /* --- Rank badges --- */
+        html[data-theme="valentines_day"] [class*="rankBadgeTop1"] {
+            background: linear-gradient(135deg, #e63f6f, #c0294f) !important;
+        }
+        html[data-theme="valentines_day"] [class*="rankBadgeHeart"] {
+            background: linear-gradient(135deg, #c0294f, #9e1f3e) !important;
+        }
+
+        /* --- Reviews stars / tags --- */
+        html[data-theme="valentines_day"] [class*="reviewStars"] {
+            color: #e63f6f !important;
+        }
+
+        /* --- Diagnostic / Goal cards --- */
+        html[data-theme="valentines_day"] [class*="diagnosticCard"]:hover {
+            border-color: #e63f6f !important;
+            box-shadow: 0 8px 30px rgba(230,63,111,0.2) !important;
+        }
+        html[data-theme="valentines_day"] [class*="diagnosticIcon"] {
+            color: #e63f6f !important;
+        }
+        html[data-theme="valentines_day"] [class*="diagnosticAction"] {
+            color: #e63f6f !important;
+        }
+
+        /* --- Carousel pink film overlay --- */
+        html[data-theme="valentines_day"] [data-valentines-overlay] {
+            display: block !important;
+        }
+
+        /* --- Avatar / user menu --- */
+        html[data-theme="valentines_day"] [class*="avatar"] {
+            background: linear-gradient(135deg, #e63f6f, #c0294f) !important;
+        }
+
+        /* --- Search tags / suggestion pills --- */
+        html[data-theme="valentines_day"] [class*="desktopSuggestionTag"]:hover {
+            background: rgba(230, 63, 111, 0.12) !important;
+            border-color: #e63f6f !important;
+            color: #e63f6f !important;
+        }
+
+        /* --- Mobile nav active/hover --- */
+        html[data-theme="valentines_day"] [class*="mobileNavItem"]:hover {
+            color: #e63f6f !important;
+        }
+        html[data-theme="valentines_day"] [class*="mobileLiaItem"] {
+            color: #e63f6f !important;
+        }
+
+        /* --- Global green text fallback --- */
+        html[data-theme="valentines_day"] [style*="color: #2d5a27"],
+        html[data-theme="valentines_day"] [style*="color: #4B8411"],
+        html[data-theme="valentines_day"] [style*="color: #166534"] {
+            color: #c0294f !important;
         }
     ` : '';
 
@@ -118,6 +249,9 @@ export default function DynamicBranding() {
                 }
                 * {
                     box-sizing: border-box !important;
+                }
+                [data-valentines-overlay] {
+                    display: none;
                 }
                 ${valentinesExtras}
             `
