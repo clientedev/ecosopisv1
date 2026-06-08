@@ -315,9 +315,9 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                             />
                                             <div>
                                                 <label htmlFor="show_content_check" style={{ cursor: 'pointer', fontWeight: 700, color: '#7c3aed', display: 'block' }}>
-                                                    ✨ Mostrar conteúdo gradual
+                                                    ✨ Animação de entrada do conteúdo
                                                 </label>
-                                                <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>Quando ativo, exibe título, descrição e botões com animação de entrada. Desative para banners de imagem pura.</span>
+                                                <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>Quando ativo, o título, descrição e botões aparecem com animação gradual. Desative para exibição imediata sem animação.</span>
                                             </div>
                                         </div>
                                     </div>

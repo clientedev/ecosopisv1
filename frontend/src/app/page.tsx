@@ -512,94 +512,96 @@ export default function Home() {
                                     )}
                                 </>
                             )}
-                            <div
-                        className={
-                            `${styles.heroContent} ` +
-                            (slide.show_content !== false
-                                ? (overlayVisible ? styles.heroContentVisible : styles.heroContentHidden)
-                                : '')
-                        }
-                        style={{
-                            maxWidth: slide.content_max_width || '520px',
-                            padding: isMobile ? '24px 20px' : '40px',
-                            borderRadius: '24px',
-                            background: 'rgba(20, 20, 20, 0.45)',
-                            backdropFilter: 'blur(16px)',
-                            WebkitBackdropFilter: 'blur(16px)',
-                            border: '1px solid rgba(255, 255, 255, 0.12)',
-                            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            position: 'absolute',
-                            left: isMobile ? '50%' : `${coordinateMap[slide.alignment] + (parseInt(slide.offset_x) || 0)}%`,
-                            top: isMobile ? '50%' : `${coordinateMap[slide.vertical_alignment] + (parseInt(slide.offset_y) || 0)}%`,
-                            transform: 'translate(-50%, -50%)',
-                            textAlign: isMobile ? 'center' : (slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'right' : 'left') as any,
-                            pointerEvents: 'auto',
-                            width: isMobile ? '92%' : 'fit-content',
-                            zIndex: 3,
-                            opacity: slide.show_content !== false ? (overlayVisible ? 1 : 0) : 1,
-                            transition: slide.show_content !== false ? 'opacity 0.8s ease' : 'none',
-                        }}
-                    >
-                                {slide.badge && (
-                                    <span
-                                        className="scientific-badge"
-                                        style={{
-                                            backgroundColor: slide.badge_bg_color || '#4a7c59',
-                                            color: slide.badge_color || '#ffffff',
-                                            marginBottom: '1rem',
-                                            display: 'inline-block',
-                                            alignSelf: isMobile ? 'center' : (slide.alignment === 'right' ? 'flex-end' : slide.alignment === 'center' ? 'center' : 'flex-start')
-                                        }}
-                                    >
-                                        {slide.badge}
-                                    </span>
-                                )}
-                                {slide.title && (
-                                    <h1 style={{
-                                        color: slide.title_color || '#ffffff',
-                                        fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-                                        lineHeight: 1.1,
-                                        fontWeight: 800,
-                                        marginBottom: '1rem',
-                                        textShadow: slide.glassmorphism ? 'none' : '0 2px 10px rgba(0,0,0,0.2)'
-                                    }}>
-                                        {slide.title}
-                                    </h1>
-                                )}
-                                {slide.description && (
-                                    <p style={{
-                                        color: slide.description_color || '#ffffff',
-                                        fontSize: '1.1rem',
-                                        opacity: 0.9,
-                                        marginBottom: '2rem',
-                                        maxWidth: '100%'
-                                    }}>
-                                        {slide.description}
-                                    </p>
-                                )}
-                                <div className={styles.heroActions} style={{
-                                    justifyContent: isMobile ? 'center' : (slide.alignment === 'right' ? 'flex-end' : slide.alignment === 'center' ? 'center' : 'flex-start')
-                                }}>
-                                    {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary" style={{ padding: '0.8rem 2rem' }}>{slide.ctaPrimary.text}</Link>}
-                                    {slide.ctaSecondary && (
-                                        <Link
-                                            href={slide.ctaSecondary.link}
-                                            className="btn-outline"
+                            {/* Only render content box if there's something to show */}
+                            {(slide.badge || slide.title || slide.description || slide.ctaPrimary || slide.ctaSecondary) && (
+                                <div
+                                    className={
+                                        `${styles.heroContent} ` +
+                                        (slide.show_content !== false
+                                            ? (overlayVisible ? styles.heroContentVisible : styles.heroContentHidden)
+                                            : '')
+                                    }
+                                    style={{
+                                        maxWidth: slide.content_max_width || '520px',
+                                        padding: isMobile ? '24px 20px' : '40px',
+                                        borderRadius: '24px',
+                                        background: 'rgba(20, 20, 20, 0.45)',
+                                        backdropFilter: 'blur(16px)',
+                                        WebkitBackdropFilter: 'blur(16px)',
+                                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                                        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        position: 'absolute',
+                                        left: isMobile ? '50%' : `${coordinateMap[slide.alignment] + (parseInt(slide.offset_x) || 0)}%`,
+                                        top: isMobile ? '50%' : `${coordinateMap[slide.vertical_alignment] + (parseInt(slide.offset_y) || 0)}%`,
+                                        transform: 'translate(-50%, -50%)',
+                                        textAlign: isMobile ? 'center' : (slide.alignment === 'center' ? 'center' : slide.alignment === 'right' ? 'right' : 'left') as any,
+                                        pointerEvents: 'auto',
+                                        width: isMobile ? '92%' : 'fit-content',
+                                        zIndex: 3,
+                                        opacity: slide.show_content !== false ? (overlayVisible ? 1 : 0) : 1,
+                                        transition: slide.show_content !== false ? 'opacity 0.8s ease' : 'none',
+                                    }}
+                                >
+                                    {slide.badge && (
+                                        <span
+                                            className="scientific-badge"
                                             style={{
-                                                color: 'white',
-                                                borderColor: 'white',
-                                                background: 'rgba(255,255,255,0.1)',
-                                                padding: '0.8rem 2rem'
+                                                backgroundColor: slide.badge_bg_color || '#4a7c59',
+                                                color: slide.badge_color || '#ffffff',
+                                                marginBottom: '1rem',
+                                                display: 'inline-block',
+                                                alignSelf: isMobile ? 'center' : (slide.alignment === 'right' ? 'flex-end' : slide.alignment === 'center' ? 'center' : 'flex-start')
                                             }}
                                         >
-                                            {slide.ctaSecondary.text}
-                                        </Link>
+                                            {slide.badge}
+                                        </span>
                                     )}
+                                    {slide.title && (
+                                        <h1 style={{
+                                            color: slide.title_color || '#ffffff',
+                                            fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                                            lineHeight: 1.1,
+                                            fontWeight: 800,
+                                            marginBottom: '1rem',
+                                            textShadow: slide.glassmorphism ? 'none' : '0 2px 10px rgba(0,0,0,0.2)'
+                                        }}>
+                                            {slide.title}
+                                        </h1>
+                                    )}
+                                    {slide.description && (
+                                        <p style={{
+                                            color: slide.description_color || '#ffffff',
+                                            fontSize: '1.1rem',
+                                            opacity: 0.9,
+                                            marginBottom: '2rem',
+                                            maxWidth: '100%'
+                                        }}>
+                                            {slide.description}
+                                        </p>
+                                    )}
+                                    <div className={styles.heroActions} style={{
+                                        justifyContent: isMobile ? 'center' : (slide.alignment === 'right' ? 'flex-end' : slide.alignment === 'center' ? 'center' : 'flex-start')
+                                    }}>
+                                        {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary" style={{ padding: '0.8rem 2rem' }}>{slide.ctaPrimary.text}</Link>}
+                                        {slide.ctaSecondary && (
+                                            <Link
+                                                href={slide.ctaSecondary.link}
+                                                className="btn-outline"
+                                                style={{
+                                                    color: 'white',
+                                                    borderColor: 'white',
+                                                    background: 'rgba(255,255,255,0.1)',
+                                                    padding: '0.8rem 2rem'
+                                                }}
+                                            >
+                                                {slide.ctaSecondary.text}
+                                            </Link>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+                            )}
                     );
                 })}
                 <div className={styles.carouselDots}>
