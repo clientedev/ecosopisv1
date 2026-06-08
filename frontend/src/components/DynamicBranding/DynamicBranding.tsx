@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { useTheme } from '@/context/ThemeContext';
 
 const THEMES: Record<string, Record<string, string>> = {
     default: {
@@ -21,10 +22,20 @@ const THEMES: Record<string, Record<string, string>> = {
 };
 
 export default function DynamicBranding() {
+    const { activeTheme } = useTheme();
     const [colors, setColors] = useState<Record<string, string>>(THEMES.default);
     const [themeId, setThemeId] = useState<string>("default");
 
     useEffect(() => {
+        // Apply theme immediately if available for instant UI response
+        if (activeTheme && THEMES[activeTheme]) {
+            setColors(THEMES[activeTheme]);
+            setThemeId(activeTheme);
+        } else {
+            setColors(THEMES.default);
+            setThemeId("default");
+        }
+
         const fetchSettings = async () => {
             try {
                 const res = await fetch('/api/settings');
@@ -32,25 +43,27 @@ export default function DynamicBranding() {
                     const data = await res.json();
 
                     // Detect active seasonal theme
-                    const activeTheme = data.active_theme && data.active_theme !== "default"
+                    const activeThemeFromDb = data.active_theme && data.active_theme !== "default"
                         ? data.active_theme
                         : null;
 
-                    if (activeTheme && THEMES[activeTheme]) {
-                        // Use theme palette (can still be overridden by custom colors below)
-                        setColors(THEMES[activeTheme]);
-                        setThemeId(activeTheme);
-                    } else {
-                        // Use custom colors saved individually, fallback to defaults
-                        const baseColors = { ...THEMES.default };
-                        if (data.primary_color) baseColors.primary_color = data.primary_color;
-                        if (data.primary_color_dark) baseColors.primary_color_dark = data.primary_color_dark;
-                        if (data.secondary_color) baseColors.secondary_color = data.secondary_color;
-                        if (data.text_primary) baseColors.text_primary = data.text_primary;
-                        if (data.text_secondary) baseColors.text_secondary = data.text_secondary;
-                        if (data.bg_color) baseColors.bg_color = data.bg_color;
-                        setColors(baseColors);
-                        setThemeId("default");
+                    // Only update if the db theme matches activeTheme to prevent race conditions
+                    if ((activeThemeFromDb || "default") === activeTheme) {
+                        if (activeThemeFromDb && THEMES[activeThemeFromDb]) {
+                            setColors(THEMES[activeThemeFromDb]);
+                            setThemeId(activeThemeFromDb);
+                        } else {
+                            // Use custom colors saved individually, fallback to defaults
+                            const baseColors = { ...THEMES.default };
+                            if (data.primary_color) baseColors.primary_color = data.primary_color;
+                            if (data.primary_color_dark) baseColors.primary_color_dark = data.primary_color_dark;
+                            if (data.secondary_color) baseColors.secondary_color = data.secondary_color;
+                            if (data.text_primary) baseColors.text_primary = data.text_primary;
+                            if (data.text_secondary) baseColors.text_secondary = data.text_secondary;
+                            if (data.bg_color) baseColors.bg_color = data.bg_color;
+                            setColors(baseColors);
+                            setThemeId("default");
+                        }
                     }
                 }
             } catch (err) {
@@ -58,7 +71,7 @@ export default function DynamicBranding() {
             }
         };
         fetchSettings();
-    }, []);
+    }, [activeTheme]);
 
     const valentinesExtras = themeId === "valentines_day" ? `
         /* Valentine's Day extra accents */
@@ -87,12 +100,12 @@ export default function DynamicBranding() {
         <style dangerouslySetInnerHTML={{
             __html: `
                 :root {
-                    --primary-green: ${colors.primary_color} !important;
-                    --primary-green-dark: ${colors.primary_color_dark} !important;
-                    --secondary-white: ${colors.secondary_color} !important;
-                    --text-primary: ${colors.text_primary} !important;
-                    --text-secondary: ${colors.text_secondary} !important;
-                    --site-bg: ${colors.bg_color} !important;
+                    --primary-green: ${colors.primary_color};
+                    --primary-green-dark: ${colors.primary_color_dark};
+                    --secondary-white: ${colors.secondary_color};
+                    --text-primary: ${colors.text_primary};
+                    --text-secondary: ${colors.text_secondary};
+                    --site-bg: ${colors.bg_color};
                     --theme-id: "${themeId}";
                 }
                 body {

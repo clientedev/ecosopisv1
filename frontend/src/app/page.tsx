@@ -112,7 +112,7 @@ export default function Home() {
     const [currentSlide, setCurrentSlide] = useState(0);
 
     const deviceSlides = isMobile
-        ? slides.filter(s => s.mobile_image_url)
+        ? slides.filter(s => s.mobile_image_url || s.image_url)
         : slides.filter(s => s.image_url);
 
     const getImageUrl = (url: string) => {
@@ -174,7 +174,7 @@ export default function Home() {
 
     useEffect(() => {
         const currentDeviceSlides = isMobile
-            ? slides.filter(s => s.mobile_image_url)
+            ? slides.filter(s => s.mobile_image_url || s.image_url)
             : slides.filter(s => s.image_url);
         if (currentDeviceSlides.length <= 1) return;
 
@@ -433,7 +433,7 @@ export default function Home() {
                     };
 
                     const activeImageUrl = isMobile
-                        ? (slide.mobile_image_url || "")
+                        ? (slide.mobile_image_url || slide.image_url || "")
                         : (slide.image_url || "");
                     const activeHeight = isMobile ? (slide.mobile_carousel_height || '400px') : (slide.carousel_height || '700px');
 

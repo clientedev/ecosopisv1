@@ -12,7 +12,7 @@ export default function AdminSettings() {
         const fetchSettings = async () => {
             try {
                 const apiUrl = "/api";
-                const res = await fetch(`${apiUrl}/settings/`);
+                const res = await fetch(`${apiUrl}/settings`);
                 if (res.ok) {
                     const data = await res.json();
                     setSettings((prev: any) => ({ ...prev, ...data }));
@@ -31,7 +31,7 @@ export default function AdminSettings() {
         try {
             const token = localStorage.getItem("token");
             const apiUrl = "/api";
-            const res = await fetch(`${apiUrl}/settings/`, {
+            const res = await fetch(`${apiUrl}/settings`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
