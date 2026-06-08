@@ -42,7 +42,8 @@ def _apply_startup_migrations():
         ("pode_girar_roleta",  "BOOLEAN DEFAULT FALSE"),
         ("tentativas_roleta",  "INTEGER DEFAULT 0"),
         ("ultimo_premio_id",   "INTEGER"),
-        ("profile_picture",    "VARCHAR")
+        ("profile_picture",    "VARCHAR"),
+        ("phone",              "VARCHAR")
     ]
     ORDER_COLS = [
         ("mercadopago_preference_id", "VARCHAR"),
@@ -55,7 +56,10 @@ def _apply_startup_migrations():
         ("codigo_rastreio",          "VARCHAR"),
         ("etiqueta_url",             "VARCHAR"),
         ("shipment_id",              "VARCHAR"),
-        ("customer_cpf",             "VARCHAR")
+        ("customer_cpf",             "VARCHAR"),
+        ("buyer_name",               "VARCHAR"),
+        ("buyer_email",              "VARCHAR"),
+        ("correios_label_url",       "VARCHAR")
     ]
     
     ADDRESS_COLS = [
@@ -96,7 +100,8 @@ def _apply_startup_migrations():
         ("badge_color",        "VARCHAR DEFAULT '#ffffff'"),
         ("badge_bg_color",     "VARCHAR DEFAULT '#4a7c59'"),
         ("overlay_color",      "VARCHAR DEFAULT '#000000'"),
-        ("overlay_opacity",    "DOUBLE PRECISION DEFAULT 0.3")
+        ("overlay_opacity",    "DOUBLE PRECISION DEFAULT 0.3"),
+        ("show_content",      "BOOLEAN DEFAULT TRUE")
     ]
     ANNOUNCE_COLS = [
         ("text",         "VARCHAR"),
@@ -115,7 +120,13 @@ def _apply_startup_migrations():
         ("category",     "VARCHAR")
     ]
     PRODUCT_COLS = [
-        ("category",     "VARCHAR")
+        ("category",          "VARCHAR"),
+        ("buy_on_site",       "BOOLEAN DEFAULT TRUE"),
+        ("is_wholesale",      "BOOLEAN DEFAULT FALSE"),
+        ("mercadolivre_url",  "VARCHAR"),
+        ("shopee_url",        "VARCHAR"),
+        ("is_active",         "BOOLEAN DEFAULT TRUE"),
+        ("order",             "INTEGER DEFAULT 0")
     ]
     PRODUCT_DETAILS_COLS = [
         ("beneficios", "TEXT"),
