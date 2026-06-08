@@ -120,10 +120,12 @@ export default function AdminDashboard() {
         }
     };
 
-    const filteredProducts = products.filter((p: any) =>
-        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.slug && p.slug.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredProducts = products
+        .filter((p: any) =>
+            p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (p.slug && p.slug.toLowerCase().includes(searchTerm.toLowerCase()))
+        )
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     return (
         <AdminLayout>
@@ -170,6 +172,7 @@ export default function AdminDashboard() {
                                 <th>Nome</th>
                                 <th>Preço</th>
                                 <th>Estoque</th>
+                                <th>Ordem</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
@@ -199,6 +202,11 @@ export default function AdminDashboard() {
                                     <td data-label="Estoque">
                                         <span className={`${styles.stockBadge} ${p.stock <= 5 ? styles.stockLow : styles.stockOk}`}>
                                             {p.stock ?? 0} unidades
+                                        </span>
+                                    </td>
+                                    <td data-label="Ordem">
+                                        <span style={{ fontWeight: 600, color: '#4b5563' }}>
+                                            {p.order ?? 0}
                                         </span>
                                     </td>
                                     <td data-label="Ações">

@@ -16,6 +16,7 @@ interface Product {
     shopee_url: string;
     buy_on_site: boolean;
     is_wholesale: boolean;
+    order?: number;
     images?: string[];
     tags?: string[];
     details?: Partial<ProductDetail>;
@@ -50,6 +51,7 @@ export default function NewProductModal({ onClose, onSave }: Props) {
         shopee_url: "",
         buy_on_site: true,
         is_wholesale: false,
+        order: 0,
         images: [],
         tags: [],
         details: {
@@ -285,6 +287,15 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                                 required
                             />
                         </div>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Ordem de Exibição (menor número aparece primeiro)</label>
+                        <input
+                            type="number"
+                            value={formData.order ?? 0}
+                            onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                        />
                     </div>
 
                     <div className={styles.formGroup}>

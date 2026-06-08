@@ -189,6 +189,7 @@ class ProductBase(BaseModel):
     shopee_url: Optional[str] = None
     category: Optional[str] = None
     is_active: Optional[bool] = True
+    order: Optional[int] = 0
 
 # Product Details Schemas
 class ProductDetailBase(BaseModel):
@@ -238,6 +239,7 @@ class ProductUpdate(BaseModel):
     shopee_url: Optional[str] = None
     category: Optional[str] = None
     is_active: Optional[bool] = None
+    order: Optional[int] = None
 
 # Carousel Schemas
 class CarouselItemBase(BaseModel):

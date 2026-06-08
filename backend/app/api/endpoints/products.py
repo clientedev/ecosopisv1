@@ -97,6 +97,7 @@ def list_products(db: Session = Depends(get_db), include_inactive: bool = False)
     query = db.query(models.Product)
     if not include_inactive:
         query = query.filter(models.Product.is_active == True)
+    query = query.order_by(models.Product.order.asc(), models.Product.id.asc())
     # Eager load details to ensure QR code path is available
     return query.options(joinedload(models.Product.details)).all()
 

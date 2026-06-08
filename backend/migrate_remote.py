@@ -23,6 +23,7 @@ def migrate_remote():
         conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS is_wholesale BOOLEAN DEFAULT FALSE;"))
         conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS mercadolivre_url VARCHAR;"))
         conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS shopee_url VARCHAR;"))
+        conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS \"order\" INTEGER DEFAULT 0;"))
 
         print("Adding missing columns to 'carousel_items' table if they don't exist...")
         conn.execute(text("ALTER TABLE carousel_items ADD COLUMN IF NOT EXISTS alignment VARCHAR DEFAULT 'left';"))

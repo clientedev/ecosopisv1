@@ -131,6 +131,7 @@ class Product(Base):
     category = Column(String, nullable=True)
     
     is_active = Column(Boolean, default=True)
+    order = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")

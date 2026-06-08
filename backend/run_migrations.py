@@ -47,6 +47,7 @@ MISSING_PRODUCTS_COLUMNS = [
     ("mercadolivre_url", "VARCHAR"),
     ("shopee_url",       "VARCHAR"),
     ("is_active",        "BOOLEAN DEFAULT TRUE"),
+    ("order",            "INTEGER DEFAULT 0"),
 ]
 
 MISSING_ORDERS_COLUMNS = [
@@ -79,15 +80,15 @@ def add_missing_columns():
             try:
                 if is_sqlite:
                     # SQLite does not support IF NOT EXISTS in ALTER TABLE
-                    sql = f"ALTER TABLE {table} ADD COLUMN {col_name} {col_def}"
+                    sql = f'ALTER TABLE {table} ADD COLUMN "{col_name}" {col_def}'
                 else:
-                    sql = f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
+                    sql = f'ALTER TABLE {table} ADD COLUMN IF NOT EXISTS "{col_name}" {col_def}'
                 conn.execute(text(sql))
                 conn.commit()
                 logger.info(f"✓ Column {table}.{col_name} ensured.")
             except Exception as e:
                 err_str = str(e).lower()
-                if "already exists" in err_str or "duplicate column" in err_str:
+                if "already exists" in err_str or "duplicate column" in err_str or "duplicate column name" in err_str:
                     logger.info(f"✓ Column {table}.{col_name} already exists.")
                 else:
                     logger.warning(f"Could not add column {table}.{col_name}: {e}")

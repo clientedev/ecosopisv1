@@ -20,6 +20,7 @@ interface Product {
     buy_on_site: boolean;
     is_wholesale: boolean;
     is_active: boolean;
+    order?: number;
     images?: string[];
     tags?: string[];
     details?: ProductDetail;
@@ -50,6 +51,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
     const staticData = getStaticProductData(product.slug);
     const [formData, setFormData] = useState<Product>({
         ...product,
+        order: product.order ?? 0,
         ingredients: product.ingredients || staticData?.ativos || "",
         benefits: product.benefits || staticData?.beneficios || "",
         is_wholesale: product.is_wholesale === true,
@@ -475,6 +477,16 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                 required
                             />
                         </div>
+                    </div>
+
+                    {/* Ordem de Exibição */}
+                    <div className={styles.formGroup}>
+                        <label>Ordem de Exibição (menor número aparece primeiro)</label>
+                        <input
+                            type="number"
+                            value={formData.order ?? 0}
+                            onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                        />
                     </div>
 
                     {/* Upload de Imagens */}
