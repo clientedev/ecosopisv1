@@ -418,10 +418,7 @@ export default function Home() {
     return (
         <main>
             <Header />
-
-            {/* Hero Carousel */}
             <section className={styles.heroCarousel}>
-                {/* Valentine's floating hearts */}
                 {isValentines && hearts.map(h => (
                     <div
                         key={h.id}
@@ -602,6 +599,7 @@ export default function Home() {
                                     </div>
                                 </div>
                             )}
+                        </div>
                     );
                 })}
                 <div className={styles.carouselDots}>
