@@ -18,6 +18,7 @@ MISSING_CAROUSEL_COLUMNS = [
     ("badge_bg_color",    "VARCHAR DEFAULT '#4a7c59'"),
     ("overlay_color",     "VARCHAR DEFAULT '#000000'"),
     ("overlay_opacity",   "DOUBLE PRECISION DEFAULT 0.3"),
+    ("show_content",      "BOOLEAN DEFAULT TRUE"),
 ]
 
 MISSING_ANNOUNCEMENT_COLUMNS = [
@@ -72,77 +73,44 @@ MISSING_PRODUCT_DETAILS_COLUMNS = [
 def add_missing_columns():
     """Safely add any columns that don't exist yet in the live database."""
     with engine.connect() as conn:
-        for col_name, col_def in MISSING_CAROUSEL_COLUMNS:
+        is_sqlite = conn.dialect.name == "sqlite"
+
+        def add_col(table, col_name, col_def):
             try:
-                conn.execute(text(
-                    f"ALTER TABLE carousel_items ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
-                ))
+                if is_sqlite:
+                    # SQLite does not support IF NOT EXISTS in ALTER TABLE
+                    sql = f"ALTER TABLE {table} ADD COLUMN {col_name} {col_def}"
+                else:
+                    sql = f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
+                conn.execute(text(sql))
                 conn.commit()
-                logger.info(f"✓ Column carousel_items.{col_name} ensured.")
+                logger.info(f"✓ Column {table}.{col_name} ensured.")
             except Exception as e:
-                logger.warning(f"Could not add column carousel_items.{col_name}: {e}")
-                try: conn.rollback()
-                except Exception: pass
+                err_str = str(e).lower()
+                if "already exists" in err_str or "duplicate column" in err_str:
+                    logger.info(f"✓ Column {table}.{col_name} already exists.")
+                else:
+                    logger.warning(f"Could not add column {table}.{col_name}: {e}")
+                    try: conn.rollback()
+                    except Exception: pass
+
+        for col_name, col_def in MISSING_CAROUSEL_COLUMNS:
+            add_col("carousel_items", col_name, col_def)
 
         for col_name, col_def in MISSING_ANNOUNCEMENT_COLUMNS:
-            try:
-                conn.execute(text(
-                    f"ALTER TABLE announcement_bar ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
-                ))
-                conn.commit()
-                logger.info(f"✓ Column announcement_bar.{col_name} ensured.")
-            except Exception as e:
-                logger.warning(f"Could not add column announcement_bar.{col_name}: {e}")
-                try: conn.rollback()
-                except Exception: pass
+            add_col("announcement_bar", col_name, col_def)
 
         for col_name, col_def in MISSING_USERS_COLUMNS:
-            try:
-                conn.execute(text(
-                    f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
-                ))
-                conn.commit()
-                logger.info(f"✓ Column users.{col_name} ensured.")
-            except Exception as e:
-                logger.warning(f"Could not add column users.{col_name}: {e}")
-                try: conn.rollback()
-                except Exception: pass
+            add_col("users", col_name, col_def)
 
         for col_name, col_def in MISSING_PRODUCTS_COLUMNS:
-            try:
-                conn.execute(text(
-                    f"ALTER TABLE products ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
-                ))
-                conn.commit()
-                logger.info(f"✓ Column products.{col_name} ensured.")
-            except Exception as e:
-                logger.warning(f"Could not add column products.{col_name}: {e}")
-                try: conn.rollback()
-                except Exception: pass
+            add_col("products", col_name, col_def)
 
         for col_name, col_def in MISSING_ORDERS_COLUMNS:
-            try:
-                conn.execute(text(
-                    f"ALTER TABLE orders ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
-                ))
-                conn.commit()
-                logger.info(f"✓ Column orders.{col_name} ensured.")
-            except Exception as e:
-                logger.warning(f"Could not add column orders.{col_name}: {e}")
-                try: conn.rollback()
-                except Exception: pass
+            add_col("orders", col_name, col_def)
 
         for col_name, col_def in MISSING_PRODUCT_DETAILS_COLUMNS:
-            try:
-                conn.execute(text(
-                    f"ALTER TABLE product_details ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
-                ))
-                conn.commit()
-                logger.info(f"✓ Column product_details.{col_name} ensured.")
-            except Exception as e:
-                logger.warning(f"Could not add column product_details.{col_name}: {e}")
-                try: conn.rollback()
-                except Exception: pass
+            add_col("product_details", col_name, col_def)
 
 def run_migrations():
     success = True
