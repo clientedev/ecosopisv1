@@ -25,7 +25,8 @@ import {
     History,
     CreditCard,
     Menu,
-    X
+    X,
+    Palette
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -67,6 +68,7 @@ const CATEGORIES: Category[] = [
             { label: "Faixa de Aviso", path: "/admin/dashboard/announcement", icon: <Megaphone size={18} /> },
             { label: "Cores do Site", path: "/admin/dashboard/branding", icon: <Settings size={18} /> },
             { label: "Cashback", path: "/admin/dashboard/cashback", icon: <CreditCard size={18} /> },
+            { label: "Temas", path: "/admin/temas", icon: <Palette size={18} /> },
         ]
     },
     {

@@ -1,15 +1,28 @@
 "use client";
 import { useEffect, useState } from 'react';
 
-export default function DynamicBranding() {
-    const [colors, setColors] = useState<Record<string, string>>({
+const THEMES: Record<string, Record<string, string>> = {
+    default: {
         primary_color: "#4B8411",
         primary_color_dark: "#3a660d",
         secondary_color: "#ffffff",
         text_primary: "#1a1a1a",
         text_secondary: "#4a4a4a",
-        bg_color: "#fdfcf9"
-    });
+        bg_color: "#fdfcf9",
+    },
+    valentines_day: {
+        primary_color: "#e63f6f",
+        primary_color_dark: "#c0294f",
+        secondary_color: "#ffffff",
+        text_primary: "#1a1a1a",
+        text_secondary: "#5a3040",
+        bg_color: "#fff5f7",
+    },
+};
+
+export default function DynamicBranding() {
+    const [colors, setColors] = useState<Record<string, string>>(THEMES.default);
+    const [themeId, setThemeId] = useState<string>("default");
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -17,17 +30,28 @@ export default function DynamicBranding() {
                 const res = await fetch('/api/settings');
                 if (res.ok) {
                     const data = await res.json();
-                    const newColors = { ...colors };
-                    let changed = false;
-                    
-                    if (data.primary_color) { newColors.primary_color = data.primary_color; changed = true; }
-                    if (data.primary_color_dark) { newColors.primary_color_dark = data.primary_color_dark; changed = true; }
-                    if (data.secondary_color) { newColors.secondary_color = data.secondary_color; changed = true; }
-                    if (data.text_primary) { newColors.text_primary = data.text_primary; changed = true; }
-                    if (data.text_secondary) { newColors.text_secondary = data.text_secondary; changed = true; }
-                    if (data.bg_color) { newColors.bg_color = data.bg_color; changed = true; }
-                    
-                    if (changed) setColors(newColors);
+
+                    // Detect active seasonal theme
+                    const activeTheme = data.active_theme && data.active_theme !== "default"
+                        ? data.active_theme
+                        : null;
+
+                    if (activeTheme && THEMES[activeTheme]) {
+                        // Use theme palette (can still be overridden by custom colors below)
+                        setColors(THEMES[activeTheme]);
+                        setThemeId(activeTheme);
+                    } else {
+                        // Use custom colors saved individually, fallback to defaults
+                        const baseColors = { ...THEMES.default };
+                        if (data.primary_color) baseColors.primary_color = data.primary_color;
+                        if (data.primary_color_dark) baseColors.primary_color_dark = data.primary_color_dark;
+                        if (data.secondary_color) baseColors.secondary_color = data.secondary_color;
+                        if (data.text_primary) baseColors.text_primary = data.text_primary;
+                        if (data.text_secondary) baseColors.text_secondary = data.text_secondary;
+                        if (data.bg_color) baseColors.bg_color = data.bg_color;
+                        setColors(baseColors);
+                        setThemeId("default");
+                    }
                 }
             } catch (err) {
                 console.error("Error fetching branding settings:", err);
@@ -35,6 +59,29 @@ export default function DynamicBranding() {
         };
         fetchSettings();
     }, []);
+
+    const valentinesExtras = themeId === "valentines_day" ? `
+        /* Valentine's Day extra accents */
+        .btn-primary {
+            background: linear-gradient(135deg, #e63f6f 0%, #c0294f 100%) !important;
+            box-shadow: 0 4px 15px rgba(230, 63, 111, 0.35) !important;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #c0294f 0%, #9e1f3e 100%) !important;
+            box-shadow: 0 6px 20px rgba(192, 41, 79, 0.45) !important;
+            transform: translateY(-1px);
+        }
+        .btn-outline {
+            border-color: #e63f6f !important;
+            color: #e63f6f !important;
+        }
+        .btn-outline:hover {
+            background-color: rgba(230, 63, 111, 0.08) !important;
+        }
+        a:hover {
+            color: #e63f6f;
+        }
+    ` : '';
 
     return (
         <style dangerouslySetInnerHTML={{
@@ -46,6 +93,7 @@ export default function DynamicBranding() {
                     --text-primary: ${colors.text_primary} !important;
                     --text-secondary: ${colors.text_secondary} !important;
                     --site-bg: ${colors.bg_color} !important;
+                    --theme-id: "${themeId}";
                 }
                 body {
                     background-color: var(--site-bg) !important;
@@ -58,6 +106,7 @@ export default function DynamicBranding() {
                 * {
                     box-sizing: border-box !important;
                 }
+                ${valentinesExtras}
             `
         }} />
     );

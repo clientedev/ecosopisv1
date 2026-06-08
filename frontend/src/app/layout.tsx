@@ -7,6 +7,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/components/Toast/Toast";
 import { CartProvider } from "@/context/CartContext";
 import MobileBottomNav from "@/components/MobileBottomNav/MobileBottomNav";
+import { ThemeProvider } from "@/context/ThemeContext";
+import HeartAnimation from "@/components/HeartAnimation/HeartAnimation";
 
 const raleway = Raleway({
     subsets: ["latin"],
@@ -46,10 +48,13 @@ export default function RootLayout({
                 <AuthProvider>
                     <ToastProvider>
                         <CartProvider>
-                            <DynamicBranding />
-                            {children}
-                            <DeferredComponents />
-                            <MobileBottomNav />
+                            <ThemeProvider>
+                                <DynamicBranding />
+                                <HeartAnimation />
+                                {children}
+                                <DeferredComponents />
+                                <MobileBottomNav />
+                            </ThemeProvider>
                         </CartProvider>
                     </ToastProvider>
                 </AuthProvider>
