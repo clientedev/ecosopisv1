@@ -276,3 +276,48 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     db.commit()
     
     return {"message": "E-mail verificado com sucesso! Agora você pode fazer login."}
+
+@router.post("/forgot-password")
+def forgot_password(email_data: schemas.ForgotPassword, db: Session = Depends(get_db)):
+    """
+    Always returns the same response to avoid email enumeration.
+    Generates a 1-hour expiring token, stores it on the user, and sends a reset e-mail.
+    """
+    from datetime import datetime, timedelta, timezone
+    import uuid
+
+    user = db.query(models.User).filter(models.User.email == email_data.email).first()
+    if user:
+        token = str(uuid.uuid4())
+        user.password_reset_token = token
+        user.password_reset_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        db.commit()
+        emails.send_password_reset_email(user.email, token)
+
+    return {"message": "Se o e-mail existir em nosso sistema, você receberá um link de recuperação em instantes."}
+
+
+@router.post("/reset-password")
+def reset_password(reset_data: schemas.ResetPassword, db: Session = Depends(get_db)):
+    from datetime import datetime, timezone
+
+    user = db.query(models.User).filter(
+        models.User.password_reset_token == reset_data.token
+    ).first()
+
+    if not user:
+        raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+
+    # Check expiry
+    if user.password_reset_expires is None or datetime.now(timezone.utc) > user.password_reset_expires:
+        user.password_reset_token = None
+        user.password_reset_expires = None
+        db.commit()
+        raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+
+    user.hashed_password = security.get_password_hash(reset_data.new_password)
+    user.password_reset_token = None
+    user.password_reset_expires = None
+    db.commit()
+    return {"message": "Senha redefinida com sucesso! Você já pode fazer login."}
+

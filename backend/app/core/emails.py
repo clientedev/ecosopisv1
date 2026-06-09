@@ -271,6 +271,32 @@ def send_admin_notification_email(admin_email: str, order_id: int, total: float,
         """
     return send_email(admin_email, subject, html)
 
+def send_password_reset_email(email: str, token: str):
+    reset_link = f"{FRONTEND_URL}/redefinir-senha?token={token}"
+    subject = "🔑 Redefinição de senha - ECOSOPIS"
+    html = f"""
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+        <div style="background-color: #2d5a27; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+            <h1 style="margin: 0; font-size: 1.4rem;">🔑 Redefinição de Senha</h1>
+        </div>
+        <div style="padding: 24px;">
+            <p style="color: #334155;">Recebemos uma solicitação para redefinir a senha da sua conta ECOSOPIS.</p>
+            <p style="color: #334155;">Clique no botão abaixo para criar uma nova senha. Este link é válido por <strong>1 hora</strong>.</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{reset_link}" style="background-color: #2d5a27; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1rem; display: inline-block;">Redefinir minha Senha</a>
+            </div>
+            <p style="color: #666; font-size: 0.9rem;">Se o botão não funcionar, copie e cole este link no seu navegador:<br><a href="{reset_link}" style="color: #2d5a27;">{reset_link}</a></p>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="color: #94a3b8; font-size: 0.8rem; text-align: center;">Se você não solicitou a redefinição de senha, pode ignorar este e-mail com segurança. Sua senha não será alterada.</p>
+        </div>
+        <div style="background-color: #f8fafc; padding: 12px; text-align: center; font-size: 0.75rem; color: #94a3b8; border-radius: 0 0 8px 8px;">
+            Equipe ECOSOPIS - Cosméticos Naturais e Veganos
+        </div>
+    </div>
+    """
+    return send_email(email, subject, html)
+
+
 def send_abandoned_cart_email(email: str, name: str):
     subject = "🍃 Esqueceu algo especial no carrinho?"
     html = f"""

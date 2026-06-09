@@ -33,17 +33,19 @@ def _apply_startup_migrations():
     
     # Columns definitions
     USER_COLS = [
-        ("is_verified",        "BOOLEAN DEFAULT FALSE"),
-        ("verification_token", "VARCHAR"),
-        ("cart_json",          "TEXT"),
-        ("cart_updated_at",    "TIMESTAMP WITH TIME ZONE"),
-        ("can_post_news",      "BOOLEAN DEFAULT FALSE"),
-        ("total_compras",      "INTEGER DEFAULT 0"),
-        ("pode_girar_roleta",  "BOOLEAN DEFAULT FALSE"),
-        ("tentativas_roleta",  "INTEGER DEFAULT 0"),
-        ("ultimo_premio_id",   "INTEGER"),
-        ("profile_picture",    "VARCHAR"),
-        ("phone",              "VARCHAR")
+        ("is_verified",              "BOOLEAN DEFAULT FALSE"),
+        ("verification_token",       "VARCHAR"),
+        ("password_reset_token",     "VARCHAR"),
+        ("password_reset_expires",   "TIMESTAMP WITH TIME ZONE"),
+        ("cart_json",                "TEXT"),
+        ("cart_updated_at",          "TIMESTAMP WITH TIME ZONE"),
+        ("can_post_news",            "BOOLEAN DEFAULT FALSE"),
+        ("total_compras",            "INTEGER DEFAULT 0"),
+        ("pode_girar_roleta",        "BOOLEAN DEFAULT FALSE"),
+        ("tentativas_roleta",        "INTEGER DEFAULT 0"),
+        ("ultimo_premio_id",         "INTEGER"),
+        ("profile_picture",          "VARCHAR"),
+        ("phone",                    "VARCHAR")
     ]
     ORDER_COLS = [
         ("mercadopago_preference_id", "VARCHAR"),

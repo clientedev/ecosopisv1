@@ -52,6 +52,10 @@ class User(Base):
     is_verified = Column(Boolean, default=False)
     verification_token = Column(String, nullable=True)
     
+    # Password Reset
+    password_reset_token = Column(String, nullable=True)
+    password_reset_expires = Column(DateTime(timezone=True), nullable=True)
+    
     # Abandoned Cart Tracking
     cart_json = Column(Text, nullable=True) # JSON string of cart items
     cart_updated_at = Column(DateTime(timezone=True), nullable=True)

@@ -321,7 +321,7 @@ export default function ContaPage() {
                             )}
 
                             {isLogin && (
-                                <div className={styles.links}><a href="#">Esqueci minha senha</a></div>
+                                <div className={styles.links}><Link href="/recuperar-senha">Esqueci minha senha</Link></div>
                             )}
 
                             <div className={styles.benefits}>

@@ -20,6 +20,13 @@ class UserPasswordUpdate(BaseModel):
     current_password: str
     new_password: str
 
+class ForgotPassword(BaseModel):
+    email: EmailStr
+
+class ResetPassword(BaseModel):
+    token: str
+    new_password: str
+
 class UserResponse(UserBase):
     id: int
     role: str
