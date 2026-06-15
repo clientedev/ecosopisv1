@@ -26,7 +26,8 @@ import {
     CreditCard,
     Menu,
     X,
-    Palette
+    Palette,
+    Trophy
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -63,6 +64,7 @@ const CATEGORIES: Category[] = [
         label: "Marketing",
         items: [
             { label: "Roleta", path: "/admin/dashboard/roleta", icon: <Gamepad2 size={18} /> },
+            { label: "Bolão Copa", path: "/admin/bolao", icon: <Trophy size={18} /> },
             { label: "Cupons", path: "/admin/dashboard/cupons", icon: <Ticket size={18} /> },
             { label: "Banner Principal", path: "/admin/dashboard/carousel", icon: <ImageIcon size={18} /> },
             { label: "Faixa de Aviso", path: "/admin/dashboard/announcement", icon: <Megaphone size={18} /> },

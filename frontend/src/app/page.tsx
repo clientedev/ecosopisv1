@@ -41,6 +41,7 @@ export default function Home() {
     const [cupGuessInputs, setCupGuessInputs] = useState<Record<number, { score_a: string; score_b: string }>>({});
     const [cupFeedback, setCupFeedback] = useState<Record<number, { text: string; type: "success" | "error" }>>({});
     const [savingGuessId, setSavingGuessId] = useState<number | null>(null);
+    const [bolaoDiscount, setBolaoDiscount] = useState<number>(10);
 
     const fetchCupMatches = async () => {
         setLoadingCupMatches(true);
@@ -78,6 +79,11 @@ export default function Home() {
     useEffect(() => {
         if (activeTheme === "copa_do_mundo") {
             fetchCupMatches();
+            // Fetch discount config
+            fetch("/api/world-cup/config")
+                .then(r => r.ok ? r.json() : null)
+                .then(data => { if (data?.bolao_discount_percentage) setBolaoDiscount(data.bolao_discount_percentage); })
+                .catch(() => {});
         }
     }, [activeTheme, user]);
 
@@ -793,7 +799,7 @@ export default function Home() {
                                 margin: "0 auto",
                                 lineHeight: 1.5
                             }}>
-                                Acerte o placar cheio de qualquer jogo do Brasil e ganhe na hora um cupom de <strong>10% de desconto</strong> para usar em nosso site!
+                                Acerte o placar cheio de qualquer jogo do Brasil e ganhe na hora um cupom de <strong>{bolaoDiscount}% de desconto</strong> para usar em nosso site!
                             </p>
                         </div>
 
@@ -801,24 +807,29 @@ export default function Home() {
                             <div style={{
                                 textAlign: "center",
                                 padding: "2.5rem",
-                                background: "rgba(0, 39, 118, 0.04)",
+                                background: "linear-gradient(135deg, rgba(0,39,118,0.05) 0%, rgba(16,124,65,0.05) 100%)",
                                 borderRadius: "20px",
-                                border: "1px dashed rgba(0, 39, 118, 0.2)",
+                                border: "1.5px dashed rgba(0, 39, 118, 0.25)",
                                 maxWidth: "550px",
                                 margin: "0 auto",
                                 position: "relative",
                                 zIndex: 1
                             }}>
-                                <span style={{ fontSize: "2.5rem", display: "block", marginBottom: "1rem" }}>🔐</span>
-                                <h3 style={{ fontSize: "1.2rem", fontWeight: 700, color: "#002776", marginBottom: "0.5rem" }}>
-                                    Quer participar do bolão?
+                                <span style={{ fontSize: "3rem", display: "block", marginBottom: "0.75rem" }}>🏆</span>
+                                <h3 style={{ fontSize: "1.3rem", fontWeight: 800, color: "#002776", marginBottom: "0.5rem" }}>
+                                    Participe do Bolão e Ganhe {bolaoDiscount}% de Desconto!
                                 </h3>
-                                <p style={{ fontSize: "0.95rem", color: "#666", marginBottom: "1.5rem" }}>
-                                    Você precisa estar conectado à sua conta Ecosopis para salvar seus palpites e resgatar seus prêmios.
+                                <p style={{ fontSize: "0.95rem", color: "#555", marginBottom: "1.5rem", lineHeight: 1.5 }}>
+                                    Entre na sua conta ou crie uma gratuitamente para salvar seus palpites e resgatar seus prêmios. É rápido e fácil!
                                 </p>
-                                <Link href="/conta" className="btn-primary" style={{ padding: "0.8rem 2rem", display: "inline-block", textDecoration: "none" }}>
-                                    Entrar ou Cadastrar-se
-                                </Link>
+                                <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+                                    <Link href="/conta" className="btn-primary" style={{ padding: "0.85rem 2rem", display: "inline-block", textDecoration: "none", fontWeight: 700 }}>
+                                        Entrar na Conta
+                                    </Link>
+                                    <Link href="/conta" className="btn-outline" style={{ padding: "0.85rem 2rem", display: "inline-block", textDecoration: "none", fontWeight: 700 }}>
+                                        Criar Conta Grátis
+                                    </Link>
+                                </div>
                             </div>
                         ) : loadingCupMatches ? (
                             <div style={{ textAlign: "center", padding: "3rem" }}>

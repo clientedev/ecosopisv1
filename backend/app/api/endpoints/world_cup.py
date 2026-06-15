@@ -10,6 +10,15 @@ from app.api.endpoints.auth import get_current_user, get_current_user_optional, 
 
 router = APIRouter()
 
+
+def _get_bolao_discount(db: Session) -> float:
+    """Reads the configurable bolao discount from system_settings (bolao_discount_percentage)."""
+    setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "bolao_discount_percentage").first()
+    try:
+        return float(setting.value) if setting and setting.value else 10.0
+    except (ValueError, TypeError):
+        return 10.0
+
 class GuessCreate(BaseModel):
     match_id: int
     guess_score_a: int
@@ -111,6 +120,7 @@ def finalize_match(match_id: int, score_in: FinalizeMatch, db: Session = Depends
     match.score_b = score_in.score_b
     match.is_finalized = True
     
+    discount_pct = _get_bolao_discount(db)
     guesses = db.query(models.WorldCupGuess).filter(models.WorldCupGuess.match_id == match_id).all()
     for guess in guesses:
         is_correct = (guess.guess_score_a == score_in.score_a) and (guess.guess_score_b == score_in.score_b)
@@ -123,7 +133,7 @@ def finalize_match(match_id: int, score_in: FinalizeMatch, db: Session = Depends
             coupon = models.Coupon(
                 code=code,
                 discount_type="percentage",
-                discount_value=10.0,
+                discount_value=discount_pct,
                 valid_until=datetime.now(timezone.utc) + timedelta(days=30),
                 is_active=True
             )
@@ -160,3 +170,95 @@ def reset_guesses_system(db: Session = Depends(get_db), current_admin: models.Us
         
     db.commit()
     return {"message": "Sistema de palpites resetado para desenvolvimento."}
+
+
+class MatchCreate(BaseModel):
+    team_a: str = "Brasil"
+    team_b: str
+    stadium: Optional[str] = None
+    match_time: datetime
+    is_unlocked: bool = False
+
+
+class MatchUpdate(BaseModel):
+    team_a: Optional[str] = None
+    team_b: Optional[str] = None
+    stadium: Optional[str] = None
+    match_time: Optional[datetime] = None
+    is_unlocked: Optional[bool] = None
+
+
+@router.post("/matches", dependencies=[Depends(get_current_admin)])
+def create_match(match_in: MatchCreate, db: Session = Depends(get_db)):
+    """Admin: create a new world cup match."""
+    match = models.WorldCupMatch(
+        team_a=match_in.team_a,
+        team_b=match_in.team_b,
+        stadium=match_in.stadium,
+        match_time=match_in.match_time,
+        is_unlocked=match_in.is_unlocked,
+        is_finalized=False,
+    )
+    db.add(match)
+    db.commit()
+    db.refresh(match)
+    return match
+
+
+@router.put("/matches/{match_id}", dependencies=[Depends(get_current_admin)])
+def update_match(match_id: int, match_in: MatchUpdate, db: Session = Depends(get_db)):
+    """Admin: edit an existing world cup match."""
+    match = db.query(models.WorldCupMatch).filter(models.WorldCupMatch.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Jogo não encontrado")
+    if match_in.team_a is not None:
+        match.team_a = match_in.team_a
+    if match_in.team_b is not None:
+        match.team_b = match_in.team_b
+    if match_in.stadium is not None:
+        match.stadium = match_in.stadium
+    if match_in.match_time is not None:
+        match.match_time = match_in.match_time
+    if match_in.is_unlocked is not None:
+        match.is_unlocked = match_in.is_unlocked
+    db.commit()
+    db.refresh(match)
+    return match
+
+
+@router.delete("/matches/{match_id}", dependencies=[Depends(get_current_admin)])
+def delete_match(match_id: int, db: Session = Depends(get_db)):
+    """Admin: delete a world cup match and its guesses."""
+    match = db.query(models.WorldCupMatch).filter(models.WorldCupMatch.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Jogo não encontrado")
+    db.delete(match)
+    db.commit()
+    return {"message": "Jogo excluído com sucesso."}
+
+
+@router.get("/matches/{match_id}/guesses", dependencies=[Depends(get_current_admin)])
+def list_guesses_for_match(match_id: int, db: Session = Depends(get_db)):
+    """Admin: list all guesses for a match with user details."""
+    guesses = db.query(models.WorldCupGuess).filter(models.WorldCupGuess.match_id == match_id).all()
+    result = []
+    for g in guesses:
+        user = db.query(models.User).filter(models.User.id == g.user_id).first()
+        result.append({
+            "id": g.id,
+            "user_email": user.email if user else "?",
+            "user_name": user.full_name if user else "?",
+            "guess_score_a": g.guess_score_a,
+            "guess_score_b": g.guess_score_b,
+            "is_correct": g.is_correct,
+            "is_processed": g.is_processed,
+            "reward_coupon_code": g.reward_coupon_code,
+            "created_at": g.created_at,
+        })
+    return result
+
+
+@router.get("/config")
+def get_bolao_config(db: Session = Depends(get_db)):
+    """Returns current bolao discount config (public endpoint for frontend)."""
+    return {"bolao_discount_percentage": _get_bolao_discount(db)}
