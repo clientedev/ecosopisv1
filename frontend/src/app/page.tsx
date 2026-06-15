@@ -31,6 +31,96 @@ import { useCart } from "@/context/CartContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 
+const getCountryFlagEmoji = (name: string): string => {
+    if (!name) return "🏳️";
+    const normalized = name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const flagMap: Record<string, string> = {
+        brasil: "🇧🇷",
+        brazil: "🇧🇷",
+        alemanha: "🇩🇪",
+        germany: "🇩🇪",
+        argentina: "🇦🇷",
+        franca: "🇫🇷",
+        france: "🇫🇷",
+        italia: "🇮🇹",
+        italy: "🇮🇹",
+        espanha: "🇪🇸",
+        spain: "🇪🇸",
+        inglaterra: "🇬🇧",
+        england: "🇬🇧",
+        belgica: "🇧🇪",
+        belgium: "🇧🇪",
+        holanda: "🇳🇱",
+        netherlands: "🇳🇱",
+        "paises baixos": "🇳🇱",
+        portugal: "🇵🇹",
+        uruguai: "🇺🇾",
+        uruguay: "🇺🇾",
+        croacia: "🇭🇷",
+        croatia: "🇭🇷",
+        japao: "🇯🇵",
+        japan: "🇯🇵",
+        marrocos: "🇲🇦",
+        morocco: "🇲🇦",
+        senegal: "🇸🇳",
+        "estados unidos": "🇺🇸",
+        usa: "🇺🇸",
+        eua: "🇺🇸",
+        mexico: "🇲🇽",
+        canada: "🇨🇦",
+        colombia: "🇨🇴",
+        chile: "🇨🇱",
+        equador: "🇪🇨",
+        ecuador: "🇪🇨",
+        paraguai: "🇵🇾",
+        paraguay: "🇵🇾",
+        peru: "🇵🇪",
+        venezuela: "🇻🇪",
+        bolivia: "🇧🇴",
+        "costa rica": "🇨🇷",
+        camaroes: "🇨🇲",
+        cameroon: "🇨🇲",
+        gana: "🇬🇭",
+        ghana: "🇬🇭",
+        suica: "🇨🇭",
+        switzerland: "🇨🇭",
+        "coreia do sul": "🇰🇷",
+        "south korea": "🇰🇷",
+        coreia: "🇰🇷",
+        "arabia saudita": "🇸🇦",
+        "saudi arabia": "🇸🇦",
+        polonia: "🇵🇱",
+        poland: "🇵🇱",
+        suecia: "🇸🇪",
+        sweden: "🇸🇪",
+        dinamarca: "🇩🇰",
+        denmark: "🇩🇰",
+        australia: "🇦🇺",
+        servia: "🇷🇸",
+        serbia: "🇷🇸",
+        tunisia: "🇹🇳",
+        ira: "🇮🇷",
+        iran: "🇮🇷",
+        gales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+        wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+        ucrania: "🇺🇦",
+        ukraine: "🇺🇦",
+        turquia: "🇹🇷",
+        turkey: "🇹🇷",
+        austria: "🇦🇹",
+        grecia: "🇬🇷",
+        greece: "🇬🇷",
+        egito: "🇪🇬",
+        egypt: "🇪🇬",
+        nigeria: "🇳🇬",
+        china: "🇨🇳",
+        russia: "🇷🇺",
+        catar: "🇶🇦",
+        qatar: "🇶🇦",
+    };
+    return flagMap[normalized] || "🏳️";
+};
+
 export default function Home() {
     const { addToCart } = useCart();
     const { activeTheme } = useTheme();
@@ -943,7 +1033,7 @@ export default function Home() {
                                                 {/* Team B */}
                                                 <div style={{ textAlign: "center" }}>
                                                     <div style={{ fontSize: "2.8rem", lineHeight: 1, marginBottom: "0.5rem", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }}>
-                                                        {match.team_b_flag || "🏳️"}
+                                                        {getCountryFlagEmoji(match.team_b)}
                                                     </div>
                                                     <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "white", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{match.team_b}</div>
                                                 </div>

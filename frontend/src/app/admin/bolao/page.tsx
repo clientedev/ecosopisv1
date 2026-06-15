@@ -6,6 +6,96 @@ import styles from "../dashboard/dashboard.module.css";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import { Users, Trophy, ChevronDown, ChevronUp, Plus, RefreshCw, AlertTriangle } from "lucide-react";
 
+const getCountryFlagEmoji = (name: string): string => {
+    if (!name) return "🏳️";
+    const normalized = name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const flagMap: Record<string, string> = {
+        brasil: "🇧🇷",
+        brazil: "🇧🇷",
+        alemanha: "🇩🇪",
+        germany: "🇩🇪",
+        argentina: "🇦🇷",
+        franca: "🇫🇷",
+        france: "🇫🇷",
+        italia: "🇮🇹",
+        italy: "🇮🇹",
+        espanha: "🇪🇸",
+        spain: "🇪🇸",
+        inglaterra: "🇬🇧",
+        england: "🇬🇧",
+        belgica: "🇧🇪",
+        belgium: "🇧🇪",
+        holanda: "🇳🇱",
+        netherlands: "🇳🇱",
+        "paises baixos": "🇳🇱",
+        portugal: "🇵🇹",
+        uruguai: "🇺🇾",
+        uruguay: "🇺🇾",
+        croacia: "🇭🇷",
+        croatia: "🇭🇷",
+        japao: "🇯🇵",
+        japan: "🇯🇵",
+        marrocos: "🇲🇦",
+        morocco: "🇲🇦",
+        senegal: "🇸🇳",
+        "estados unidos": "🇺🇸",
+        usa: "🇺🇸",
+        eua: "🇺🇸",
+        mexico: "🇲🇽",
+        canada: "🇨🇦",
+        colombia: "🇨🇴",
+        chile: "🇨🇱",
+        equador: "🇪🇨",
+        ecuador: "🇪🇨",
+        paraguai: "🇵🇾",
+        paraguay: "🇵🇾",
+        peru: "🇵🇪",
+        venezuela: "🇻🇪",
+        bolivia: "🇧🇴",
+        "costa rica": "🇨🇷",
+        camaroes: "🇨🇲",
+        cameroon: "🇨🇲",
+        gana: "🇬🇭",
+        ghana: "🇬🇭",
+        suica: "🇨🇭",
+        switzerland: "🇨🇭",
+        "coreia do sul": "🇰🇷",
+        "south korea": "🇰🇷",
+        coreia: "🇰🇷",
+        "arabia saudita": "🇸🇦",
+        "saudi arabia": "🇸🇦",
+        polonia: "🇵🇱",
+        poland: "🇵🇱",
+        suecia: "🇸🇪",
+        sweden: "🇸🇪",
+        dinamarca: "🇩🇰",
+        denmark: "🇩🇰",
+        australia: "🇦🇺",
+        servia: "🇷🇸",
+        serbia: "🇷🇸",
+        tunisia: "🇹🇳",
+        ira: "🇮🇷",
+        iran: "🇮🇷",
+        gales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+        wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+        ucrania: "🇺🇦",
+        ukraine: "🇺🇦",
+        turquia: "🇹🇷",
+        turkey: "🇹🇷",
+        austria: "🇦🇹",
+        grecia: "🇬🇷",
+        greece: "🇬🇷",
+        egito: "🇪🇬",
+        egypt: "🇪🇬",
+        nigeria: "🇳🇬",
+        china: "🇨🇳",
+        russia: "🇷🇺",
+        catar: "🇶🇦",
+        qatar: "🇶🇦",
+    };
+    return flagMap[normalized] || "🏳️";
+};
+
 export default function AdminBolao() {
     const router = useRouter();
     const [matches, setMatches] = useState<any[]>([]);
@@ -426,7 +516,7 @@ export default function AdminBolao() {
                                                 <div>
                                                     <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
                                                         <h3 style={{ fontWeight: 700, fontSize: "1rem", color: "#1a1a1a", margin: 0 }}>
-                                                            🇧🇷 Brasil vs {match.team_b}
+                                                            🇧🇷 Brasil vs {getCountryFlagEmoji(match.team_b)} {match.team_b}
                                                         </h3>
                                                         <span style={{
                                                             fontSize: "0.7rem", fontWeight: 700, padding: "3px 10px",

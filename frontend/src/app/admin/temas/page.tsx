@@ -5,6 +5,96 @@ import styles from "../dashboard/dashboard.module.css";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import { useTheme, ThemeId } from "@/context/ThemeContext";
 
+const getCountryFlagEmoji = (name: string): string => {
+    if (!name) return "🏳️";
+    const normalized = name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const flagMap: Record<string, string> = {
+        brasil: "🇧🇷",
+        brazil: "🇧🇷",
+        alemanha: "🇩🇪",
+        germany: "🇩🇪",
+        argentina: "🇦🇷",
+        franca: "🇫🇷",
+        france: "🇫🇷",
+        italia: "🇮🇹",
+        italy: "🇮🇹",
+        espanha: "🇪🇸",
+        spain: "🇪🇸",
+        inglaterra: "🇬🇧",
+        england: "🇬🇧",
+        belgica: "🇧🇪",
+        belgium: "🇧🇪",
+        holanda: "🇳🇱",
+        netherlands: "🇳🇱",
+        "paises baixos": "🇳🇱",
+        portugal: "🇵🇹",
+        uruguai: "🇺🇾",
+        uruguay: "🇺🇾",
+        croacia: "🇭🇷",
+        croatia: "🇭🇷",
+        japao: "🇯🇵",
+        japan: "🇯🇵",
+        marrocos: "🇲🇦",
+        morocco: "🇲🇦",
+        senegal: "🇸🇳",
+        "estados unidos": "🇺🇸",
+        usa: "🇺🇸",
+        eua: "🇺🇸",
+        mexico: "🇲🇽",
+        canada: "🇨🇦",
+        colombia: "🇨🇴",
+        chile: "🇨🇱",
+        equador: "🇪🇨",
+        ecuador: "🇪🇨",
+        paraguai: "🇵🇾",
+        paraguay: "🇵🇾",
+        peru: "🇵🇪",
+        venezuela: "🇻🇪",
+        bolivia: "🇧🇴",
+        "costa rica": "🇨🇷",
+        camaroes: "🇨🇲",
+        cameroon: "🇨🇲",
+        gana: "🇬🇭",
+        ghana: "🇬🇭",
+        suica: "🇨🇭",
+        switzerland: "🇨🇭",
+        "coreia do sul": "🇰🇷",
+        "south korea": "🇰🇷",
+        coreia: "🇰🇷",
+        "arabia saudita": "🇸🇦",
+        "saudi arabia": "🇸🇦",
+        polonia: "🇵🇱",
+        poland: "🇵🇱",
+        suecia: "🇸🇪",
+        sweden: "🇸🇪",
+        dinamarca: "🇩🇰",
+        denmark: "🇩🇰",
+        australia: "🇦🇺",
+        servia: "🇷🇸",
+        serbia: "🇷🇸",
+        tunisia: "🇹🇳",
+        ira: "🇮🇷",
+        iran: "🇮🇷",
+        gales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+        wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+        ucrania: "🇺🇦",
+        ukraine: "🇺🇦",
+        turquia: "🇹🇷",
+        turkey: "🇹🇷",
+        austria: "🇦🇹",
+        grecia: "🇬🇷",
+        greece: "🇬🇷",
+        egito: "🇪🇬",
+        egypt: "🇪🇬",
+        nigeria: "🇳🇬",
+        china: "🇨🇳",
+        russia: "🇷🇺",
+        catar: "🇶🇦",
+        qatar: "🇶🇦",
+    };
+    return flagMap[normalized] || "🏳️";
+};
+
 interface ThemeDefinition {
     id: ThemeId;
     name: string;
@@ -678,7 +768,7 @@ export default function AdminTemas() {
 
                                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
                                                     <div style={{ fontSize: "0.95rem", fontWeight: 600, color: "#333" }}>
-                                                        🇧🇷 {match.team_a} vs {match.team_b}
+                                                        🇧🇷 {match.team_a} vs {getCountryFlagEmoji(match.team_b)} {match.team_b}
                                                     </div>
 
                                                     {match.is_unlocked ? (

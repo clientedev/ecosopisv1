@@ -95,10 +95,11 @@ def place_guess(guess_in: GuessCreate, db: Session = Depends(get_db), current_us
     ).first()
     
     if guess:
-        raise HTTPException(
-            status_code=400,
-            detail="Você já enviou seu palpite para este jogo. Cada cliente tem direito a apenas um palpite por partida."
-        )
+        guess.guess_score_a = guess_in.guess_score_a
+        guess.guess_score_b = guess_in.guess_score_b
+        db.commit()
+        db.refresh(guess)
+        return {"message": "Palpite atualizado com sucesso! Boa sorte! 🏆", "guess_id": guess.id}
     
     guess = models.WorldCupGuess(
         match_id=guess_in.match_id,
@@ -136,7 +137,8 @@ def finalize_match(match_id: int, score_in: FinalizeMatch, db: Session = Depends
                 discount_type="percentage",
                 discount_value=discount_pct,
                 valid_until=datetime.now(timezone.utc) + timedelta(days=30),
-                is_active=True
+                is_active=True,
+                usage_limit=1
             )
             db.add(coupon)
             guess.reward_coupon_code = code
