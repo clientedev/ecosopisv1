@@ -6,94 +6,94 @@ import styles from "../dashboard/dashboard.module.css";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import { Users, Trophy, ChevronDown, ChevronUp, Plus, RefreshCw, AlertTriangle } from "lucide-react";
 
-const getCountryFlagEmoji = (name: string): string => {
-    if (!name) return "🏳️";
+const getCountryCode = (name: string): string => {
+    if (!name) return "un";
     const normalized = name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const flagMap: Record<string, string> = {
-        brasil: "🇧🇷",
-        brazil: "🇧🇷",
-        alemanha: "🇩🇪",
-        germany: "🇩🇪",
-        argentina: "🇦🇷",
-        franca: "🇫🇷",
-        france: "🇫🇷",
-        italia: "🇮🇹",
-        italy: "🇮🇹",
-        espanha: "🇪🇸",
-        spain: "🇪🇸",
-        inglaterra: "🇬🇧",
-        england: "🇬🇧",
-        belgica: "🇧🇪",
-        belgium: "🇧🇪",
-        holanda: "🇳🇱",
-        netherlands: "🇳🇱",
-        "paises baixos": "🇳🇱",
-        portugal: "🇵🇹",
-        uruguai: "🇺🇾",
-        uruguay: "🇺🇾",
-        croacia: "🇭🇷",
-        croatia: "🇭🇷",
-        japao: "🇯🇵",
-        japan: "🇯🇵",
-        marrocos: "🇲🇦",
-        morocco: "🇲🇦",
-        senegal: "🇸🇳",
-        "estados unidos": "🇺🇸",
-        usa: "🇺🇸",
-        eua: "🇺🇸",
-        mexico: "🇲🇽",
-        canada: "🇨🇦",
-        colombia: "🇨🇴",
-        chile: "🇨🇱",
-        equador: "🇪🇨",
-        ecuador: "🇪🇨",
-        paraguai: "🇵🇾",
-        paraguay: "🇵🇾",
-        peru: "🇵🇪",
-        venezuela: "🇻🇪",
-        bolivia: "🇧🇴",
-        "costa rica": "🇨🇷",
-        camaroes: "🇨🇲",
-        cameroon: "🇨🇲",
-        gana: "🇬🇭",
-        ghana: "🇬🇭",
-        suica: "🇨🇭",
-        switzerland: "🇨🇭",
-        "coreia do sul": "🇰🇷",
-        "south korea": "🇰🇷",
-        coreia: "🇰🇷",
-        "arabia saudita": "🇸🇦",
-        "saudi arabia": "🇸🇦",
-        polonia: "🇵🇱",
-        poland: "🇵🇱",
-        suecia: "🇸🇪",
-        sweden: "🇸🇪",
-        dinamarca: "🇩🇰",
-        denmark: "🇩🇰",
-        australia: "🇦🇺",
-        servia: "🇷🇸",
-        serbia: "🇷🇸",
-        tunisia: "🇹🇳",
-        ira: "🇮🇷",
-        iran: "🇮🇷",
-        gales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
-        wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
-        ucrania: "🇺🇦",
-        ukraine: "🇺🇦",
-        turquia: "🇹🇷",
-        turkey: "🇹🇷",
-        austria: "🇦🇹",
-        grecia: "🇬🇷",
-        greece: "🇬🇷",
-        egito: "🇪🇬",
-        egypt: "🇪🇬",
-        nigeria: "🇳🇬",
-        china: "🇨🇳",
-        russia: "🇷🇺",
-        catar: "🇶🇦",
-        qatar: "🇶🇦",
+    const codeMap: Record<string, string> = {
+        brasil: "br",
+        brazil: "br",
+        alemanha: "de",
+        germany: "de",
+        argentina: "ar",
+        franca: "fr",
+        france: "fr",
+        italia: "it",
+        italy: "it",
+        espanha: "es",
+        spain: "es",
+        inglaterra: "gb",
+        england: "gb",
+        belgica: "be",
+        belgium: "be",
+        holanda: "nl",
+        netherlands: "nl",
+        "paises baixos": "nl",
+        portugal: "pt",
+        uruguai: "uy",
+        uruguay: "uy",
+        croacia: "hr",
+        croatia: "hr",
+        japao: "jp",
+        japan: "jp",
+        marrocos: "ma",
+        morocco: "ma",
+        senegal: "sn",
+        "estados unidos": "us",
+        usa: "us",
+        eua: "us",
+        mexico: "mx",
+        canada: "ca",
+        colombia: "co",
+        chile: "cl",
+        equador: "ec",
+        ecuador: "ec",
+        paraguai: "py",
+        paraguay: "py",
+        peru: "pe",
+        venezuela: "ve",
+        bolivia: "bo",
+        "costa rica": "cr",
+        camaroes: "cm",
+        cameroon: "cm",
+        gana: "gh",
+        ghana: "gh",
+        suica: "ch",
+        switzerland: "ch",
+        "coreia do sul": "kr",
+        "south korea": "kr",
+        coreia: "kr",
+        "arabia saudita": "sa",
+        "saudi arabia": "sa",
+        polonia: "pl",
+        poland: "pl",
+        suecia: "se",
+        sweden: "se",
+        dinamarca: "dk",
+        denmark: "dk",
+        australia: "au",
+        servia: "rs",
+        serbia: "rs",
+        tunisia: "tn",
+        ira: "ir",
+        iran: "ir",
+        gales: "gb-wls",
+        wales: "gb-wls",
+        ucrania: "ua",
+        ukraine: "ua",
+        turquia: "tr",
+        turkey: "tr",
+        austria: "at",
+        grecia: "gr",
+        greece: "gr",
+        egito: "eg",
+        egypt: "eg",
+        nigeria: "ng",
+        china: "cn",
+        russia: "ru",
+        catar: "qa",
+        qatar: "qa",
     };
-    return flagMap[normalized] || "🏳️";
+    return codeMap[normalized] || "un";
 };
 
 export default function AdminBolao() {
@@ -335,6 +335,32 @@ export default function AdminBolao() {
         }
     };
 
+    const [savingDiscount, setSavingDiscount] = useState(false);
+
+    const handleSaveDiscount = async () => {
+        setSavingDiscount(true);
+        try {
+            const token = getToken();
+            const res = await fetch("/api/settings", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ bolao_discount_percentage: String(discountPct) })
+            });
+            if (res.ok) {
+                showToast("✅ Desconto do Bolão atualizado com sucesso!", "success");
+            } else {
+                showToast("Erro ao salvar desconto.", "error");
+            }
+        } catch {
+            showToast("Erro de conexão.", "error");
+        } finally {
+            setSavingDiscount(false);
+        }
+    };
+
     const inputStyle: React.CSSProperties = {
         padding: "0.6rem 0.9rem",
         borderRadius: "8px",
@@ -352,10 +378,30 @@ export default function AdminBolao() {
                 <header className={styles.header}>
                     <div>
                         <h1>⚽ Gerenciar Bolão Copa 2026</h1>
-                        <p style={{ fontSize: "0.85rem", color: "#888", marginTop: "4px" }}>
-                            Adicione jogos, defina placares e veja quem acertou. Desconto atual dos cupons: <strong style={{ color: "#107c41" }}>{discountPct}%</strong>
-                            <a href="/admin/settings" style={{ marginLeft: "8px", fontSize: "0.8rem", color: "#107c41", textDecoration: "underline" }}>Alterar</a>
-                        </p>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "6px", flexWrap: "wrap" }}>
+                            <p style={{ fontSize: "0.85rem", color: "#888", margin: 0 }}>
+                                Adicione jogos, defina placares e veja quem acertou.
+                            </p>
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "4px 10px", borderRadius: "8px" }}>
+                                <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#166534" }}>Prêmio de Acerto:</span>
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    max="100"
+                                    value={discountPct} 
+                                    onChange={(e) => setDiscountPct(Number(e.target.value))} 
+                                    style={{ width: "50px", padding: "2px 4px", borderRadius: "6px", border: "1.5px solid #bbf7d0", textAlign: "center", fontSize: "0.8rem", fontWeight: 700, outline: "none", color: "#107c41" }}
+                                />
+                                <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#166534" }}>% OFF</span>
+                                <button 
+                                    onClick={handleSaveDiscount}
+                                    disabled={savingDiscount}
+                                    style={{ background: "#107c41", color: "white", border: "none", borderRadius: "6px", padding: "3px 10px", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", transition: "background 0.2s" }}
+                                >
+                                    {savingDiscount ? "..." : "Salvar"}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div style={{ display: "flex", gap: "10px" }}>
                         <button
@@ -515,8 +561,10 @@ export default function AdminBolao() {
                                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
                                                 <div>
                                                     <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-                                                        <h3 style={{ fontWeight: 700, fontSize: "1rem", color: "#1a1a1a", margin: 0 }}>
-                                                            🇧🇷 Brasil vs {getCountryFlagEmoji(match.team_b)} {match.team_b}
+                                                        <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 700, fontSize: "1rem", color: "#1a1a1a", margin: 0 }}>
+                                                            <img src="https://flagcdn.com/w40/br.png" alt="br" style={{ width: "22px", height: "auto", borderRadius: "3px", boxShadow: "0 1px 3px rgba(0,0,0,0.15)", verticalAlign: "middle" }} />
+                                                            <span>Brasil vs {match.team_b}</span>
+                                                            <img src={`https://flagcdn.com/w40/${getCountryCode(match.team_b)}.png`} alt={match.team_b} style={{ width: "22px", height: "auto", borderRadius: "3px", boxShadow: "0 1px 3px rgba(0,0,0,0.15)", verticalAlign: "middle" }} />
                                                         </h3>
                                                         <span style={{
                                                             fontSize: "0.7rem", fontWeight: 700, padding: "3px 10px",

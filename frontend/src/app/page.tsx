@@ -31,94 +31,94 @@ import { useCart } from "@/context/CartContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 
-const getCountryFlagEmoji = (name: string): string => {
-    if (!name) return "🏳️";
+const getCountryCode = (name: string): string => {
+    if (!name) return "un";
     const normalized = name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const flagMap: Record<string, string> = {
-        brasil: "🇧🇷",
-        brazil: "🇧🇷",
-        alemanha: "🇩🇪",
-        germany: "🇩🇪",
-        argentina: "🇦🇷",
-        franca: "🇫🇷",
-        france: "🇫🇷",
-        italia: "🇮🇹",
-        italy: "🇮🇹",
-        espanha: "🇪🇸",
-        spain: "🇪🇸",
-        inglaterra: "🇬🇧",
-        england: "🇬🇧",
-        belgica: "🇧🇪",
-        belgium: "🇧🇪",
-        holanda: "🇳🇱",
-        netherlands: "🇳🇱",
-        "paises baixos": "🇳🇱",
-        portugal: "🇵🇹",
-        uruguai: "🇺🇾",
-        uruguay: "🇺🇾",
-        croacia: "🇭🇷",
-        croatia: "🇭🇷",
-        japao: "🇯🇵",
-        japan: "🇯🇵",
-        marrocos: "🇲🇦",
-        morocco: "🇲🇦",
-        senegal: "🇸🇳",
-        "estados unidos": "🇺🇸",
-        usa: "🇺🇸",
-        eua: "🇺🇸",
-        mexico: "🇲🇽",
-        canada: "🇨🇦",
-        colombia: "🇨🇴",
-        chile: "🇨🇱",
-        equador: "🇪🇨",
-        ecuador: "🇪🇨",
-        paraguai: "🇵🇾",
-        paraguay: "🇵🇾",
-        peru: "🇵🇪",
-        venezuela: "🇻🇪",
-        bolivia: "🇧🇴",
-        "costa rica": "🇨🇷",
-        camaroes: "🇨🇲",
-        cameroon: "🇨🇲",
-        gana: "🇬🇭",
-        ghana: "🇬🇭",
-        suica: "🇨🇭",
-        switzerland: "🇨🇭",
-        "coreia do sul": "🇰🇷",
-        "south korea": "🇰🇷",
-        coreia: "🇰🇷",
-        "arabia saudita": "🇸🇦",
-        "saudi arabia": "🇸🇦",
-        polonia: "🇵🇱",
-        poland: "🇵🇱",
-        suecia: "🇸🇪",
-        sweden: "🇸🇪",
-        dinamarca: "🇩🇰",
-        denmark: "🇩🇰",
-        australia: "🇦🇺",
-        servia: "🇷🇸",
-        serbia: "🇷🇸",
-        tunisia: "🇹🇳",
-        ira: "🇮🇷",
-        iran: "🇮🇷",
-        gales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
-        wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
-        ucrania: "🇺🇦",
-        ukraine: "🇺🇦",
-        turquia: "🇹🇷",
-        turkey: "🇹🇷",
-        austria: "🇦🇹",
-        grecia: "🇬🇷",
-        greece: "🇬🇷",
-        egito: "🇪🇬",
-        egypt: "🇪🇬",
-        nigeria: "🇳🇬",
-        china: "🇨🇳",
-        russia: "🇷🇺",
-        catar: "🇶🇦",
-        qatar: "🇶🇦",
+    const codeMap: Record<string, string> = {
+        brasil: "br",
+        brazil: "br",
+        alemanha: "de",
+        germany: "de",
+        argentina: "ar",
+        franca: "fr",
+        france: "fr",
+        italia: "it",
+        italy: "it",
+        espanha: "es",
+        spain: "es",
+        inglaterra: "gb",
+        england: "gb",
+        belgica: "be",
+        belgium: "be",
+        holanda: "nl",
+        netherlands: "nl",
+        "paises baixos": "nl",
+        portugal: "pt",
+        uruguai: "uy",
+        uruguay: "uy",
+        croacia: "hr",
+        croatia: "hr",
+        japao: "jp",
+        japan: "jp",
+        marrocos: "ma",
+        morocco: "ma",
+        senegal: "sn",
+        "estados unidos": "us",
+        usa: "us",
+        eua: "us",
+        mexico: "mx",
+        canada: "ca",
+        colombia: "co",
+        chile: "cl",
+        equador: "ec",
+        ecuador: "ec",
+        paraguai: "py",
+        paraguay: "py",
+        peru: "pe",
+        venezuela: "ve",
+        bolivia: "bo",
+        "costa rica": "cr",
+        camaroes: "cm",
+        cameroon: "cm",
+        gana: "gh",
+        ghana: "gh",
+        suica: "ch",
+        switzerland: "ch",
+        "coreia do sul": "kr",
+        "south korea": "kr",
+        coreia: "kr",
+        "arabia saudita": "sa",
+        "saudi arabia": "sa",
+        polonia: "pl",
+        poland: "pl",
+        suecia: "se",
+        sweden: "se",
+        dinamarca: "dk",
+        denmark: "dk",
+        australia: "au",
+        servia: "rs",
+        serbia: "rs",
+        tunisia: "tn",
+        ira: "ir",
+        iran: "ir",
+        gales: "gb-wls",
+        wales: "gb-wls",
+        ucrania: "ua",
+        ukraine: "ua",
+        turquia: "tr",
+        turkey: "tr",
+        austria: "at",
+        grecia: "gr",
+        greece: "gr",
+        egito: "eg",
+        egypt: "eg",
+        nigeria: "ng",
+        china: "cn",
+        russia: "ru",
+        catar: "qa",
+        qatar: "qa",
     };
-    return flagMap[normalized] || "🏳️";
+    return codeMap[normalized] || "un";
 };
 
 export default function Home() {
@@ -1005,7 +1005,13 @@ export default function Home() {
                                             }}>
                                                 {/* Team A */}
                                                 <div style={{ textAlign: "center" }}>
-                                                    <div style={{ fontSize: "2.8rem", lineHeight: 1, marginBottom: "0.5rem", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }}>🇧🇷</div>
+                                                    <div style={{ display: "inline-block", marginBottom: "0.5rem" }}>
+                                                        <img 
+                                                            src="https://flagcdn.com/w160/br.png" 
+                                                            alt="Brasil" 
+                                                            style={{ width: "68px", height: "auto", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)", display: "block" }}
+                                                        />
+                                                    </div>
                                                     <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "white", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{match.team_a}</div>
                                                 </div>
 
@@ -1032,8 +1038,12 @@ export default function Home() {
 
                                                 {/* Team B */}
                                                 <div style={{ textAlign: "center" }}>
-                                                    <div style={{ fontSize: "2.8rem", lineHeight: 1, marginBottom: "0.5rem", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }}>
-                                                        {getCountryFlagEmoji(match.team_b)}
+                                                    <div style={{ display: "inline-block", marginBottom: "0.5rem" }}>
+                                                        <img 
+                                                            src={`https://flagcdn.com/w160/${getCountryCode(match.team_b)}.png`} 
+                                                            alt={match.team_b} 
+                                                            style={{ width: "68px", height: "auto", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)", display: "block" }}
+                                                        />
                                                     </div>
                                                     <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "white", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{match.team_b}</div>
                                                 </div>
