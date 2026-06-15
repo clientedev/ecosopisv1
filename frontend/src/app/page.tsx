@@ -734,280 +734,280 @@ export default function Home() {
             {/* NEW: World Cup Guesses Section (Bolão) */}
             {activeTheme === "copa_do_mundo" && (
                 <section style={{
-                    padding: "4rem 1rem",
-                    background: "linear-gradient(135deg, rgba(16, 124, 65, 0.05) 0%, rgba(0, 39, 118, 0.05) 100%)",
-                    borderBottom: "1px solid rgba(16, 124, 65, 0.1)",
+                    padding: "5rem 1rem",
+                    background: "linear-gradient(160deg, #002776 0%, #005227 60%, #009c3b 100%)",
+                    position: "relative",
+                    overflow: "hidden",
                 }}>
-                    <div style={{
-                        maxWidth: "1200px",
-                        margin: "0 auto",
-                        background: "rgba(255, 255, 255, 0.85)",
-                        backdropFilter: "blur(16px)",
-                        border: "1.5px solid rgba(16, 124, 65, 0.2)",
-                        borderRadius: "24px",
-                        padding: isMobile ? "2rem 1.5rem" : "3rem",
-                        boxShadow: "0 10px 40px rgba(16, 124, 65, 0.08)",
-                        position: "relative",
-                        overflow: "hidden"
-                    }}>
-                        {/* Decorative flags/elements background */}
+                    {/* Animated background blobs */}
+                    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
                         <div style={{
-                            position: "absolute",
-                            top: "-30px",
-                            right: "-30px",
-                            fontSize: "6rem",
-                            opacity: 0.12,
-                            pointerEvents: "none",
-                            userSelect: "none"
+                            position: "absolute", top: "-80px", right: "-80px",
+                            width: "420px", height: "420px",
+                            background: "radial-gradient(circle, rgba(255,224,0,0.15) 0%, transparent 70%)",
+                            borderRadius: "50%"
+                        }} />
+                        <div style={{
+                            position: "absolute", bottom: "-100px", left: "-60px",
+                            width: "380px", height: "380px",
+                            background: "radial-gradient(circle, rgba(0,156,59,0.25) 0%, transparent 70%)",
+                            borderRadius: "50%"
+                        }} />
+                        <div style={{
+                            position: "absolute", top: "50%", left: "50%",
+                            transform: "translate(-50%, -50%)",
+                            fontSize: "20rem", opacity: 0.03, pointerEvents: "none",
+                            userSelect: "none", lineHeight: 1
                         }}>⚽</div>
+                    </div>
+
+                    {/* Section header */}
+                    <div style={{ textAlign: "center", marginBottom: "3rem", position: "relative", zIndex: 1 }}>
                         <div style={{
-                            position: "absolute",
-                            bottom: "-20px",
-                            left: "-20px",
-                            fontSize: "6rem",
-                            opacity: 0.1,
-                            pointerEvents: "none",
-                            userSelect: "none"
-                        }}>🇧🇷</div>
-
-                        <div style={{ textAlign: "center", marginBottom: "2.5rem", position: "relative", zIndex: 1 }}>
-                            <span style={{
-                                background: "rgba(247, 200, 21, 0.25)",
-                                color: "#0a522b",
-                                padding: "6px 16px",
-                                borderRadius: "20px",
-                                fontSize: "0.85rem",
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: "1px"
-                            }}>
-                                🏆 Bolão Ecosopis Copa 2026
-                            </span>
-                            <h2 style={{
-                                fontSize: "clamp(1.8rem, 4vw, 2.5rem)",
-                                fontWeight: 800,
-                                color: "#002776",
-                                marginTop: "0.75rem",
-                                marginBottom: "0.5rem"
-                            }}>
-                                Palpites dos Jogos do Brasil 🇧🇷
-                            </h2>
-                            <p style={{
-                                color: "#4a4a4a",
-                                fontSize: "1.05rem",
-                                maxWidth: "600px",
-                                margin: "0 auto",
-                                lineHeight: 1.5
-                            }}>
-                                Acerte o placar cheio de qualquer jogo do Brasil e ganhe na hora um cupom de <strong>{bolaoDiscount}% de desconto</strong> para usar em nosso site!
-                            </p>
+                            display: "inline-flex", alignItems: "center", gap: "8px",
+                            background: "rgba(255,224,0,0.15)",
+                            backdropFilter: "blur(8px)",
+                            border: "1px solid rgba(255,224,0,0.3)",
+                            color: "#FFE000",
+                            padding: "7px 20px",
+                            borderRadius: "50px",
+                            fontSize: "0.78rem",
+                            fontWeight: 800,
+                            textTransform: "uppercase" as const,
+                            letterSpacing: "2px",
+                            marginBottom: "1.25rem"
+                        }}>
+                            🏆 Bolão Ecosopis Copa 2026
                         </div>
+                        <h2 style={{
+                            fontSize: "clamp(2rem, 5vw, 3rem)",
+                            fontWeight: 900,
+                            color: "white",
+                            marginBottom: "1rem",
+                            lineHeight: 1.1,
+                            textShadow: "0 2px 20px rgba(0,0,0,0.3)"
+                        }}>
+                            🇧🇷 Chute o Placar &amp; Ganhe!
+                        </h2>
+                        <p style={{
+                            color: "rgba(255,255,255,0.8)",
+                            fontSize: "1.08rem",
+                            maxWidth: "560px",
+                            margin: "0 auto",
+                            lineHeight: 1.65,
+                        }}>
+                            Acerte o placar exato de qualquer jogo do Brasil e receba na hora um cupom de{" "}
+                            <strong style={{ color: "#FFE000" }}>{bolaoDiscount}% de desconto</strong>{" "}
+                            para usar em nosso site!
+                        </p>
+                    </div>
 
-                        {loadingCupMatches ? (
-                            <div style={{ textAlign: "center", padding: "3rem" }}>
-                                <div style={{
-                                    border: "4px solid rgba(16, 124, 65, 0.1)",
-                                    borderLeftColor: "#107c41",
-                                    borderRadius: "50%",
-                                    width: "36px",
-                                    height: "36px",
-                                    animation: "spin 1s linear infinite",
-                                    margin: "0 auto 1rem auto"
-                                }} />
-                                <p style={{ color: "#666", fontSize: "0.95rem" }}>Carregando jogos do Brasil...</p>
-                            </div>
-                        ) : (
+                    {/* Matches grid */}
+                    {loadingCupMatches ? (
+                        <div style={{ textAlign: "center", padding: "4rem", position: "relative", zIndex: 1 }}>
                             <div style={{
-                                display: "grid",
-                                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-                                gap: "2rem",
-                                position: "relative",
-                                zIndex: 1
-                            }}>
-                                {cupMatches.map((match) => {
-                                    const input = cupGuessInputs[match.id] || { score_a: "", score_b: "" };
-                                    const feedback = cupFeedback[match.id];
-                                    const isSaving = savingGuessId === match.id;
-                                    
-                                    const matchDate = new Date(match.match_time);
-                                    const dateStr = matchDate.toLocaleDateString("pt-BR", {
-                                        day: "2-digit",
-                                        month: "2-digit",
-                                        year: "numeric"
-                                    });
-                                    const timeStr = matchDate.toLocaleTimeString("pt-BR", {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                        hour12: false
-                                    });
+                                border: "4px solid rgba(255,255,255,0.1)",
+                                borderLeftColor: "#FFE000",
+                                borderRadius: "50%",
+                                width: "44px", height: "44px",
+                                animation: "spin 1s linear infinite",
+                                margin: "0 auto 1rem auto"
+                            }} />
+                            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.95rem" }}>Carregando jogos do Brasil...</p>
+                        </div>
+                    ) : (
+                        <div style={{
+                            maxWidth: "1100px",
+                            margin: "0 auto",
+                            display: "grid",
+                            gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(460px, 1fr))",
+                            gap: "1.75rem",
+                            position: "relative",
+                            zIndex: 1
+                        }}>
+                            {cupMatches.map((match) => {
+                                const input = cupGuessInputs[match.id] || { score_a: "", score_b: "" };
+                                const feedback = cupFeedback[match.id];
+                                const isSaving = savingGuessId === match.id;
 
-                                    return (
-                                        <div
-                                            key={match.id}
-                                            style={{
-                                                background: match.is_unlocked ? "white" : "#f8f9fa",
-                                                border: match.is_finalized 
-                                                    ? "2px solid #bae6fd" 
-                                                    : match.is_unlocked 
-                                                        ? "2px solid rgba(16, 124, 65, 0.15)" 
-                                                        : "2px solid #e9ecef",
-                                                borderRadius: "20px",
-                                                padding: "2rem 1.5rem",
-                                                boxShadow: match.is_unlocked ? "0 4px 15px rgba(0,0,0,0.03)" : "none",
-                                                position: "relative",
-                                                transition: "all 0.3s ease",
-                                                opacity: match.is_unlocked ? 1 : 0.65,
-                                            }}
-                                        >
-                                            {/* Top match header */}
+                                const matchDate = new Date(match.match_time);
+                                const dateStr = matchDate.toLocaleDateString("pt-BR", {
+                                    weekday: "short", day: "2-digit", month: "short"
+                                });
+                                const timeStr = matchDate.toLocaleTimeString("pt-BR", {
+                                    hour: "2-digit", minute: "2-digit", hour12: false
+                                });
+
+                                const statusLabel = match.is_finalized ? "✅ Finalizado"
+                                    : match.cutoff_passed ? "🔴 Fechado"
+                                    : match.is_unlocked ? "🟢 Aberto"
+                                    : "🔒 Bloqueado";
+
+                                const statusColors = match.is_finalized
+                                    ? { bg: "rgba(14,165,233,0.25)", text: "#7dd3fc" }
+                                    : match.cutoff_passed
+                                        ? { bg: "rgba(239,68,68,0.2)", text: "#fca5a5" }
+                                        : match.is_unlocked
+                                            ? { bg: "rgba(34,197,94,0.2)", text: "#86efac" }
+                                            : { bg: "rgba(255,255,255,0.08)", text: "rgba(255,255,255,0.4)" };
+
+                                return (
+                                    <div key={match.id} style={{
+                                        background: "rgba(255,255,255,0.07)",
+                                        backdropFilter: "blur(20px)",
+                                        WebkitBackdropFilter: "blur(20px)",
+                                        border: match.is_finalized
+                                            ? "1.5px solid rgba(14,165,233,0.4)"
+                                            : match.is_unlocked
+                                                ? "1.5px solid rgba(255,224,0,0.3)"
+                                                : "1.5px solid rgba(255,255,255,0.1)",
+                                        borderRadius: "24px",
+                                        overflow: "hidden",
+                                        position: "relative",
+                                        transition: "transform 0.25s ease, box-shadow 0.25s ease",
+                                        opacity: match.is_unlocked || match.is_finalized ? 1 : 0.5,
+                                        boxShadow: match.is_unlocked
+                                            ? "0 8px 40px rgba(0,0,0,0.3)"
+                                            : "0 4px 20px rgba(0,0,0,0.2)"
+                                    }}>
+                                        {/* Top accent bar */}
+                                        {match.is_unlocked && !match.is_finalized && (
                                             <div style={{
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                                alignItems: "center",
-                                                marginBottom: "1.25rem",
-                                                borderBottom: "1px solid #f1f3f5",
-                                                paddingBottom: "0.75rem"
+                                                position: "absolute", top: 0, left: 0, right: 0, height: "3px",
+                                                background: "linear-gradient(90deg, #009c3b, #FFE000, #009c3b)"
+                                            }} />
+                                        )}
+
+                                        {/* Card header */}
+                                        <div style={{
+                                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                                            padding: "1rem 1.5rem 0.75rem",
+                                            borderBottom: "1px solid rgba(255,255,255,0.08)"
+                                        }}>
+                                            <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>
+                                                📅 {dateStr} · {timeStr}h
+                                            </span>
+                                            <span style={{
+                                                fontSize: "0.7rem", fontWeight: 700,
+                                                padding: "3px 10px", borderRadius: "20px",
+                                                background: statusColors.bg, color: statusColors.text,
+                                                textTransform: "uppercase" as const, letterSpacing: "0.5px"
                                             }}>
-                                                <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#666" }}>
-                                                    📅 {dateStr} às {timeStr}h
-                                                </span>
-                                                <span style={{
-                                                    fontSize: "0.72rem",
-                                                    fontWeight: 700,
-                                                    padding: "3px 8px",
-                                                    borderRadius: "12px",
-                                                    background: match.is_finalized 
-                                                        ? "#e0f2fe" 
-                                                        : match.cutoff_passed 
-                                                            ? "#fee2e2" 
-                                                            : match.is_unlocked 
-                                                                ? "#dcfce7" 
-                                                                : "#f1f3f5",
-                                                    color: match.is_finalized 
-                                                        ? "#0369a1" 
-                                                        : match.cutoff_passed 
-                                                            ? "#b91c1c" 
-                                                            : match.is_unlocked 
-                                                                ? "#15803d" 
-                                                                : "#6c757d",
-                                                    textTransform: "uppercase"
-                                                }}>
-                                                    {match.is_finalized 
-                                                        ? "Finalizado" 
-                                                        : match.cutoff_passed 
-                                                            ? "Fechado" 
-                                                            : match.is_unlocked 
-                                                                ? "Aberto" 
-                                                                : "🔒 Bloqueado"}
-                                                </span>
+                                                {statusLabel}
+                                            </span>
+                                        </div>
+
+                                        {/* FIFA-style scoreboard */}
+                                        <div style={{ padding: "1.5rem 1.5rem 1.25rem" }}>
+                                            <div style={{
+                                                textAlign: "center", fontSize: "0.68rem",
+                                                color: "rgba(255,255,255,0.38)", fontWeight: 600,
+                                                textTransform: "uppercase" as const, letterSpacing: "0.5px",
+                                                marginBottom: "1.25rem"
+                                            }}>
+                                                📍 {match.stadium || "Estádio da Copa"}
                                             </div>
 
-                                            {/* Stadium and Teams */}
-                                            <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-                                                <div style={{ fontSize: "0.8rem", color: "#888", marginBottom: "0.5rem" }}>
-                                                    📍 {match.stadium || "Estádio da Copa"}
+                                            <div style={{
+                                                display: "grid",
+                                                gridTemplateColumns: "1fr auto 1fr",
+                                                alignItems: "center", gap: "0.75rem"
+                                            }}>
+                                                {/* Team A */}
+                                                <div style={{ textAlign: "center" }}>
+                                                    <div style={{ fontSize: "2.8rem", lineHeight: 1, marginBottom: "0.5rem", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }}>🇧🇷</div>
+                                                    <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "white", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{match.team_a}</div>
                                                 </div>
-                                                
-                                                <div style={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    gap: "1rem",
-                                                    fontSize: "1.25rem",
-                                                    fontWeight: 700,
-                                                    color: "#1a1a1a"
-                                                }}>
-                                                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                                        🇧🇷 {match.team_a}
-                                                    </span>
-                                                    <span style={{ color: "#aaa", fontWeight: 400 }}>vs</span>
-                                                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                                        {match.team_b === "Haiti" ? "🇭🇹" : "🇨🇴"} {match.team_b}
-                                                    </span>
+
+                                                {/* Center: score if finalized, else VS */}
+                                                <div style={{ textAlign: "center" }}>
+                                                    {match.is_finalized ? (
+                                                        <div style={{
+                                                            background: "rgba(14,165,233,0.18)",
+                                                            border: "2px solid rgba(14,165,233,0.4)",
+                                                            borderRadius: "14px", padding: "0.6rem 1rem",
+                                                            display: "inline-block"
+                                                        }}>
+                                                            <div style={{ fontSize: "1.9rem", fontWeight: 900, color: "white", lineHeight: 1, letterSpacing: "2px" }}>
+                                                                {match.score_a} <span style={{ color: "rgba(255,255,255,0.35)" }}>×</span> {match.score_b}
+                                                            </div>
+                                                            <div style={{ fontSize: "0.58rem", color: "#7dd3fc", fontWeight: 700, textTransform: "uppercase" as const, marginTop: "2px" }}>
+                                                                Placar Final
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "3px", textTransform: "uppercase" as const }}>VS</div>
+                                                    )}
+                                                </div>
+
+                                                {/* Team B */}
+                                                <div style={{ textAlign: "center" }}>
+                                                    <div style={{ fontSize: "2.8rem", lineHeight: 1, marginBottom: "0.5rem", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }}>
+                                                        {match.team_b_flag || "🏳️"}
+                                                    </div>
+                                                    <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "white", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{match.team_b}</div>
                                                 </div>
                                             </div>
+                                        </div>
 
-                                            {/* Content based on status */}
+                                        {/* Bottom action area */}
+                                        <div style={{ padding: "0 1.5rem 1.5rem", borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: "1rem" }}>
                                             {!match.is_unlocked ? (
                                                 <div style={{
-                                                    textAlign: "center",
-                                                    padding: "1rem",
-                                                    color: "#777",
-                                                    fontSize: "0.88rem",
-                                                    background: "#f1f3f5",
-                                                    borderRadius: "12px",
-                                                    border: "1px solid #e9ecef"
+                                                    textAlign: "center", padding: "0.85rem 1rem",
+                                                    color: "rgba(255,255,255,0.38)", fontSize: "0.82rem",
+                                                    background: "rgba(255,255,255,0.04)", borderRadius: "12px",
+                                                    border: "1px solid rgba(255,255,255,0.07)"
                                                 }}>
-                                                    🔒 Jogo bloqueado: palpite liberado apenas após concluir o jogo anterior.
+                                                    🔒 Liberado após o jogo anterior ser concluído
                                                 </div>
                                             ) : match.is_finalized ? (
-                                                <div style={{ textAlign: "center" }}>
-                                                    {/* Official result */}
-                                                    <div style={{
-                                                        background: "#bae6fd",
-                                                        padding: "0.75rem",
-                                                        borderRadius: "12px",
-                                                        fontSize: "1.1rem",
-                                                        fontWeight: 700,
-                                                        color: "#0369a1",
-                                                        marginBottom: "1rem"
-                                                    }}>
-                                                        Placar Oficial: {match.score_a} x {match.score_b}
-                                                    </div>
-
-                                                    {/* User result */}
+                                                <div>
                                                     {match.user_guess ? (
                                                         <div style={{
-                                                            padding: "1rem",
-                                                            borderRadius: "12px",
-                                                            background: match.user_guess.is_correct ? "#dcfce7" : "#fee2e2",
-                                                            border: match.user_guess.is_correct ? "1px solid #bbf7d0" : "1px solid #fecaca",
-                                                            fontSize: "0.92rem",
-                                                            color: match.user_guess.is_correct ? "#15803d" : "#b91c1c"
+                                                            padding: "1rem", borderRadius: "14px", textAlign: "center",
+                                                            background: match.user_guess.is_correct
+                                                                ? "linear-gradient(135deg, rgba(34,197,94,0.2), rgba(16,185,129,0.15))"
+                                                                : "rgba(239,68,68,0.1)",
+                                                            border: match.user_guess.is_correct
+                                                                ? "1px solid rgba(34,197,94,0.4)"
+                                                                : "1px solid rgba(239,68,68,0.25)"
                                                         }}>
-                                                            <div style={{ fontWeight: 700, marginBottom: "4px" }}>
-                                                                Seu palpite foi: {match.user_guess.guess_score_a} x {match.user_guess.guess_score_b}
+                                                            <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.5)", marginBottom: "6px", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>Seu palpite</div>
+                                                            <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "white", letterSpacing: "3px", marginBottom: "8px" }}>
+                                                                {match.user_guess.guess_score_a} × {match.user_guess.guess_score_b}
                                                             </div>
                                                             {match.user_guess.is_correct ? (
                                                                 <div>
-                                                                    🎉 Parabéns! Você acertou em cheio!
+                                                                    <div style={{ fontSize: "0.88rem", color: "#86efac", fontWeight: 700, marginBottom: "10px" }}>
+                                                                        🎉 Parabéns! Você acertou em cheio!
+                                                                    </div>
                                                                     <div style={{
-                                                                        marginTop: "10px",
-                                                                        display: "flex",
-                                                                        alignItems: "center",
-                                                                        justifyContent: "center",
-                                                                        gap: "8px",
-                                                                        background: "white",
-                                                                        padding: "6px 12px",
-                                                                        borderRadius: "8px",
-                                                                        border: "1px dashed #22c55e"
+                                                                        display: "inline-flex", alignItems: "center", gap: "8px",
+                                                                        background: "rgba(255,224,0,0.13)",
+                                                                        border: "1.5px dashed rgba(255,224,0,0.5)",
+                                                                        padding: "8px 14px", borderRadius: "10px"
                                                                     }}>
-                                                                        <strong style={{ fontSize: "1rem", color: "#107c41" }}>
+                                                                        <strong style={{ fontSize: "1rem", color: "#FFE000", letterSpacing: "2px" }}>
                                                                             {match.user_guess.reward_coupon_code}
                                                                         </strong>
-                                                                        <button 
-                                                                            onClick={() => copyToClipboard(match.user_guess.reward_coupon_code)}
-                                                                            style={{
-                                                                                border: "none",
-                                                                                background: "#107c41",
-                                                                                color: "white",
-                                                                                fontSize: "0.75rem",
-                                                                                padding: "4px 8px",
-                                                                                borderRadius: "6px",
-                                                                                fontWeight: 700,
-                                                                                cursor: "pointer"
-                                                                            }}
-                                                                        >
+                                                                        <button onClick={() => copyToClipboard(match.user_guess.reward_coupon_code)} style={{
+                                                                            border: "none", background: "#FFE000", color: "#002776",
+                                                                            fontSize: "0.7rem", padding: "4px 9px",
+                                                                            borderRadius: "6px", fontWeight: 800, cursor: "pointer"
+                                                                        }}>
                                                                             Copiar
                                                                         </button>
                                                                     </div>
                                                                 </div>
                                                             ) : (
-                                                                <div>Não foi dessa vez! Boa sorte no próximo jogo. 🍀</div>
+                                                                <div style={{ fontSize: "0.83rem", color: "#fca5a5" }}>
+                                                                    Não foi dessa vez! Boa sorte no próximo. 🍀
+                                                                </div>
                                                             )}
                                                         </div>
                                                     ) : (
-                                                        <div style={{ fontSize: "0.85rem", color: "#888" }}>
+                                                        <div style={{ textAlign: "center", fontSize: "0.82rem", color: "rgba(255,255,255,0.3)", padding: "0.75rem" }}>
                                                             Você não enviou palpite para este jogo.
                                                         </div>
                                                     )}
@@ -1016,141 +1016,109 @@ export default function Home() {
                                                 <div>
                                                     {!user ? (
                                                         <div style={{
-                                                            textAlign: "center",
-                                                            padding: "1rem 0.5rem",
-                                                            background: "rgba(0, 39, 118, 0.03)",
-                                                            borderRadius: "12px",
-                                                            border: "1px dashed rgba(0, 39, 118, 0.15)"
+                                                            textAlign: "center", padding: "1rem",
+                                                            background: "rgba(255,255,255,0.05)",
+                                                            borderRadius: "14px", border: "1px dashed rgba(255,224,0,0.3)"
                                                         }}>
-                                                            <p style={{ fontSize: "0.88rem", color: "#444", marginBottom: "0.75rem", lineHeight: 1.4 }}>
-                                                                Quer palpitar e concorrer a <strong>{bolaoDiscount}% de desconto</strong>?
+                                                            <p style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.65)", marginBottom: "0.9rem", lineHeight: 1.45 }}>
+                                                                Quer palpitar e concorrer a{" "}
+                                                                <strong style={{ color: "#FFE000" }}>{bolaoDiscount}% de desconto</strong>?
                                                             </p>
                                                             <Link href="/conta" style={{
                                                                 display: "inline-block",
-                                                                background: "#002776",
-                                                                color: "white",
-                                                                padding: "0.6rem 1.25rem",
-                                                                borderRadius: "8px",
-                                                                fontWeight: 700,
-                                                                fontSize: "0.82rem",
-                                                                textDecoration: "none",
-                                                                transition: "background 0.2s"
+                                                                background: "linear-gradient(135deg, #FFE000, #FFD000)",
+                                                                color: "#002776", padding: "0.65rem 1.4rem",
+                                                                borderRadius: "10px", fontWeight: 800,
+                                                                fontSize: "0.85rem", textDecoration: "none"
                                                             }}>
-                                                                🔑 Faça login para dar seu palpite
+                                                                🔑 Entrar para palpitar
                                                             </Link>
                                                         </div>
                                                     ) : (
                                                         <>
-                                                            {/* Guesses input area */}
-                                                            <div style={{
-                                                                display: "flex",
-                                                                alignItems: "center",
-                                                                justifyContent: "center",
-                                                                gap: "10px",
-                                                                marginBottom: "1.25rem"
-                                                            }}>
+                                                            {/* Score inputs */}
+                                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", marginBottom: "1rem" }}>
                                                                 <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    placeholder="0"
+                                                                    type="number" min="0" placeholder="0"
                                                                     disabled={match.cutoff_passed || isSaving}
                                                                     value={input.score_a}
-                                                                    onChange={(e) => setCupGuessInputs(prev => ({
-                                                                        ...prev,
-                                                                        [match.id]: { ...input, score_a: e.target.value }
-                                                                    }))}
+                                                                    onChange={(e) => setCupGuessInputs(prev => ({ ...prev, [match.id]: { ...input, score_a: e.target.value } }))}
                                                                     style={{
-                                                                        width: "60px",
-                                                                        padding: "0.6rem",
-                                                                        borderRadius: "10px",
-                                                                        border: "1.5px solid #ccc",
-                                                                        textAlign: "center",
-                                                                        fontSize: "1.2rem",
-                                                                        fontWeight: 700
+                                                                        width: "68px", height: "68px",
+                                                                        borderRadius: "14px", border: "2px solid rgba(255,255,255,0.2)",
+                                                                        background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)",
+                                                                        textAlign: "center", fontSize: "1.7rem", fontWeight: 900,
+                                                                        color: "white", outline: "none",
+                                                                        boxShadow: "inset 0 2px 8px rgba(0,0,0,0.2)"
                                                                     }}
                                                                 />
-                                                                <span style={{ fontSize: "1.2rem", color: "#666", fontWeight: 700 }}>x</span>
+                                                                <div style={{ fontSize: "1.5rem", fontWeight: 900, color: "rgba(255,255,255,0.35)" }}>×</div>
                                                                 <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    placeholder="0"
+                                                                    type="number" min="0" placeholder="0"
                                                                     disabled={match.cutoff_passed || isSaving}
                                                                     value={input.score_b}
-                                                                    onChange={(e) => setCupGuessInputs(prev => ({
-                                                                        ...prev,
-                                                                        [match.id]: { ...input, score_b: e.target.value }
-                                                                    }))}
+                                                                    onChange={(e) => setCupGuessInputs(prev => ({ ...prev, [match.id]: { ...input, score_b: e.target.value } }))}
                                                                     style={{
-                                                                        width: "60px",
-                                                                        padding: "0.6rem",
-                                                                        borderRadius: "10px",
-                                                                        border: "1.5px solid #ccc",
-                                                                        textAlign: "center",
-                                                                        fontSize: "1.2rem",
-                                                                        fontWeight: 700
+                                                                        width: "68px", height: "68px",
+                                                                        borderRadius: "14px", border: "2px solid rgba(255,255,255,0.2)",
+                                                                        background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)",
+                                                                        textAlign: "center", fontSize: "1.7rem", fontWeight: 900,
+                                                                        color: "white", outline: "none",
+                                                                        boxShadow: "inset 0 2px 8px rgba(0,0,0,0.2)"
                                                                     }}
                                                                 />
                                                             </div>
 
-                                                            {/* Save Button */}
+                                                            {/* Submit */}
                                                             {!match.cutoff_passed && (
                                                                 <button
                                                                     onClick={() => handleSaveGuess(match.id)}
                                                                     disabled={isSaving}
-                                                                    className="btn-primary"
                                                                     style={{
-                                                                        width: "100%",
-                                                                        padding: "0.7rem",
-                                                                        borderRadius: "10px",
-                                                                        border: "none",
-                                                                        fontSize: "0.9rem",
-                                                                        fontWeight: 700,
-                                                                        cursor: isSaving ? "not-allowed" : "pointer"
+                                                                        width: "100%", padding: "0.85rem",
+                                                                        borderRadius: "12px", border: "none",
+                                                                        fontSize: "0.9rem", fontWeight: 800,
+                                                                        cursor: isSaving ? "not-allowed" : "pointer",
+                                                                        background: isSaving ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #FFE000, #FFCC00)",
+                                                                        color: isSaving ? "rgba(255,255,255,0.4)" : "#002776",
+                                                                        transition: "all 0.2s ease"
                                                                     }}
                                                                 >
-                                                                    {isSaving 
-                                                                        ? "Salvando..." 
-                                                                        : match.user_guess 
-                                                                            ? "⚽ Atualizar Palpite" 
-                                                                            : "⚽ Enviar Palpite"}
+                                                                    {isSaving ? "⏳ Salvando..." : match.user_guess ? "🔄 Atualizar Palpite" : "⚽ Enviar Palpite"}
                                                                 </button>
                                                             )}
 
-                                                            {/* Guess Feedback messages */}
+                                                            {/* Feedback */}
                                                             {feedback && (
                                                                 <div style={{
-                                                                    fontSize: "0.82rem",
-                                                                    textAlign: "center",
-                                                                    marginTop: "8px",
-                                                                    fontWeight: 600,
-                                                                    color: feedback.type === "success" ? "#15803d" : "#b91c1c"
+                                                                    marginTop: "10px", fontSize: "0.82rem",
+                                                                    textAlign: "center", fontWeight: 700,
+                                                                    padding: "6px 12px", borderRadius: "8px",
+                                                                    background: feedback.type === "success" ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
+                                                                    color: feedback.type === "success" ? "#86efac" : "#fca5a5",
+                                                                    border: feedback.type === "success" ? "1px solid rgba(34,197,94,0.3)" : "1px solid rgba(239,68,68,0.3)"
                                                                 }}>
                                                                     {feedback.text}
                                                                 </div>
                                                             )}
 
-                                                            {/* Cutoff message or current guess confirmation */}
+                                                            {/* Cutoff / Current guess note */}
                                                             {match.cutoff_passed ? (
                                                                 <div style={{
-                                                                    textAlign: "center",
-                                                                    fontSize: "0.85rem",
-                                                                    color: "#b91c1c",
-                                                                    fontWeight: 600,
-                                                                    padding: "6px",
-                                                                    background: "#fee2e2",
-                                                                    borderRadius: "8px"
+                                                                    textAlign: "center", fontSize: "0.8rem",
+                                                                    color: "#fca5a5", fontWeight: 600,
+                                                                    padding: "8px 12px", marginTop: "8px",
+                                                                    background: "rgba(239,68,68,0.1)", borderRadius: "8px",
+                                                                    border: "1px solid rgba(239,68,68,0.2)"
                                                                 }}>
-                                                                    ⏳ Palpites fechados 1 hora antes do início do jogo.
+                                                                    ⏳ Palpites fechados 1h antes do início
                                                                 </div>
                                                             ) : (
                                                                 match.user_guess && (
-                                                                    <div style={{
-                                                                        textAlign: "center",
-                                                                        fontSize: "0.8rem",
-                                                                        color: "#666",
-                                                                        marginTop: "10px"
-                                                                    }}>
-                                                                        Placar atual: <strong>{match.user_guess.guess_score_a} x {match.user_guess.guess_score_b}</strong> (pode alterar até 1h antes do jogo)
+                                                                    <div style={{ textAlign: "center", fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", marginTop: "8px" }}>
+                                                                        Palpite atual: <strong style={{ color: "rgba(255,255,255,0.6)" }}>
+                                                                            {match.user_guess.guess_score_a} × {match.user_guess.guess_score_b}
+                                                                        </strong> · pode alterar até 1h antes
                                                                     </div>
                                                                 )
                                                             )}
@@ -1159,11 +1127,11 @@ export default function Home() {
                                                 </div>
                                             )}
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </section>
             )}
 
