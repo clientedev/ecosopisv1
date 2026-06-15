@@ -233,70 +233,64 @@ app = FastAPI(title="ECOSOPIS API", version="1.1.0")
 
 def _ensure_extra_tables():
     """Ensure world_cup, system_settings and other newer tables exist in PostgreSQL (Railway)."""
-    with engine.connect() as conn:
-        is_sqlite = "sqlite" in str(conn.engine.url)
-        
-        # system_settings - critical for theme saving
-        try:
+    is_sqlite = "sqlite" in str(engine.url)
+    
+    # system_settings - critical for theme saving
+    try:
+        with engine.begin() as conn:
             if is_sqlite:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS system_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, key VARCHAR UNIQUE NOT NULL, value TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
             else:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS system_settings (id SERIAL PRIMARY KEY, key VARCHAR UNIQUE NOT NULL, value TEXT, updated_at TIMESTAMPTZ DEFAULT now())"))
-            conn.commit()
-        except Exception as e:
-            logger.warning(f"system_settings ensure: {e}")
-            try: conn.rollback()
-            except: pass
+        logger.info("✓ system_settings table ensured.")
+    except Exception as e:
+        logger.warning(f"system_settings ensure: {e}")
 
-        # world_cup_matches
-        try:
+    # world_cup_matches
+    try:
+        with engine.begin() as conn:
             if is_sqlite:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_matches (id INTEGER PRIMARY KEY AUTOINCREMENT, team_a VARCHAR DEFAULT 'Brasil', team_b VARCHAR NOT NULL, stadium VARCHAR, match_time TIMESTAMP NOT NULL, score_a INTEGER, score_b INTEGER, is_finalized BOOLEAN DEFAULT FALSE, is_unlocked BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
             else:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_matches (id SERIAL PRIMARY KEY, team_a VARCHAR DEFAULT 'Brasil', team_b VARCHAR NOT NULL, stadium VARCHAR, match_time TIMESTAMPTZ NOT NULL, score_a INTEGER, score_b INTEGER, is_finalized BOOLEAN DEFAULT FALSE, is_unlocked BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT now())"))
-            conn.commit()
-        except Exception as e:
-            logger.warning(f"world_cup_matches ensure: {e}")
-            try: conn.rollback()
-            except: pass
+        logger.info("✓ world_cup_matches table ensured.")
+    except Exception as e:
+        logger.warning(f"world_cup_matches ensure: {e}")
 
-        # world_cup_guesses
-        try:
+    # world_cup_guesses
+    try:
+        with engine.begin() as conn:
             if is_sqlite:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_guesses (id INTEGER PRIMARY KEY AUTOINCREMENT, match_id INTEGER NOT NULL REFERENCES world_cup_matches(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id), guess_score_a INTEGER NOT NULL, guess_score_b INTEGER NOT NULL, is_correct BOOLEAN, reward_coupon_code VARCHAR, is_processed BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
             else:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_guesses (id SERIAL PRIMARY KEY, match_id INTEGER NOT NULL REFERENCES world_cup_matches(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id), guess_score_a INTEGER NOT NULL, guess_score_b INTEGER NOT NULL, is_correct BOOLEAN, reward_coupon_code VARCHAR, is_processed BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT now())"))
-            conn.commit()
-        except Exception as e:
-            logger.warning(f"world_cup_guesses ensure: {e}")
-            try: conn.rollback()
-            except: pass
+        logger.info("✓ world_cup_guesses table ensured.")
+    except Exception as e:
+        logger.warning(f"world_cup_guesses ensure: {e}")
 
-        # cashback_config
-        try:
+    # cashback_config
+    try:
+        with engine.begin() as conn:
             if is_sqlite:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS cashback_config (id INTEGER PRIMARY KEY AUTOINCREMENT, is_active BOOLEAN DEFAULT TRUE, first_purchase_percentage REAL DEFAULT 10.0, repurchase_percentage REAL DEFAULT 10.0, first_purchase_validity_days INTEGER DEFAULT 30, repurchase_validity_days INTEGER DEFAULT 30, min_purchase_to_earn REAL DEFAULT 0.0, min_purchase_to_use REAL DEFAULT 50.0, allow_with_coupons BOOLEAN DEFAULT FALSE, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
             else:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS cashback_config (id SERIAL PRIMARY KEY, is_active BOOLEAN DEFAULT TRUE, first_purchase_percentage DOUBLE PRECISION DEFAULT 10.0, repurchase_percentage DOUBLE PRECISION DEFAULT 10.0, first_purchase_validity_days INTEGER DEFAULT 30, repurchase_validity_days INTEGER DEFAULT 30, min_purchase_to_earn DOUBLE PRECISION DEFAULT 0.0, min_purchase_to_use DOUBLE PRECISION DEFAULT 50.0, allow_with_coupons BOOLEAN DEFAULT FALSE, updated_at TIMESTAMPTZ DEFAULT now())"))
-            conn.commit()
-        except Exception as e:
-            logger.warning(f"cashback_config ensure: {e}")
-            try: conn.rollback()
-            except: pass
+        logger.info("✓ cashback_config table ensured.")
+    except Exception as e:
+        logger.warning(f"cashback_config ensure: {e}")
 
-        # cashback_transactions
-        try:
+    # cashback_transactions
+    try:
+        with engine.begin() as conn:
             if is_sqlite:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS cashback_transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id), order_id INTEGER REFERENCES orders(id), amount REAL NOT NULL, type VARCHAR NOT NULL, status VARCHAR DEFAULT 'approved', description VARCHAR, is_first_purchase BOOLEAN DEFAULT FALSE, expires_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
             else:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS cashback_transactions (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), order_id INTEGER REFERENCES orders(id), amount DOUBLE PRECISION NOT NULL, type VARCHAR NOT NULL, status VARCHAR DEFAULT 'approved', description VARCHAR, is_first_purchase BOOLEAN DEFAULT FALSE, expires_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT now())"))
-            conn.commit()
-        except Exception as e:
-            logger.warning(f"cashback_transactions ensure: {e}")
-            try: conn.rollback()
-            except: pass
+        logger.info("✓ cashback_transactions table ensured.")
+    except Exception as e:
+        logger.warning(f"cashback_transactions ensure: {e}")
 
-        logger.info("Extra tables ensured successfully.")
+    logger.info("Extra tables ensured successfully.")
 
 
 # Apply migrations on startup

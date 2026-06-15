@@ -80,6 +80,7 @@ const CATEGORIES: Category[] = [
             { label: "Permissões Blog", path: "/admin/dashboard/blog-permissions", icon: <ShieldCheck size={18} /> },
             { label: "Métricas", path: "/admin/dashboard/metrics", icon: <BarChart3 size={18} /> },
             { label: "CRM de Vendas", path: "/admin/dashboard/crm", icon: <TrendingUp size={18} /> },
+            { label: "Ajustes do Sistema", path: "/admin/settings", icon: <Settings size={18} /> },
         ]
     }
 ];

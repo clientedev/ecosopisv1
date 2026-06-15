@@ -95,20 +95,21 @@ def place_guess(guess_in: GuessCreate, db: Session = Depends(get_db), current_us
     ).first()
     
     if guess:
-        guess.guess_score_a = guess_in.guess_score_a
-        guess.guess_score_b = guess_in.guess_score_b
-    else:
-        guess = models.WorldCupGuess(
-            match_id=guess_in.match_id,
-            user_id=current_user.id,
-            guess_score_a=guess_in.guess_score_a,
-            guess_score_b=guess_in.guess_score_b
+        raise HTTPException(
+            status_code=400,
+            detail="Você já enviou seu palpite para este jogo. Cada cliente tem direito a apenas um palpite por partida."
         )
-        db.add(guess)
-        
+    
+    guess = models.WorldCupGuess(
+        match_id=guess_in.match_id,
+        user_id=current_user.id,
+        guess_score_a=guess_in.guess_score_a,
+        guess_score_b=guess_in.guess_score_b
+    )
+    db.add(guess)
     db.commit()
     db.refresh(guess)
-    return {"message": "Palpite salvo com sucesso!", "guess_id": guess.id}
+    return {"message": "Palpite enviado com sucesso! Boa sorte! 🏆", "guess_id": guess.id}
 
 @router.post("/matches/{match_id}/finalize")
 def finalize_match(match_id: int, score_in: FinalizeMatch, db: Session = Depends(get_db), current_admin: models.User = Depends(get_current_admin)):

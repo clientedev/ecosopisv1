@@ -803,35 +803,7 @@ export default function Home() {
                             </p>
                         </div>
 
-                        {!user ? (
-                            <div style={{
-                                textAlign: "center",
-                                padding: "2.5rem",
-                                background: "linear-gradient(135deg, rgba(0,39,118,0.05) 0%, rgba(16,124,65,0.05) 100%)",
-                                borderRadius: "20px",
-                                border: "1.5px dashed rgba(0, 39, 118, 0.25)",
-                                maxWidth: "550px",
-                                margin: "0 auto",
-                                position: "relative",
-                                zIndex: 1
-                            }}>
-                                <span style={{ fontSize: "3rem", display: "block", marginBottom: "0.75rem" }}>🏆</span>
-                                <h3 style={{ fontSize: "1.3rem", fontWeight: 800, color: "#002776", marginBottom: "0.5rem" }}>
-                                    Participe do Bolão e Ganhe {bolaoDiscount}% de Desconto!
-                                </h3>
-                                <p style={{ fontSize: "0.95rem", color: "#555", marginBottom: "1.5rem", lineHeight: 1.5 }}>
-                                    Entre na sua conta ou crie uma gratuitamente para salvar seus palpites e resgatar seus prêmios. É rápido e fácil!
-                                </p>
-                                <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-                                    <Link href="/conta" className="btn-primary" style={{ padding: "0.85rem 2rem", display: "inline-block", textDecoration: "none", fontWeight: 700 }}>
-                                        Entrar na Conta
-                                    </Link>
-                                    <Link href="/conta" className="btn-outline" style={{ padding: "0.85rem 2rem", display: "inline-block", textDecoration: "none", fontWeight: 700 }}>
-                                        Criar Conta Grátis
-                                    </Link>
-                                </div>
-                            </div>
-                        ) : loadingCupMatches ? (
+                        {loadingCupMatches ? (
                             <div style={{ textAlign: "center", padding: "3rem" }}>
                                 <div style={{
                                     border: "4px solid rgba(16, 124, 65, 0.1)",
@@ -1042,118 +1014,147 @@ export default function Home() {
                                                 </div>
                                             ) : (
                                                 <div>
-                                                    {/* Guesses input area */}
-                                                    <div style={{
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                        gap: "10px",
-                                                        marginBottom: "1.25rem"
-                                                    }}>
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            placeholder="0"
-                                                            disabled={match.cutoff_passed || isSaving}
-                                                            value={input.score_a}
-                                                            onChange={(e) => setCupGuessInputs(prev => ({
-                                                                ...prev,
-                                                                [match.id]: { ...input, score_a: e.target.value }
-                                                            }))}
-                                                            style={{
-                                                                width: "60px",
-                                                                padding: "0.6rem",
-                                                                borderRadius: "10px",
-                                                                border: "1.5px solid #ccc",
-                                                                textAlign: "center",
-                                                                fontSize: "1.2rem",
-                                                                fontWeight: 700
-                                                            }}
-                                                        />
-                                                        <span style={{ fontSize: "1.2rem", color: "#666", fontWeight: 700 }}>x</span>
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            placeholder="0"
-                                                            disabled={match.cutoff_passed || isSaving}
-                                                            value={input.score_b}
-                                                            onChange={(e) => setCupGuessInputs(prev => ({
-                                                                ...prev,
-                                                                [match.id]: { ...input, score_b: e.target.value }
-                                                            }))}
-                                                            style={{
-                                                                width: "60px",
-                                                                padding: "0.6rem",
-                                                                borderRadius: "10px",
-                                                                border: "1.5px solid #ccc",
-                                                                textAlign: "center",
-                                                                fontSize: "1.2rem",
-                                                                fontWeight: 700
-                                                            }}
-                                                        />
-                                                    </div>
-
-                                                    {/* Save Button */}
-                                                    {!match.cutoff_passed && (
-                                                        <button
-                                                            onClick={() => handleSaveGuess(match.id)}
-                                                            disabled={isSaving}
-                                                            className="btn-primary"
-                                                            style={{
-                                                                width: "100%",
-                                                                padding: "0.7rem",
-                                                                borderRadius: "10px",
-                                                                border: "none",
-                                                                fontSize: "0.9rem",
+                                                    {!user ? (
+                                                        <div style={{
+                                                            textAlign: "center",
+                                                            padding: "1rem 0.5rem",
+                                                            background: "rgba(0, 39, 118, 0.03)",
+                                                            borderRadius: "12px",
+                                                            border: "1px dashed rgba(0, 39, 118, 0.15)"
+                                                        }}>
+                                                            <p style={{ fontSize: "0.88rem", color: "#444", marginBottom: "0.75rem", lineHeight: 1.4 }}>
+                                                                Quer palpitar e concorrer a <strong>{bolaoDiscount}% de desconto</strong>?
+                                                            </p>
+                                                            <Link href="/conta" style={{
+                                                                display: "inline-block",
+                                                                background: "#002776",
+                                                                color: "white",
+                                                                padding: "0.6rem 1.25rem",
+                                                                borderRadius: "8px",
                                                                 fontWeight: 700,
-                                                                cursor: isSaving ? "not-allowed" : "pointer"
-                                                            }}
-                                                        >
-                                                            {isSaving 
-                                                                ? "Salvando..." 
-                                                                : match.user_guess 
-                                                                    ? "⚽ Atualizar Palpite" 
-                                                                    : "⚽ Enviar Palpite"}
-                                                        </button>
-                                                    )}
-
-                                                    {/* Guess Feedback messages */}
-                                                    {feedback && (
-                                                        <div style={{
-                                                            fontSize: "0.82rem",
-                                                            textAlign: "center",
-                                                            marginTop: "8px",
-                                                            fontWeight: 600,
-                                                            color: feedback.type === "success" ? "#15803d" : "#b91c1c"
-                                                        }}>
-                                                            {feedback.text}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Cutoff message or current guess confirmation */}
-                                                    {match.cutoff_passed ? (
-                                                        <div style={{
-                                                            textAlign: "center",
-                                                            fontSize: "0.85rem",
-                                                            color: "#b91c1c",
-                                                            fontWeight: 600,
-                                                            padding: "6px",
-                                                            background: "#fee2e2",
-                                                            borderRadius: "8px"
-                                                        }}>
-                                                            ⏳ Palpites fechados 1 hora antes do início do jogo.
+                                                                fontSize: "0.82rem",
+                                                                textDecoration: "none",
+                                                                transition: "background 0.2s"
+                                                            }}>
+                                                                🔑 Faça login para dar seu palpite
+                                                            </Link>
                                                         </div>
                                                     ) : (
-                                                        match.user_guess && (
+                                                        <>
+                                                            {/* Guesses input area */}
                                                             <div style={{
-                                                                textAlign: "center",
-                                                                fontSize: "0.8rem",
-                                                                color: "#666",
-                                                                marginTop: "10px"
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                                gap: "10px",
+                                                                marginBottom: "1.25rem"
                                                             }}>
-                                                                Placar atual: <strong>{match.user_guess.guess_score_a} x {match.user_guess.guess_score_b}</strong> (pode alterar até 1h antes do jogo)
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    placeholder="0"
+                                                                    disabled={match.cutoff_passed || isSaving}
+                                                                    value={input.score_a}
+                                                                    onChange={(e) => setCupGuessInputs(prev => ({
+                                                                        ...prev,
+                                                                        [match.id]: { ...input, score_a: e.target.value }
+                                                                    }))}
+                                                                    style={{
+                                                                        width: "60px",
+                                                                        padding: "0.6rem",
+                                                                        borderRadius: "10px",
+                                                                        border: "1.5px solid #ccc",
+                                                                        textAlign: "center",
+                                                                        fontSize: "1.2rem",
+                                                                        fontWeight: 700
+                                                                    }}
+                                                                />
+                                                                <span style={{ fontSize: "1.2rem", color: "#666", fontWeight: 700 }}>x</span>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    placeholder="0"
+                                                                    disabled={match.cutoff_passed || isSaving}
+                                                                    value={input.score_b}
+                                                                    onChange={(e) => setCupGuessInputs(prev => ({
+                                                                        ...prev,
+                                                                        [match.id]: { ...input, score_b: e.target.value }
+                                                                    }))}
+                                                                    style={{
+                                                                        width: "60px",
+                                                                        padding: "0.6rem",
+                                                                        borderRadius: "10px",
+                                                                        border: "1.5px solid #ccc",
+                                                                        textAlign: "center",
+                                                                        fontSize: "1.2rem",
+                                                                        fontWeight: 700
+                                                                    }}
+                                                                />
                                                             </div>
-                                                        )
+
+                                                            {/* Save Button */}
+                                                            {!match.cutoff_passed && (
+                                                                <button
+                                                                    onClick={() => handleSaveGuess(match.id)}
+                                                                    disabled={isSaving}
+                                                                    className="btn-primary"
+                                                                    style={{
+                                                                        width: "100%",
+                                                                        padding: "0.7rem",
+                                                                        borderRadius: "10px",
+                                                                        border: "none",
+                                                                        fontSize: "0.9rem",
+                                                                        fontWeight: 700,
+                                                                        cursor: isSaving ? "not-allowed" : "pointer"
+                                                                    }}
+                                                                >
+                                                                    {isSaving 
+                                                                        ? "Salvando..." 
+                                                                        : match.user_guess 
+                                                                            ? "⚽ Atualizar Palpite" 
+                                                                            : "⚽ Enviar Palpite"}
+                                                                </button>
+                                                            )}
+
+                                                            {/* Guess Feedback messages */}
+                                                            {feedback && (
+                                                                <div style={{
+                                                                    fontSize: "0.82rem",
+                                                                    textAlign: "center",
+                                                                    marginTop: "8px",
+                                                                    fontWeight: 600,
+                                                                    color: feedback.type === "success" ? "#15803d" : "#b91c1c"
+                                                                }}>
+                                                                    {feedback.text}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Cutoff message or current guess confirmation */}
+                                                            {match.cutoff_passed ? (
+                                                                <div style={{
+                                                                    textAlign: "center",
+                                                                    fontSize: "0.85rem",
+                                                                    color: "#b91c1c",
+                                                                    fontWeight: 600,
+                                                                    padding: "6px",
+                                                                    background: "#fee2e2",
+                                                                    borderRadius: "8px"
+                                                                }}>
+                                                                    ⏳ Palpites fechados 1 hora antes do início do jogo.
+                                                                </div>
+                                                            ) : (
+                                                                match.user_guess && (
+                                                                    <div style={{
+                                                                        textAlign: "center",
+                                                                        fontSize: "0.8rem",
+                                                                        color: "#666",
+                                                                        marginTop: "10px"
+                                                                    }}>
+                                                                        Placar atual: <strong>{match.user_guess.guess_score_a} x {match.user_guess.guess_score_b}</strong> (pode alterar até 1h antes do jogo)
+                                                                    </div>
+                                                                )
+                                                            )}
+                                                        </>
                                                     )}
                                                 </div>
                                             )}
