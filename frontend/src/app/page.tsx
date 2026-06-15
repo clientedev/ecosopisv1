@@ -29,11 +29,123 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Home() {
     const { addToCart } = useCart();
     const { activeTheme } = useTheme();
+    const { user, token } = useAuth();
     const isValentines = activeTheme === 'valentines_day';
+    const [cupMatches, setCupMatches] = useState<any[]>([]);
+    const [loadingCupMatches, setLoadingCupMatches] = useState(false);
+    const [cupGuessInputs, setCupGuessInputs] = useState<Record<number, { score_a: string; score_b: string }>>({});
+    const [cupFeedback, setCupFeedback] = useState<Record<number, { text: string; type: "success" | "error" }>>({});
+    const [savingGuessId, setSavingGuessId] = useState<number | null>(null);
+
+    const fetchCupMatches = async () => {
+        setLoadingCupMatches(true);
+        try {
+            const headers: Record<string, string> = {};
+            const storedToken = localStorage.getItem("token") || token;
+            if (storedToken) {
+                headers["Authorization"] = `Bearer ${storedToken}`;
+            }
+            const res = await fetch("/api/world-cup/matches", { headers });
+            if (res.ok) {
+                const data = await res.json();
+                setCupMatches(data);
+                
+                const initialInputs: Record<number, { score_a: string; score_b: string }> = {};
+                data.forEach((match: any) => {
+                    if (match.user_guess) {
+                        initialInputs[match.id] = {
+                            score_a: String(match.user_guess.guess_score_a),
+                            score_b: String(match.user_guess.guess_score_b)
+                        };
+                    } else {
+                        initialInputs[match.id] = { score_a: "", score_b: "" };
+                    }
+                });
+                setCupGuessInputs(initialInputs);
+            }
+        } catch (err) {
+            console.error("Error fetching cup matches:", err);
+        } finally {
+            setLoadingCupMatches(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTheme === "copa_do_mundo") {
+            fetchCupMatches();
+        }
+    }, [activeTheme, user]);
+
+    const handleSaveGuess = async (matchId: number) => {
+        const input = cupGuessInputs[matchId];
+        if (!input || input.score_a === "" || input.score_b === "") {
+            setCupFeedback(prev => ({
+                ...prev,
+                [matchId]: { text: "Por favor, preencha os dois placares.", type: "error" }
+            }));
+            return;
+        }
+
+        const score_a = parseInt(input.score_a);
+        const score_b = parseInt(input.score_b);
+        if (isNaN(score_a) || isNaN(score_b) || score_a < 0 || score_b < 0) {
+            setCupFeedback(prev => ({
+                ...prev,
+                [matchId]: { text: "Placares inválidos.", type: "error" }
+            }));
+            return;
+        }
+
+        setSavingGuessId(matchId);
+        setCupFeedback(prev => ({ ...prev, [matchId]: { text: "", type: "success" } }));
+
+        try {
+            const storedToken = localStorage.getItem("token") || token;
+            const res = await fetch("/api/world-cup/guess", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${storedToken}`
+                },
+                body: JSON.stringify({
+                    match_id: matchId,
+                    guess_score_a: score_a,
+                    guess_score_b: score_b
+                })
+            });
+
+            if (res.ok) {
+                setCupFeedback(prev => ({
+                    ...prev,
+                    [matchId]: { text: "Palpite salvo com sucesso! 🇧🇷⚽", type: "success" }
+                }));
+                await fetchCupMatches();
+            } else {
+                const errData = await res.json();
+                setCupFeedback(prev => ({
+                    ...prev,
+                    [matchId]: { text: errData.detail || "Erro ao salvar palpite.", type: "error" }
+                }));
+            }
+        } catch (err) {
+            setCupFeedback(prev => ({
+                ...prev,
+                [matchId]: { text: "Erro de conexão.", type: "error" }
+            }));
+        } finally {
+            setSavingGuessId(null);
+        }
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        alert("Cupom copiado com sucesso! 🎉");
+    };
     const [recentProducts, setRecentProducts] = useState<any[]>([]);
     const [allProducts, setAllProducts] = useState<any[]>([]);
     const [activeGoal, setActiveGoal] = useState<string | null>(null);
@@ -612,6 +724,436 @@ export default function Home() {
                     ))}
                 </div>
             </section>
+
+            {/* NEW: World Cup Guesses Section (Bolão) */}
+            {activeTheme === "copa_do_mundo" && (
+                <section style={{
+                    padding: "4rem 1rem",
+                    background: "linear-gradient(135deg, rgba(16, 124, 65, 0.05) 0%, rgba(0, 39, 118, 0.05) 100%)",
+                    borderBottom: "1px solid rgba(16, 124, 65, 0.1)",
+                }}>
+                    <div style={{
+                        maxWidth: "1200px",
+                        margin: "0 auto",
+                        background: "rgba(255, 255, 255, 0.85)",
+                        backdropFilter: "blur(16px)",
+                        border: "1.5px solid rgba(16, 124, 65, 0.2)",
+                        borderRadius: "24px",
+                        padding: isMobile ? "2rem 1.5rem" : "3rem",
+                        boxShadow: "0 10px 40px rgba(16, 124, 65, 0.08)",
+                        position: "relative",
+                        overflow: "hidden"
+                    }}>
+                        {/* Decorative flags/elements background */}
+                        <div style={{
+                            position: "absolute",
+                            top: "-30px",
+                            right: "-30px",
+                            fontSize: "6rem",
+                            opacity: 0.12,
+                            pointerEvents: "none",
+                            userSelect: "none"
+                        }}>⚽</div>
+                        <div style={{
+                            position: "absolute",
+                            bottom: "-20px",
+                            left: "-20px",
+                            fontSize: "6rem",
+                            opacity: 0.1,
+                            pointerEvents: "none",
+                            userSelect: "none"
+                        }}>🇧🇷</div>
+
+                        <div style={{ textAlign: "center", marginBottom: "2.5rem", position: "relative", zIndex: 1 }}>
+                            <span style={{
+                                background: "rgba(247, 200, 21, 0.25)",
+                                color: "#0a522b",
+                                padding: "6px 16px",
+                                borderRadius: "20px",
+                                fontSize: "0.85rem",
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: "1px"
+                            }}>
+                                🏆 Bolão Ecosopis Copa 2026
+                            </span>
+                            <h2 style={{
+                                fontSize: "clamp(1.8rem, 4vw, 2.5rem)",
+                                fontWeight: 800,
+                                color: "#002776",
+                                marginTop: "0.75rem",
+                                marginBottom: "0.5rem"
+                            }}>
+                                Palpites dos Jogos do Brasil 🇧🇷
+                            </h2>
+                            <p style={{
+                                color: "#4a4a4a",
+                                fontSize: "1.05rem",
+                                maxWidth: "600px",
+                                margin: "0 auto",
+                                lineHeight: 1.5
+                            }}>
+                                Acerte o placar cheio de qualquer jogo do Brasil e ganhe na hora um cupom de <strong>10% de desconto</strong> para usar em nosso site!
+                            </p>
+                        </div>
+
+                        {!user ? (
+                            <div style={{
+                                textAlign: "center",
+                                padding: "2.5rem",
+                                background: "rgba(0, 39, 118, 0.04)",
+                                borderRadius: "20px",
+                                border: "1px dashed rgba(0, 39, 118, 0.2)",
+                                maxWidth: "550px",
+                                margin: "0 auto",
+                                position: "relative",
+                                zIndex: 1
+                            }}>
+                                <span style={{ fontSize: "2.5rem", display: "block", marginBottom: "1rem" }}>🔐</span>
+                                <h3 style={{ fontSize: "1.2rem", fontWeight: 700, color: "#002776", marginBottom: "0.5rem" }}>
+                                    Quer participar do bolão?
+                                </h3>
+                                <p style={{ fontSize: "0.95rem", color: "#666", marginBottom: "1.5rem" }}>
+                                    Você precisa estar conectado à sua conta Ecosopis para salvar seus palpites e resgatar seus prêmios.
+                                </p>
+                                <Link href="/conta" className="btn-primary" style={{ padding: "0.8rem 2rem", display: "inline-block", textDecoration: "none" }}>
+                                    Entrar ou Cadastrar-se
+                                </Link>
+                            </div>
+                        ) : loadingCupMatches ? (
+                            <div style={{ textAlign: "center", padding: "3rem" }}>
+                                <div style={{
+                                    border: "4px solid rgba(16, 124, 65, 0.1)",
+                                    borderLeftColor: "#107c41",
+                                    borderRadius: "50%",
+                                    width: "36px",
+                                    height: "36px",
+                                    animation: "spin 1s linear infinite",
+                                    margin: "0 auto 1rem auto"
+                                }} />
+                                <p style={{ color: "#666", fontSize: "0.95rem" }}>Carregando jogos do Brasil...</p>
+                            </div>
+                        ) : (
+                            <div style={{
+                                display: "grid",
+                                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                                gap: "2rem",
+                                position: "relative",
+                                zIndex: 1
+                            }}>
+                                {cupMatches.map((match) => {
+                                    const input = cupGuessInputs[match.id] || { score_a: "", score_b: "" };
+                                    const feedback = cupFeedback[match.id];
+                                    const isSaving = savingGuessId === match.id;
+                                    
+                                    const matchDate = new Date(match.match_time);
+                                    const dateStr = matchDate.toLocaleDateString("pt-BR", {
+                                        day: "2-digit",
+                                        month: "2-digit",
+                                        year: "numeric"
+                                    });
+                                    const timeStr = matchDate.toLocaleTimeString("pt-BR", {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                        hour12: false
+                                    });
+
+                                    return (
+                                        <div
+                                            key={match.id}
+                                            style={{
+                                                background: match.is_unlocked ? "white" : "#f8f9fa",
+                                                border: match.is_finalized 
+                                                    ? "2px solid #bae6fd" 
+                                                    : match.is_unlocked 
+                                                        ? "2px solid rgba(16, 124, 65, 0.15)" 
+                                                        : "2px solid #e9ecef",
+                                                borderRadius: "20px",
+                                                padding: "2rem 1.5rem",
+                                                boxShadow: match.is_unlocked ? "0 4px 15px rgba(0,0,0,0.03)" : "none",
+                                                position: "relative",
+                                                transition: "all 0.3s ease",
+                                                opacity: match.is_unlocked ? 1 : 0.65,
+                                            }}
+                                        >
+                                            {/* Top match header */}
+                                            <div style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                marginBottom: "1.25rem",
+                                                borderBottom: "1px solid #f1f3f5",
+                                                paddingBottom: "0.75rem"
+                                            }}>
+                                                <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#666" }}>
+                                                    📅 {dateStr} às {timeStr}h
+                                                </span>
+                                                <span style={{
+                                                    fontSize: "0.72rem",
+                                                    fontWeight: 700,
+                                                    padding: "3px 8px",
+                                                    borderRadius: "12px",
+                                                    background: match.is_finalized 
+                                                        ? "#e0f2fe" 
+                                                        : match.cutoff_passed 
+                                                            ? "#fee2e2" 
+                                                            : match.is_unlocked 
+                                                                ? "#dcfce7" 
+                                                                : "#f1f3f5",
+                                                    color: match.is_finalized 
+                                                        ? "#0369a1" 
+                                                        : match.cutoff_passed 
+                                                            ? "#b91c1c" 
+                                                            : match.is_unlocked 
+                                                                ? "#15803d" 
+                                                                : "#6c757d",
+                                                    textTransform: "uppercase"
+                                                }}>
+                                                    {match.is_finalized 
+                                                        ? "Finalizado" 
+                                                        : match.cutoff_passed 
+                                                            ? "Fechado" 
+                                                            : match.is_unlocked 
+                                                                ? "Aberto" 
+                                                                : "🔒 Bloqueado"}
+                                                </span>
+                                            </div>
+
+                                            {/* Stadium and Teams */}
+                                            <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+                                                <div style={{ fontSize: "0.8rem", color: "#888", marginBottom: "0.5rem" }}>
+                                                    📍 {match.stadium || "Estádio da Copa"}
+                                                </div>
+                                                
+                                                <div style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    gap: "1rem",
+                                                    fontSize: "1.25rem",
+                                                    fontWeight: 700,
+                                                    color: "#1a1a1a"
+                                                }}>
+                                                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                        🇧🇷 {match.team_a}
+                                                    </span>
+                                                    <span style={{ color: "#aaa", fontWeight: 400 }}>vs</span>
+                                                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                        {match.team_b === "Haiti" ? "🇭🇹" : "🇨🇴"} {match.team_b}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Content based on status */}
+                                            {!match.is_unlocked ? (
+                                                <div style={{
+                                                    textAlign: "center",
+                                                    padding: "1rem",
+                                                    color: "#777",
+                                                    fontSize: "0.88rem",
+                                                    background: "#f1f3f5",
+                                                    borderRadius: "12px",
+                                                    border: "1px solid #e9ecef"
+                                                }}>
+                                                    🔒 Jogo bloqueado: palpite liberado apenas após concluir o jogo anterior.
+                                                </div>
+                                            ) : match.is_finalized ? (
+                                                <div style={{ textAlign: "center" }}>
+                                                    {/* Official result */}
+                                                    <div style={{
+                                                        background: "#bae6fd",
+                                                        padding: "0.75rem",
+                                                        borderRadius: "12px",
+                                                        fontSize: "1.1rem",
+                                                        fontWeight: 700,
+                                                        color: "#0369a1",
+                                                        marginBottom: "1rem"
+                                                    }}>
+                                                        Placar Oficial: {match.score_a} x {match.score_b}
+                                                    </div>
+
+                                                    {/* User result */}
+                                                    {match.user_guess ? (
+                                                        <div style={{
+                                                            padding: "1rem",
+                                                            borderRadius: "12px",
+                                                            background: match.user_guess.is_correct ? "#dcfce7" : "#fee2e2",
+                                                            border: match.user_guess.is_correct ? "1px solid #bbf7d0" : "1px solid #fecaca",
+                                                            fontSize: "0.92rem",
+                                                            color: match.user_guess.is_correct ? "#15803d" : "#b91c1c"
+                                                        }}>
+                                                            <div style={{ fontWeight: 700, marginBottom: "4px" }}>
+                                                                Seu palpite foi: {match.user_guess.guess_score_a} x {match.user_guess.guess_score_b}
+                                                            </div>
+                                                            {match.user_guess.is_correct ? (
+                                                                <div>
+                                                                    🎉 Parabéns! Você acertou em cheio!
+                                                                    <div style={{
+                                                                        marginTop: "10px",
+                                                                        display: "flex",
+                                                                        alignItems: "center",
+                                                                        justifyContent: "center",
+                                                                        gap: "8px",
+                                                                        background: "white",
+                                                                        padding: "6px 12px",
+                                                                        borderRadius: "8px",
+                                                                        border: "1px dashed #22c55e"
+                                                                    }}>
+                                                                        <strong style={{ fontSize: "1rem", color: "#107c41" }}>
+                                                                            {match.user_guess.reward_coupon_code}
+                                                                        </strong>
+                                                                        <button 
+                                                                            onClick={() => copyToClipboard(match.user_guess.reward_coupon_code)}
+                                                                            style={{
+                                                                                border: "none",
+                                                                                background: "#107c41",
+                                                                                color: "white",
+                                                                                fontSize: "0.75rem",
+                                                                                padding: "4px 8px",
+                                                                                borderRadius: "6px",
+                                                                                fontWeight: 700,
+                                                                                cursor: "pointer"
+                                                                            }}
+                                                                        >
+                                                                            Copiar
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div>Não foi dessa vez! Boa sorte no próximo jogo. 🍀</div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ fontSize: "0.85rem", color: "#888" }}>
+                                                            Você não enviou palpite para este jogo.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    {/* Guesses input area */}
+                                                    <div style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        gap: "10px",
+                                                        marginBottom: "1.25rem"
+                                                    }}>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            placeholder="0"
+                                                            disabled={match.cutoff_passed || isSaving}
+                                                            value={input.score_a}
+                                                            onChange={(e) => setCupGuessInputs(prev => ({
+                                                                ...prev,
+                                                                [match.id]: { ...input, score_a: e.target.value }
+                                                            }))}
+                                                            style={{
+                                                                width: "60px",
+                                                                padding: "0.6rem",
+                                                                borderRadius: "10px",
+                                                                border: "1.5px solid #ccc",
+                                                                textAlign: "center",
+                                                                fontSize: "1.2rem",
+                                                                fontWeight: 700
+                                                            }}
+                                                        />
+                                                        <span style={{ fontSize: "1.2rem", color: "#666", fontWeight: 700 }}>x</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            placeholder="0"
+                                                            disabled={match.cutoff_passed || isSaving}
+                                                            value={input.score_b}
+                                                            onChange={(e) => setCupGuessInputs(prev => ({
+                                                                ...prev,
+                                                                [match.id]: { ...input, score_b: e.target.value }
+                                                            }))}
+                                                            style={{
+                                                                width: "60px",
+                                                                padding: "0.6rem",
+                                                                borderRadius: "10px",
+                                                                border: "1.5px solid #ccc",
+                                                                textAlign: "center",
+                                                                fontSize: "1.2rem",
+                                                                fontWeight: 700
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    {/* Save Button */}
+                                                    {!match.cutoff_passed && (
+                                                        <button
+                                                            onClick={() => handleSaveGuess(match.id)}
+                                                            disabled={isSaving}
+                                                            className="btn-primary"
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "0.7rem",
+                                                                borderRadius: "10px",
+                                                                border: "none",
+                                                                fontSize: "0.9rem",
+                                                                fontWeight: 700,
+                                                                cursor: isSaving ? "not-allowed" : "pointer"
+                                                            }}
+                                                        >
+                                                            {isSaving 
+                                                                ? "Salvando..." 
+                                                                : match.user_guess 
+                                                                    ? "⚽ Atualizar Palpite" 
+                                                                    : "⚽ Enviar Palpite"}
+                                                        </button>
+                                                    )}
+
+                                                    {/* Guess Feedback messages */}
+                                                    {feedback && (
+                                                        <div style={{
+                                                            fontSize: "0.82rem",
+                                                            textAlign: "center",
+                                                            marginTop: "8px",
+                                                            fontWeight: 600,
+                                                            color: feedback.type === "success" ? "#15803d" : "#b91c1c"
+                                                        }}>
+                                                            {feedback.text}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Cutoff message or current guess confirmation */}
+                                                    {match.cutoff_passed ? (
+                                                        <div style={{
+                                                            textAlign: "center",
+                                                            fontSize: "0.85rem",
+                                                            color: "#b91c1c",
+                                                            fontWeight: 600,
+                                                            padding: "6px",
+                                                            background: "#fee2e2",
+                                                            borderRadius: "8px"
+                                                        }}>
+                                                            ⏳ Palpites fechados 1 hora antes do início do jogo.
+                                                        </div>
+                                                    ) : (
+                                                        match.user_guess && (
+                                                            <div style={{
+                                                                textAlign: "center",
+                                                                fontSize: "0.8rem",
+                                                                color: "#666",
+                                                                marginTop: "10px"
+                                                            }}>
+                                                                Placar atual: <strong>{match.user_guess.guess_score_a} x {match.user_guess.guess_score_b}</strong> (pode alterar até 1h antes do jogo)
+                                                            </div>
+                                                        )
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </section>
+            )}
 
             {/* NEW: Stats & Brand Commitment Section */}
             <section className={styles.statsSection}>

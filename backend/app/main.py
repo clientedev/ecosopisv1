@@ -239,6 +239,46 @@ async def startup_event():
         _apply_startup_migrations()
         # Create tables from models
         Base.metadata.create_all(bind=engine)
+        
+        # Seed World Cup Matches
+        from datetime import datetime, timezone, timedelta
+        from app.models.models import WorldCupMatch
+        db = SessionLocal()
+        try:
+            match1 = db.query(WorldCupMatch).filter(WorldCupMatch.id == 1).first()
+            if not match1:
+                match1 = WorldCupMatch(
+                    id=1,
+                    team_a="Brasil",
+                    team_b="Haiti",
+                    stadium="Estádio da Copa",
+                    match_time=datetime(2026, 6, 19, 21, 30, tzinfo=timezone(timedelta(hours=-3))),
+                    is_unlocked=True,
+                    is_finalized=False
+                )
+                db.add(match1)
+                logger.info("Seeded World Cup Match 1: Brasil x Haiti")
+            
+            match2 = db.query(WorldCupMatch).filter(WorldCupMatch.id == 2).first()
+            if not match2:
+                match2 = WorldCupMatch(
+                    id=2,
+                    team_a="Brasil",
+                    team_b="Colômbia",
+                    stadium="Estádio de Miami, Estados Unidos",
+                    match_time=datetime(2026, 6, 24, 19, 0, tzinfo=timezone(timedelta(hours=-3))),
+                    is_unlocked=False,
+                    is_finalized=False
+                )
+                db.add(match2)
+                logger.info("Seeded World Cup Match 2: Brasil x Colômbia")
+            db.commit()
+        except Exception as seed_err:
+            logger.error(f"Failed to seed World Cup matches: {seed_err}")
+            db.rollback()
+        finally:
+            db.close()
+            
         logger.info("Startup completed successfully.")
     except Exception as e:
         logger.error(f"Startup Failure: {e}", exc_info=True)
@@ -310,7 +350,8 @@ async def root():
 from app.api.endpoints import (
     auth, products, coupons, carousel, orders, settings, reviews, 
     images, news, metrics, chat, roulette, admin_roulette, 
-    shipping, addresses, cart, payment, crm, cashback, raw_materials
+    shipping, addresses, cart, payment, crm, cashback, raw_materials,
+    world_cup
 )
 from app.routes import webhook_me
 
@@ -334,6 +375,7 @@ app.include_router(payment.router, prefix="/payment", tags=["payment"])
 app.include_router(crm.router, prefix="/crm", tags=["crm"])
 app.include_router(cashback.router, tags=["cashback"])
 app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
+app.include_router(world_cup.router, prefix="/world-cup", tags=["world_cup"])
 app.include_router(webhook_me.router)
 
 if __name__ == "__main__":

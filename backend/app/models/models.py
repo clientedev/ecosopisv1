@@ -441,3 +441,40 @@ class CashbackTransaction(Base):
     user = relationship("User")
     order = relationship("Order", foreign_keys=[order_id])
 
+
+# ─── World Cup Guesses System ──────────────────────────────────────────────────
+
+class WorldCupMatch(Base):
+    __tablename__ = "world_cup_matches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    team_a = Column(String, default="Brasil")
+    team_b = Column(String, nullable=False)
+    stadium = Column(String, nullable=True)
+    match_time = Column(DateTime(timezone=True), nullable=False)
+    score_a = Column(Integer, nullable=True)
+    score_b = Column(Integer, nullable=True)
+    is_finalized = Column(Boolean, default=False)
+    is_unlocked = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    guesses = relationship("WorldCupGuess", back_populates="match", cascade="all, delete-orphan")
+
+
+class WorldCupGuess(Base):
+    __tablename__ = "world_cup_guesses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    match_id = Column(Integer, ForeignKey("world_cup_matches.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    guess_score_a = Column(Integer, nullable=False)
+    guess_score_b = Column(Integer, nullable=False)
+    is_correct = Column(Boolean, nullable=True)
+    reward_coupon_code = Column(String, nullable=True)
+    is_processed = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    match = relationship("WorldCupMatch", back_populates="guesses")
+    user = relationship("User")
+
+

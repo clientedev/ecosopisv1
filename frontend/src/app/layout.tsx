@@ -9,6 +9,7 @@ import { CartProvider } from "@/context/CartContext";
 import MobileBottomNav from "@/components/MobileBottomNav/MobileBottomNav";
 import { ThemeProvider } from "@/context/ThemeContext";
 import HeartAnimation from "@/components/HeartAnimation/HeartAnimation";
+import WorldCupAnimation from "@/components/WorldCupAnimation/WorldCupAnimation";
 
 const raleway = Raleway({
     subsets: ["latin"],
@@ -51,6 +52,7 @@ export default function RootLayout({
                             <ThemeProvider>
                                 <DynamicBranding />
                                 <HeartAnimation />
+                                <WorldCupAnimation />
                                 {children}
                                 <DeferredComponents />
                                 <MobileBottomNav />

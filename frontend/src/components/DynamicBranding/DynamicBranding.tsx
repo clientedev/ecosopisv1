@@ -19,6 +19,14 @@ const THEMES: Record<string, Record<string, string>> = {
         text_secondary: "#5a3040",
         bg_color: "#fff5f7",
     },
+    copa_do_mundo: {
+        primary_color: "#107c41",
+        primary_color_dark: "#0a522b",
+        secondary_color: "#ffffff",
+        text_primary: "#1a1a1a",
+        text_secondary: "#002776",
+        bg_color: "#fafcf5",
+    },
 };
 
 export default function DynamicBranding() {
@@ -227,6 +235,88 @@ export default function DynamicBranding() {
         }
     ` : '';
 
+    const copaMundoExtras = themeId === "copa_do_mundo" ? `
+        /* ============================================
+           WORLD CUP THEME - COMPREHENSIVE OVERRIDES
+           ============================================ */
+
+        /* --- Buttons --- */
+        .btn-primary {
+            background: linear-gradient(135deg, #107c41 0%, #0a522b 100%) !important;
+            box-shadow: 0 4px 15px rgba(16, 124, 65, 0.35) !important;
+            border-color: #107c41 !important;
+            color: #ffffff !important;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0a522b 0%, #083d20 100%) !important;
+            box-shadow: 0 6px 20px rgba(10, 82, 43, 0.45) !important;
+            border-color: #0a522b !important;
+            transform: translateY(-1px);
+        }
+        .btn-outline {
+            border-color: #107c41 !important;
+            color: #107c41 !important;
+        }
+        .btn-outline:hover {
+            background-color: rgba(16, 124, 65, 0.08) !important;
+        }
+
+        /* --- Logo filter --- */
+        html[data-theme="copa_do_mundo"] img[alt="ECOSOPIS Logo"] {
+            filter: hue-rotate(60deg) saturate(1.4) brightness(1.0) !important;
+            transition: filter 0.4s ease;
+        }
+
+        /* --- Announcement Bar --- */
+        html[data-theme="copa_do_mundo"] [class*="announcementBar"] {
+            background-color: #002776 !important;
+            color: #F7C815 !important;
+        }
+
+        /* --- Cart badge --- */
+        html[data-theme="copa_do_mundo"] [class*="cartBadge"] {
+            background: #F7C815 !important;
+            color: #000000 !important;
+            font-weight: bold !important;
+        }
+
+        /* --- Highlight nav link --- */
+        html[data-theme="copa_do_mundo"] [class*="highlightNavLink"] {
+            color: #107c41 !important;
+            border-color: #107c41 !important;
+        }
+        html[data-theme="copa_do_mundo"] [class*="highlightNavLink"]:hover {
+            background: rgba(16, 124, 65, 0.1) !important;
+        }
+
+        /* --- Section badges / pills --- */
+        html[data-theme="copa_do_mundo"] [class*="sectionBadge"],
+        html[data-theme="copa_do_mundo"] [class*="scientificBadge"],
+        html[data-theme="copa_do_mundo"] .scientific-badge {
+            background: rgba(247, 200, 21, 0.2) !important;
+            color: #0a522b !important;
+            border-color: rgba(16, 124, 65, 0.3) !important;
+        }
+
+        /* --- Reviews stars --- */
+        html[data-theme="copa_do_mundo"] [class*="reviewStars"] {
+            color: #F7C815 !important;
+        }
+
+        /* --- Custom styling for specific headers/cards --- */
+        html[data-theme="copa_do_mundo"] [class*="historyHighlight"] {
+            color: #107c41 !important;
+        }
+
+        html[data-theme="copa_do_mundo"] [class*="statIcon"] {
+            color: #107c41 !important;
+        }
+
+        html[data-theme="copa_do_mundo"] [class*="statCard"] h3 {
+            color: #107c41 !important;
+        }
+    ` : '';
+
     return (
         <style dangerouslySetInnerHTML={{
             __html: `
@@ -259,6 +349,7 @@ export default function DynamicBranding() {
                     100% { transform: translateY(-100vh) scale(0.8) rotate(-8deg); opacity: 0; }
                 }
                 ${valentinesExtras}
+                ${copaMundoExtras}
             `
         }} />
     );

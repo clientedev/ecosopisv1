@@ -43,6 +43,18 @@ const THEME_DEFINITIONS: ThemeDefinition[] = [
         tags: ["Sazonal", "Rosa", "Romântico"],
         features: ["Cores rosa vibrante", "Animação de corações nos botões", "Fundo rosado suave"],
     },
+    {
+        id: "copa_do_mundo",
+        name: "Copa do Mundo",
+        description: "Tema verde, amarelo e azul em comemoração à Copa do Mundo. Torça com bolão de palpites nos jogos do Brasil!",
+        emoji: "🇧🇷",
+        primary: "#107c41",
+        primaryDark: "#0a522b",
+        bg: "#fafcf5",
+        accent: "#F7C815",
+        tags: ["Sazonal", "Esportes", "Copa do Mundo"],
+        features: ["Cores verde e amarelo", "Efeitos flutuantes de bandeiras e bolas de futebol", "Palpites com prêmios de descontos"],
+    },
 ];
 
 export default function AdminTemas() {
@@ -50,6 +62,106 @@ export default function AdminTemas() {
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
     const [currentTheme, setCurrentTheme] = useState<ThemeId>(activeTheme);
+
+    const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+    const [matches, setMatches] = useState<any[]>([]);
+    const [loadingMatches, setLoadingMatches] = useState(false);
+    const [matchScores, setMatchScores] = useState<Record<number, { score_a: string; score_b: string }>>({});
+    const [matchFeedback, setMatchFeedback] = useState<Record<number, string>>({});
+    const [modalActionLoading, setModalActionLoading] = useState<number | null>(null);
+
+    const fetchMatches = async () => {
+        setLoadingMatches(true);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch("/api/world-cup/matches", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setMatches(data);
+                const scores: Record<number, { score_a: string; score_b: string }> = {};
+                data.forEach((m: any) => {
+                    scores[m.id] = {
+                        score_a: m.score_a !== null ? String(m.score_a) : "",
+                        score_b: m.score_b !== null ? String(m.score_b) : ""
+                    };
+                });
+                setMatchScores(scores);
+            }
+        } catch (err) {
+            console.error("Error fetching matches:", err);
+        } finally {
+            setLoadingMatches(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isManageModalOpen) {
+            fetchMatches();
+        }
+    }, [isManageModalOpen]);
+
+    const handleFinalizeMatch = async (matchId: number) => {
+        const score = matchScores[matchId];
+        if (!score || score.score_a === "" || score.score_b === "") {
+            setMatchFeedback(prev => ({ ...prev, [matchId]: "Preencha ambos os placares" }));
+            return;
+        }
+        const score_a = parseInt(score.score_a);
+        const score_b = parseInt(score.score_b);
+        if (isNaN(score_a) || isNaN(score_b)) {
+            setMatchFeedback(prev => ({ ...prev, [matchId]: "Valores inválidos" }));
+            return;
+        }
+
+        setModalActionLoading(matchId);
+        setMatchFeedback(prev => ({ ...prev, [matchId]: "" }));
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`/api/world-cup/matches/${matchId}/finalize`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ score_a, score_b })
+            });
+            if (res.ok) {
+                setMatchFeedback(prev => ({ ...prev, [matchId]: "✓ Finalizado com sucesso!" }));
+                fetchMatches();
+            } else {
+                const err = await res.json();
+                setMatchFeedback(prev => ({ ...prev, [matchId]: `Erro: ${err.detail || "tente novamente"}` }));
+            }
+        } catch {
+            setMatchFeedback(prev => ({ ...prev, [matchId]: "Erro de conexão" }));
+        } finally {
+            setModalActionLoading(null);
+        }
+    };
+
+    const handleResetSystem = async () => {
+        if (!confirm("Tem certeza que deseja resetar todos os palpites e resultados da Copa?")) return;
+        setModalActionLoading(-1);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch("/api/world-cup/matches/reset", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                alert("Sistema de palpites resetado!");
+                fetchMatches();
+            } else {
+                alert("Erro ao resetar.");
+            }
+        } catch {
+            alert("Erro de conexão.");
+        } finally {
+            setModalActionLoading(null);
+        }
+    };
 
     useEffect(() => {
         setCurrentTheme(activeTheme);
@@ -309,8 +421,7 @@ export default function AdminTemas() {
                                         {isActive ? (
                                             <div style={{
                                                 display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
+                                                flexDirection: "column",
                                                 gap: "8px",
                                                 padding: "0.75rem",
                                                 borderRadius: "10px",
@@ -320,49 +431,91 @@ export default function AdminTemas() {
                                                 fontWeight: 700,
                                                 fontSize: "0.88rem",
                                             }}>
-                                                <span>✓</span> Tema Ativo
-                                                {theme.id !== "default" && (
+                                                <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+                                                    <span>✓</span> Tema Ativo
+                                                    {theme.id !== "default" && (
+                                                        <button
+                                                            onClick={() => handleActivate("default")}
+                                                            disabled={saving}
+                                                            style={{
+                                                                marginLeft: "auto",
+                                                                background: "none",
+                                                                border: "1.5px solid #999",
+                                                                borderRadius: "8px",
+                                                                padding: "4px 12px",
+                                                                fontSize: "0.78rem",
+                                                                cursor: "pointer",
+                                                                color: "#555",
+                                                                fontWeight: 600,
+                                                                transition: "all 0.2s",
+                                                            }}
+                                                        >
+                                                            {saving ? "..." : "Desativar"}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {theme.id === "copa_do_mundo" && (
                                                     <button
-                                                        onClick={() => handleActivate("default")}
-                                                        disabled={saving}
+                                                        onClick={() => setIsManageModalOpen(true)}
                                                         style={{
-                                                            marginLeft: "auto",
-                                                            background: "none",
-                                                            border: "1.5px solid #999",
+                                                            width: "100%",
+                                                            padding: "0.6rem",
                                                             borderRadius: "8px",
-                                                            padding: "4px 12px",
-                                                            fontSize: "0.78rem",
+                                                            border: "1.5px solid #002776",
+                                                            background: "white",
+                                                            color: "#002776",
+                                                            fontWeight: 700,
+                                                            fontSize: "0.82rem",
                                                             cursor: "pointer",
-                                                            color: "#555",
-                                                            fontWeight: 600,
                                                             transition: "all 0.2s",
                                                         }}
                                                     >
-                                                        {saving ? "..." : "Desativar"}
+                                                        ⚽ Gerenciar Palpites
                                                     </button>
                                                 )}
                                             </div>
                                         ) : (
-                                            <button
-                                                onClick={() => handleActivate(theme.id)}
-                                                disabled={saving}
-                                                style={{
-                                                    width: "100%",
-                                                    padding: "0.75rem",
-                                                    borderRadius: "10px",
-                                                    border: "none",
-                                                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
-                                                    color: "white",
-                                                    fontWeight: 700,
-                                                    fontSize: "0.9rem",
-                                                    cursor: saving ? "not-allowed" : "pointer",
-                                                    opacity: saving ? 0.7 : 1,
-                                                    transition: "all 0.2s",
-                                                    boxShadow: `0 4px 14px ${theme.primary}44`,
-                                                }}
-                                            >
-                                                {saving ? "Salvando..." : `${theme.emoji} Ativar ${theme.name}`}
-                                            </button>
+                                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                                <button
+                                                    onClick={() => handleActivate(theme.id)}
+                                                    disabled={saving}
+                                                    style={{
+                                                        width: "100%",
+                                                        padding: "0.75rem",
+                                                        borderRadius: "10px",
+                                                        border: "none",
+                                                        background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
+                                                        color: "white",
+                                                        fontWeight: 700,
+                                                        fontSize: "0.9rem",
+                                                        cursor: saving ? "not-allowed" : "pointer",
+                                                        opacity: saving ? 0.7 : 1,
+                                                        transition: "all 0.2s",
+                                                        boxShadow: `0 4px 14px ${theme.primary}44`,
+                                                    }}
+                                                >
+                                                    {saving ? "Salvando..." : `${theme.emoji} Ativar ${theme.name}`}
+                                                </button>
+                                                {theme.id === "copa_do_mundo" && (
+                                                    <button
+                                                        onClick={() => setIsManageModalOpen(true)}
+                                                        style={{
+                                                            width: "100%",
+                                                            padding: "0.6rem",
+                                                            borderRadius: "8px",
+                                                            border: "1.5px solid #002776",
+                                                            background: "white",
+                                                            color: "#002776",
+                                                            fontWeight: 700,
+                                                            fontSize: "0.82rem",
+                                                            cursor: "pointer",
+                                                            transition: "all 0.2s",
+                                                        }}
+                                                    >
+                                                        ⚽ Gerenciar Palpites
+                                                    </button>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -442,6 +595,222 @@ export default function AdminTemas() {
                         to { opacity: 1; transform: translateX(0); }
                     }
                 `}</style>
+                {/* Guesses Management Modal */}
+                {isManageModalOpen && (
+                    <div style={{
+                        position: "fixed",
+                        inset: 0,
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        backdropFilter: "blur(4px)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 9999,
+                        padding: "1rem"
+                    }}>
+                        <div style={{
+                            background: "white",
+                            borderRadius: "20px",
+                            padding: "2rem",
+                            maxWidth: "600px",
+                            width: "100%",
+                            boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+                            maxHeight: "90vh",
+                            overflowY: "auto",
+                            position: "relative"
+                        }}>
+                            <button
+                                onClick={() => setIsManageModalOpen(false)}
+                                style={{
+                                    position: "absolute",
+                                    top: "20px",
+                                    right: "20px",
+                                    background: "none",
+                                    border: "none",
+                                    fontSize: "1.5rem",
+                                    cursor: "pointer",
+                                    color: "#666"
+                                }}
+                            >
+                                ✕
+                            </button>
+
+                            <h2 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#1a1a1a", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "8px" }}>
+                                ⚽ Gerenciar Resultados da Copa
+                            </h2>
+                            <p style={{ fontSize: "0.85rem", color: "#666", marginBottom: "1.5rem" }}>
+                                Digite os placares oficiais dos jogos e salve. Isso validará os palpites, gerará os cupons de desconto para quem acertou e liberará o próximo jogo.
+                            </p>
+
+                            {loadingMatches ? (
+                                <div style={{ textAlign: "center", padding: "2rem" }}>Carregando dados dos jogos...</div>
+                            ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                                    {matches.map((match) => {
+                                        const score = matchScores[match.id] || { score_a: "", score_b: "" };
+                                        const feedback = matchFeedback[match.id];
+                                        const isLoading = modalActionLoading === match.id;
+                                        
+                                        return (
+                                            <div
+                                                key={match.id}
+                                                style={{
+                                                    background: match.is_unlocked ? "white" : "#f5f5f5",
+                                                    border: "1px solid #e0e0e0",
+                                                    borderRadius: "12px",
+                                                    padding: "1.25rem",
+                                                    position: "relative"
+                                                }}
+                                            >
+                                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
+                                                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#888" }}>
+                                                        Jogo {match.id}
+                                                    </span>
+                                                    <span style={{
+                                                        fontSize: "0.7rem",
+                                                        fontWeight: 700,
+                                                        color: match.is_finalized ? "#107c41" : match.is_unlocked ? "#d97706" : "#666",
+                                                        textTransform: "uppercase"
+                                                    }}>
+                                                        {match.is_finalized ? "✓ Finalizado" : match.is_unlocked ? "Aberto para placar" : "🔒 Bloqueado"}
+                                                    </span>
+                                                </div>
+
+                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+                                                    <div style={{ fontSize: "0.95rem", fontWeight: 600, color: "#333" }}>
+                                                        🇧🇷 {match.team_a} vs {match.team_b}
+                                                    </div>
+
+                                                    {match.is_unlocked ? (
+                                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                placeholder="0"
+                                                                disabled={match.is_finalized || isLoading}
+                                                                value={score.score_a}
+                                                                onChange={(e) => setMatchScores(prev => ({
+                                                                    ...prev,
+                                                                    [match.id]: { ...score, score_a: e.target.value }
+                                                                }))}
+                                                                style={{
+                                                                    width: "45px",
+                                                                    padding: "4px",
+                                                                    borderRadius: "6px",
+                                                                    border: "1px solid #ccc",
+                                                                    textAlign: "center",
+                                                                    fontWeight: "bold"
+                                                                }}
+                                                            />
+                                                            <span style={{ fontSize: "0.85rem", color: "#666" }}>x</span>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                placeholder="0"
+                                                                disabled={match.is_finalized || isLoading}
+                                                                value={score.score_b}
+                                                                onChange={(e) => setMatchScores(prev => ({
+                                                                    ...prev,
+                                                                    [match.id]: { ...score, score_b: e.target.value }
+                                                                }))}
+                                                                style={{
+                                                                    width: "45px",
+                                                                    padding: "4px",
+                                                                    borderRadius: "6px",
+                                                                    border: "1px solid #ccc",
+                                                                    textAlign: "center",
+                                                                    fontWeight: "bold"
+                                                                }}
+                                                            />
+
+                                                            {!match.is_finalized && (
+                                                                <button
+                                                                    onClick={() => handleFinalizeMatch(match.id)}
+                                                                    disabled={isLoading}
+                                                                    style={{
+                                                                        border: "none",
+                                                                        background: "#107c41",
+                                                                        color: "white",
+                                                                        fontWeight: 700,
+                                                                        fontSize: "0.78rem",
+                                                                        padding: "6px 12px",
+                                                                        borderRadius: "6px",
+                                                                        cursor: "pointer",
+                                                                        transition: "opacity 0.2s"
+                                                                    }}
+                                                                >
+                                                                    {isLoading ? "Salvando" : "Salvar Placar"}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ fontSize: "0.8rem", color: "#666", fontStyle: "italic" }}>
+                                                            Aguardando Jogo 1 ser finalizado.
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {feedback && (
+                                                    <div style={{
+                                                        fontSize: "0.78rem",
+                                                        marginTop: "6px",
+                                                        fontWeight: 600,
+                                                        color: feedback.startsWith("✓") ? "#107c41" : "#d32f2f"
+                                                    }}>
+                                                        {feedback}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Reset button inside modal */}
+                            <div style={{
+                                marginTop: "2rem",
+                                borderTop: "1px solid #eee",
+                                paddingTop: "1rem",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center"
+                            }}>
+                                <button
+                                    onClick={handleResetSystem}
+                                    disabled={modalActionLoading === -1}
+                                    style={{
+                                        border: "none",
+                                        background: "#d32f2f",
+                                        color: "white",
+                                        padding: "8px 14px",
+                                        fontSize: "0.8rem",
+                                        fontWeight: 600,
+                                        borderRadius: "8px",
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    {modalActionLoading === -1 ? "Resetando..." : "Resetar Palpites e Jogos"}
+                                </button>
+
+                                <button
+                                    onClick={() => setIsManageModalOpen(false)}
+                                    style={{
+                                        border: "1px solid #ccc",
+                                        background: "white",
+                                        color: "#333",
+                                        padding: "8px 14px",
+                                        fontSize: "0.8rem",
+                                        fontWeight: 600,
+                                        borderRadius: "8px",
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    Fechar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );
