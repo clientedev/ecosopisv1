@@ -14,6 +14,72 @@ const SUGGESTIONS = [
     { icon: <MessageCircle size={18} />, text: "Dicas para uma rotina de skincare vegana." }
 ];
 
+const getMentionedProducts = (content: string, products: any[]) => {
+    if (!content || !products) return [];
+    
+    const cleanContent = content
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+        
+    const matches: any[] = [];
+    
+    const keywordMap: Record<string, string[]> = {
+        "sabonete-acafrao-dolomita": ["acafrao", "açafrão"],
+        "sabonete-clareador-argila-branca": ["argila branca"],
+        "sabonete-intimo-barbatimao": ["sabonete intimo", "barbatimão", "barbatimao"],
+        "sabonete-argila-verde": ["argila verde"],
+        "sabonete-carvao-ativado": ["carvão", "carvao"],
+        "sabonete-rosa-mosqueta-argila-rosa": ["argila rosa"],
+        "sabonete-liquido-barbatimao": ["sabonete liquido", "sabonete líquido"],
+        "creme-oleosidade-acne": ["creme para oleosidade", "creme para acne", "creme acne"],
+        "creme-pes-de-anjo": ["pés de anjo", "pes de anjo", "creme para pés", "creme para pes", "rachadura"],
+        "desodorante-clareador-solido": ["desodorante"],
+        "tonico-facial-antioxidante": ["tônico", "tonico"],
+        "manteiga-ojon": ["ojon", "manteiga de ojon"],
+        "oleo-rosa-mosqueta-puro": ["rosa mosqueta 100%", "rosa mosqueta puro"],
+        "oleo-rosa-mosqueta-20ml": ["rosa mosqueta 20ml"],
+        "refil-rosa-mosqueta": ["refil rosa mosqueta", "refil de rosa"],
+        "oleo-alecrim": ["óleo de alecrim", "oleo de alecrim"],
+        "oleo-semente-uva": ["semente de uva"],
+        "oleo-ricino": ["rícino", "ricino"],
+        "oleo-abacate": ["abacate"],
+        "oleo-argan": ["argan"],
+        "oe-lavanda": ["lavanda"],
+        "oe-menta": ["menta", "hortelã", "hortela"],
+        "oe-melaleuca": ["melaleuca", "tea tree"],
+        "oe-laranja": ["laranja"],
+        "kit-acne": ["kit para acne", "kit acne"],
+        "kit-acafrao-argila": ["kit sabonetes", "kit de sabonetes"],
+        "kit-clareamento": ["kit clareamento", "kit clareador"],
+        "kit-60-sabonetes": ["60 unidades"],
+        "kit-atacado-geral": ["kit atacado", "atacado"]
+    };
+
+    products.forEach(p => {
+        const slug = p.slug;
+        const keywords = keywordMap[slug] || [];
+        
+        const keywordMatch = keywords.some(kw => {
+            const cleanKw = kw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return cleanContent.includes(cleanKw);
+        });
+
+        const nameClean = p.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const exactMatch = cleanContent.includes(nameClean);
+
+        const isGeneralRosaMosqueta = slug.includes("rosa-mosqueta") && cleanContent.includes("rosa mosqueta");
+
+        if (keywordMatch || exactMatch || isGeneralRosaMosqueta) {
+            if (!matches.some(m => m.id === p.id)) {
+                matches.push(p);
+            }
+        }
+    });
+
+    return matches;
+};
+
 export default function LiaPage() {
     const { addToCart } = useCart();
     const [products, setProducts] = useState<any[]>([]);
@@ -120,7 +186,7 @@ export default function LiaPage() {
                             <div className={styles.chatMessages} ref={scrollRef}>
                                 {messages.map((msg, idx) => {
                                     const mentionedProducts = msg.role === 'assistant' 
-                                        ? products.filter(p => msg.content.toLowerCase().includes(p.name.toLowerCase()))
+                                        ? getMentionedProducts(msg.content, products)
                                         : [];
 
                                     return (
