@@ -382,8 +382,12 @@ export default function CarrinhoPage() {
         if (!couponCode) return;
         setCouponError("");
         
-        if (couponCode.toUpperCase() === "PRIMEIRACOMPRA" && isWholesaleEligible) {
-            setCouponError("O cupom de primeira compra não é válido para pedidos de atacado.");
+        const isPalpiteCoupon = couponCode.toUpperCase().startsWith("PALPITE-BR-");
+        if ((couponCode.toUpperCase() === "PRIMEIRACOMPRA" || isPalpiteCoupon) && isWholesaleEligible) {
+            setCouponError(isPalpiteCoupon 
+                ? "Os cupons do Bolão da Copa não são válidos para pedidos de atacado."
+                : "O cupom de primeira compra não é válido para pedidos de atacado."
+            );
             setAppliedCoupon(null);
             return;
         }
@@ -392,6 +396,11 @@ export default function CarrinhoPage() {
             const res = await fetch(`/api/coupons/validate/${couponCode}`);
             if (res.ok) {
                 const data = await res.json();
+                if (data.code.startsWith("PALPITE-BR-") && isWholesaleEligible) {
+                    setCouponError("Os cupons do Bolão da Copa não são válidos para pedidos de atacado.");
+                    setAppliedCoupon(null);
+                    return;
+                }
                 const subtotal_calc = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
                 if (data.min_purchase_value > subtotal_calc) {
                     setCouponError(`Compra mínima de R$ ${data.min_purchase_value} necessária`);

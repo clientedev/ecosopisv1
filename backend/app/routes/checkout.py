@@ -78,11 +78,23 @@ async def checkout(
     discount_amount = checkout_data.discount_amount or 0.0
 
     if checkout_data.coupon_code:
+        # Check if there are wholesale products in this checkout
+        from app.models import models as app_models
+        product_ids = [item.product_id for item in checkout_data.items]
+        has_wholesale = False
+        if product_ids:
+            wholesale_count = db.query(app_models.Product).filter(
+                app_models.Product.id.in_(product_ids),
+                app_models.Product.is_wholesale == True
+            ).count()
+            has_wholesale = wholesale_count > 0
+
         if checkout_data.coupon_code.upper() == "PRIMEIRACOMPRA" and current_user.total_compras == 0:
+            if has_wholesale:
+                raise HTTPException(status_code=400, detail="O cupom PRIMEIRACOMPRA não é válido para produtos de atacado.")
             coupon_code = "PRIMEIRACOMPRA"
             discount_amount = (subtotal * 10) / 100
         else:
-            from app.models import models as app_models
             from datetime import datetime, timezone
 
             coupon = db.query(app_models.Coupon).filter(
@@ -92,6 +104,9 @@ async def checkout(
 
             if not coupon:
                 raise HTTPException(status_code=400, detail="Cupom inválido ou inativo")
+
+            if coupon.code.startswith("PALPITE-BR-") and has_wholesale:
+                raise HTTPException(status_code=400, detail="Os cupons do Bolão da Copa não são válidos para produtos de atacado.")
 
             if coupon.valid_until and coupon.valid_until < datetime.now(timezone.utc):
                 raise HTTPException(status_code=400, detail="Este cupom já expirou")

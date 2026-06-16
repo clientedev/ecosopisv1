@@ -256,10 +256,10 @@ export default function Home() {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setPedidosCount(prev => prev + Number((Math.random() * 0.4 + 0.1).toFixed(2)));
-            setClientesCount(prev => prev + Number((Math.random() * 0.2 + 0.05).toFixed(2)));
-            setAtivosCount(prev => prev + Number((Math.random() * 0.3 + 0.08).toFixed(2)));
-        }, 1500);
+            setPedidosCount(prev => prev + Number((Math.random() * 0.15 + 0.05).toFixed(2)));
+            setClientesCount(prev => prev + Number((Math.random() * 0.08 + 0.02).toFixed(2)));
+            setAtivosCount(prev => prev + Number((Math.random() * 0.12 + 0.03).toFixed(2)));
+        }, 10000);
         return () => clearInterval(interval);
     }, []);
 
@@ -834,63 +834,6 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Bestsellers Ranking - Product Cards */}
-            <section className={styles.bestsellersSection}>
-                <div className="container">
-                    <div className={styles.bestsellersHeader}>
-                        <h2 className={styles.sectionTitle}>Os Mais Vendidos 👑</h2>
-                        <p>Os produtos e protocolos que estão transformando a pele das nossas clientes.</p>
-                    </div>
-                    <div className={styles.bestsellersGrid}>
-                        <div className={styles.bestsellerWrapper}>
-                            <div className={`${styles.rankBadge} ${styles.rankBadgeTop1}`}>👑 TOP 1 - MAIS VENDIDO</div>
-                            {findProductBySlug('sabonete-acafrao-dolomita') && (
-                                <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} badge="Nosso mais vendido" showMarketplace={false} />
-                            )}
-                        </div>
-                        <div className={styles.bestsellerWrapper}>
-                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : styles.rankBadgeStar}`}>
-                                {isValentines ? '❤️' : '✨'} QUERIDINHO DAS CLIENTES
-                            </div>
-                            {findProductBySlug('kit-clareamento') && (
-                                <ProductCard product={findProductBySlug('kit-clareamento')} showMarketplace={false} />
-                            )}
-                        </div>
-                        <div className={styles.bestsellerWrapper}>
-                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : styles.rankBadgeStar}`}>
-                                {isValentines ? '❤️' : '✨'} QUERIDINHO DAS CLIENTES
-                            </div>
-                            {findProductBySlug('oleo-ricino') && (
-                                <ProductCard product={findProductBySlug('oleo-ricino')} showMarketplace={false} />
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* NEW: Stats & Brand Commitment Section - LIVE GROWING VALUES */}
-            <section className={styles.statsSection}>
-                <div className="container">
-                    <div className={styles.statsGrid}>
-                        <div className={styles.statCard}>
-                            <div className={styles.statIcon}><Heart size={32} /></div>
-                            <h3>{pedidosCount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-                            <p>Pedidos enviados com amor</p>
-                        </div>
-                        <div className={styles.statCard}>
-                            <div className={styles.statIcon}><Users size={32} /></div>
-                            <h3>{clientesCount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-                            <p>Clientes transformadas</p>
-                        </div>
-                        <div className={styles.statCard}>
-                            <div className={styles.statIcon}><ShieldCheck size={32} /></div>
-                            <h3>{ativosCount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-                            <p>Ingredientes naturais processados (kg)</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             {/* NEW: World Cup Guesses Section (Bolão) */}
             {activeTheme === "copa_do_mundo" && (
                 <section style={{
@@ -947,7 +890,7 @@ export default function Home() {
                             lineHeight: 1.1,
                             textShadow: "0 2px 20px rgba(0,0,0,0.3)"
                         }}>
-                            🇧🇷 Chute o Placar &amp; Ganhe!
+                            Chute o Placar &amp; Ganhe!
                         </h2>
                         <p style={{
                             color: "rgba(255,255,255,0.8)",
@@ -1102,7 +1045,7 @@ export default function Home() {
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "3px", textTransform: "uppercase" }}>VS</div>
+                                                        <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "3px", textTransform: "uppercase" }}>VS</div>
                                                     )}
                                                 </div>
 
@@ -1204,6 +1147,21 @@ export default function Home() {
                                                                 🔑 Entrar para palpitar
                                                             </Link>
                                                         </div>
+                                                    ) : match.user_guess ? (
+                                                        <div style={{
+                                                            padding: "1.25rem", borderRadius: "16px", textAlign: "center",
+                                                            background: "rgba(255,255,255,0.06)",
+                                                            border: "1px solid rgba(255,255,255,0.12)",
+                                                            boxShadow: "inset 0 2px 10px rgba(0,0,0,0.15)"
+                                                        }}>
+                                                            <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "rgba(255,255,255,0.5)", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Seu palpite enviado</div>
+                                                            <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "#FFE000", letterSpacing: "4px" }}>
+                                                                {match.user_guess.guess_score_a} × {match.user_guess.guess_score_b}
+                                                            </div>
+                                                            <div style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.5)", marginTop: "10px", fontWeight: 600 }}>
+                                                                Palpite único registrado. Boa sorte! 🍀
+                                                            </div>
+                                                        </div>
                                                     ) : (
                                                         <>
                                                             {/* Score inputs */}
@@ -1254,7 +1212,7 @@ export default function Home() {
                                                                         transition: "all 0.2s ease"
                                                                     }}
                                                                 >
-                                                                    {isSaving ? "⏳ Salvando..." : match.user_guess ? "🔄 Atualizar Palpite" : "⚽ Enviar Palpite"}
+                                                                    {isSaving ? "⏳ Salvando..." : "⚽ Enviar Palpite"}
                                                                 </button>
                                                             )}
 
@@ -1273,7 +1231,7 @@ export default function Home() {
                                                             )}
 
                                                             {/* Cutoff / Current guess note */}
-                                                            {match.cutoff_passed ? (
+                                                            {match.cutoff_passed && (
                                                                 <div style={{
                                                                     textAlign: "center", fontSize: "0.8rem",
                                                                     color: "#fca5a5", fontWeight: 600,
@@ -1283,14 +1241,6 @@ export default function Home() {
                                                                 }}>
                                                                     ⏳ Palpites fechados 1h antes do início
                                                                 </div>
-                                                            ) : (
-                                                                match.user_guess && (
-                                                                    <div style={{ textAlign: "center", fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", marginTop: "8px" }}>
-                                                                        Palpite atual: <strong style={{ color: "rgba(255,255,255,0.6)" }}>
-                                                                            {match.user_guess.guess_score_a} × {match.user_guess.guess_score_b}
-                                                                        </strong> · pode alterar até 1h antes
-                                                                    </div>
-                                                                )
                                                             )}
                                                         </>
                                                     )}
@@ -1304,6 +1254,63 @@ export default function Home() {
                     )}
                 </section>
             )}
+
+            {/* Bestsellers Ranking - Product Cards */}
+            <section className={styles.bestsellersSection}>
+                <div className="container">
+                    <div className={styles.bestsellersHeader}>
+                        <h2 className={styles.sectionTitle}>Os Mais Vendidos 👑</h2>
+                        <p>Os produtos e protocolos que estão transformando a pele das nossas clientes.</p>
+                    </div>
+                    <div className={styles.bestsellersGrid}>
+                        <div className={styles.bestsellerWrapper}>
+                            <div className={`${styles.rankBadge} ${styles.rankBadgeTop1}`}>👑 TOP 1 - MAIS VENDIDO</div>
+                            {findProductBySlug('sabonete-acafrao-dolomita') && (
+                                <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} badge="Nosso mais vendido" showMarketplace={false} />
+                            )}
+                        </div>
+                        <div className={styles.bestsellerWrapper}>
+                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : styles.rankBadgeStar}`}>
+                                {isValentines ? '❤️' : '✨'} QUERIDINHO DAS CLIENTES
+                            </div>
+                            {findProductBySlug('kit-clareamento') && (
+                                <ProductCard product={findProductBySlug('kit-clareamento')} showMarketplace={false} />
+                            )}
+                        </div>
+                        <div className={styles.bestsellerWrapper}>
+                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : styles.rankBadgeStar}`}>
+                                {isValentines ? '❤️' : '✨'} QUERIDINHO DAS CLIENTES
+                            </div>
+                            {findProductBySlug('oleo-ricino') && (
+                                <ProductCard product={findProductBySlug('oleo-ricino')} showMarketplace={false} />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* NEW: Stats & Brand Commitment Section - LIVE GROWING VALUES */}
+            <section className={styles.statsSection}>
+                <div className="container">
+                    <div className={styles.statsGrid}>
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}><Heart size={32} /></div>
+                            <h3>{pedidosCount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+                            <p>Pedidos enviados com amor</p>
+                        </div>
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}><Users size={32} /></div>
+                            <h3>{clientesCount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+                            <p>Clientes transformadas</p>
+                        </div>
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}><ShieldCheck size={32} /></div>
+                            <h3>{ativosCount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+                            <p>Ingredientes naturais processados (kg)</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             {/* Brand History */}
             <section className={styles.historySection}>

@@ -96,11 +96,7 @@ def place_guess(guess_in: GuessCreate, db: Session = Depends(get_db), current_us
     ).first()
     
     if guess:
-        guess.guess_score_a = guess_in.guess_score_a
-        guess.guess_score_b = guess_in.guess_score_b
-        db.commit()
-        db.refresh(guess)
-        return {"message": "Palpite atualizado com sucesso! Boa sorte! 🏆", "guess_id": guess.id}
+        raise HTTPException(status_code=400, detail="Você já enviou um palpite para este jogo. Não é permitido alterar o palpite.")
     
     guess = models.WorldCupGuess(
         match_id=guess_in.match_id,
