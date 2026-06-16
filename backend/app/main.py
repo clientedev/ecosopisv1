@@ -250,9 +250,14 @@ def _ensure_extra_tables():
     try:
         with engine.begin() as conn:
             if is_sqlite:
-                conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_matches (id INTEGER PRIMARY KEY AUTOINCREMENT, team_a VARCHAR DEFAULT 'Brasil', team_b VARCHAR NOT NULL, stadium VARCHAR, match_time TIMESTAMP NOT NULL, score_a INTEGER, score_b INTEGER, is_finalized BOOLEAN DEFAULT FALSE, is_unlocked BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_matches (id INTEGER PRIMARY KEY AUTOINCREMENT, team_a VARCHAR DEFAULT 'Brasil', team_b VARCHAR NOT NULL, stadium VARCHAR, match_time TIMESTAMP NOT NULL, score_a INTEGER, score_b INTEGER, is_finalized BOOLEAN DEFAULT FALSE, is_unlocked BOOLEAN DEFAULT FALSE, coupon_percentage REAL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
             else:
-                conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_matches (id SERIAL PRIMARY KEY, team_a VARCHAR DEFAULT 'Brasil', team_b VARCHAR NOT NULL, stadium VARCHAR, match_time TIMESTAMPTZ NOT NULL, score_a INTEGER, score_b INTEGER, is_finalized BOOLEAN DEFAULT FALSE, is_unlocked BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT now())"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_matches (id SERIAL PRIMARY KEY, team_a VARCHAR DEFAULT 'Brasil', team_b VARCHAR NOT NULL, stadium VARCHAR, match_time TIMESTAMPTZ NOT NULL, score_a INTEGER, score_b INTEGER, is_finalized BOOLEAN DEFAULT FALSE, is_unlocked BOOLEAN DEFAULT FALSE, coupon_percentage DOUBLE PRECISION, created_at TIMESTAMPTZ DEFAULT now())"))
+        # Ensure coupon_percentage column exists
+        if is_sqlite:
+            conn.execute(text('ALTER TABLE world_cup_matches ADD COLUMN coupon_percentage REAL'))
+        else:
+            conn.execute(text('ALTER TABLE world_cup_matches ADD COLUMN IF NOT EXISTS coupon_percentage DOUBLE PRECISION'))
         logger.info("✓ world_cup_matches table ensured.")
     except Exception as e:
         logger.warning(f"world_cup_matches ensure: {e}")
