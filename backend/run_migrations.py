@@ -70,6 +70,10 @@ MISSING_PRODUCT_DETAILS_COLUMNS = [
     ("beneficios", "TEXT"),
 ]
 
+MISSING_WORLD_CUP_MATCHES_COLUMNS = [
+    ("coupon_percentage", "DOUBLE PRECISION"),
+]
+
 
 def add_missing_columns():
     """Safely add any columns that don't exist yet in the live database."""
@@ -112,6 +116,9 @@ def add_missing_columns():
 
     for col_name, col_def in MISSING_PRODUCT_DETAILS_COLUMNS:
         add_col("product_details", col_name, col_def)
+
+    for col_name, col_def in MISSING_WORLD_CUP_MATCHES_COLUMNS:
+        add_col("world_cup_matches", col_name, col_def)
 
 def run_migrations():
     success = True

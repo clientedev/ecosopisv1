@@ -456,6 +456,7 @@ class WorldCupMatch(Base):
     score_b = Column(Integer, nullable=True)
     is_finalized = Column(Boolean, default=False)
     is_unlocked = Column(Boolean, default=False)
+    coupon_percentage = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     guesses = relationship("WorldCupGuess", back_populates="match", cascade="all, delete-orphan")

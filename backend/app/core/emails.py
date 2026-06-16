@@ -313,3 +313,23 @@ def send_abandoned_cart_email(email: str, name: str):
     </div>
     """
     return send_email(email, subject, html)
+
+
+def send_bolao_winner_email(email: str, name: str, coupon_code: str, discount_value: float):
+    subject = "🏆 Você acertou o placar! Ganhou um cupom na ECOSOPIS!"
+    html = f"""
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #4B8411; text-align: center;">🏆 Parabéns, {name}!</h2>
+        <p>Você acertou em cheio o placar do jogo do Brasil! Como recompensa, você ganhou um cupom de desconto especial de <strong>{discount_value}% OFF</strong> para usar em nosso site!</p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4B8411; border: 2px dashed #4B8411; margin: 25px 0;">
+            {coupon_code}
+        </div>
+        <p style="text-align: center;">O cupom é válido por 30 dias e pode ser aplicado no fechamento do seu pedido.</p>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{FRONTEND_URL}" style="background-color: #4B8411; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ir para a Loja</a>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="text-align: center; color: #999; font-size: 0.8rem;">Equipe ECOSOPIS - Cosméticos Naturais e Veganos</p>
+    </div>
+    """
+    return send_email(email, subject, html)

@@ -107,7 +107,7 @@ export default function AdminBolao() {
     const [guesses, setGuesses] = useState<Record<number, any[]>>({});
     const [loadingGuesses, setLoadingGuesses] = useState<Record<number, boolean>>({});
     const [isAddingMatch, setIsAddingMatch] = useState(false);
-    const [newMatch, setNewMatch] = useState({ team_b: "", stadium: "", match_time: "", is_unlocked: false });
+    const [newMatch, setNewMatch] = useState({ team_b: "", stadium: "", match_time: "", is_unlocked: false, coupon_percentage: "" });
     const [addingLoading, setAddingLoading] = useState(false);
     const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
     const [editingMatch, setEditingMatch] = useState<any | null>(null);
@@ -273,13 +273,14 @@ export default function AdminBolao() {
                     team_b: newMatch.team_b,
                     stadium: newMatch.stadium || null,
                     match_time: new Date(newMatch.match_time).toISOString(),
-                    is_unlocked: newMatch.is_unlocked
+                    is_unlocked: newMatch.is_unlocked,
+                    coupon_percentage: newMatch.coupon_percentage ? Number(newMatch.coupon_percentage) : null
                 })
             });
             if (res.ok) {
                 showToast("✅ Jogo adicionado com sucesso!", "success");
                 setIsAddingMatch(false);
-                setNewMatch({ team_b: "", stadium: "", match_time: "", is_unlocked: false });
+                setNewMatch({ team_b: "", stadium: "", match_time: "", is_unlocked: false, coupon_percentage: "" });
                 fetchMatches();
             } else {
                 const err = await res.json();
@@ -299,7 +300,8 @@ export default function AdminBolao() {
                 body: JSON.stringify({
                     team_b: editingMatch.team_b,
                     stadium: editingMatch.stadium,
-                    match_time: new Date(editingMatch.match_time_local).toISOString()
+                    match_time: new Date(editingMatch.match_time_local).toISOString(),
+                    coupon_percentage: editingMatch.coupon_percentage ? Number(editingMatch.coupon_percentage) : null
                 })
             });
             if (res.ok) {
@@ -495,7 +497,16 @@ export default function AdminBolao() {
                                         style={{ ...inputStyle, marginTop: "4px" }}
                                     />
                                 </div>
-                                <div style={{ display: "flex", alignItems: "flex-end" }}>
+                                 <div>
+                                    <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#555" }}>Porcentagem do Cupom (% OFF)</label>
+                                    <input
+                                        type="number" min="0" max="100" placeholder="Ex: 15 (deixe vazio para usar padrão)"
+                                        value={newMatch.coupon_percentage}
+                                        onChange={e => setNewMatch(prev => ({ ...prev, coupon_percentage: e.target.value }))}
+                                        style={{ ...inputStyle, marginTop: "4px" }}
+                                    />
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px", height: "100%", marginTop: "12px" }}>
                                     <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.88rem", fontWeight: 600, color: "#555", cursor: "pointer" }}>
                                         <input
                                             type="checkbox"
@@ -596,7 +607,7 @@ export default function AdminBolao() {
                                                         </button>
                                                     )}
                                                     <button
-                                                        onClick={() => setEditingMatch({ ...match, match_time_local: new Date(match.match_time).toISOString().slice(0, 16) })}
+                                                        onClick={() => setEditingMatch({ ...match, match_time_local: new Date(match.match_time).toISOString().slice(0, 16), coupon_percentage: match.coupon_percentage !== null && match.coupon_percentage !== undefined ? String(match.coupon_percentage) : "" })}
                                                         style={{ background: "#f0f9ff", color: "#0369a1", border: "none", borderRadius: "8px", padding: "5px 12px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
                                                     >
                                                         ✏️ Editar
@@ -766,6 +777,15 @@ export default function AdminBolao() {
                                     type="datetime-local"
                                     value={editingMatch.match_time_local}
                                     onChange={e => setEditingMatch({ ...editingMatch, match_time_local: e.target.value })}
+                                    style={{ ...inputStyle, marginTop: "4px" }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#555" }}>Porcentagem do Cupom (% OFF)</label>
+                                <input
+                                    type="number" min="0" max="100" placeholder="Ex: 15 (deixe vazio para usar padrão)"
+                                    value={editingMatch.coupon_percentage || ""}
+                                    onChange={e => setEditingMatch({ ...editingMatch, coupon_percentage: e.target.value })}
                                     style={{ ...inputStyle, marginTop: "4px" }}
                                 />
                             </div>

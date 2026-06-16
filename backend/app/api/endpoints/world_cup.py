@@ -66,6 +66,7 @@ def list_matches(db: Session = Depends(get_db), current_user: Optional[models.Us
             "score_b": match.score_b,
             "is_finalized": match.is_finalized,
             "is_unlocked": match.is_unlocked,
+            "coupon_percentage": match.coupon_percentage,
             "cutoff_passed": cutoff_passed,
             "user_guess": user_guess_data
         })
@@ -122,7 +123,7 @@ def finalize_match(match_id: int, score_in: FinalizeMatch, db: Session = Depends
     match.score_b = score_in.score_b
     match.is_finalized = True
     
-    discount_pct = _get_bolao_discount(db)
+    discount_pct = match.coupon_percentage if (match.coupon_percentage is not None) else _get_bolao_discount(db)
     guesses = db.query(models.WorldCupGuess).filter(models.WorldCupGuess.match_id == match_id).all()
     for guess in guesses:
         is_correct = (guess.guess_score_a == score_in.score_a) and (guess.guess_score_b == score_in.score_b)
@@ -142,6 +143,15 @@ def finalize_match(match_id: int, score_in: FinalizeMatch, db: Session = Depends
             )
             db.add(coupon)
             guess.reward_coupon_code = code
+            
+            # Envias e-mail para quem acertou
+            user = db.query(models.User).filter(models.User.id == guess.user_id).first()
+            if user and user.email:
+                try:
+                    from app.core.emails import send_bolao_winner_email
+                    send_bolao_winner_email(user.email, user.full_name or "Cliente", code, discount_pct)
+                except Exception as e:
+                    print(f"Erro ao enviar email para {user.email}: {e}")
             
     if match_id == 1:
         next_match = db.query(models.WorldCupMatch).filter(models.WorldCupMatch.id == 2).first()
@@ -181,6 +191,7 @@ class MatchCreate(BaseModel):
     stadium: Optional[str] = None
     match_time: datetime
     is_unlocked: bool = False
+    coupon_percentage: Optional[float] = None
 
 
 class MatchUpdate(BaseModel):
@@ -189,6 +200,7 @@ class MatchUpdate(BaseModel):
     stadium: Optional[str] = None
     match_time: Optional[datetime] = None
     is_unlocked: Optional[bool] = None
+    coupon_percentage: Optional[float] = None
 
 
 @router.post("/matches", dependencies=[Depends(get_current_admin)])
@@ -200,6 +212,7 @@ def create_match(match_in: MatchCreate, db: Session = Depends(get_db)):
         stadium=match_in.stadium,
         match_time=match_in.match_time,
         is_unlocked=match_in.is_unlocked,
+        coupon_percentage=match_in.coupon_percentage,
         is_finalized=False,
     )
     db.add(match)
@@ -224,6 +237,8 @@ def update_match(match_id: int, match_in: MatchUpdate, db: Session = Depends(get
         match.match_time = match_in.match_time
     if match_in.is_unlocked is not None:
         match.is_unlocked = match_in.is_unlocked
+    if match_in.coupon_percentage is not None:
+        match.coupon_percentage = match_in.coupon_percentage
     db.commit()
     db.refresh(match)
     return match

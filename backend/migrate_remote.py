@@ -40,7 +40,8 @@ def migrate_remote():
         
         print("Ensuring system_settings, world_cup_matches, and world_cup_guesses tables exist...")
         conn.execute(text("CREATE TABLE IF NOT EXISTS system_settings (id SERIAL PRIMARY KEY, key VARCHAR UNIQUE NOT NULL, value TEXT, updated_at TIMESTAMPTZ DEFAULT now())"))
-        conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_matches (id SERIAL PRIMARY KEY, team_a VARCHAR DEFAULT 'Brasil', team_b VARCHAR NOT NULL, stadium VARCHAR, match_time TIMESTAMPTZ NOT NULL, score_a INTEGER, score_b INTEGER, is_finalized BOOLEAN DEFAULT FALSE, is_unlocked BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT now())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_matches (id SERIAL PRIMARY KEY, team_a VARCHAR DEFAULT 'Brasil', team_b VARCHAR NOT NULL, stadium VARCHAR, match_time TIMESTAMPTZ NOT NULL, score_a INTEGER, score_b INTEGER, is_finalized BOOLEAN DEFAULT FALSE, is_unlocked BOOLEAN DEFAULT FALSE, coupon_percentage DOUBLE PRECISION, created_at TIMESTAMPTZ DEFAULT now())"))
+        conn.execute(text("ALTER TABLE world_cup_matches ADD COLUMN IF NOT EXISTS coupon_percentage DOUBLE PRECISION;"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_guesses (id SERIAL PRIMARY KEY, match_id INTEGER NOT NULL REFERENCES world_cup_matches(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id), guess_score_a INTEGER NOT NULL, guess_score_b INTEGER NOT NULL, is_correct BOOLEAN, reward_coupon_code VARCHAR, is_processed BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT now())"))
         
         conn.commit()

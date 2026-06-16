@@ -5,6 +5,7 @@ import Footer from "@/components/Footer/Footer";
 import styles from "./lia.module.css";
 import Image from "next/image";
 import { Send, Sparkles, MessageCircle, Info, Zap, Leaf } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
 const SUGGESTIONS = [
     { icon: <Leaf size={18} />, text: "Quais produtos são bons para pele seca?" },
@@ -14,12 +15,21 @@ const SUGGESTIONS = [
 ];
 
 export default function LiaPage() {
+    const { addToCart } = useCart();
+    const [products, setProducts] = useState<any[]>([]);
     const [messages, setMessages] = useState([
         { role: "assistant", content: "Olá! Eu sou a Lia, sua consultora de inteligência artificial da ECOSOPIS. Estou aqui para ajudar você a descobrir o melhor da beleza natural e científica. Como posso te ajudar hoje?" }
     ]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        fetch("/api/products")
+            .then(res => res.json())
+            .then(data => setProducts(data))
+            .catch(err => console.error("Error fetching products", err));
+    }, []);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -108,16 +118,50 @@ export default function LiaPage() {
                         {/* Chat Interface */}
                         <div className={styles.chatWrapper}>
                             <div className={styles.chatMessages} ref={scrollRef}>
-                                {messages.map((msg, idx) => (
-                                    <div
-                                        key={idx}
-                                        className={`${styles.message} ${msg.role === 'user' ? styles.userMessage : styles.assistantMessage}`}
-                                    >
-                                        <div className={styles.messageContent}>
-                                            {msg.content}
+                                {messages.map((msg, idx) => {
+                                    const mentionedProducts = msg.role === 'assistant' 
+                                        ? products.filter(p => msg.content.toLowerCase().includes(p.name.toLowerCase()))
+                                        : [];
+
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className={`${styles.message} ${msg.role === 'user' ? styles.userMessage : styles.assistantMessage}`}
+                                        >
+                                            <div className={styles.messageContent}>
+                                                {msg.content}
+                                                
+                                                {mentionedProducts.length > 0 && (
+                                                    <div className={styles.productSuggestionsContainer}>
+                                                        {mentionedProducts.map(p => (
+                                                            <div key={p.id} className={styles.productSuggestionCard}>
+                                                                <div className={styles.suggestionImageWrapper}>
+                                                                    <img 
+                                                                        src={p.image_url || "/placeholder.jpg"} 
+                                                                        alt={p.name} 
+                                                                        className={styles.suggestionImage} 
+                                                                    />
+                                                                </div>
+                                                                <div className={styles.suggestionInfo}>
+                                                                    <span className={styles.suggestionName}>{p.name}</span>
+                                                                    <span className={styles.suggestionPrice}>
+                                                                        R$ {p.price.toFixed(2).replace('.', ',')}
+                                                                    </span>
+                                                                </div>
+                                                                <button 
+                                                                    onClick={() => addToCart(p)}
+                                                                    className={styles.suggestionButton}
+                                                                >
+                                                                    Adicionar ao Carrinho
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 {isLoading && (
                                     <div className={`${styles.message} ${styles.assistantMessage} ${styles.typing}`}>
                                         <span className={styles.dot}></span>

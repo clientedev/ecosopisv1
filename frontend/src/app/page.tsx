@@ -250,6 +250,19 @@ export default function Home() {
     const [formStatus, setFormStatus] = useState({ type: "", text: "" });
     const [isMobile, setIsMobile] = useState(false);
 
+    const [pedidosCount, setPedidosCount] = useState(204312.45);
+    const [clientesCount, setClientesCount] = useState(51283.80);
+    const [ativosCount, setAtivosCount] = useState(12345.67);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setPedidosCount(prev => prev + Number((Math.random() * 0.4 + 0.1).toFixed(2)));
+            setClientesCount(prev => prev + Number((Math.random() * 0.2 + 0.05).toFixed(2)));
+            setAtivosCount(prev => prev + Number((Math.random() * 0.3 + 0.08).toFixed(2)));
+        }, 1500);
+        return () => clearInterval(interval);
+    }, []);
+
     // AI Chat state
     const [chatMessages, setChatMessages] = useState<{ role: string, content: string }[]>([
         { role: 'assistant', content: 'Olá! Sou a Lia, sua consultora de beleza natural. Como posso ajudar com sua rotina hoje?' }
@@ -821,6 +834,63 @@ export default function Home() {
                 </div>
             </section>
 
+            {/* Bestsellers Ranking - Product Cards */}
+            <section className={styles.bestsellersSection}>
+                <div className="container">
+                    <div className={styles.bestsellersHeader}>
+                        <h2 className={styles.sectionTitle}>Os Mais Vendidos 👑</h2>
+                        <p>Os produtos e protocolos que estão transformando a pele das nossas clientes.</p>
+                    </div>
+                    <div className={styles.bestsellersGrid}>
+                        <div className={styles.bestsellerWrapper}>
+                            <div className={`${styles.rankBadge} ${styles.rankBadgeTop1}`}>👑 TOP 1 - MAIS VENDIDO</div>
+                            {findProductBySlug('sabonete-acafrao-dolomita') && (
+                                <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} badge="Nosso mais vendido" showMarketplace={false} />
+                            )}
+                        </div>
+                        <div className={styles.bestsellerWrapper}>
+                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : styles.rankBadgeStar}`}>
+                                {isValentines ? '❤️' : '✨'} QUERIDINHO DAS CLIENTES
+                            </div>
+                            {findProductBySlug('kit-clareamento') && (
+                                <ProductCard product={findProductBySlug('kit-clareamento')} showMarketplace={false} />
+                            )}
+                        </div>
+                        <div className={styles.bestsellerWrapper}>
+                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : styles.rankBadgeStar}`}>
+                                {isValentines ? '❤️' : '✨'} QUERIDINHO DAS CLIENTES
+                            </div>
+                            {findProductBySlug('oleo-ricino') && (
+                                <ProductCard product={findProductBySlug('oleo-ricino')} showMarketplace={false} />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* NEW: Stats & Brand Commitment Section - LIVE GROWING VALUES */}
+            <section className={styles.statsSection}>
+                <div className="container">
+                    <div className={styles.statsGrid}>
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}><Heart size={32} /></div>
+                            <h3>{pedidosCount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+                            <p>Pedidos enviados com amor</p>
+                        </div>
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}><Users size={32} /></div>
+                            <h3>{clientesCount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+                            <p>Clientes transformadas</p>
+                        </div>
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}><ShieldCheck size={32} /></div>
+                            <h3>{ativosCount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+                            <p>Ingredientes naturais processados (kg)</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* NEW: World Cup Guesses Section (Bolão) */}
             {activeTheme === "copa_do_mundo" && (
                 <section style={{
@@ -863,7 +933,7 @@ export default function Home() {
                             borderRadius: "50px",
                             fontSize: "0.78rem",
                             fontWeight: 800,
-                            textTransform: "uppercase" as const,
+                            textTransform: "uppercase",
                             letterSpacing: "2px",
                             marginBottom: "1.25rem"
                         }}>
@@ -886,7 +956,7 @@ export default function Home() {
                             margin: "0 auto",
                             lineHeight: 1.65,
                         }}>
-                            Acerte o placar exato de qualquer jogo do Brasil e receba na hora um cupom de{" "}
+                            Acerte o placar exato de qualquer jogo do Brasil e receive na hora um cupom de{" "}
                             <strong style={{ color: "#FFE000" }}>{bolaoDiscount}% de desconto</strong>{" "}
                             para usar em nosso site!
                         </p>
@@ -981,7 +1051,7 @@ export default function Home() {
                                                 fontSize: "0.7rem", fontWeight: 700,
                                                 padding: "3px 10px", borderRadius: "20px",
                                                 background: statusColors.bg, color: statusColors.text,
-                                                textTransform: "uppercase" as const, letterSpacing: "0.5px"
+                                                textTransform: "uppercase", letterSpacing: "0.5px"
                                             }}>
                                                 {statusLabel}
                                             </span>
@@ -992,7 +1062,7 @@ export default function Home() {
                                             <div style={{
                                                 textAlign: "center", fontSize: "0.68rem",
                                                 color: "rgba(255,255,255,0.38)", fontWeight: 600,
-                                                textTransform: "uppercase" as const, letterSpacing: "0.5px",
+                                                textTransform: "uppercase", letterSpacing: "0.5px",
                                                 marginBottom: "1.25rem"
                                             }}>
                                                 📍 {match.stadium || "Estádio da Copa"}
@@ -1012,7 +1082,7 @@ export default function Home() {
                                                             style={{ width: "68px", height: "auto", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)", display: "block" }}
                                                         />
                                                     </div>
-                                                    <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "white", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{match.team_a}</div>
+                                                    <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "white", textTransform: "uppercase", letterSpacing: "0.5px" }}>{match.team_a}</div>
                                                 </div>
 
                                                 {/* Center: score if finalized, else VS */}
@@ -1025,14 +1095,14 @@ export default function Home() {
                                                             display: "inline-block"
                                                         }}>
                                                             <div style={{ fontSize: "1.9rem", fontWeight: 900, color: "white", lineHeight: 1, letterSpacing: "2px" }}>
-                                                                {match.score_a} <span style={{ color: "rgba(255,255,255,0.35)" }}>×</span> {match.score_b}
+                                                                 {match.score_a} <span style={{ color: "rgba(255,255,255,0.35)" }}>×</span> {match.score_b}
                                                             </div>
-                                                            <div style={{ fontSize: "0.58rem", color: "#7dd3fc", fontWeight: 700, textTransform: "uppercase" as const, marginTop: "2px" }}>
+                                                            <div style={{ fontSize: "0.58rem", color: "#7dd3fc", fontWeight: 700, textTransform: "uppercase", marginTop: "2px" }}>
                                                                 Placar Final
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "3px", textTransform: "uppercase" as const }}>VS</div>
+                                                        <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "3px", textTransform: "uppercase" }}>VS</div>
                                                     )}
                                                 </div>
 
@@ -1045,7 +1115,7 @@ export default function Home() {
                                                             style={{ width: "68px", height: "auto", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)", display: "block" }}
                                                         />
                                                     </div>
-                                                    <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "white", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{match.team_b}</div>
+                                                    <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "white", textTransform: "uppercase", letterSpacing: "0.5px" }}>{match.team_b}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1073,7 +1143,7 @@ export default function Home() {
                                                                 ? "1px solid rgba(34,197,94,0.4)"
                                                                 : "1px solid rgba(239,68,68,0.25)"
                                                         }}>
-                                                            <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.5)", marginBottom: "6px", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>Seu palpite</div>
+                                                            <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.5)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Seu palpite</div>
                                                             <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "white", letterSpacing: "3px", marginBottom: "8px" }}>
                                                                 {match.user_guess.guess_score_a} × {match.user_guess.guess_score_b}
                                                             </div>
@@ -1235,29 +1305,6 @@ export default function Home() {
                 </section>
             )}
 
-            {/* NEW: Stats & Brand Commitment Section */}
-            <section className={styles.statsSection}>
-                <div className="container">
-                    <div className={styles.statsGrid}>
-                        <div className={styles.statCard}>
-                            <div className={styles.statIcon}><Heart size={32} /></div>
-                            <h3>+200 MIL</h3>
-                            <p>Pedidos enviados com amor</p>
-                        </div>
-                        <div className={styles.statCard}>
-                            <div className={styles.statIcon}><Users size={32} /></div>
-                            <h3>+50 MIL</h3>
-                            <p>Clientes transformadas</p>
-                        </div>
-                        <div className={styles.statCard}>
-                            <div className={styles.statIcon}><ShieldCheck size={32} /></div>
-                            <h3>100%</h3>
-                            <p>Botânico e Seguro</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             {/* Brand History */}
             <section className={styles.historySection}>
                 <div className="container">
@@ -1265,40 +1312,6 @@ export default function Home() {
                         <h2 className={styles.sectionTitle}>MAIS QUE PRODUTOS, UM COMPROMISSO COM VOCÊ</h2>
                         <p>A Ecosopis nasceu do desejo de unir a sabedoria da natureza com resultados que você pode ver e sentir. Acreditamos que o autocuidado deve ser simples, ético e transformador. Cada fórmula é pensada para que você recupere não apenas a saúde da sua pele, mas a sua confiança diária.</p>
                         <p className={styles.historyHighlight}>O natural que funciona.</p>
-                    </div>
-                </div>
-            </section>
-
-            {/* Bestsellers Ranking - Product Cards */}
-            <section className={styles.bestsellersSection}>
-                <div className="container">
-                    <div className={styles.bestsellersHeader}>
-                        <h2 className={styles.sectionTitle}>Os Mais Vendidos 👑</h2>
-                        <p>Os produtos e protocolos que estão transformando a pele das nossas clientes.</p>
-                    </div>
-                    <div className={styles.bestsellersGrid}>
-                        <div className={styles.bestsellerWrapper}>
-                            <div className={`${styles.rankBadge} ${styles.rankBadgeTop1}`}>👑 TOP 1 - MAIS VENDIDO</div>
-                            {findProductBySlug('sabonete-acafrao-dolomita') && (
-                                <ProductCard product={findProductBySlug('sabonete-acafrao-dolomita')} badge="Nosso mais vendido" showMarketplace={false} />
-                            )}
-                        </div>
-                        <div className={styles.bestsellerWrapper}>
-                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : styles.rankBadgeStar}`}>
-                                {isValentines ? '❤️' : '✨'} QUERIDINHO DAS CLIENTES
-                            </div>
-                            {findProductBySlug('kit-clareamento') && (
-                                <ProductCard product={findProductBySlug('kit-clareamento')} showMarketplace={false} />
-                            )}
-                        </div>
-                        <div className={styles.bestsellerWrapper}>
-                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : styles.rankBadgeStar}`}>
-                                {isValentines ? '❤️' : '✨'} QUERIDINHO DAS CLIENTES
-                            </div>
-                            {findProductBySlug('oleo-ricino') && (
-                                <ProductCard product={findProductBySlug('oleo-ricino')} showMarketplace={false} />
-                            )}
-                        </div>
                     </div>
                 </div>
             </section>
