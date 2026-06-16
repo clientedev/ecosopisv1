@@ -253,11 +253,14 @@ def _ensure_extra_tables():
                 conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_matches (id INTEGER PRIMARY KEY AUTOINCREMENT, team_a VARCHAR DEFAULT 'Brasil', team_b VARCHAR NOT NULL, stadium VARCHAR, match_time TIMESTAMP NOT NULL, score_a INTEGER, score_b INTEGER, is_finalized BOOLEAN DEFAULT FALSE, is_unlocked BOOLEAN DEFAULT FALSE, coupon_percentage REAL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
             else:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS world_cup_matches (id SERIAL PRIMARY KEY, team_a VARCHAR DEFAULT 'Brasil', team_b VARCHAR NOT NULL, stadium VARCHAR, match_time TIMESTAMPTZ NOT NULL, score_a INTEGER, score_b INTEGER, is_finalized BOOLEAN DEFAULT FALSE, is_unlocked BOOLEAN DEFAULT FALSE, coupon_percentage DOUBLE PRECISION, created_at TIMESTAMPTZ DEFAULT now())"))
-        # Ensure coupon_percentage column exists
-        if is_sqlite:
-            conn.execute(text('ALTER TABLE world_cup_matches ADD COLUMN coupon_percentage REAL'))
-        else:
-            conn.execute(text('ALTER TABLE world_cup_matches ADD COLUMN IF NOT EXISTS coupon_percentage DOUBLE PRECISION'))
+            # Ensure coupon_percentage column exists (in case table already existed without column)
+            if is_sqlite:
+                conn.execute(text('ALTER TABLE world_cup_matches ADD COLUMN coupon_percentage REAL'))
+            else:
+                try:
+                    conn.execute(text('ALTER TABLE world_cup_matches ADD COLUMN coupon_percentage DOUBLE PRECISION'))
+                except Exception as e:
+                    logger.warning(f'Could not add coupon_percentage column: {e}')
         logger.info("✓ world_cup_matches table ensured.")
     except Exception as e:
         logger.warning(f"world_cup_matches ensure: {e}")
