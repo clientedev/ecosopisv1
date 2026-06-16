@@ -2,15 +2,73 @@
 import { useState, useRef, useEffect } from "react";
 import styles from "./ChatIA.module.css";
 import Image from "next/image";
-
 import { usePathname } from "next/navigation";
+import { useCart } from "@/context/CartContext";
 
 interface ChatIAProps {
     isOpen?: boolean;
     onToggle?: () => void;
 }
 
+const getMentionedProducts = (content: string, products: any[]) => {
+    if (!content || !products?.length) return [];
+    const cleanContent = content.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const matches: any[] = [];
+    const keywordMap: Record<string, string[]> = {
+        "sabonete-acafrao-dolomita": ["acafrao", "acafrão"],
+        "sabonete-clareador-argila-branca": ["argila branca"],
+        "sabonete-intimo-barbatimao": ["sabonete intimo", "barbatimao"],
+        "sabonete-argila-verde": ["argila verde"],
+        "sabonete-carvao-ativado": ["carvao", "carvão"],
+        "sabonete-rosa-mosqueta-argila-rosa": ["argila rosa"],
+        "sabonete-liquido-barbatimao": ["sabonete liquido"],
+        "creme-oleosidade-acne": ["creme para oleosidade", "creme para acne", "creme acne"],
+        "creme-pes-de-anjo": ["pes de anjo", "creme para pes", "rachadura"],
+        "desodorante-clareador-solido": ["desodorante"],
+        "tonico-facial-antioxidante": ["tonico", "tônico"],
+        "manteiga-ojon": ["ojon"],
+        "oleo-rosa-mosqueta-puro": ["rosa mosqueta 100%", "rosa mosqueta puro"],
+        "oleo-rosa-mosqueta-20ml": ["rosa mosqueta 20ml"],
+        "refil-rosa-mosqueta": ["refil rosa mosqueta"],
+        "oleo-alecrim": ["oleo de alecrim", "oleo alecrim"],
+        "oleo-semente-uva": ["semente de uva"],
+        "oleo-ricino": ["ricino"],
+        "oleo-abacate": ["abacate"],
+        "oleo-argan": ["argan"],
+        "oe-lavanda": ["lavanda"],
+        "oe-menta": ["menta", "hortela"],
+        "oe-melaleuca": ["melaleuca", "tea tree"],
+        "oe-laranja": ["laranja"],
+        "kit-acne": ["kit acne", "kit para acne"],
+        "kit-acafrao-argila": ["kit sabonetes"],
+        "kit-clareamento": ["kit clareamento", "kit clareador"],
+        "kit-60-sabonetes": ["60 unidades"],
+        "kit-atacado-geral": ["kit atacado"]
+    };
+    products.forEach(p => {
+        const slug = p.slug;
+        const keywords = keywordMap[slug] || [];
+        const keywordMatch = keywords.some(kw => cleanContent.includes(kw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
+        const nameClean = p.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const exactMatch = cleanContent.includes(nameClean);
+        const isGeneralRosaMosqueta = slug.includes("rosa-mosqueta") && cleanContent.includes("rosa mosqueta");
+        if ((keywordMatch || exactMatch || isGeneralRosaMosqueta) && !matches.some(m => m.id === p.id)) {
+            matches.push(p);
+        }
+    });
+    return matches;
+};
+
 export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps = {}) {
+    const { addToCart } = useCart();
+    const [products, setProducts] = useState<any[]>([]);
+
+    useEffect(() => {
+        fetch("/api/products")
+            .then(res => res.json())
+            .then(data => setProducts(data))
+            .catch(() => {});
+    }, []);
     const [internalOpen, setInternalOpen] = useState(false);
     const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
     const pathname = usePathname();
@@ -129,19 +187,43 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                     </div>
 
                     <div className={styles.chatMessages} ref={scrollRef}>
-                        {messages.map((msg, idx) => (
-                            <div
-                                key={idx}
-                                className={`${styles.message} ${msg.role === 'user' ? styles.userMessage : styles.assistantMessage}`}
-                            >
-                                {msg.role === 'assistant' && (
-                                    <div className={styles.msgAvatar}>
-                                        <Image src="/lia.jpg" alt="Lia" width={22} height={22} style={{ borderRadius: '50%', objectFit: 'cover' }} />
-                                    </div>
-                                )}
-                                <span>{msg.content}</span>
-                            </div>
-                        ))}
+                        {messages.map((msg, idx) => {
+                            const mentionedProducts = msg.role === 'assistant'
+                                ? getMentionedProducts(msg.content, products)
+                                : [];
+                            return (
+                                <div
+                                    key={idx}
+                                    className={`${styles.message} ${msg.role === 'user' ? styles.userMessage : styles.assistantMessage}`}
+                                >
+                                    {msg.role === 'assistant' && (
+                                        <div className={styles.msgAvatar}>
+                                            <Image src="/lia.jpg" alt="Lia" width={22} height={22} style={{ borderRadius: '50%', objectFit: 'cover' }} />
+                                        </div>
+                                    )}
+                                    <span>{msg.content}</span>
+                                    {mentionedProducts.length > 0 && (
+                                        <div className={styles.productCards}>
+                                            {mentionedProducts.map(p => (
+                                                <div key={p.id} className={styles.productCard}>
+                                                    <img src={p.image_url || "/placeholder.jpg"} alt={p.name} className={styles.productCardImg} />
+                                                    <div className={styles.productCardInfo}>
+                                                        <span className={styles.productCardName}>{p.name}</span>
+                                                        <span className={styles.productCardPrice}>R$ {p.price.toFixed(2).replace('.', ',')}</span>
+                                                    </div>
+                                                    <button
+                                                        className={styles.productCardBtn}
+                                                        onClick={() => addToCart(p)}
+                                                    >
+                                                        + Carrinho
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                         {isLoading && (
                             <div className={`${styles.message} ${styles.assistantMessage} ${styles.typing}`}>
                                 <div className={styles.msgAvatar}>
