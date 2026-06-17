@@ -438,6 +438,22 @@ export default function CarrinhoPage() {
             alert("⚠️ Preencha seu nome e CEP.");
             return;
         }
+
+        const cleanCep = cep.replace(/\D/g, "");
+        if (cleanCep.length !== 8) {
+            alert("⚠️ Digite um CEP válido com 8 dígitos.");
+            return;
+        }
+
+        if (!address.street || !address.number || !address.neighborhood || !address.city || !address.state) {
+            alert("⚠️ Preencha todos os campos obrigatórios do endereço (Rua, Número, Bairro, Cidade e Estado/UF).");
+            return;
+        }
+
+        if (address.state.trim().length !== 2) {
+            alert("⚠️ O campo Estado/UF deve conter exatamente 2 letras (ex: SP, MG, RJ).");
+            return;
+        }
         
         if (!selectedShipping) {
             alert("⚠️ Selecione uma opção de frete para continuar.");
@@ -1278,7 +1294,8 @@ export default function CarrinhoPage() {
                                             </div>
                                             <div className={styles.inputRow}>
                                                 <input type="text" placeholder="Bairro" className={styles.inputField} value={address.neighborhood} onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })} />
-                                                <input type="text" placeholder="Cidade" className={styles.inputField} value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} />
+                                                <input type="text" placeholder="Cidade" className={styles.inputField} style={{ flex: 2 }} value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} />
+                                                <input type="text" placeholder="UF" className={styles.inputField} style={{ flex: 1 }} value={address.state} onChange={(e) => setAddress({ ...address, state: e.target.value.toUpperCase() })} maxLength={2} />
                                             </div>
                                             {token && (
                                                 <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>

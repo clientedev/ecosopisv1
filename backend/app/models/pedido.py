@@ -167,9 +167,11 @@ class Pedido:
     def address_state(self) -> str:
         state_raw = (self._order.address or {}).get("state") \
             or (self._order.address or {}).get("state_abbr") \
-            or "SP"
+            or ""
             
         state_clean = str(state_raw).strip()
+        if not state_clean:
+            return ""
         
         if len(state_clean) > 2:
             state_map = {

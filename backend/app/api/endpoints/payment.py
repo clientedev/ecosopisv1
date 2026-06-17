@@ -355,8 +355,11 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     )
     
     action = data.get("action") or request.query_params.get("action")
-    if action and action.startswith("payment."):
-        topic = "payment"
+    if action:
+        if action.startswith("payment."):
+            topic = "payment"
+        elif action.startswith("merchant_order."):
+            topic = "merchant_order"
 
     if topic == "payment" and resource_id:
         try:
@@ -380,6 +383,45 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                         logger.error(f"Invalid external_reference (not an int): {pedido_id}")
         except Exception as e:
             logger.error(f"Error processing MP payment {resource_id}: {e}", exc_info=True)
+            
+    elif topic == "merchant_order" and resource_id:
+        try:
+            from app.core.mercadopago_service import sdk as mp_sdk
+            result = mp_sdk.merchant_order().get(str(resource_id))
+            if result.get("status") in [200, 201]:
+                order_info = result.get("response", {})
+                payments = order_info.get("payments", [])
+                
+                has_approved_payment = False
+                approved_payment_id = None
+                buyer_email = None
+                
+                for p in payments:
+                    if p.get("status") in ["approved", "authorized"]:
+                        has_approved_payment = True
+                        approved_payment_id = str(p.get("id"))
+                        break
+                
+                if has_approved_payment:
+                    pedido_id = order_info.get("external_reference")
+                    if pedido_id:
+                        try:
+                            order_id_int = int(pedido_id)
+                            order = db.query(models.Order).filter(models.Order.id == order_id_int).first()
+                            if order:
+                                payer_info = order_info.get("payer", {})
+                                buyer_email = payer_info.get("email")
+                                finalize_order_on_payment(
+                                    order=order,
+                                    db=db,
+                                    payment_id=approved_payment_id,
+                                    buyer_email=buyer_email
+                                )
+                                logger.info(f"MP Merchant Order {resource_id} successfully processed for order {pedido_id}")
+                        except ValueError:
+                            logger.error(f"Invalid external_reference in merchant_order (not an int): {pedido_id}")
+        except Exception as e:
+            logger.error(f"Error processing MP merchant_order {resource_id}: {e}", exc_info=True)
 
     return {"status": "ok"}
 

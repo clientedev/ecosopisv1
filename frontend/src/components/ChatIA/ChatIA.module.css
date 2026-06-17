@@ -122,12 +122,13 @@
     right: 30px;
     width: 380px;
     height: 550px;
+    max-height: calc(100vh - 160px);
     background-color: white;
     border-radius: 12px;
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
     display: flex;
     flex-direction: column;
-    z-index: 1000;
+    z-index: 100000;
     overflow: hidden;
     animation: slideUp 0.3s ease-out;
 }

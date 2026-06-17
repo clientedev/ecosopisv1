@@ -192,7 +192,18 @@ def criar_envio(pedido, service_id: int) -> tuple[str, str]:
     to_number     = getattr(pedido, "address_number", None) or "S/N"
     to_district   = getattr(pedido, "address_district", None) or via_cep_data.get("bairro") or "Bairro"
     to_city       = getattr(pedido, "address_city", None) or via_cep_data.get("localidade") or "Cidade"
-    to_state      = getattr(pedido, "address_state", None) or via_cep_data.get("uf") or "SP"
+    to_state = getattr(pedido, "address_state", None)
+    uf_via_cep = via_cep_data.get("uf")
+    
+    # Valida consistência de CEP e UF para CEPs fora de SP.
+    # Se a UF for "SP" (ou vazia) mas o CEP do destinatário for de outro estado,
+    # e o ViaCEP retornar a UF correta, aplica a correção automática.
+    cep_starts_sp = cep_destino.startswith("0") or cep_destino.startswith("1")
+    if (not to_state or to_state == "SP") and not cep_starts_sp and uf_via_cep and uf_via_cep != "SP":
+        logger.info(f"[ENVIO] Corrigindo automaticamente a UF do pedido #{pedido.id}: CEP {cep_destino} é de {uf_via_cep} (estava como '{to_state}')")
+        to_state = uf_via_cep
+        
+    to_state = to_state or uf_via_cep or "SP"
     to_complement = getattr(pedido, "address_complement", None) or ""
 
     # Detalhamento de produtos para a etiqueta e seguro
