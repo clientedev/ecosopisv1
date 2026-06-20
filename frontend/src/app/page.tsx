@@ -69,6 +69,8 @@ const getCountryCode = (name: string): string => {
         mexico: "mx",
         canada: "ca",
         colombia: "co",
+        escocia: "gb-sct",
+        scotland: "gb-sct",
         chile: "cl",
         equador: "ec",
         ecuador: "ec",
@@ -1053,7 +1055,12 @@ export default function Home() {
                                                 <div style={{ textAlign: "center" }}>
                                                     <div style={{ display: "inline-block", marginBottom: "0.5rem" }}>
                                                         <img 
-                                                            src={`https://flagcdn.com/w160/${getCountryCode(match.team_b)}.png`} 
+                                                            src={(() => {
+                                                                const code = getCountryCode(match.team_b);
+                                                                return code.includes("-") 
+                                                                    ? `https://flagcdn.com/${code}.svg` 
+                                                                    : `https://flagcdn.com/w160/${code}.png`;
+                                                            })()} 
                                                             alt={match.team_b} 
                                                             style={{ width: "68px", height: "auto", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)", display: "block" }}
                                                         />

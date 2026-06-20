@@ -336,14 +336,14 @@ async def startup_event():
                 match2 = WorldCupMatch(
                     id=2,
                     team_a="Brasil",
-                    team_b="Colômbia",
+                    team_b="Escócia",
                     stadium="Estádio de Miami, Estados Unidos",
                     match_time=datetime(2026, 6, 24, 19, 0, tzinfo=timezone(timedelta(hours=-3))),
                     is_unlocked=False,
                     is_finalized=False
                 )
                 db.add(match2)
-                logger.info("Seeded World Cup Match 2: Brasil x Colômbia")
+                logger.info("Seeded World Cup Match 2: Brasil x Escócia")
             db.commit()
         except Exception as seed_err:
             logger.error(f"Failed to seed World Cup matches: {seed_err}")

@@ -44,6 +44,8 @@ const getCountryCode = (name: string): string => {
         mexico: "mx",
         canada: "ca",
         colombia: "co",
+        escocia: "gb-sct",
+        scotland: "gb-sct",
         chile: "cl",
         equador: "ec",
         ecuador: "ec",
@@ -575,7 +577,16 @@ export default function AdminBolao() {
                                                         <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 700, fontSize: "1rem", color: "#1a1a1a", margin: 0 }}>
                                                             <img src="https://flagcdn.com/w40/br.png" alt="br" style={{ width: "22px", height: "auto", borderRadius: "3px", boxShadow: "0 1px 3px rgba(0,0,0,0.15)", verticalAlign: "middle" }} />
                                                             <span>Brasil vs {match.team_b}</span>
-                                                            <img src={`https://flagcdn.com/w40/${getCountryCode(match.team_b)}.png`} alt={match.team_b} style={{ width: "22px", height: "auto", borderRadius: "3px", boxShadow: "0 1px 3px rgba(0,0,0,0.15)", verticalAlign: "middle" }} />
+                                                            <img 
+                                                                src={(() => {
+                                                                    const code = getCountryCode(match.team_b);
+                                                                    return code.includes("-") 
+                                                                        ? `https://flagcdn.com/${code}.svg` 
+                                                                        : `https://flagcdn.com/w40/${code}.png`;
+                                                                })()} 
+                                                                alt={match.team_b} 
+                                                                style={{ width: "22px", height: "auto", borderRadius: "3px", boxShadow: "0 1px 3px rgba(0,0,0,0.15)", verticalAlign: "middle" }} 
+                                                            />
                                                         </h3>
                                                         <span style={{
                                                             fontSize: "0.7rem", fontWeight: 700, padding: "3px 10px",

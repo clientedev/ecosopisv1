@@ -43,6 +43,8 @@ const getCountryCode = (name: string): string => {
         mexico: "mx",
         canada: "ca",
         colombia: "co",
+        escocia: "gb-sct",
+        scotland: "gb-sct",
         chile: "cl",
         equador: "ec",
         ecuador: "ec",
@@ -770,8 +772,18 @@ export default function AdminTemas() {
                                                     <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.95rem", fontWeight: 600, color: "#333" }}>
                                                         <img src="https://flagcdn.com/w40/br.png" alt="br" style={{ width: "20px", height: "auto", borderRadius: "2px", boxShadow: "0 1px 2px rgba(0,0,0,0.15)", verticalAlign: "middle" }} />
                                                         <span>Brasil vs {match.team_b}</span>
-                                                        <img src={`https://flagcdn.com/w40/${getCountryCode(match.team_b)}.png`} alt={match.team_b} style={{ width: "20px", height: "auto", borderRadius: "2px", boxShadow: "0 1px 2px rgba(0,0,0,0.15)", verticalAlign: "middle" }} />
+                                                        <img 
+                                                            src={(() => {
+                                                                const code = getCountryCode(match.team_b);
+                                                                return code.includes("-") 
+                                                                    ? `https://flagcdn.com/${code}.svg` 
+                                                                    : `https://flagcdn.com/w40/${code}.png`;
+                                                            })()} 
+                                                            alt={match.team_b} 
+                                                            style={{ width: "20px", height: "auto", borderRadius: "2px", boxShadow: "0 1px 2px rgba(0,0,0,0.15)", verticalAlign: "middle" }} 
+                                                        />
                                                     </div>
+                                                </div>
 
                                                     {match.is_unlocked ? (
                                                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
