@@ -783,7 +783,6 @@ export default function AdminTemas() {
                                                             style={{ width: "20px", height: "auto", borderRadius: "2px", boxShadow: "0 1px 2px rgba(0,0,0,0.15)", verticalAlign: "middle" }} 
                                                         />
                                                     </div>
-                                                </div>
 
                                                     {match.is_unlocked ? (
                                                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
