@@ -111,7 +111,13 @@ export default function CarrinhoPage() {
         if (typeof window === "undefined") return null;
         try {
             const raw = localStorage.getItem("active_roulette_discount");
-            return raw ? JSON.parse(raw) : null;
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.hasDiscount === undefined) {
+                parsed.hasDiscount = !!(parsed.type && parsed.value);
+                localStorage.setItem("active_roulette_discount", JSON.stringify(parsed));
+            }
+            return parsed;
         } catch { return null; }
     });
 
@@ -161,7 +167,12 @@ export default function CarrinhoPage() {
             const raw = localStorage.getItem("active_roulette_discount");
             if (raw) {
                 try {
-                    setAvailableRouletteCoupon(JSON.parse(raw));
+                    const parsed = JSON.parse(raw);
+                    if (parsed && parsed.hasDiscount === undefined) {
+                        parsed.hasDiscount = !!(parsed.type && parsed.value);
+                        localStorage.setItem("active_roulette_discount", JSON.stringify(parsed));
+                    }
+                    setAvailableRouletteCoupon(parsed);
                 } catch {
                     localStorage.removeItem("active_roulette_discount");
                     setAvailableRouletteCoupon(null);
@@ -1106,7 +1117,7 @@ export default function CarrinhoPage() {
                                             }}
                                             style={{ width: '100%', background: '#22c55e', color: 'white', border: 'none', padding: '8px', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold' }}
                                         >
-                                            USAR ESTE CUPOM
+                                            USAR MEU CUPOM AGORA
                                         </button>
                                     </div>
                                 )}
@@ -1523,7 +1534,7 @@ export default function CarrinhoPage() {
                                         onMouseOver={(e) => e.currentTarget.style.background = '#16a34a'}
                                         onMouseOut={(e) => e.currentTarget.style.background = '#22c55e'}
                                     >
-                                        USAR ESTE CUPOM
+                                        USAR MEU CUPOM AGORA
                                     </button>
                                 </div>
                             )}
