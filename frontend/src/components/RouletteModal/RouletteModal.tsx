@@ -246,54 +246,63 @@ export default function RouletteModal() {
 
     // ─── Eligibility check ────────────────────────────────────────────────
     useEffect(() => {
+        let isMounted = true;
+
         const checkEligibility = async () => {
-            const modalOpenFlag = sessionStorage.getItem("roulette_modal_open");
+            const manualTrigger = sessionStorage.getItem("roulette_manual_trigger") === "true";
 
             // If we are not on "/" and this is not a manually triggered open,
-            // clean up and close the modal.
-            if (pathname !== "/" && !sessionStorage.getItem("roulette_manual_trigger")) {
-                setIsOpen(false);
-                sessionStorage.removeItem("roulette_modal_open");
-                sessionStorage.removeItem("roulette_manual_trigger");
-                return;
-            }
-
-            // If the modal was already open in this session, show it immediately.
-            // But continue so we can fetch config and prizes to draw the wheel.
-            if (modalOpenFlag === "true") {
-                setIsOpen(true);
-                hasOpenedRef.current = true;
-            } else if (hasOpenedRef.current) {
-                return;
-            }
-
-            try {
-                const configRes = await fetch("/api/roleta/config");
-                const configData = await configRes.json();
-                setConfig(configData);
-
-                if (!configData.ativa) {
+            // close the modal.
+            if (pathname !== "/" && !manualTrigger) {
+                if (isOpen) {
                     setIsOpen(false);
                     sessionStorage.removeItem("roulette_modal_open");
                     sessionStorage.removeItem("roulette_manual_trigger");
+                }
+                return;
+            }
+
+            // Always allow fetching config and prizes so the wheel can render if we force open.
+            try {
+                const configRes = await fetch("/api/roleta/config");
+                const configData = await configRes.json();
+                
+                if (!isMounted) return;
+                setConfig(configData);
+
+                if (!configData.ativa) {
+                    if (isOpen) {
+                        setIsOpen(false);
+                        sessionStorage.removeItem("roulette_modal_open");
+                        sessionStorage.removeItem("roulette_manual_trigger");
+                    }
                     return;
                 }
 
                 const prizeRes = await fetch("/api/roleta/prizes");
                 const prizeData = await prizeRes.json();
+                
+                if (!isMounted) return;
                 setPrizes(prizeData);
 
-                // If it was already open, we don't need to check user/teaser eligibility again.
-                if (modalOpenFlag === "true") return;
-
+                // Now evaluate if we should OPEN it
                 const isLogged = !!(token && user);
                 const canSpin = user?.pode_girar_roleta;
-                const teaserShown = sessionStorage.getItem("roulette_teaser_shown");
                 const spinShown = sessionStorage.getItem("roulette_spin_shown");
+                const teaserShown = sessionStorage.getItem("roulette_teaser_shown");
+                const modalOpenFlag = sessionStorage.getItem("roulette_modal_open");
+
+                // If already open, do nothing.
+                if (isOpen || hasOpenedRef.current || modalOpenFlag === "true") {
+                    if (!isOpen && modalOpenFlag === "true") {
+                        setIsOpen(true);
+                        hasOpenedRef.current = true;
+                    }
+                    return;
+                }
 
                 if (isLogged && canSpin) {
-                    // Always show for eligible users — clear stale spinShown so
-                    // coming back after a fresh login always works.
+                    // Force it open for eligible logged-in users who haven't seen it
                     if (!spinShown) {
                         hasOpenedRef.current = true;
                         setIsOpen(true);
@@ -301,6 +310,7 @@ export default function RouletteModal() {
                         sessionStorage.setItem("roulette_modal_open", "true");
                     }
                 } else if (configData.popup_ativo) {
+                    // Teaser for non-eligible
                     if (!teaserShown && !spinShown && pathname === "/") {
                         hasOpenedRef.current = true;
                         setIsOpen(true);
@@ -323,8 +333,11 @@ export default function RouletteModal() {
         };
 
         window.addEventListener("open-roulette", handleManualOpen);
-        return () => window.removeEventListener("open-roulette", handleManualOpen);
-    }, [token, user, pathname]);
+        return () => {
+            isMounted = false;
+            window.removeEventListener("open-roulette", handleManualOpen);
+        };
+    }, [token, user, pathname, isOpen]);
 
 
 
