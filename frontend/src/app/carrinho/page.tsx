@@ -149,15 +149,14 @@ export default function CarrinhoPage() {
     const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
     const isWholesaleEligible = totalItems >= 10 || cart.some(i => i.isWholesale);
 
-    // Unified Coupon Management
+    // ── Load roulette coupon from localStorage on mount + on event ──
     useEffect(() => {
-        const applyRouletteCoupon = () => {
-            const rouletteDiscount = localStorage.getItem("active_roulette_discount");
-            if (rouletteDiscount) {
+        const loadRouletteCoupon = () => {
+            const raw = localStorage.getItem("active_roulette_discount");
+            if (raw) {
                 try {
-                    const data = JSON.parse(rouletteDiscount);
-                    setAvailableRouletteCoupon(data);
-                } catch (e) {
+                    setAvailableRouletteCoupon(JSON.parse(raw));
+                } catch {
                     localStorage.removeItem("active_roulette_discount");
                     setAvailableRouletteCoupon(null);
                 }
@@ -165,33 +164,29 @@ export default function CarrinhoPage() {
                 setAvailableRouletteCoupon(null);
             }
         };
+        loadRouletteCoupon();
+        window.addEventListener("roulette_discount_applied", loadRouletteCoupon);
+        return () => window.removeEventListener("roulette_discount_applied", loadRouletteCoupon);
+    }, []);
 
-        // 1. Initial check & Event listener for immediate roulette application
-        applyRouletteCoupon();
-        window.addEventListener("roulette_discount_applied", applyRouletteCoupon);
-
-        // 2. Enforce Wholesale Restrictions
+    // ── Wholesale restrictions & first-purchase coupon ──
+    useEffect(() => {
         if (isWholesaleEligible) {
             if (appliedCoupon?.code === "PRIMEIRACOMPRA" || appliedCoupon?.code === "ROLETA") {
                 setAppliedCoupon(null);
             }
-        } else if (user) {
-            // 3. Auto-apply first purchase coupon if no roulette coupon and 0 purchases
-            if (!firstPurchaseChecked) {
-                const rouletteDiscount = localStorage.getItem("active_roulette_discount");
-                if (!rouletteDiscount && user.total_compras === 0 && !appliedCoupon) {
-                    setAppliedCoupon({
-                        code: "PRIMEIRACOMPRA",
-                        type: "percentage",
-                        value: 10,
-                        name: "10% OFF na Primeira Compra"
-                    });
-                }
-                setFirstPurchaseChecked(true);
+        } else if (user && !firstPurchaseChecked) {
+            const rouletteDiscount = localStorage.getItem("active_roulette_discount");
+            if (!rouletteDiscount && user.total_compras === 0 && !appliedCoupon) {
+                setAppliedCoupon({
+                    code: "PRIMEIRACOMPRA",
+                    type: "percentage",
+                    value: 10,
+                    name: "10% OFF na Primeira Compra"
+                });
             }
+            setFirstPurchaseChecked(true);
         }
-
-        return () => window.removeEventListener("roulette_discount_applied", applyRouletteCoupon);
     }, [user, appliedCoupon, firstPurchaseChecked, isWholesaleEligible]);
 
     // Fetch Cashback balance and config
