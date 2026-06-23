@@ -189,7 +189,7 @@ export default function CarrinhoPage() {
     // ── Wholesale restrictions & first-purchase coupon ──
     useEffect(() => {
         if (isWholesaleEligible) {
-            if (appliedCoupon?.code === "PRIMEIRACOMPRA" || appliedCoupon?.code === "ROLETA") {
+            if (appliedCoupon?.code === "PRIMEIRACOMPRA" || appliedCoupon?.code?.startsWith("ROLETA")) {
                 setAppliedCoupon(null);
             }
         } else if (user && !firstPurchaseChecked) {
@@ -720,7 +720,7 @@ export default function CarrinhoPage() {
                                         <strong>{availableRouletteCoupon.name}</strong>
                                     </p>
                                     {availableRouletteCoupon.hasDiscount ? (
-                                        appliedCoupon?.code === "ROLETA" ? (
+                                        appliedCoupon?.code?.startsWith("ROLETA") ? (
                                             <div style={{ background: '#dcfce7', color: '#166534', padding: '8px 12px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center' }}>
                                                 ✅ Desconto aplicado no pedido!
                                             </div>
@@ -732,7 +732,7 @@ export default function CarrinhoPage() {
                                                         return;
                                                     }
                                                     setAppliedCoupon({
-                                                        code: "ROLETA",
+                                                        code: availableRouletteCoupon.code,
                                                         type: availableRouletteCoupon.type,
                                                         value: availableRouletteCoupon.value,
                                                         name: availableRouletteCoupon.name
@@ -1097,28 +1097,34 @@ export default function CarrinhoPage() {
                                         <button onClick={() => setAppliedCoupon(null)}>Remover</button>
                                     </div>
                                 )}
-                                {availableRouletteCoupon && (!appliedCoupon || appliedCoupon.code !== "ROLETA") && (
+                                {availableRouletteCoupon && availableRouletteCoupon.hasDiscount && (!appliedCoupon || !appliedCoupon.code?.startsWith("ROLETA")) && (
                                     <div style={{ marginTop: '12px', padding: '12px', background: '#f0fdf4', border: '1px dashed #22c55e', borderRadius: '8px' }}>
                                         <p style={{ fontSize: '0.85rem', color: '#166534', margin: '0 0 8px 0' }}>
                                             <strong>🎁 Prêmio da Roleta Disponível:</strong><br/>{availableRouletteCoupon.name}
                                         </p>
-                                        <button 
-                                            onClick={() => {
-                                                if (isWholesaleEligible) {
-                                                    alert("O cupom da roleta não pode ser usado em pedidos de atacado.");
-                                                    return;
-                                                }
-                                                setAppliedCoupon({
-                                                    code: "ROLETA",
-                                                    type: availableRouletteCoupon.type,
-                                                    value: availableRouletteCoupon.value,
-                                                    name: availableRouletteCoupon.name
-                                                });
-                                            }}
-                                            style={{ width: '100%', background: '#22c55e', color: 'white', border: 'none', padding: '8px', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold' }}
-                                        >
-                                            USAR MEU CUPOM AGORA
-                                        </button>
+                                        {availableRouletteCoupon.code ? (
+                                            <button 
+                                                onClick={() => {
+                                                    if (isWholesaleEligible) {
+                                                        alert("O cupom da roleta não pode ser usado em pedidos de atacado.");
+                                                        return;
+                                                    }
+                                                    setAppliedCoupon({
+                                                        code: availableRouletteCoupon.code,
+                                                        type: availableRouletteCoupon.type,
+                                                        value: availableRouletteCoupon.value,
+                                                        name: availableRouletteCoupon.name
+                                                    });
+                                                }}
+                                                style={{ width: '100%', background: '#22c55e', color: 'white', border: 'none', padding: '8px', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold' }}
+                                            >
+                                                USAR MEU CUPOM AGORA
+                                            </button>
+                                        ) : (
+                                            <p style={{ fontSize: '0.8rem', color: '#dc2626', margin: 0, fontWeight: 600 }}>
+                                                ⚠️ Volte à roleta e clique em "Resgatar Prêmio" para gerar o código.
+                                            </p>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -1512,30 +1518,36 @@ export default function CarrinhoPage() {
                                 </div>
                             )}
                             
-                            {availableRouletteCoupon && (!appliedCoupon || appliedCoupon.code !== "ROLETA") && (
+                            {availableRouletteCoupon && availableRouletteCoupon.hasDiscount && (!appliedCoupon || !appliedCoupon.code?.startsWith("ROLETA")) && (
                                 <div style={{ marginTop: '12px', padding: '12px', background: '#f0fdf4', border: '1px dashed #22c55e', borderRadius: '8px' }}>
                                     <p style={{ fontSize: '0.85rem', color: '#166534', margin: '0 0 8px 0' }}>
                                         <strong>🎁 Prêmio da Roleta Disponível:</strong><br/>{availableRouletteCoupon.name}
                                     </p>
-                                    <button 
-                                        onClick={() => {
-                                            if (isWholesaleEligible) {
-                                                alert("O cupom da roleta não pode ser usado em pedidos de atacado.");
-                                                return;
-                                            }
-                                            setAppliedCoupon({
-                                                code: "ROLETA",
-                                                type: availableRouletteCoupon.type,
-                                                value: availableRouletteCoupon.value,
-                                                name: availableRouletteCoupon.name
-                                            });
-                                        }}
-                                        style={{ width: '100%', background: '#22c55e', color: 'white', border: 'none', padding: '8px', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}
-                                        onMouseOver={(e) => e.currentTarget.style.background = '#16a34a'}
-                                        onMouseOut={(e) => e.currentTarget.style.background = '#22c55e'}
-                                    >
-                                        USAR MEU CUPOM AGORA
-                                    </button>
+                                    {availableRouletteCoupon.code ? (
+                                        <button 
+                                            onClick={() => {
+                                                if (isWholesaleEligible) {
+                                                    alert("O cupom da roleta não pode ser usado em pedidos de atacado.");
+                                                    return;
+                                                }
+                                                setAppliedCoupon({
+                                                    code: availableRouletteCoupon.code,
+                                                    type: availableRouletteCoupon.type,
+                                                    value: availableRouletteCoupon.value,
+                                                    name: availableRouletteCoupon.name
+                                                });
+                                            }}
+                                            style={{ width: '100%', background: '#22c55e', color: 'white', border: 'none', padding: '8px', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}
+                                            onMouseOver={(e) => e.currentTarget.style.background = '#16a34a'}
+                                            onMouseOut={(e) => e.currentTarget.style.background = '#22c55e'}
+                                        >
+                                            USAR MEU CUPOM AGORA
+                                        </button>
+                                    ) : (
+                                        <p style={{ fontSize: '0.8rem', color: '#dc2626', margin: 0, fontWeight: 600 }}>
+                                            ⚠️ Clique em "Resgatar Prêmio" na roleta para gerar seu código de cupom.
+                                        </p>
+                                    )}
                                 </div>
                             )}
 

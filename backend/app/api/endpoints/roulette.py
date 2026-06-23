@@ -7,6 +7,9 @@ from app.models import models
 from app.schemas import schemas
 from app.api.endpoints.auth import get_current_user
 
+from datetime import datetime, timedelta, timezone
+import string
+
 router = APIRouter()
 
 @router.get("/config", response_model=schemas.RouletteConfigResponse)
@@ -73,3 +76,50 @@ def spin_roulette(db: Session = Depends(get_db), current_user: models.User = Dep
     db.refresh(chosen_prize)
 
     return {"prize": chosen_prize}
+
+
+def generate_coupon_code() -> str:
+    chars = string.ascii_uppercase + string.digits
+    return "ROLETA-" + "".join(random.choices(chars, k=6))
+
+
+@router.post("/redeem-coupon")
+def redeem_coupon(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    # 1. Check if user won a prize
+    if not current_user.ultimo_premio_id:
+        raise HTTPException(status_code=400, detail="Você não tem prêmios para resgatar.")
+        
+    prize = db.query(models.RoulettePrize).filter(models.RoulettePrize.id == current_user.ultimo_premio_id).first()
+    if not prize:
+        raise HTTPException(status_code=404, detail="Prêmio não encontrado.")
+        
+    # 2. Check if it's a discount prize
+    if not prize.discount_type or not prize.discount_value:
+        raise HTTPException(status_code=400, detail="Este prêmio não é do tipo cupom de desconto.")
+        
+    # 3. Generate a unique code
+    code = generate_coupon_code()
+    while db.query(models.Coupon).filter(models.Coupon.code == code).first() is not None:
+        code = generate_coupon_code()
+        
+    # 4. Create the Coupon in the database
+    new_coupon = models.Coupon(
+        code=code,
+        discount_type=prize.discount_type,
+        discount_value=prize.discount_value,
+        is_active=True,
+        min_purchase_value=0.0,
+        usage_limit=1,
+        usage_count=0,
+        valid_until=datetime.now(timezone.utc) + timedelta(minutes=30)
+    )
+    db.add(new_coupon)
+    db.commit()
+    db.refresh(new_coupon)
+    
+    return {
+        "coupon_code": code,
+        "discount_type": prize.discount_type,
+        "discount_value": prize.discount_value,
+        "valid_until": new_coupon.valid_until.isoformat()
+    }

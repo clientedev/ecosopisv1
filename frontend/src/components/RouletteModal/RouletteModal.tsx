@@ -24,6 +24,9 @@ export default function RouletteModal() {
     const [config, setConfig] = useState<any>(null);
     const [redeemMsg, setRedeemMsg] = useState("");
     const [mounted, setMounted] = useState(false);
+    const [redeemedCode, setRedeemedCode] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
+    const [isRedeeming, setIsRedeeming] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -385,19 +388,58 @@ export default function RouletteModal() {
         sessionStorage.removeItem("roulette_manual_trigger");
     };
 
-    const handleRedeem = () => {
+    const handleRedeem = async () => {
         if (!result) return;
 
-        // Always save the prize info so the cart page can show it
-        const discountData = {
-            type: result.discount_type || null,
-            value: result.discount_value || null,
-            name: result.nome,
-            hasDiscount: !!(result.discount_type && result.discount_value),
-        };
-        localStorage.setItem("active_roulette_discount", JSON.stringify(discountData));
-        window.dispatchEvent(new Event("roulette_discount_applied"));
-        setRedeemMsg("success");
+        const hasDiscount = !!(result.discount_type && result.discount_value);
+
+        if (hasDiscount) {
+            setIsRedeeming(true);
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch("/api/roleta/redeem-coupon", {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert(err.detail || "Erro ao resgatar o cupom.");
+                    setIsRedeeming(false);
+                    return;
+                }
+                const data = await res.json();
+                const discountData = {
+                    code: data.coupon_code,
+                    type: data.discount_type,
+                    value: data.discount_value,
+                    name: result.nome,
+                    hasDiscount: true,
+                    expiresAt: Date.now() + 30 * 60 * 1000
+                };
+                localStorage.setItem("active_roulette_discount", JSON.stringify(discountData));
+                setRedeemedCode(data.coupon_code);
+                window.dispatchEvent(new Event("roulette_discount_applied"));
+                setRedeemMsg("success");
+            } catch (e) {
+                console.error("Redeem error:", e);
+                alert("Erro de conexão ao resgatar o cupom.");
+            } finally {
+                setIsRedeeming(false);
+            }
+        } else {
+            const discountData = {
+                code: null,
+                type: null,
+                value: null,
+                name: result.nome,
+                hasDiscount: false,
+            };
+            localStorage.setItem("active_roulette_discount", JSON.stringify(discountData));
+            window.dispatchEvent(new Event("roulette_discount_applied"));
+            setRedeemMsg("success");
+        }
     };
 
     if (!mounted || !isOpen) return null;
@@ -499,14 +541,39 @@ export default function RouletteModal() {
                             <div className={styles.redeemSuccess}>
                                 <div style={{ background: '#f0fdf4', border: '1px dashed #22c55e', padding: '16px', borderRadius: '12px', textAlign: 'left', marginBottom: '16px' }}>
                                     <h4 style={{ color: '#166534', marginTop: 0, marginBottom: '10px', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        ✅ Cupom salvo com sucesso!
+                                        ✅ Prêmio resgatado com sucesso!
                                     </h4>
+
+                                    {redeemedCode && (
+                                        <div style={{ background: '#ffffff', border: '1px solid #c2f0d0', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#15803d', fontFamily: 'monospace', letterSpacing: '1px' }}>
+                                                {redeemedCode}
+                                            </span>
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(redeemedCode);
+                                                    setCopied(true);
+                                                    setTimeout(() => setCopied(false), 2000);
+                                                }}
+                                                style={{ background: '#22c55e', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer' }}
+                                            >
+                                                {copied ? "Copiado!" : "Copiar"}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {redeemedCode && (
+                                        <p style={{ color: '#ea580c', fontSize: '0.82rem', fontWeight: 700, margin: '0 0 12px 0' }}>
+                                            ⚠️ Copie o código acima! Este cupom é de uso único e expira em 30 minutos!
+                                        </p>
+                                    )}
+
                                     <p style={{ color: '#166534', fontSize: '0.9rem', marginBottom: '8px', fontWeight: 600 }}>Como utilizar seu desconto:</p>
                                     <ol style={{ color: '#15803d', fontSize: '0.85rem', margin: 0, paddingLeft: '20px', lineHeight: '1.5' }}>
                                         <li>Adicione seus produtos desejados ao carrinho.</li>
                                         <li>Acesse a página do Carrinho.</li>
-                                        <li>Logo abaixo do campo de cupom, procure pela caixa verde informando seu prêmio.</li>
-                                        <li>Clique no botão <strong>&quot;USAR ESTE CUPOM&quot;</strong> para aplicar o desconto no valor final!</li>
+                                        <li>O cupom será aplicado automaticamente ou você pode usar o botão verde de atalho no carrinho.</li>
+                                        <li>Caso necessário, cole o código acima no campo de cupom e clique em aplicar.</li>
                                     </ol>
                                 </div>
                                 <div className={styles.redeemActions}>
@@ -519,8 +586,12 @@ export default function RouletteModal() {
                                 </div>
                             </div>
                         ) : (
-                            <button className={styles.spinBtn} onClick={handleRedeem}>
-                                RESGATAR MEU PRÊMIO
+                            <button 
+                                className={styles.spinBtn} 
+                                onClick={handleRedeem}
+                                disabled={isRedeeming}
+                            >
+                                {isRedeeming ? "Resgatando..." : "RESGATAR MEU PRÊMIO"}
                             </button>
                         )}
                     </div>
