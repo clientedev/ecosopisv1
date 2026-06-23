@@ -157,17 +157,9 @@ export default function CarrinhoPage() {
                 try {
                     const data = JSON.parse(rouletteDiscount);
                     setAvailableRouletteCoupon(data);
-                    
-                    if (isWholesaleEligible) return; // Never auto-apply if wholesale
-                    
-                    setAppliedCoupon({
-                        code: "ROLETA",
-                        type: data.type,
-                        value: data.value,
-                        name: data.name
-                    });
                 } catch (e) {
                     localStorage.removeItem("active_roulette_discount");
+                    setAvailableRouletteCoupon(null);
                 }
             } else {
                 setAvailableRouletteCoupon(null);
