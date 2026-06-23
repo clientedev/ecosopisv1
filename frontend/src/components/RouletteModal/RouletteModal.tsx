@@ -532,7 +532,7 @@ export default function RouletteModal() {
                                         <li>Adicione seus produtos desejados ao carrinho.</li>
                                         <li>Acesse a página do Carrinho.</li>
                                         <li>Logo abaixo do campo de cupom, procure pela caixa verde informando seu prêmio.</li>
-                                        <li>Clique no botão <strong>"USAR ESTE CUPOM"</strong> para aplicar o desconto no valor final!</li>
+                                        <li>Clique no botão <strong>&quot;USAR ESTE CUPOM&quot;</strong> para aplicar o desconto no valor final!</li>
                                     </ol>
                                 </div>
                                 <div className={styles.redeemActions}>
