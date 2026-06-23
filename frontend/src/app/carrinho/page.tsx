@@ -693,6 +693,41 @@ export default function CarrinhoPage() {
                                 )}
                             </div>
 
+                            {/* Roulette coupon available banner */}
+                            {availableRouletteCoupon && (
+                                <div style={{ marginTop: '16px', padding: '14px', background: '#f0fdf4', border: '2px dashed #22c55e', borderRadius: '12px' }}>
+                                    <p style={{ fontSize: '0.9rem', color: '#166534', margin: '0 0 10px 0', fontWeight: 700 }}>
+                                        🎁 Você tem um prêmio da Roleta disponível!
+                                    </p>
+                                    <p style={{ fontSize: '0.82rem', color: '#15803d', margin: '0 0 10px 0' }}>
+                                        {availableRouletteCoupon.name}
+                                    </p>
+                                    {appliedCoupon?.code === "ROLETA" ? (
+                                        <div style={{ background: '#dcfce7', color: '#166534', padding: '6px 12px', borderRadius: '6px', fontSize: '0.82rem', fontWeight: 600, textAlign: 'center' }}>
+                                            ✅ Cupom aplicado!
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                if (isWholesaleEligible) {
+                                                    alert("O cupom da roleta não pode ser usado em pedidos de atacado.");
+                                                    return;
+                                                }
+                                                setAppliedCoupon({
+                                                    code: "ROLETA",
+                                                    type: availableRouletteCoupon.type,
+                                                    value: availableRouletteCoupon.value,
+                                                    name: availableRouletteCoupon.name
+                                                });
+                                            }}
+                                            style={{ width: '100%', background: '#22c55e', color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 700 }}
+                                        >
+                                            USAR MEU CUPOM AGORA
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
                             <div style={{ marginTop: '20px', textAlign: 'center', marginBottom: '100px' }}>
                                 <Link href="/produtos" className={styles.mobileContinueShopping}>
                                     + Adicionar mais produtos

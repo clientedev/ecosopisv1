@@ -244,79 +244,66 @@ export default function RouletteModal() {
         };
     }, [isOpen, prizes, updateCanvasSize]);
 
+    // ─── Manual open listener (separate, stable) ─────────────────────────
+    useEffect(() => {
+        const handleManualOpen = () => {
+            hasOpenedRef.current = true;
+            setIsOpen(true);
+            sessionStorage.setItem("roulette_manual_trigger", "true");
+            sessionStorage.setItem("roulette_modal_open", "true");
+        };
+        window.addEventListener("open-roulette", handleManualOpen);
+        return () => window.removeEventListener("open-roulette", handleManualOpen);
+    }, []);
+
     // ─── Eligibility check ────────────────────────────────────────────────
     useEffect(() => {
-        let isMounted = true;
+        // Once opened, never re-evaluate (user will close explicitly)
+        if (hasOpenedRef.current) return;
+
+        let cancelled = false;
 
         const checkEligibility = async () => {
-            const manualTrigger = sessionStorage.getItem("roulette_manual_trigger") === "true";
+            const isManual = sessionStorage.getItem("roulette_manual_trigger") === "true";
 
-            // If we are not on "/" and this is not a manually triggered open,
-            // close the modal.
-            if (pathname !== "/" && !manualTrigger) {
-                if (isOpen) {
-                    setIsOpen(false);
-                    sessionStorage.removeItem("roulette_modal_open");
-                    sessionStorage.removeItem("roulette_manual_trigger");
+            // Only auto-open on home page
+            if (pathname !== "/" && !isManual) return;
+
+            // Restore if this session already had it open
+            if (sessionStorage.getItem("roulette_modal_open") === "true") {
+                if (!cancelled) {
+                    hasOpenedRef.current = true;
+                    setIsOpen(true);
                 }
                 return;
             }
 
-            // Always allow fetching config and prizes so the wheel can render if we force open.
             try {
                 const configRes = await fetch("/api/roleta/config");
                 const configData = await configRes.json();
-                
-                if (!isMounted) return;
+                if (cancelled) return;
                 setConfig(configData);
-
-                if (!configData.ativa) {
-                    if (isOpen) {
-                        setIsOpen(false);
-                        sessionStorage.removeItem("roulette_modal_open");
-                        sessionStorage.removeItem("roulette_manual_trigger");
-                    }
-                    return;
-                }
+                if (!configData.ativa) return;
 
                 const prizeRes = await fetch("/api/roleta/prizes");
                 const prizeData = await prizeRes.json();
-                
-                if (!isMounted) return;
+                if (cancelled) return;
                 setPrizes(prizeData);
 
-                // Now evaluate if we should OPEN it
-                const isLogged = !!(token && user);
-                const canSpin = user?.pode_girar_roleta;
+                const canSpin = !!(token && user && user.pode_girar_roleta);
                 const spinShown = sessionStorage.getItem("roulette_spin_shown");
                 const teaserShown = sessionStorage.getItem("roulette_teaser_shown");
-                const modalOpenFlag = sessionStorage.getItem("roulette_modal_open");
 
-                // If already open, do nothing.
-                if (isOpen || hasOpenedRef.current || modalOpenFlag === "true") {
-                    if (!isOpen && modalOpenFlag === "true") {
-                        setIsOpen(true);
-                        hasOpenedRef.current = true;
-                    }
-                    return;
-                }
-
-                if (isLogged && canSpin) {
-                    // Force it open for eligible logged-in users who haven't seen it
-                    if (!spinShown) {
-                        hasOpenedRef.current = true;
-                        setIsOpen(true);
-                        sessionStorage.setItem("roulette_spin_shown", "true");
-                        sessionStorage.setItem("roulette_modal_open", "true");
-                    }
-                } else if (configData.popup_ativo) {
-                    // Teaser for non-eligible
-                    if (!teaserShown && !spinShown && pathname === "/") {
-                        hasOpenedRef.current = true;
-                        setIsOpen(true);
-                        sessionStorage.setItem("roulette_teaser_shown", "true");
-                        sessionStorage.setItem("roulette_modal_open", "true");
-                    }
+                if (canSpin && !spinShown) {
+                    hasOpenedRef.current = true;
+                    setIsOpen(true);
+                    sessionStorage.setItem("roulette_spin_shown", "true");
+                    sessionStorage.setItem("roulette_modal_open", "true");
+                } else if (configData.popup_ativo && !teaserShown && !spinShown) {
+                    hasOpenedRef.current = true;
+                    setIsOpen(true);
+                    sessionStorage.setItem("roulette_teaser_shown", "true");
+                    sessionStorage.setItem("roulette_modal_open", "true");
                 }
             } catch (error) {
                 console.error("Error checking roulette eligibility:", error);
@@ -324,20 +311,9 @@ export default function RouletteModal() {
         };
 
         checkEligibility();
-
-        const handleManualOpen = () => {
-            hasOpenedRef.current = true;
-            setIsOpen(true);
-            sessionStorage.setItem("roulette_manual_trigger", "true");
-            sessionStorage.setItem("roulette_modal_open", "true");
-        };
-
-        window.addEventListener("open-roulette", handleManualOpen);
-        return () => {
-            isMounted = false;
-            window.removeEventListener("open-roulette", handleManualOpen);
-        };
-    }, [token, user, pathname, isOpen]);
+        return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [token, user, pathname]);
 
 
 
