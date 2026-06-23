@@ -336,6 +336,7 @@ export default function Home() {
     };
     const [slides, setSlides] = useState<any[]>([]);
     const [currentSlide, setCurrentSlide] = useState(0);
+    const touchStartXRef = useRef<number | null>(null);
 
     const deviceSlides = isMobile
         ? slides.filter(s => s.mobile_image_url || s.image_url)
@@ -641,7 +642,23 @@ export default function Home() {
     return (
         <main>
             <Header />
-            <section className={styles.heroCarousel}>
+            <section
+                className={styles.heroCarousel}
+                onTouchStart={(e) => { touchStartXRef.current = e.touches[0].clientX; }}
+                onTouchEnd={(e) => {
+                    if (touchStartXRef.current === null) return;
+                    const delta = e.changedTouches[0].clientX - touchStartXRef.current;
+                    touchStartXRef.current = null;
+                    if (Math.abs(delta) < 40) return; // ignore tiny taps
+                    if (delta < 0) {
+                        // swipe left → next slide
+                        setCurrentSlide(prev => (prev + 1) % deviceSlides.length);
+                    } else {
+                        // swipe right → prev slide
+                        setCurrentSlide(prev => (prev - 1 + deviceSlides.length) % deviceSlides.length);
+                    }
+                }}
+            >
                 {isValentines && hearts.map(h => (
                     <div
                         key={h.id}

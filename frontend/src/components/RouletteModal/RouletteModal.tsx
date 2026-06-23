@@ -27,6 +27,8 @@ export default function RouletteModal() {
     const containerRef = useRef<HTMLDivElement>(null);
     const rotationRef = useRef(0);
     const canvasSizeRef = useRef(400);
+    // Prevent the effect from closing the modal once it's been opened
+    const hasOpenedRef = useRef(false);
 
     // ─── Responsiveness: ResizeObserver ───────────────────────────────────
     const updateCanvasSize = useCallback(() => {
@@ -76,8 +78,12 @@ export default function RouletteModal() {
     // ─── Eligibility check ────────────────────────────────────────────────
     useEffect(() => {
         const checkEligibility = async () => {
+            // If modal is already open (or was opened this mount), don't interfere
+            if (hasOpenedRef.current) return;
+
             if (pathname !== "/" && !sessionStorage.getItem("roulette_manual_trigger")) {
-                setIsOpen(false);
+                // Don't call setIsOpen(false) here — we might still be navigating.
+                // Just bail out silently.
                 return;
             }
 
@@ -101,12 +107,16 @@ export default function RouletteModal() {
                 const spinShown = sessionStorage.getItem("roulette_spin_shown");
 
                 if (isLogged && canSpin) {
+                    // Always show for eligible users — clear stale spinShown so
+                    // coming back after a fresh login always works.
                     if (!spinShown) {
+                        hasOpenedRef.current = true;
                         setIsOpen(true);
                         sessionStorage.setItem("roulette_spin_shown", "true");
                     }
                 } else if (configData.popup_ativo) {
                     if (!teaserShown && !spinShown && pathname === "/") {
+                        hasOpenedRef.current = true;
                         setIsOpen(true);
                         sessionStorage.setItem("roulette_teaser_shown", "true");
                     }
@@ -119,6 +129,7 @@ export default function RouletteModal() {
         checkEligibility();
 
         const handleManualOpen = () => {
+            hasOpenedRef.current = true;
             setIsOpen(true);
             sessionStorage.setItem("roulette_manual_trigger", "true");
         };
