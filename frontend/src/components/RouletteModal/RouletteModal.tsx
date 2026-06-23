@@ -386,20 +386,18 @@ export default function RouletteModal() {
     };
 
     const handleRedeem = () => {
-        if (result && result.discount_type && result.discount_value) {
-            const discountData = {
-                type: result.discount_type,
-                value: result.discount_value,
-                name: result.nome,
-            };
-            localStorage.setItem("active_roulette_discount", JSON.stringify(discountData));
-            window.dispatchEvent(new Event("roulette_discount_applied"));
-            setRedeemMsg("success"); // We'll just use a flag and render the HTML in the JSX
-        } else {
-            setIsOpen(false);
-            sessionStorage.removeItem("roulette_modal_open");
-            sessionStorage.removeItem("roulette_manual_trigger");
-        }
+        if (!result) return;
+
+        // Always save the prize info so the cart page can show it
+        const discountData = {
+            type: result.discount_type || null,
+            value: result.discount_value || null,
+            name: result.nome,
+            hasDiscount: !!(result.discount_type && result.discount_value),
+        };
+        localStorage.setItem("active_roulette_discount", JSON.stringify(discountData));
+        window.dispatchEvent(new Event("roulette_discount_applied"));
+        setRedeemMsg("success");
     };
 
     if (!mounted || !isOpen) return null;
