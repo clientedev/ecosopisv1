@@ -1,7 +1,6 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import styles from "./RouletteModal.module.css";
-import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname } from "next/navigation";
@@ -22,27 +21,61 @@ export default function RouletteModal() {
     const [result, setResult] = useState<Prize | null>(null);
     const [prizes, setPrizes] = useState<Prize[]>([]);
     const [config, setConfig] = useState<any>(null);
+    const [redeemMsg, setRedeemMsg] = useState("");
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const rotationRef = useRef(0);
-    const [canvasSize, setCanvasSize] = useState(800);
-    const [isMobile, setIsMobile] = useState(false);
+    const canvasSizeRef = useRef(400);
+
+    // ─── Responsiveness: ResizeObserver ───────────────────────────────────
+    const updateCanvasSize = useCallback(() => {
+        const container = containerRef.current;
+        const canvas = canvasRef.current;
+        if (!container || !canvas) return;
+
+        const rect = container.getBoundingClientRect();
+        const size = Math.round(rect.width);
+        if (size < 10) return;
+
+        canvasSizeRef.current = size;
+
+        // Use devicePixelRatio for crisp rendering
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = size * dpr;
+        canvas.height = size * dpr;
+        canvas.style.width = `${size}px`;
+        canvas.style.height = `${size}px`;
+
+        const ctx = canvas.getContext("2d");
+        if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        drawRoulette(rotationRef.current);
+    }, [prizes]);
 
     useEffect(() => {
-        const handleResize = () => {
-            const mobile = window.innerWidth < 768;
-            setIsMobile(mobile);
-            setCanvasSize(mobile ? 500 : 800);
-        };
-        handleResize();
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
+        if (!isOpen || prizes.length === 0) return;
 
-    // Initial check for eligibility - runs on mount and path/auth changes
+        const ro = new ResizeObserver(() => {
+            updateCanvasSize();
+        });
+
+        if (containerRef.current) {
+            ro.observe(containerRef.current);
+        }
+
+        // Initial sizing (needs a short delay to let CSS layout settle)
+        const t = setTimeout(updateCanvasSize, 50);
+
+        return () => {
+            ro.disconnect();
+            clearTimeout(t);
+        };
+    }, [isOpen, prizes, updateCanvasSize]);
+
+    // ─── Eligibility check ────────────────────────────────────────────────
     useEffect(() => {
         const checkEligibility = async () => {
-            // Restriction 1: ONLY on the root home page for AUTOMATIC showing
-            // But we allow manual triggers via events anywhere
             if (pathname !== "/" && !sessionStorage.getItem("roulette_manual_trigger")) {
                 setIsOpen(false);
                 return;
@@ -64,19 +97,15 @@ export default function RouletteModal() {
 
                 const isLogged = !!(token && user);
                 const canSpin = user?.pode_girar_roleta;
-
-                // Flags to avoid annoying the user
                 const teaserShown = sessionStorage.getItem("roulette_teaser_shown");
                 const spinShown = sessionStorage.getItem("roulette_spin_shown");
 
                 if (isLogged && canSpin) {
-                    // USER CAN SPIN: Show if not shown this session
                     if (!spinShown) {
                         setIsOpen(true);
                         sessionStorage.setItem("roulette_spin_shown", "true");
                     }
                 } else if (configData.popup_ativo) {
-                    // TEASER MODE: Show if not shown this session AND user hasn't seen the spin modal yet
                     if (!teaserShown && !spinShown && pathname === "/") {
                         setIsOpen(true);
                         sessionStorage.setItem("roulette_teaser_shown", "true");
@@ -89,7 +118,6 @@ export default function RouletteModal() {
 
         checkEligibility();
 
-        // Listen for manual trigger
         const handleManualOpen = () => {
             setIsOpen(true);
             sessionStorage.setItem("roulette_manual_trigger", "true");
@@ -99,6 +127,7 @@ export default function RouletteModal() {
         return () => window.removeEventListener("open-roulette", handleManualOpen);
     }, [token, user, pathname]);
 
+    // ─── Draw ──────────────────────────────────────────────────────────────
     const drawRoulette = (rotation: number) => {
         const canvas = canvasRef.current;
         if (!canvas || prizes.length === 0) return;
@@ -106,153 +135,137 @@ export default function RouletteModal() {
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const outerRadius = Math.min(centerX, centerY) - 20;
-        const wheelRadius = outerRadius - 15;
+        const size = canvasSizeRef.current;
+        const centerX = size / 2;
+        const centerY = size / 2;
+        const outerRadius = centerX - 4;
+        const wheelRadius = outerRadius - 16;
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, size, size);
 
-        // --- Draw Casino Rim ---
+        // ── Rim ──
         ctx.beginPath();
         ctx.arc(centerX, centerY, outerRadius, 0, 2 * Math.PI);
-        const rimGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        rimGradient.addColorStop(0, "#b8860b"); // Dark Gold
-        rimGradient.addColorStop(0.5, "#ffd700"); // bright Gold
-        rimGradient.addColorStop(1, "#b8860b");
-        ctx.fillStyle = rimGradient;
-        if (!isMobile) {
-            ctx.shadowColor = "rgba(0,0,0,0.6)";
-            ctx.shadowBlur = 20;
-        }
+        const rimGrad = ctx.createLinearGradient(0, 0, size, size);
+        rimGrad.addColorStop(0, "#b8860b");
+        rimGrad.addColorStop(0.5, "#ffd700");
+        rimGrad.addColorStop(1, "#b8860b");
+        ctx.fillStyle = rimGrad;
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 18;
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Inner rim shadow for depth
+        // ── Inner rim shadow ──
         ctx.beginPath();
-        ctx.arc(centerX, centerY, outerRadius - 5, 0, 2 * Math.PI);
-        ctx.strokeStyle = "rgba(0,0,0,0.3)";
+        ctx.arc(centerX, centerY, outerRadius - 4, 0, 2 * Math.PI);
+        ctx.strokeStyle = "rgba(0,0,0,0.25)";
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // --- Draw Animated Lights ---
-        const numLights = 32;
-        const lightRadius = 5;
+        // ── Animated lights ──
+        const numLights = Math.max(16, Math.floor(outerRadius * 0.28));
+        const lightRadius = Math.max(3, outerRadius * 0.035);
         for (let i = 0; i < numLights; i++) {
-            const angle = (i * (2 * Math.PI)) / numLights + (rotation * 0.1);
-            const x = centerX + (outerRadius - 10) * Math.cos(angle);
-            const y = centerY + (outerRadius - 10) * Math.sin(angle);
-
+            const angle = (i * (2 * Math.PI)) / numLights + rotation * 0.1;
+            const x = centerX + (outerRadius - 9) * Math.cos(angle);
+            const y = centerY + (outerRadius - 9) * Math.sin(angle);
             ctx.beginPath();
             ctx.arc(x, y, lightRadius, 0, 2 * Math.PI);
-
-            const isPoint = Math.floor(i + rotation * 8) % 4 === 0;
-            ctx.fillStyle = isPoint ? "#fff" : "#ffd700";
-            if (!isMobile) {
-                ctx.shadowColor = isPoint ? "#fff" : "#ffd700";
-                ctx.shadowBlur = isPoint ? 15 : 5;
-            }
+            const isGlow = Math.floor(i + rotation * 8) % 4 === 0;
+            ctx.fillStyle = isGlow ? "#fff" : "#ffd700";
+            ctx.shadowColor = isGlow ? "#fff" : "#ffd700";
+            ctx.shadowBlur = isGlow ? 12 : 4;
             ctx.fill();
         }
         ctx.shadowBlur = 0;
 
-        const prizePool = prizes.length < 6
-            ? [...prizes, ...prizes, ...prizes, ...prizes, ...prizes, ...prizes].slice(0, Math.max(prizes.length * 2, 6))
-            : prizes;
+        // ── Slices ──
+        const prizePool =
+            prizes.length < 6
+                ? [...prizes, ...prizes, ...prizes, ...prizes, ...prizes, ...prizes].slice(
+                      0,
+                      Math.max(prizes.length * 2, 6)
+                  )
+                : prizes;
 
         const sliceAngle = (2 * Math.PI) / prizePool.length;
         const colorSchemes = [
-            { main: "#1a3a16", grad: "#0d1f0b" },
-            { main: "#2d5a27", grad: "#1a3a16" },
-            { main: "#b8860b", grad: "#8b6508" }, // Gold slice for contrast
-            { main: "#3d7a35", grad: "#2d5a27" }
+            { main: "#1a3a16", dark: "#0d1f0b" },
+            { main: "#2d5a27", dark: "#1a3a16" },
+            { main: "#b8860b", dark: "#8b6508" },
+            { main: "#3d7a35", dark: "#2d5a27" },
         ];
 
         prizePool.forEach((prize, i) => {
             const angle = rotation + i * sliceAngle;
             const scheme = colorSchemes[i % colorSchemes.length];
 
-            // Draw slice with radial gradient
             ctx.beginPath();
             ctx.moveTo(centerX, centerY);
             ctx.arc(centerX, centerY, wheelRadius, angle, angle + sliceAngle);
 
             const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, wheelRadius);
             grad.addColorStop(0, scheme.main);
-            grad.addColorStop(1, scheme.grad || scheme.main);
-
+            grad.addColorStop(1, scheme.dark);
             ctx.fillStyle = grad;
             ctx.fill();
-            ctx.strokeStyle = "rgba(255,255,255,0.2)";
+            ctx.strokeStyle = "rgba(255,255,255,0.18)";
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            // Draw text
+            // Text
             ctx.save();
             ctx.translate(centerX, centerY);
             ctx.rotate(angle + sliceAngle / 2);
             ctx.textAlign = "right";
             ctx.fillStyle = "white";
-            const fontSize = Math.floor(canvas.width * 0.04);
-            ctx.font = `bold ${fontSize}px Outfit`;
-            if (!isMobile) {
-                ctx.shadowColor = "rgba(0,0,0,0.5)";
-                ctx.shadowBlur = 4;
-            }
-
-            // Truncate and add ellipsis if needed
-            const text = prize.nome.length > 20 ? prize.nome.substring(0, 17) + "..." : prize.nome;
-            const textOffset = Math.floor(canvas.width * 0.075);
-            ctx.fillText(text, wheelRadius - textOffset, 10);
+            const fontSize = Math.max(10, Math.floor(size * 0.038));
+            ctx.font = `bold ${fontSize}px Outfit, sans-serif`;
+            ctx.shadowColor = "rgba(0,0,0,0.5)";
+            ctx.shadowBlur = 3;
+            const text = prize.nome.length > 18 ? prize.nome.substring(0, 15) + "…" : prize.nome;
+            const textOffset = Math.floor(size * 0.07);
+            ctx.fillText(text, wheelRadius - textOffset, fontSize * 0.35);
             ctx.restore();
         });
 
-        // Center hub (The "Pin")
+        // ── Hub ──
+        const hubRadius = Math.max(18, Math.floor(size * 0.065));
         ctx.beginPath();
-        const hubRadius = Math.floor(canvas.width * 0.068);
         ctx.arc(centerX, centerY, hubRadius, 0, 2 * Math.PI);
         const hubGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, hubRadius);
         hubGrad.addColorStop(0, "#ffd700");
         hubGrad.addColorStop(0.7, "#b8860b");
         hubGrad.addColorStop(1, "#8b6508");
         ctx.fillStyle = hubGrad;
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.shadowBlur = 8;
         ctx.fill();
+        ctx.shadowBlur = 0;
         ctx.strokeStyle = "rgba(255,255,255,0.4)";
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3;
         ctx.stroke();
 
         // Inner hub detail
+        const innerHubR = Math.max(6, Math.floor(size * 0.024));
         ctx.beginPath();
-        const innerHubRadius = Math.floor(canvas.width * 0.025);
-        ctx.arc(centerX, centerY, innerHubRadius, 0, 2 * Math.PI);
+        ctx.arc(centerX, centerY, innerHubR, 0, 2 * Math.PI);
         ctx.fillStyle = "#1a3a16";
         ctx.fill();
-        if (!isMobile) {
-            ctx.shadowColor = "rgba(0,0,0,0.5)";
-            ctx.shadowBlur = 5;
-        }
-        ctx.stroke();
     };
 
-    useEffect(() => {
-        if (isOpen && prizes.length > 0) {
-            drawRoulette(rotationRef.current);
-        }
-    }, [isOpen, prizes]);
-
+    // ─── Spin ──────────────────────────────────────────────────────────────
     const handleSpin = async () => {
         if (isSpinning) return;
-
-        const token = localStorage.getItem("token");
-        if (!token) return;
+        const t = localStorage.getItem("token");
+        if (!t) return;
 
         try {
             setIsSpinning(true);
-
-            // 1. Get result from backend FIRST
             const res = await fetch("/api/roleta/girar", {
                 method: "POST",
-                headers: { "Authorization": `Bearer ${token}` }
+                headers: { Authorization: `Bearer ${t}` },
             });
 
             if (!res.ok) {
@@ -265,31 +278,27 @@ export default function RouletteModal() {
             const data = await res.json();
             const chosenPrize = data.prize;
 
-            // 2. Animate to the prize
-            const prizePool = prizes.length < 6
-                ? [...prizes, ...prizes, ...prizes, ...prizes, ...prizes, ...prizes].slice(0, Math.max(prizes.length * 2, 6))
-                : prizes;
-            const prizeIndex = prizePool.findIndex(p => p.id === chosenPrize.id);
+            const prizePool =
+                prizes.length < 6
+                    ? [...prizes, ...prizes, ...prizes, ...prizes, ...prizes, ...prizes].slice(
+                          0,
+                          Math.max(prizes.length * 2, 6)
+                      )
+                    : prizes;
+            const prizeIndex = prizePool.findIndex((p) => p.id === chosenPrize.id);
             const sliceAngle = (2 * Math.PI) / prizePool.length;
-
-            // Calculate target rotation
-            // The pointer is at the top (-PI/2)
-            // We want the slice to land under the pointer
-            const extraRotations = 10 * 2 * Math.PI; // Spin 10 times
-            const prizePosition = - (prizeIndex * sliceAngle + sliceAngle / 2) - (Math.PI / 2);
+            const extraRotations = 10 * 2 * Math.PI;
+            const prizePosition = -(prizeIndex * sliceAngle + sliceAngle / 2) - Math.PI / 2;
             const finalRotationValue = extraRotations + prizePosition;
 
             const startTime = performance.now();
-            const duration = 6000; // 6 seconds for a more dramatic effect
+            const duration = 6000;
 
             const animate = (time: number) => {
                 const elapsed = time - startTime;
                 const progress = Math.min(elapsed / duration, 1);
-
-                // Custom Ease Out: cubic-bezier(0.1, 0, 0.2, 1) approx
                 const easeOut = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
                 const currentRotation = easeOut * finalRotationValue;
-
                 rotationRef.current = currentRotation;
                 drawRoulette(currentRotation);
 
@@ -302,41 +311,42 @@ export default function RouletteModal() {
             };
 
             requestAnimationFrame(animate);
-
         } catch (error) {
             console.error("Error spinning:", error);
             setIsSpinning(false);
         }
     };
 
-    const handleClose = () => {
-        setIsOpen(false);
-    };
-
-    if (!isOpen) return null;
-
-    const showTeaser = !user || !user.pode_girar_roleta;
+    const handleClose = () => setIsOpen(false);
 
     const handleRedeem = () => {
         if (result && result.discount_type && result.discount_value) {
             const discountData = {
                 type: result.discount_type,
                 value: result.discount_value,
-                name: result.nome
+                name: result.nome,
             };
             localStorage.setItem("active_roulette_discount", JSON.stringify(discountData));
-            alert("Desconto aplicado! Você verá a redução no seu carrinho.");
+            setRedeemMsg("✅ Cupom salvo! Você pode usar agora no carrinho ou depois em \"Minha Conta\".");
+        } else {
+            setIsOpen(false);
         }
-        setIsOpen(false);
     };
+
+    if (!isOpen) return null;
+
+    const showTeaser = !user || !user.pode_girar_roleta;
 
     return (
         <div className={styles.overlay}>
             <div className={styles.modal}>
                 {!result && (
-                    <button className={styles.closeBtn} onClick={handleClose}>×</button>
+                    <button className={styles.closeBtn} onClick={handleClose} aria-label="Fechar">
+                        ×
+                    </button>
                 )}
 
+                {/* ── Teaser (not logged in / no spin) ── */}
                 {showTeaser && !result ? (
                     <div className={styles.teaserContent}>
                         <div className={styles.teaserIcon}>🎡</div>
@@ -344,11 +354,10 @@ export default function RouletteModal() {
                         <p className={styles.subtitle}>
                             Prepare-se para transformar seu autocuidado! Ganhe prêmios exclusivos agora mesmo.
                         </p>
-
                         <p className={styles.teaserCall}>
-                            <span className={styles.highlight}>Crie sua conta</span> hoje mesmo e libere seu giro gratuito para ganhar prêmios exclusivos de autocuidado!
+                            <span className={styles.highlight}>Crie sua conta</span> hoje mesmo e libere seu
+                            giro gratuito para ganhar prêmios exclusivos de autocuidado!
                         </p>
-
                         {!user ? (
                             <Link href="/conta" className={styles.spinBtn} onClick={handleClose}>
                                 CADASTRAR E GANHAR AGORA
@@ -360,37 +369,45 @@ export default function RouletteModal() {
                         )}
                     </div>
                 ) : !result ? (
+                    /* ── Spin screen ── */
                     <>
                         <h2 className={styles.title}>🍀 Giro da Sorte!</h2>
                         <p className={styles.subtitle}>
-                            Você ganhou um giro gratuito na nossa roleta e pode ganhar prêmios incríveis de autocuidado.
+                            Você ganhou um giro gratuito na nossa roleta e pode ganhar prêmios incríveis de
+                            autocuidado.
                         </p>
 
-                        <div className={styles.rouletteContainer}>
-                            <div className={styles.pointer}>
-                                <svg viewBox="0 0 24 24" fill="#2d5a27" stroke="white" strokeWidth="1">
-                                    <path d="M12 21l-8-16h16l-8 16z" />
-                                </svg>
+                        <div className={styles.rouletteWrapper}>
+                            <div className={styles.rouletteContainer} ref={containerRef}>
+                                {/* Pointer */}
+                                <div className={styles.pointer}>
+                                    <svg viewBox="0 0 24 24" fill="#2d5a27" stroke="white" strokeWidth="1">
+                                        <path d="M12 21l-8-16h16l-8 16z" />
+                                    </svg>
+                                </div>
+
+                                <canvas ref={canvasRef} className={styles.canvas} />
                             </div>
-                            <canvas
-                                ref={canvasRef}
-                                width={canvasSize}
-                                height={canvasSize}
-                                className={styles.canvas}
-                            />
                         </div>
 
                         <button
-                            className={styles.spinBtn}
+                            className={`${styles.spinBtn} ${isSpinning ? styles.spinning : ""}`}
                             onClick={handleSpin}
                             disabled={isSpinning}
                         >
-                            {isSpinning ? "Girando..." : "GIRAR AGORA"}
+                            {isSpinning ? (
+                                <>
+                                    <span className={styles.spinnerDot} />
+                                    Girando…
+                                </>
+                            ) : (
+                                "GIRAR AGORA"
+                            )}
                         </button>
                     </>
                 ) : (
+                    /* ── Result screen ── */
                     <div className={styles.resultContainer}>
-                        {/* Confetti Elements */}
                         {[...Array(20)].map((_, i) => (
                             <div
                                 key={i}
@@ -398,20 +415,36 @@ export default function RouletteModal() {
                                 style={{
                                     left: `${Math.random() * 100}%`,
                                     animationDelay: `${Math.random() * 3}s`,
-                                    backgroundColor: ['#ffd700', '#2d5a27', '#ffffff', '#b8860b'][Math.floor(Math.random() * 4)]
+                                    backgroundColor: ["#ffd700", "#2d5a27", "#ffffff", "#b8860b"][
+                                        Math.floor(Math.random() * 4)
+                                    ],
                                 }}
                             />
                         ))}
+
                         <span className={styles.resultIcon}>🎁</span>
                         <h2 className={styles.title}>Parabéns!</h2>
                         <p className={styles.subtitle}>Sorte grande! Você acaba de ganhar:</p>
                         <h3 className={styles.resultTitle}>{result.nome}</h3>
-                        <p className={styles.resultDesc}>
-                            {result.descricao}
-                        </p>
-                        <button className={styles.spinBtn} onClick={handleRedeem}>
-                            RESGATAR MEU PRÊMIO
-                        </button>
+                        <p className={styles.resultDesc}>{result.descricao}</p>
+
+                        {redeemMsg ? (
+                            <div className={styles.redeemSuccess}>
+                                <p>{redeemMsg}</p>
+                                <div className={styles.redeemActions}>
+                                    <Link href="/carrinho" className={styles.spinBtn} onClick={handleClose}>
+                                        IR PARA O CARRINHO
+                                    </Link>
+                                    <button className={styles.closeLinkBtn} onClick={handleClose}>
+                                        Ver na minha conta depois
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button className={styles.spinBtn} onClick={handleRedeem}>
+                                RESGATAR MEU PRÊMIO
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

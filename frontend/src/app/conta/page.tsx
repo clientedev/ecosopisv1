@@ -6,7 +6,7 @@ import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { Package, CheckCircle, Truck, Clock, ShoppingBag, ChevronRight, XCircle } from "lucide-react";
+import { Package, CheckCircle, Truck, Clock, ShoppingBag, ChevronRight, XCircle, Tag, Trash2 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
     pending: { label: "Pendente", color: "#f59e0b", icon: Clock },
@@ -16,6 +16,12 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
     cancelled: { label: "Cancelado", color: "#ef4444", icon: XCircle },
     payment_error: { label: "Erro", color: "#ef4444", icon: XCircle },
 };
+
+interface ActiveCoupon {
+    type: string;
+    value: number;
+    name: string;
+}
 
 export default function ContaPage() {
     const [isLogin, setIsLogin] = useState(true);
@@ -27,9 +33,30 @@ export default function ContaPage() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
     const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+    const [activeCoupon, setActiveCoupon] = useState<ActiveCoupon | null>(null);
 
     const { login, logout, token, user, refreshProfile } = useAuth();
     const router = useRouter();
+
+    // Load active roulette coupon from localStorage
+    useEffect(() => {
+        const raw = localStorage.getItem("active_roulette_discount");
+        if (raw) {
+            try { setActiveCoupon(JSON.parse(raw)); } catch { /* ignore */ }
+        }
+    }, []);
+
+    const removeCoupon = () => {
+        localStorage.removeItem("active_roulette_discount");
+        setActiveCoupon(null);
+    };
+
+    const formatDiscount = (coupon: ActiveCoupon) => {
+        if (coupon.type === "percentage") return `${coupon.value}% OFF`;
+        if (coupon.type === "fixed") return `R$ ${coupon.value.toFixed(2).replace(".", ",")} OFF`;
+        if (coupon.type === "free_shipping") return "Frete Grátis";
+        return `${coupon.value}`;
+    };
 
     useEffect(() => {
         if (token) {
@@ -134,6 +161,39 @@ export default function ContaPage() {
                             <h2>VOCÊ TEM UM GIRO GRÁTIS!</h2>
                             <p>Use sua sorte agora para ganhar prêmios exclusivos de autocuidado.</p>
                             <span className={styles.cardBtn}>GIRAR RULETA AGORA</span>
+                        </div>
+                    )}
+
+                    {/* ── Meus Cupons (roulette reward) ── */}
+                    {!isAdmin && token && user && activeCoupon && (
+                        <div className={styles.myCouponsSection}>
+                            <h3 className={styles.myCouponsTitle}>
+                                <Tag size={18} /> Meus Cupons Disponíveis
+                            </h3>
+                            <div className={styles.couponCard}>
+                                <div className={styles.couponLeft}>
+                                    <span className={styles.couponBadge}>DISPONÍVEL</span>
+                                    <div className={styles.couponIcon}>🎟️</div>
+                                </div>
+                                <div className={styles.couponInfo}>
+                                    <p className={styles.couponName}>{activeCoupon.name}</p>
+                                    <p className={styles.couponValue}>{formatDiscount(activeCoupon)}</p>
+                                    <p className={styles.couponHint}>Ganho na Roleta da Sorte</p>
+                                </div>
+                                <div className={styles.couponActions}>
+                                    <Link href="/carrinho" className={styles.useCouponBtn}>
+                                        Usar Agora
+                                    </Link>
+                                    <button
+                                        className={styles.removeCouponBtn}
+                                        onClick={removeCoupon}
+                                        title="Remover cupom"
+                                        aria-label="Remover cupom"
+                                    >
+                                        <Trash2 size={15} />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
 
