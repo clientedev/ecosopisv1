@@ -418,7 +418,7 @@ export default function RouletteModal() {
             };
             localStorage.setItem("active_roulette_discount", JSON.stringify(discountData));
             window.dispatchEvent(new Event("roulette_discount_applied"));
-            setRedeemMsg("✅ Cupom salvo! Você pode usar agora no carrinho ou depois em \"Minha Conta\".");
+            setRedeemMsg("success"); // We'll just use a flag and render the HTML in the JSX
         } else {
             setIsOpen(false);
             sessionStorage.removeItem("roulette_modal_open");
@@ -523,13 +523,24 @@ export default function RouletteModal() {
 
                         {redeemMsg ? (
                             <div className={styles.redeemSuccess}>
-                                <p>{redeemMsg}</p>
+                                <div style={{ background: '#f0fdf4', border: '1px dashed #22c55e', padding: '16px', borderRadius: '12px', textAlign: 'left', marginBottom: '16px' }}>
+                                    <h4 style={{ color: '#166534', marginTop: 0, marginBottom: '10px', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        ✅ Cupom salvo com sucesso!
+                                    </h4>
+                                    <p style={{ color: '#166534', fontSize: '0.9rem', marginBottom: '8px', fontWeight: 600 }}>Como utilizar seu desconto:</p>
+                                    <ol style={{ color: '#15803d', fontSize: '0.85rem', margin: 0, paddingLeft: '20px', lineHeight: '1.5' }}>
+                                        <li>Adicione seus produtos desejados ao carrinho.</li>
+                                        <li>Acesse a página do Carrinho.</li>
+                                        <li>Logo abaixo do campo de cupom, procure pela caixa verde informando seu prêmio.</li>
+                                        <li>Clique no botão <strong>"USAR ESTE CUPOM"</strong> para aplicar o desconto no valor final!</li>
+                                    </ol>
+                                </div>
                                 <div className={styles.redeemActions}>
-                                    <Link href="/carrinho" className={styles.spinBtn} onClick={handleClose}>
+                                    <Link href="/carrinho" className={styles.spinBtn} onClick={handleClose} style={{ marginBottom: '10px' }}>
                                         IR PARA O CARRINHO
                                     </Link>
                                     <button className={styles.closeLinkBtn} onClick={handleClose}>
-                                        Ver na minha conta depois
+                                        Continuar navegando
                                     </button>
                                 </div>
                             </div>
