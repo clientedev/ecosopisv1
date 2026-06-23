@@ -239,7 +239,7 @@ export default function AdminRoulettePage() {
                     <div className={styles.historyList}>
                         {history.slice(0, 10).map((h) => (
                             <div key={h.id} className={styles.historyItem}>
-                                <span>Usuário #{h.usuario_id}</span>
+                                <span>{h.user ? (h.user.full_name || h.user.email) : `Usuário #${h.usuario_id}`}</span>
                                 <strong>{h.prize.nome}</strong>
                                 <small>{new Date(h.data_giro).toLocaleString('pt-BR')}</small>
                             </div>

@@ -404,12 +404,20 @@ class RoulettePrizeResponse(RoulettePrizeBase):
 class RouletteSpinResponse(BaseModel):
     prize: RoulettePrizeResponse
     
+class RouletteHistoryUser(BaseModel):
+    id: int
+    full_name: Optional[str] = None
+    email: str
+    class Config:
+        from_attributes = True
+
 class RouletteHistoryResponse(BaseModel):
     id: int
     usuario_id: int
     premio_id: int
     data_giro: datetime
     prize: RoulettePrizeResponse
+    user: Optional[RouletteHistoryUser] = None
     class Config:
         from_attributes = True
 

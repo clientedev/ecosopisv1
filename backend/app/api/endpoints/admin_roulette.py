@@ -90,4 +90,5 @@ def manual_release_roulette(
 
 @router.get("/history", response_model=List[schemas.RouletteHistoryResponse])
 def get_roulette_history(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
-    return db.query(models.RouletteHistory).all()
+    from sqlalchemy.orm import joinedload
+    return db.query(models.RouletteHistory).options(joinedload(models.RouletteHistory.user)).all()

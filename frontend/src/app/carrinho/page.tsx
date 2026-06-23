@@ -107,6 +107,7 @@ export default function CarrinhoPage() {
     const [couponCode, setCouponCode] = useState("");
     const [couponError, setCouponError] = useState("");
     const [firstPurchaseChecked, setFirstPurchaseChecked] = useState(false);
+    const [availableRouletteCoupon, setAvailableRouletteCoupon] = useState<any>(null);
 
     // Cashback states
     const [availableCashback, setAvailableCashback] = useState(0);
@@ -151,12 +152,14 @@ export default function CarrinhoPage() {
     // Unified Coupon Management
     useEffect(() => {
         const applyRouletteCoupon = () => {
-            if (isWholesaleEligible) return; // Never auto-apply if wholesale
-            
             const rouletteDiscount = localStorage.getItem("active_roulette_discount");
             if (rouletteDiscount) {
                 try {
                     const data = JSON.parse(rouletteDiscount);
+                    setAvailableRouletteCoupon(data);
+                    
+                    if (isWholesaleEligible) return; // Never auto-apply if wholesale
+                    
                     setAppliedCoupon({
                         code: "ROLETA",
                         type: data.type,
@@ -166,6 +169,8 @@ export default function CarrinhoPage() {
                 } catch (e) {
                     localStorage.removeItem("active_roulette_discount");
                 }
+            } else {
+                setAvailableRouletteCoupon(null);
             }
         };
 
@@ -1047,6 +1052,30 @@ export default function CarrinhoPage() {
                                         <button onClick={() => setAppliedCoupon(null)}>Remover</button>
                                     </div>
                                 )}
+                                {availableRouletteCoupon && (!appliedCoupon || appliedCoupon.code !== "ROLETA") && (
+                                    <div style={{ marginTop: '12px', padding: '12px', background: '#f0fdf4', border: '1px dashed #22c55e', borderRadius: '8px' }}>
+                                        <p style={{ fontSize: '0.85rem', color: '#166534', margin: '0 0 8px 0' }}>
+                                            <strong>🎁 Prêmio da Roleta Disponível:</strong><br/>{availableRouletteCoupon.name}
+                                        </p>
+                                        <button 
+                                            onClick={() => {
+                                                if (isWholesaleEligible) {
+                                                    alert("O cupom da roleta não pode ser usado em pedidos de atacado.");
+                                                    return;
+                                                }
+                                                setAppliedCoupon({
+                                                    code: "ROLETA",
+                                                    type: availableRouletteCoupon.type,
+                                                    value: availableRouletteCoupon.value,
+                                                    name: availableRouletteCoupon.name
+                                                });
+                                            }}
+                                            style={{ width: '100%', background: '#22c55e', color: 'white', border: 'none', padding: '8px', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold' }}
+                                        >
+                                            USAR ESTE CUPOM
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Cashback Toggle */}
@@ -1435,6 +1464,33 @@ export default function CarrinhoPage() {
                                 <div className={styles.appliedCoupon}>
                                     <span>Cupom: {appliedCoupon.code}</span>
                                     <button onClick={() => setAppliedCoupon(null)}>Remover</button>
+                                </div>
+                            )}
+                            
+                            {availableRouletteCoupon && (!appliedCoupon || appliedCoupon.code !== "ROLETA") && (
+                                <div style={{ marginTop: '12px', padding: '12px', background: '#f0fdf4', border: '1px dashed #22c55e', borderRadius: '8px' }}>
+                                    <p style={{ fontSize: '0.85rem', color: '#166534', margin: '0 0 8px 0' }}>
+                                        <strong>🎁 Prêmio da Roleta Disponível:</strong><br/>{availableRouletteCoupon.name}
+                                    </p>
+                                    <button 
+                                        onClick={() => {
+                                            if (isWholesaleEligible) {
+                                                alert("O cupom da roleta não pode ser usado em pedidos de atacado.");
+                                                return;
+                                            }
+                                            setAppliedCoupon({
+                                                code: "ROLETA",
+                                                type: availableRouletteCoupon.type,
+                                                value: availableRouletteCoupon.value,
+                                                name: availableRouletteCoupon.name
+                                            });
+                                        }}
+                                        style={{ width: '100%', background: '#22c55e', color: 'white', border: 'none', padding: '8px', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}
+                                        onMouseOver={(e) => e.currentTarget.style.background = '#16a34a'}
+                                        onMouseOut={(e) => e.currentTarget.style.background = '#22c55e'}
+                                    >
+                                        USAR ESTE CUPOM
+                                    </button>
                                 </div>
                             )}
 
