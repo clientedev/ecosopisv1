@@ -30,116 +30,8 @@ export default function RouletteModal() {
     // Prevent the effect from closing the modal once it's been opened
     const hasOpenedRef = useRef(false);
 
-    // ─── Responsiveness: ResizeObserver ───────────────────────────────────
-    const updateCanvasSize = useCallback(() => {
-        const container = containerRef.current;
-        const canvas = canvasRef.current;
-        if (!container || !canvas) return;
-
-        const rect = container.getBoundingClientRect();
-        const size = Math.round(rect.width);
-        if (size < 10) return;
-
-        canvasSizeRef.current = size;
-
-        // Use devicePixelRatio for crisp rendering
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = size * dpr;
-        canvas.height = size * dpr;
-        canvas.style.width = `${size}px`;
-        canvas.style.height = `${size}px`;
-
-        const ctx = canvas.getContext("2d");
-        if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-        drawRoulette(rotationRef.current);
-    }, [prizes]);
-
-    useEffect(() => {
-        if (!isOpen || prizes.length === 0) return;
-
-        const ro = new ResizeObserver(() => {
-            updateCanvasSize();
-        });
-
-        if (containerRef.current) {
-            ro.observe(containerRef.current);
-        }
-
-        // Initial sizing (needs a short delay to let CSS layout settle)
-        const t = setTimeout(updateCanvasSize, 50);
-
-        return () => {
-            ro.disconnect();
-            clearTimeout(t);
-        };
-    }, [isOpen, prizes, updateCanvasSize]);
-
-    // ─── Eligibility check ────────────────────────────────────────────────
-    useEffect(() => {
-        const checkEligibility = async () => {
-            // If modal is already open (or was opened this mount), don't interfere
-            if (hasOpenedRef.current) return;
-
-            if (pathname !== "/" && !sessionStorage.getItem("roulette_manual_trigger")) {
-                // Don't call setIsOpen(false) here — we might still be navigating.
-                // Just bail out silently.
-                return;
-            }
-
-            try {
-                const configRes = await fetch("/api/roleta/config");
-                const configData = await configRes.json();
-                setConfig(configData);
-
-                if (!configData.ativa) {
-                    setIsOpen(false);
-                    return;
-                }
-
-                const prizeRes = await fetch("/api/roleta/prizes");
-                const prizeData = await prizeRes.json();
-                setPrizes(prizeData);
-
-                const isLogged = !!(token && user);
-                const canSpin = user?.pode_girar_roleta;
-                const teaserShown = sessionStorage.getItem("roulette_teaser_shown");
-                const spinShown = sessionStorage.getItem("roulette_spin_shown");
-
-                if (isLogged && canSpin) {
-                    // Always show for eligible users — clear stale spinShown so
-                    // coming back after a fresh login always works.
-                    if (!spinShown) {
-                        hasOpenedRef.current = true;
-                        setIsOpen(true);
-                        sessionStorage.setItem("roulette_spin_shown", "true");
-                    }
-                } else if (configData.popup_ativo) {
-                    if (!teaserShown && !spinShown && pathname === "/") {
-                        hasOpenedRef.current = true;
-                        setIsOpen(true);
-                        sessionStorage.setItem("roulette_teaser_shown", "true");
-                    }
-                }
-            } catch (error) {
-                console.error("Error checking roulette eligibility:", error);
-            }
-        };
-
-        checkEligibility();
-
-        const handleManualOpen = () => {
-            hasOpenedRef.current = true;
-            setIsOpen(true);
-            sessionStorage.setItem("roulette_manual_trigger", "true");
-        };
-
-        window.addEventListener("open-roulette", handleManualOpen);
-        return () => window.removeEventListener("open-roulette", handleManualOpen);
-    }, [token, user, pathname]);
-
     // ─── Draw ──────────────────────────────────────────────────────────────
-    const drawRoulette = (rotation: number) => {
+    const drawRoulette = useCallback((rotation: number) => {
         const canvas = canvasRef.current;
         if (!canvas || prizes.length === 0) return;
 
@@ -264,7 +156,136 @@ export default function RouletteModal() {
         ctx.arc(centerX, centerY, innerHubR, 0, 2 * Math.PI);
         ctx.fillStyle = "#1a3a16";
         ctx.fill();
-    };
+    }, [prizes]);
+
+    // ─── Responsiveness: ResizeObserver ───────────────────────────────────
+    const updateCanvasSize = useCallback(() => {
+        const container = containerRef.current;
+        const canvas = canvasRef.current;
+        if (!container || !canvas) return;
+
+        const rect = container.getBoundingClientRect();
+        const size = Math.round(rect.width);
+        if (size < 10) return;
+
+        canvasSizeRef.current = size;
+
+        // Use devicePixelRatio for crisp rendering
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = size * dpr;
+        canvas.height = size * dpr;
+        canvas.style.width = `${size}px`;
+        canvas.style.height = `${size}px`;
+
+        const ctx = canvas.getContext("2d");
+        if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        drawRoulette(rotationRef.current);
+    }, [drawRoulette]);
+
+    useEffect(() => {
+        if (!isOpen || prizes.length === 0) return;
+
+        const ro = new ResizeObserver(() => {
+            updateCanvasSize();
+        });
+
+        if (containerRef.current) {
+            ro.observe(containerRef.current);
+        }
+
+        // Initial sizing (needs a short delay to let CSS layout settle)
+        const t = setTimeout(updateCanvasSize, 50);
+
+        return () => {
+            ro.disconnect();
+            clearTimeout(t);
+        };
+    }, [isOpen, prizes, updateCanvasSize]);
+
+    // ─── Eligibility check ────────────────────────────────────────────────
+    useEffect(() => {
+        const checkEligibility = async () => {
+            const modalOpenFlag = sessionStorage.getItem("roulette_modal_open");
+
+            // If we are not on "/" and this is not a manually triggered open,
+            // clean up and close the modal.
+            if (pathname !== "/" && !sessionStorage.getItem("roulette_manual_trigger")) {
+                setIsOpen(false);
+                sessionStorage.removeItem("roulette_modal_open");
+                sessionStorage.removeItem("roulette_manual_trigger");
+                return;
+            }
+
+            // If the modal was already open in this session, show it immediately.
+            // But continue so we can fetch config and prizes to draw the wheel.
+            if (modalOpenFlag === "true") {
+                setIsOpen(true);
+                hasOpenedRef.current = true;
+            } else if (hasOpenedRef.current) {
+                return;
+            }
+
+            try {
+                const configRes = await fetch("/api/roleta/config");
+                const configData = await configRes.json();
+                setConfig(configData);
+
+                if (!configData.ativa) {
+                    setIsOpen(false);
+                    sessionStorage.removeItem("roulette_modal_open");
+                    sessionStorage.removeItem("roulette_manual_trigger");
+                    return;
+                }
+
+                const prizeRes = await fetch("/api/roleta/prizes");
+                const prizeData = await prizeRes.json();
+                setPrizes(prizeData);
+
+                // If it was already open, we don't need to check user/teaser eligibility again.
+                if (modalOpenFlag === "true") return;
+
+                const isLogged = !!(token && user);
+                const canSpin = user?.pode_girar_roleta;
+                const teaserShown = sessionStorage.getItem("roulette_teaser_shown");
+                const spinShown = sessionStorage.getItem("roulette_spin_shown");
+
+                if (isLogged && canSpin) {
+                    // Always show for eligible users — clear stale spinShown so
+                    // coming back after a fresh login always works.
+                    if (!spinShown) {
+                        hasOpenedRef.current = true;
+                        setIsOpen(true);
+                        sessionStorage.setItem("roulette_spin_shown", "true");
+                        sessionStorage.setItem("roulette_modal_open", "true");
+                    }
+                } else if (configData.popup_ativo) {
+                    if (!teaserShown && !spinShown && pathname === "/") {
+                        hasOpenedRef.current = true;
+                        setIsOpen(true);
+                        sessionStorage.setItem("roulette_teaser_shown", "true");
+                        sessionStorage.setItem("roulette_modal_open", "true");
+                    }
+                }
+            } catch (error) {
+                console.error("Error checking roulette eligibility:", error);
+            }
+        };
+
+        checkEligibility();
+
+        const handleManualOpen = () => {
+            hasOpenedRef.current = true;
+            setIsOpen(true);
+            sessionStorage.setItem("roulette_manual_trigger", "true");
+            sessionStorage.setItem("roulette_modal_open", "true");
+        };
+
+        window.addEventListener("open-roulette", handleManualOpen);
+        return () => window.removeEventListener("open-roulette", handleManualOpen);
+    }, [token, user, pathname]);
+
+
 
     // ─── Spin ──────────────────────────────────────────────────────────────
     const handleSpin = async () => {
@@ -328,7 +349,11 @@ export default function RouletteModal() {
         }
     };
 
-    const handleClose = () => setIsOpen(false);
+    const handleClose = () => {
+        setIsOpen(false);
+        sessionStorage.removeItem("roulette_modal_open");
+        sessionStorage.removeItem("roulette_manual_trigger");
+    };
 
     const handleRedeem = () => {
         if (result && result.discount_type && result.discount_value) {
@@ -341,6 +366,8 @@ export default function RouletteModal() {
             setRedeemMsg("✅ Cupom salvo! Você pode usar agora no carrinho ou depois em \"Minha Conta\".");
         } else {
             setIsOpen(false);
+            sessionStorage.removeItem("roulette_modal_open");
+            sessionStorage.removeItem("roulette_manual_trigger");
         }
     };
 

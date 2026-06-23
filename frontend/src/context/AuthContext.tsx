@@ -128,6 +128,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(data.access_token);
         localStorage.setItem('token', data.access_token);
 
+        // Clear roulette flags on fresh login so it checks again
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem("roulette_spin_shown");
+          sessionStorage.removeItem("roulette_teaser_shown");
+          sessionStorage.removeItem("roulette_modal_open");
+          sessionStorage.removeItem("roulette_manual_trigger");
+        }
+
         // Fetch user profile immediately
         const userRes = await fetch('/api/auth/me', {
           headers: { 'Authorization': `Bearer ${data.access_token}` }
@@ -151,6 +159,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    
+    // Clear roulette flags on logout
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem("roulette_spin_shown");
+      sessionStorage.removeItem("roulette_teaser_shown");
+      sessionStorage.removeItem("roulette_modal_open");
+      sessionStorage.removeItem("roulette_manual_trigger");
+    }
   };
 
   return (
