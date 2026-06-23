@@ -130,21 +130,47 @@ export default function RouletteModal() {
             ctx.textAlign = "right";
 
             // Set responsive text font and style
-            const fontSize = Math.max(10, Math.floor(size * 0.035));
+            // Reduce base font size slightly to fit text better
+            const fontSize = Math.max(9, Math.floor(size * 0.032));
             ctx.font = `800 ${fontSize}px "Karla", "Raleway", system-ui, sans-serif`;
 
-            const text = prize.nome.length > 20 ? prize.nome.substring(0, 17) + "…" : prize.nome;
-            const textOffset = Math.floor(size * 0.08);
+            const textOffset = Math.floor(size * 0.06); // Push a bit closer to edge
 
-            // Draw shadow/outline for extreme readability and high contrast
+            // Split text to avoid "..."
+            const words = prize.nome.split(" ");
+            let line1 = "";
+            let line2 = "";
+            
+            if (prize.nome.length > 14) {
+                if (words.length > 1) {
+                    const mid = Math.ceil(words.length / 2);
+                    line1 = words.slice(0, mid).join(" ");
+                    line2 = words.slice(mid).join(" ");
+                } else {
+                    line1 = prize.nome.substring(0, 12) + "-";
+                    line2 = prize.nome.substring(12);
+                }
+            } else {
+                line1 = prize.nome;
+            }
+
+            // Setup styles for extreme readability and high contrast
             ctx.strokeStyle = scheme.text === "#ffffff" ? "rgba(0, 0, 0, 0.7)" : "rgba(255, 255, 255, 0.8)";
             ctx.lineWidth = 3;
             ctx.lineJoin = "round";
-            ctx.strokeText(text, wheelRadius - textOffset, fontSize * 0.35);
-
-            // Fill text
             ctx.fillStyle = scheme.text;
-            ctx.fillText(text, wheelRadius - textOffset, fontSize * 0.35);
+
+            const renderLine = (str: string, yOffset: number) => {
+                ctx.strokeText(str, wheelRadius - textOffset, yOffset);
+                ctx.fillText(str, wheelRadius - textOffset, yOffset);
+            };
+
+            if (line2) {
+                renderLine(line1, -fontSize * 0.2);
+                renderLine(line2, fontSize * 0.9);
+            } else {
+                renderLine(line1, fontSize * 0.35);
+            }
             ctx.restore();
         });
 
@@ -378,6 +404,7 @@ export default function RouletteModal() {
                 name: result.nome,
             };
             localStorage.setItem("active_roulette_discount", JSON.stringify(discountData));
+            window.dispatchEvent(new Event("roulette_discount_applied"));
             setRedeemMsg("✅ Cupom salvo! Você pode usar agora no carrinho ou depois em \"Minha Conta\".");
         } else {
             setIsOpen(false);
