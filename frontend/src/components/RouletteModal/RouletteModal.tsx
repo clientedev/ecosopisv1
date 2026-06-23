@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import styles from "./RouletteModal.module.css";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -22,6 +23,11 @@ export default function RouletteModal() {
     const [prizes, setPrizes] = useState<Prize[]>([]);
     const [config, setConfig] = useState<any>(null);
     const [redeemMsg, setRedeemMsg] = useState("");
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -94,10 +100,10 @@ export default function RouletteModal() {
 
         const sliceAngle = (2 * Math.PI) / prizePool.length;
         const colorSchemes = [
-            { main: "#1a3a16", dark: "#0d1f0b" },
-            { main: "#2d5a27", dark: "#1a3a16" },
-            { main: "#b8860b", dark: "#8b6508" },
-            { main: "#3d7a35", dark: "#2d5a27" },
+            { main: "#1b4332", dark: "#0f281e", text: "#ffffff" }, // Emerald deep
+            { main: "#2d6a4f", dark: "#1b4332", text: "#ffffff" }, // Emerald medium
+            { main: "#d4af37", dark: "#aa882c", text: "#0f281e" }, // Premium gold - dark emerald text!
+            { main: "#40916c", dark: "#2d6a4f", text: "#ffffff" }, // Soft sage
         ];
 
         prizePool.forEach((prize, i) => {
@@ -122,13 +128,22 @@ export default function RouletteModal() {
             ctx.translate(centerX, centerY);
             ctx.rotate(angle + sliceAngle / 2);
             ctx.textAlign = "right";
-            ctx.fillStyle = "white";
-            const fontSize = Math.max(10, Math.floor(size * 0.038));
-            ctx.font = `bold ${fontSize}px Outfit, sans-serif`;
-            ctx.shadowColor = "rgba(0,0,0,0.5)";
-            ctx.shadowBlur = 3;
-            const text = prize.nome.length > 18 ? prize.nome.substring(0, 15) + "…" : prize.nome;
-            const textOffset = Math.floor(size * 0.07);
+
+            // Set responsive text font and style
+            const fontSize = Math.max(10, Math.floor(size * 0.035));
+            ctx.font = `800 ${fontSize}px "Karla", "Raleway", system-ui, sans-serif`;
+
+            const text = prize.nome.length > 20 ? prize.nome.substring(0, 17) + "…" : prize.nome;
+            const textOffset = Math.floor(size * 0.08);
+
+            // Draw shadow/outline for extreme readability and high contrast
+            ctx.strokeStyle = scheme.text === "#ffffff" ? "rgba(0, 0, 0, 0.7)" : "rgba(255, 255, 255, 0.8)";
+            ctx.lineWidth = 3;
+            ctx.lineJoin = "round";
+            ctx.strokeText(text, wheelRadius - textOffset, fontSize * 0.35);
+
+            // Fill text
+            ctx.fillStyle = scheme.text;
             ctx.fillText(text, wheelRadius - textOffset, fontSize * 0.35);
             ctx.restore();
         });
@@ -371,11 +386,11 @@ export default function RouletteModal() {
         }
     };
 
-    if (!isOpen) return null;
+    if (!mounted || !isOpen) return null;
 
     const showTeaser = !user || !user.pode_girar_roleta;
 
-    return (
+    return createPortal(
         <div className={styles.overlay}>
             <div className={styles.modal}>
                 {!result && (
@@ -419,7 +434,7 @@ export default function RouletteModal() {
                             <div className={styles.rouletteContainer} ref={containerRef}>
                                 {/* Pointer */}
                                 <div className={styles.pointer}>
-                                    <svg viewBox="0 0 24 24" fill="#2d5a27" stroke="white" strokeWidth="1">
+                                    <svg viewBox="0 0 24 24" fill="#ffd700" stroke="#1b4332" strokeWidth="1.5">
                                         <path d="M12 21l-8-16h16l-8 16z" />
                                     </svg>
                                 </div>
@@ -486,6 +501,7 @@ export default function RouletteModal() {
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
