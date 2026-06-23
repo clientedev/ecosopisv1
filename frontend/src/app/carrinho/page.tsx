@@ -1122,7 +1122,7 @@ export default function CarrinhoPage() {
                                             </button>
                                         ) : (
                                             <p style={{ fontSize: '0.8rem', color: '#dc2626', margin: 0, fontWeight: 600 }}>
-                                                ⚠️ Volte à roleta e clique em "Resgatar Prêmio" para gerar o código.
+                                                ⚠️ Volte à roleta e clique em &quot;Resgatar Prêmio&quot; para gerar o código.
                                             </p>
                                         )}
                                     </div>
@@ -1545,7 +1545,7 @@ export default function CarrinhoPage() {
                                         </button>
                                     ) : (
                                         <p style={{ fontSize: '0.8rem', color: '#dc2626', margin: 0, fontWeight: 600 }}>
-                                            ⚠️ Clique em "Resgatar Prêmio" na roleta para gerar seu código de cupom.
+                                            ⚠️ Clique em &quot;Resgatar Prêmio&quot; na roleta para gerar seu código de cupom.
                                         </p>
                                     )}
                                 </div>
