@@ -56,7 +56,7 @@ def get_metrics_summary(db: Session = Depends(get_db), current_admin: models.Use
     product_clicks["Sabonete de Rosa Mosqueta & Argila Rosa"] = product_clicks.get("Sabonete de Rosa Mosqueta & Argila Rosa", 0) + 800
     
     sorted_clicks = sorted(product_clicks.items(), key=lambda x: x[1], reverse=True)
-    clicks_by_product = [{"name": name, "count": count} for name, count in sorted_clicks[:10]]
+    clicks_by_product = [{"name": name, "count": count} for name, count in sorted_clicks if count > 0][:10]
     
     return {
         "total_visits": total_visits,
