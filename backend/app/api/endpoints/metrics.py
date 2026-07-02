@@ -41,11 +41,12 @@ def get_metrics_summary(db: Session = Depends(get_db), current_admin: models.Use
     
     total_clicks = db.query(models.ProductClick).count() + 3900
     
-    # Clicks by product
+    # Clicks by product — LEFT JOIN so products with 0 real clicks still appear
     clicks_by_product_raw = db.query(
         models.Product.name,
         func.count(models.ProductClick.id).label("count")
-    ).join(models.ProductClick, models.Product.id == models.ProductClick.product_id)\
+    ).outerjoin(models.ProductClick, models.Product.id == models.ProductClick.product_id)\
+     .filter(models.Product.is_active == True)\
      .group_by(models.Product.name)\
      .all()
      
