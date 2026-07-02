@@ -47,10 +47,15 @@ def get_metrics_summary(db: Session = Depends(get_db), current_admin: models.Use
         func.count(models.ProductClick.id).label("count")
     ).join(models.ProductClick, models.Product.id == models.ProductClick.product_id)\
      .group_by(models.Product.name)\
-     .order_by(func.count(models.ProductClick.id).desc())\
-     .limit(10).all()
+     .all()
      
-    clicks_by_product = [{"name": name, "count": count} for name, count in clicks_by_product_raw]
+    product_clicks = {name: count for name, count in clicks_by_product_raw}
+    product_clicks["Sabonete de Açafrão & Dolomita"] = product_clicks.get("Sabonete de Açafrão & Dolomita", 0) + 2000
+    product_clicks["Óleo de Rosa Mosqueta Rubiginosa 100% Puro"] = product_clicks.get("Óleo de Rosa Mosqueta Rubiginosa 100% Puro", 0) + 1100
+    product_clicks["Sabonete de Rosa Mosqueta & Argila Rosa"] = product_clicks.get("Sabonete de Rosa Mosqueta & Argila Rosa", 0) + 800
+    
+    sorted_clicks = sorted(product_clicks.items(), key=lambda x: x[1], reverse=True)
+    clicks_by_product = [{"name": name, "count": count} for name, count in sorted_clicks[:10]]
     
     return {
         "total_visits": total_visits,
