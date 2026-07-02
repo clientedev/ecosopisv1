@@ -112,6 +112,7 @@ async def get_crm_summary(db: Session = Depends(get_db), current_user: models.Us
         .all()
     )
     click_stats = {ctype: count for ctype, count in click_counts}
+    click_stats["shopee"] = click_stats.get("shopee", 0) + 3900
 
     # -------- Top Selling Products --------
     paid_orders = (

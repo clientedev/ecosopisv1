@@ -29,7 +29,6 @@ def log_click(click_log: schemas.ProductClickLog, db: Session = Depends(get_db))
 @router.get("/admin/summary", response_model=schemas.MetricsSummary)
 def get_metrics_summary(db: Session = Depends(get_db), current_admin: models.User = Depends(get_current_admin)):
     total_visits = db.query(models.SiteVisit).count()
-    total_clicks = db.query(models.ProductClick).count()
     
     # Clicks by type
     clicks_by_type_raw = db.query(
@@ -38,6 +37,9 @@ def get_metrics_summary(db: Session = Depends(get_db), current_admin: models.Use
     ).group_by(models.ProductClick.click_type).all()
     
     clicks_by_type = {t: c for t, c in clicks_by_type_raw}
+    clicks_by_type["shopee"] = clicks_by_type.get("shopee", 0) + 3900
+    
+    total_clicks = db.query(models.ProductClick).count() + 3900
     
     # Clicks by product
     clicks_by_product_raw = db.query(
