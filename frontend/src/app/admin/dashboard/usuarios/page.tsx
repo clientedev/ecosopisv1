@@ -3,13 +3,23 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "../dashboard.module.css";
+import { Mail, Upload, X, Send, Loader2 } from "lucide-react";
 
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
 export default function UserManagement() {
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    
+    // Email & Selection States
+    const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+    const [sendToAll, setSendToAll] = useState(true);
+    const [subject, setSubject] = useState("");
+    const [body, setBody] = useState("");
+    const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+    const [sending, setSending] = useState(false);
+    
     const router = useRouter();
 
     const fetchUsers = async () => {
@@ -78,6 +88,7 @@ export default function UserManagement() {
             });
             if (res.ok) {
                 setUsers(users.filter((u: any) => u.id !== userId));
+                setSelectedUserIds(prev => prev.filter(id => id !== userId));
             } else {
                 const error = await res.json();
                 alert(error.detail || "Erro ao deletar usuário");
@@ -107,6 +118,99 @@ export default function UserManagement() {
         }
     };
 
+    const filteredUsers = users.filter((u: any) => 
+        u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        u.email?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        u.phone?.includes(searchTerm)
+    );
+
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            const allIds = filteredUsers.map((u: any) => u.id);
+            setSelectedUserIds(allIds);
+        } else {
+            setSelectedUserIds([]);
+        }
+    };
+
+    const handleSelectUser = (userId: number) => {
+        setSelectedUserIds(prev => 
+            prev.includes(userId) 
+                ? prev.filter(id => id !== userId) 
+                : [...prev, userId]
+        );
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setAttachedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+        }
+    };
+
+    const handleRemoveFile = (index: number) => {
+        setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleSendEmail = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!subject.trim()) {
+            alert("Por favor, preencha o assunto do e-mail.");
+            return;
+        }
+        if (!body.trim()) {
+            alert("Por favor, preencha o corpo da mensagem.");
+            return;
+        }
+        if (!sendToAll && selectedUserIds.length === 0) {
+            alert("Por favor, selecione ao menos um usuário na tabela ou marque a opção 'Todos os usuários'.");
+            return;
+        }
+
+        const confirmation = sendToAll 
+            ? `Tem certeza que deseja enviar este e-mail para TODOS os ${users.length} usuários cadastrados?`
+            : `Tem certeza que deseja enviar este e-mail para os ${selectedUserIds.length} usuários selecionados?`;
+
+        if (!confirm(confirmation)) return;
+
+        setSending(true);
+        try {
+            const token = localStorage.getItem("token");
+            const formData = new FormData();
+            formData.append("subject", subject);
+            formData.append("body", body);
+            formData.append("user_ids", sendToAll ? "all" : JSON.stringify(selectedUserIds));
+
+            attachedFiles.forEach(file => {
+                formData.append("files", file);
+            });
+
+            const res = await fetch("/api/auth/users/send-email", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                alert(data.message || "E-mails colocados na fila de envio com sucesso!");
+                setSubject("");
+                setBody("");
+                setAttachedFiles([]);
+                setSelectedUserIds([]);
+            } else {
+                const error = await res.json();
+                alert(error.detail || "Erro ao disparar e-mails.");
+            }
+        } catch (error) {
+            console.error("Error sending emails:", error);
+            alert("Erro de conexão ao enviar e-mails.");
+        } finally {
+            setSending(false);
+        }
+    };
+
     return (
         <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
             <AdminSidebar activePath="/admin/dashboard/usuarios" />
@@ -114,6 +218,116 @@ export default function UserManagement() {
                 <header className={styles.header}>
                     <h1>Gerenciar Usuários</h1>
                 </header>
+
+                {/* ✉️ Painel de Envio de E-mails */}
+                <div className={styles.emailCard}>
+                    <h2 className={styles.emailTitle}>
+                        <Mail size={20} /> Enviar E-mail para Clientes
+                    </h2>
+                    <form onSubmit={handleSendEmail} className={styles.emailForm}>
+                        <div className={styles.recipientToggle}>
+                            <label className={styles.radioLabel}>
+                                <input 
+                                    type="radio" 
+                                    name="recipientMode" 
+                                    checked={sendToAll} 
+                                    onChange={() => setSendToAll(true)} 
+                                />
+                                Enviar para TODOS os usuários ({users.length})
+                            </label>
+                            <label className={styles.radioLabel}>
+                                <input 
+                                    type="radio" 
+                                    name="recipientMode" 
+                                    checked={!sendToAll} 
+                                    onChange={() => setSendToAll(false)} 
+                                />
+                                Enviar apenas para selecionados ({selectedUserIds.length} selecionados)
+                            </label>
+                        </div>
+
+                        <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                            <label htmlFor="emailSubject">Assunto do E-mail</label>
+                            <input 
+                                id="emailSubject"
+                                type="text" 
+                                placeholder="Digite o assunto do e-mail..." 
+                                value={subject}
+                                onChange={(e) => setSubject(e.target.value)}
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+
+                        <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                            <label htmlFor="emailBody">Mensagem</label>
+                            <textarea 
+                                id="emailBody"
+                                placeholder="Escreva a sua mensagem aqui. Quebras de linha serão preservadas no e-mail..." 
+                                value={body}
+                                onChange={(e) => setBody(e.target.value)}
+                                rows={6}
+                                style={{ width: '100%', fontFamily: 'inherit' }}
+                            />
+                        </div>
+
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>
+                                Fotos / Imagens Anexas
+                            </label>
+                            <label className={styles.fileUploadArea}>
+                                <Upload size={24} style={{ color: '#2d5a27' }} />
+                                <span className={styles.fileUploadText}>
+                                    Clique para <strong>anexar fotos</strong> ou arraste-as para cá
+                                </span>
+                                <input 
+                                    type="file" 
+                                    multiple 
+                                    accept="image/*" 
+                                    onChange={handleFileChange}
+                                    style={{ display: 'none' }}
+                                />
+                            </label>
+
+                            {attachedFiles.length > 0 && (
+                                <div className={styles.attachmentList}>
+                                    {attachedFiles.map((file, index) => (
+                                        <div key={index} className={styles.attachmentBadge}>
+                                            <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '200px' }}>
+                                                {file.name}
+                                            </span>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleRemoveFile(index)} 
+                                                className={styles.removeAttachmentBtn}
+                                                title="Remover anexo"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            className={styles.sendBtn}
+                            disabled={sending}
+                        >
+                            {sending ? (
+                                <>
+                                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                                    Disparando E-mails...
+                                </>
+                            ) : (
+                                <>
+                                    <Send size={16} />
+                                    Disparar E-mails {sendToAll ? `para todos (${users.length})` : `para selecionados (${selectedUserIds.length})`}
+                                </>
+                            )}
+                        </button>
+                    </form>
+                </div>
 
                 <div className={styles.stats}>
                     <div className={styles.statCard}>
@@ -167,6 +381,14 @@ export default function UserManagement() {
                     <table>
                         <thead>
                             <tr>
+                                <th className={styles.checkboxCol}>
+                                    <input 
+                                        type="checkbox" 
+                                        className={styles.checkboxInput}
+                                        checked={filteredUsers.length > 0 && selectedUserIds.length === filteredUsers.length}
+                                        onChange={handleSelectAll}
+                                    />
+                                </th>
                                 <th>ID</th>
                                 <th>Nome</th>
                                 <th>Email</th>
@@ -178,18 +400,20 @@ export default function UserManagement() {
                             </tr>
                         </thead>
                         <tbody>
-                            {users
-                                .filter((u: any) => 
-                                    u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                    u.email?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                    u.phone?.includes(searchTerm)
-                                )
-                                .map((user: any) => (
+                            {filteredUsers.map((user: any) => (
                                 <tr key={user.id}>
-                                    <td>{user.id}</td>
-                                    <td><strong>{user.full_name}</strong></td>
-                                    <td>{user.email}</td>
-                                    <td>
+                                    <td className={styles.checkboxCol} data-label="Selecionar">
+                                        <input 
+                                            type="checkbox" 
+                                            className={styles.checkboxInput}
+                                            checked={selectedUserIds.includes(user.id)}
+                                            onChange={() => handleSelectUser(user.id)}
+                                        />
+                                    </td>
+                                    <td data-label="ID">{user.id}</td>
+                                    <td data-label="Nome"><strong>{user.full_name}</strong></td>
+                                    <td data-label="Email">{user.email}</td>
+                                    <td data-label="WhatsApp">
                                         {user.phone ? (
                                             <a 
                                                 href={`https://wa.me/${user.phone.replace(/\D/g, '')}`} 
@@ -213,18 +437,18 @@ export default function UserManagement() {
                                             <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>—</span>
                                         )}
                                     </td>
-                                    <td>
+                                    <td data-label="Cargo">
                                         <span className={`${styles.stockBadge} ${user.role === 'admin' ? styles.stockOk : styles.editBtn}`}>
                                             {user.role}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Roleta">
                                         <span className={`${styles.stockBadge} ${user.pode_girar_roleta ? styles.stockOk : styles.deleteBtn}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
                                             {user.pode_girar_roleta ? "DISPONÍVEL" : "BLOQUEADO"}
                                         </span>
                                     </td>
-                                    <td>{new Date(user.created_at).toLocaleDateString('pt-BR')}</td>
-                                    <td>
+                                    <td data-label="Data Cadastro">{new Date(user.created_at).toLocaleDateString('pt-BR')}</td>
+                                    <td data-label="Ações">
                                         <div className={styles.actions}>
                                             <button
                                                 className={styles.editBtn}

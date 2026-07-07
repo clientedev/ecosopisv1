@@ -1,5 +1,5 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, BackgroundTasks, Form
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -94,6 +94,93 @@ async def get_current_admin(current_user: models.User = Depends(get_current_user
 @router.get("/users", response_model=List[schemas.UserResponse])
 def get_users(db: Session = Depends(get_db), current_admin: models.User = Depends(get_current_admin)):
     return db.query(models.User).all()
+
+
+def _executar_envio_emails_bg(
+    subject: str,
+    body: str,
+    recipient_emails: List[str],
+    attachments: List[Dict[str, Any]] | None = None
+):
+    """
+    Background task to send custom styled emails to users.
+    """
+    for email_addr in recipient_emails:
+        try:
+            html_content = f"""
+            <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                <div style="background-color: #2d5a27; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                    <h1 style="margin: 0; font-size: 1.4rem;">{subject}</h1>
+                </div>
+                <div style="padding: 24px; color: #334155; line-height: 1.6; font-size: 1rem; white-space: pre-wrap;">
+{body}
+                </div>
+                <div style="background-color: #f8fafc; padding: 12px; text-align: center; font-size: 0.75rem; color: #94a3b8; border-radius: 0 0 8px 8px; border-top: 1px solid #eee;">
+                    Equipe ECOSOPIS - Cosméticos Naturais e Veganos
+                </div>
+            </div>
+            """
+            emails.send_email(email_addr, subject, html_content, attachments)
+        except Exception as e:
+            print(f"[BG Email] Erro ao enviar e-mail para {email_addr}: {str(e)}")
+
+
+@router.post("/users/send-email")
+async def send_custom_emails(
+    background_tasks: BackgroundTasks,
+    subject: str = Form(...),
+    body: str = Form(...),
+    user_ids: str = Form(...),  # "all" or a JSON-encoded string of list of user IDs
+    files: List[UploadFile] = File(default=[]),
+    db: Session = Depends(get_db),
+    current_admin: models.User = Depends(get_current_admin)
+):
+    import json
+    import base64
+    
+    recipient_emails = []
+    if user_ids == "all":
+        users = db.query(models.User).all()
+        recipient_emails = [u.email for u in users if u.email]
+    else:
+        try:
+            ids = json.loads(user_ids)
+            if not isinstance(ids, list):
+                raise ValueError()
+            ids = [int(i) for i in ids]
+            users = db.query(models.User).filter(models.User.id.in_(ids)).all()
+            recipient_emails = [u.email for u in users if u.email]
+        except Exception:
+            raise HTTPException(
+                status_code=400,
+                detail="Formato inválido para user_ids. Deve ser 'all' ou um array JSON de IDs."
+            )
+
+    if not recipient_emails:
+        raise HTTPException(status_code=400, detail="Nenhum destinatário com e-mail cadastrado foi encontrado.")
+
+    # Process attachments
+    attachments = []
+    if files:
+        for file in files:
+            if file.filename:
+                content = await file.read()
+                b64_content = base64.b64encode(content).decode("utf-8")
+                attachments.append({
+                    "filename": file.filename,
+                    "content": b64_content,
+                    "type": file.content_type or "application/octet-stream"
+                })
+
+    background_tasks.add_task(
+        _executar_envio_emails_bg,
+        subject,
+        body,
+        recipient_emails,
+        attachments
+    )
+
+    return {"message": f"Envio de e-mail iniciado para {len(recipient_emails)} destinatários em segundo plano."}
 
 @router.get("/users/{user_id}", response_model=schemas.UserProfileResponse)
 def get_user_profile(user_id: int, db: Session = Depends(get_db), current_admin: models.User = Depends(get_current_admin)):
