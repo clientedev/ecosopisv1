@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-export type ThemeId = "default" | "valentines_day" | "copa_do_mundo";
+export type ThemeId = "default" | "valentines_day" | "copa_do_mundo" | "aniversario_4_anos";
 
 interface ThemeContextValue {
     activeTheme: ThemeId;

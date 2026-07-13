@@ -10,6 +10,7 @@ import MobileBottomNav from "@/components/MobileBottomNav/MobileBottomNav";
 import { ThemeProvider } from "@/context/ThemeContext";
 import HeartAnimation from "@/components/HeartAnimation/HeartAnimation";
 import WorldCupAnimation from "@/components/WorldCupAnimation/WorldCupAnimation";
+import AnniversaryAnimation from "@/components/AnniversaryAnimation/AnniversaryAnimation";
 
 const raleway = Raleway({
     subsets: ["latin"],
@@ -53,6 +54,7 @@ export default function RootLayout({
                                 <DynamicBranding />
                                 <HeartAnimation />
                                 <WorldCupAnimation />
+                                <AnniversaryAnimation />
                                 {children}
                                 <DeferredComponents />
                                 <MobileBottomNav />

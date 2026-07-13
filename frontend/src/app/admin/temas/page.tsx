@@ -147,6 +147,18 @@ const THEME_DEFINITIONS: ThemeDefinition[] = [
         tags: ["Sazonal", "Esportes", "Copa do Mundo"],
         features: ["Cores verde e amarelo", "Efeitos flutuantes de bandeiras e bolas de futebol", "Palpites com prêmios de descontos"],
     },
+    {
+        id: "aniversario_4_anos",
+        name: "Aniversário Ecosopis - 4 Anos",
+        description: "Comemoração especial dos 4 anos da Ecosopis! Visual festivo e sofisticado em tons de dourado e champagne, com animações especiais de confetes e balões.",
+        emoji: "🎉",
+        primary: "#b8860b",
+        primaryDark: "#8b6508",
+        bg: "#fffcf4",
+        accent: "#f3e1b6",
+        tags: ["Sazonal", "Dourado", "Aniversário"],
+        features: ["Cores douradas premium", "Animação de balões e confetes festivos", "Design comemorativo de luxo"],
+    },
 ];
 
 export default function AdminTemas() {

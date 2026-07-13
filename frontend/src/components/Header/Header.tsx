@@ -14,6 +14,7 @@ export default function Header() {
     const { activeTheme } = useTheme();
     const isAdmin = user?.role === 'admin';
     const isValentines = activeTheme === 'valentines_day';
+    const isAnniversary = activeTheme === 'aniversario_4_anos';
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [announcement, setAnnouncement] = useState<{
@@ -408,12 +409,12 @@ export default function Header() {
                 <div
                     data-cart-status-bar="true"
                     style={{
-                        backgroundColor: isValentines ? '#fff0f3' : '#f0fdf4',
-                        borderTop: isValentines ? '1px solid #f9c0d0' : '1px solid #dcfce7',
-                        borderBottom: isValentines ? '1px solid #f9c0d0' : '1px solid #dcfce7',
+                        backgroundColor: isValentines ? '#fff0f3' : isAnniversary ? '#fffdf0' : '#f0fdf4',
+                        borderTop: isValentines ? '1px solid #f9c0d0' : isAnniversary ? '1px solid #f5e6be' : '1px solid #dcfce7',
+                        borderBottom: isValentines ? '1px solid #f9c0d0' : isAnniversary ? '1px solid #f5e6be' : '1px solid #dcfce7',
                         padding: '8px 15px',
                         fontSize: '0.8rem',
-                        color: isValentines ? '#9e1f3e' : '#166534',
+                        color: isValentines ? '#9e1f3e' : isAnniversary ? '#8b6508' : '#166534',
                         textAlign: 'center',
                         display: 'flex',
                         justifyContent: 'center',

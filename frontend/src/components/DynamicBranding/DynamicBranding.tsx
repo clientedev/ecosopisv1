@@ -27,6 +27,14 @@ const THEMES: Record<string, Record<string, string>> = {
         text_secondary: "#002776",
         bg_color: "#fafcf5",
     },
+    aniversario_4_anos: {
+        primary_color: "#b8860b",
+        primary_color_dark: "#8b6508",
+        secondary_color: "#ffffff",
+        text_primary: "#1a1a1a",
+        text_secondary: "#5a450c",
+        bg_color: "#fffcf4",
+    },
 };
 
 export default function DynamicBranding() {
@@ -317,6 +325,149 @@ export default function DynamicBranding() {
         }
     ` : '';
 
+    const aniversario4AnosExtras = themeId === "aniversario_4_anos" ? `
+        /* ============================================
+           ANNIVERSARY THEME - COMPREHENSIVE OVERRIDES
+           ============================================ */
+
+        /* --- Buttons --- */
+        .btn-primary {
+            background: linear-gradient(135deg, #b8860b 0%, #8b6508 100%) !important;
+            box-shadow: 0 4px 15px rgba(184, 134, 11, 0.35) !important;
+            border-color: #b8860b !important;
+            color: #ffffff !important;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #8b6508 0%, #684a04 100%) !important;
+            box-shadow: 0 6px 20px rgba(139, 101, 8, 0.45) !important;
+            border-color: #8b6508 !important;
+            transform: translateY(-1px);
+        }
+        .btn-outline {
+            border-color: #b8860b !important;
+            color: #b8860b !important;
+        }
+        .btn-outline:hover {
+            background-color: rgba(184, 134, 11, 0.08) !important;
+        }
+
+        /* --- Logo filter --- */
+        html[data-theme="aniversario_4_anos"] img[alt="ECOSOPIS Logo"] {
+            filter: hue-rotate(330deg) saturate(1.4) brightness(1.0) !important;
+            transition: filter 0.4s ease;
+        }
+
+        /* --- Announcement Bar --- */
+        html[data-theme="aniversario_4_anos"] [class*="announcementBar"] {
+            background: linear-gradient(135deg, #b8860b 0%, #8b6508 100%) !important;
+            color: #ffffff !important;
+        }
+
+        /* --- Cart badge --- */
+        html[data-theme="aniversario_4_anos"] [class*="cartBadge"] {
+            background: #b8860b !important;
+            color: #ffffff !important;
+        }
+
+        /* --- Highlight nav link --- */
+        html[data-theme="aniversario_4_anos"] [class*="highlightNavLink"] {
+            color: #b8860b !important;
+            border-color: #b8860b !important;
+        }
+        html[data-theme="aniversario_4_anos"] [class*="highlightNavLink"]:hover {
+            background: rgba(184, 134, 11, 0.1) !important;
+        }
+
+        /* --- LIA AI nav link --- */
+        html[data-theme="aniversario_4_anos"] [class*="liaLink"] {
+            color: #b8860b !important;
+        }
+
+        /* --- Links on hover --- */
+        a:hover {
+            color: #b8860b;
+        }
+
+        /* --- Section badges / pills --- */
+        html[data-theme="aniversario_4_anos"] [class*="sectionBadge"],
+        html[data-theme="aniversario_4_anos"] [class*="scientificBadge"],
+        html[data-theme="aniversario_4_anos"] .scientific-badge {
+            background: rgba(184, 134, 11, 0.15) !important;
+            color: #8b6508 !important;
+            border-color: rgba(184, 134, 11, 0.3) !important;
+        }
+
+        /* --- Stat cards icons --- */
+        html[data-theme="aniversario_4_anos"] [class*="statIcon"] {
+            color: #b8860b !important;
+        }
+        html[data-theme="aniversario_4_anos"] [class*="statCard"] h3 {
+            color: #b8860b !important;
+        }
+
+        /* --- History section highlight --- */
+        html[data-theme="aniversario_4_anos"] [class*="historyHighlight"] {
+            color: #b8860b !important;
+        }
+
+        /* --- Rank badges --- */
+        html[data-theme="aniversario_4_anos"] [class*="rankBadgeTop1"] {
+            background: linear-gradient(135deg, #d4af37, #b8860b) !important;
+        }
+        html[data-theme="aniversario_4_anos"] [class*="rankBadgeAnniversary"] {
+            background: linear-gradient(135deg, #b8860b, #8b6508) !important;
+        }
+
+        /* --- Reviews stars --- */
+        html[data-theme="aniversario_4_anos"] [class*="reviewStars"] {
+            color: #b8860b !important;
+        }
+
+        /* --- Diagnostic / Goal cards --- */
+        html[data-theme="aniversario_4_anos"] [class*="diagnosticCard"]:hover {
+            border-color: #b8860b !important;
+            box-shadow: 0 8px 30px rgba(184,134,11,0.2) !important;
+        }
+        html[data-theme="aniversario_4_anos"] [class*="diagnosticIcon"] {
+            color: #b8860b !important;
+        }
+        html[data-theme="aniversario_4_anos"] [class*="diagnosticAction"] {
+            color: #b8860b !important;
+        }
+
+        /* --- Carousel gold/champagne overlay --- */
+        html[data-theme="aniversario_4_anos"] [data-anniversary-overlay] {
+            display: block !important;
+        }
+
+        /* --- Avatar / user menu --- */
+        html[data-theme="aniversario_4_anos"] [class*="avatar"] {
+            background: linear-gradient(135deg, #b8860b, #8b6508) !important;
+        }
+
+        /* --- Search suggestions --- */
+        html[data-theme="aniversario_4_anos"] [class*="desktopSuggestionTag"]:hover {
+            background: rgba(184, 134, 11, 0.12) !important;
+            border-color: #b8860b !important;
+            color: #b8860b !important;
+        }
+
+        /* --- Mobile nav active --- */
+        html[data-theme="aniversario_4_anos"] [class*="mobileNavItem"]:hover {
+            color: #b8860b !important;
+        }
+        html[data-theme="aniversario_4_anos"] [class*="mobileLiaItem"] {
+            color: #b8860b !important;
+        }
+
+        /* --- Global green text fallback --- */
+        html[data-theme="aniversario_4_anos"] [style*="color: #2d5a27"],
+        html[data-theme="aniversario_4_anos"] [style*="color: #4B8411"],
+        html[data-theme="aniversario_4_anos"] [style*="color: #166534"] {
+            color: #8b6508 !important;
+        }
+    ` : '';
+
     return (
         <style dangerouslySetInnerHTML={{
             __html: `
@@ -343,6 +494,9 @@ export default function DynamicBranding() {
                 [data-valentines-overlay] {
                     display: none;
                 }
+                [data-anniversary-overlay] {
+                    display: none;
+                }
                 @keyframes floatHeart {
                     0%   { transform: translateY(0) scale(1); opacity: 0.85; }
                     50%  { transform: translateY(-45vh) scale(1.15) rotate(12deg); opacity: 0.6; }
@@ -350,6 +504,7 @@ export default function DynamicBranding() {
                 }
                 ${valentinesExtras}
                 ${copaMundoExtras}
+                ${aniversario4AnosExtras}
             `
         }} />
     );

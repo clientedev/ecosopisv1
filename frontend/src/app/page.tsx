@@ -128,6 +128,7 @@ export default function Home() {
     const { activeTheme } = useTheme();
     const { user, token } = useAuth();
     const isValentines = activeTheme === 'valentines_day';
+    const isAnniversary = activeTheme === 'aniversario_4_anos';
     const [cupMatches, setCupMatches] = useState<any[]>([]);
     const [loadingCupMatches, setLoadingCupMatches] = useState(false);
     const [cupGuessInputs, setCupGuessInputs] = useState<Record<number, { score_a: string; score_b: string }>>({});
@@ -459,6 +460,20 @@ export default function Home() {
         }));
         setHearts(generated);
     }, [isValentines]);
+    const [anniversaryBalloons, setAnniversaryBalloons] = useState<{id: number; x: number; size: number; delay: number; duration: number; emoji: string}[]>([]);
+    useEffect(() => {
+        if (!isAnniversary) { setAnniversaryBalloons([]); return; }
+        const emojis = ["🎈", "✨", "🎉", "🎂", "🎁", "🥂"];
+        const generated = Array.from({ length: 16 }, (_, i) => ({
+            id: i,
+            x: Math.random() * 100,
+            size: 18 + Math.random() * 24,
+            delay: Math.random() * 5,
+            duration: 6 + Math.random() * 7,
+            emoji: emojis[Math.floor(Math.random() * emojis.length)]
+        }));
+        setAnniversaryBalloons(generated);
+    }, [isAnniversary]);
     const [displayedTip, setDisplayedTip] = useState("");
     const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -1005,6 +1020,23 @@ export default function Home() {
                         }}
                     >❤️</div>
                 ))}
+                {isAnniversary && anniversaryBalloons.map(b => (
+                    <div
+                        key={b.id}
+                        aria-hidden="true"
+                        style={{
+                            position: 'fixed',
+                            left: `${b.x}vw`,
+                            bottom: '-60px',
+                            fontSize: `${b.size}px`,
+                            opacity: 0,
+                            pointerEvents: 'none',
+                            zIndex: 9999,
+                            animation: `floatHeart ${b.duration}s ${b.delay}s ease-in forwards`,
+                            userSelect: 'none',
+                        }}
+                    >{b.emoji}</div>
+                ))}
                 {deviceSlides.map((slide, index) => {
                     // Helper to convert hex to rgba for overlay
                     const hexToRgba = (hex: string, opacity: number) => {
@@ -1070,6 +1102,19 @@ export default function Home() {
                                                 position: 'absolute',
                                                 inset: 0,
                                                 background: 'rgba(230, 63, 111, 0.28)',
+                                                zIndex: 2,
+                                                pointerEvents: 'none',
+                                                mixBlendMode: 'multiply',
+                                            }}
+                                        />
+                                    )}
+                                    {isAnniversary && (
+                                        <div
+                                            data-anniversary-overlay="true"
+                                            style={{
+                                                position: 'absolute',
+                                                inset: 0,
+                                                background: 'rgba(212, 175, 55, 0.12)',
                                                 zIndex: 2,
                                                 pointerEvents: 'none',
                                                 mixBlendMode: 'multiply',
@@ -1379,16 +1424,16 @@ export default function Home() {
                             )}
                         </div>
                         <div className={styles.bestsellerWrapper}>
-                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : styles.rankBadgeStar}`}>
-                                {isValentines ? '❤️' : '✨'} QUERIDINHO DAS CLIENTES
+                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : isAnniversary ? 'rankBadgeAnniversary' : styles.rankBadgeStar}`}>
+                                {isValentines ? '❤️' : isAnniversary ? '🎂' : '✨'} QUERIDINHO DAS CLIENTES
                             </div>
                             {findProductBySlug('kit-clareamento') && (
                                 <ProductCard product={findProductBySlug('kit-clareamento')} showMarketplace={false} />
                             )}
                         </div>
                         <div className={styles.bestsellerWrapper}>
-                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : styles.rankBadgeStar}`}>
-                                {isValentines ? '❤️' : '✨'} QUERIDINHO DAS CLIENTES
+                            <div className={`${styles.rankBadge} ${isValentines ? styles.rankBadgeHeart : isAnniversary ? 'rankBadgeAnniversary' : styles.rankBadgeStar}`}>
+                                {isValentines ? '❤️' : isAnniversary ? '🎂' : '✨'} QUERIDINHO DAS CLIENTES
                             </div>
                             {findProductBySlug('oleo-ricino') && (
                                 <ProductCard product={findProductBySlug('oleo-ricino')} showMarketplace={false} />
