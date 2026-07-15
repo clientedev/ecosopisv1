@@ -13,7 +13,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 import { useAuth } from "@/context/AuthContext";
 
 export default function CarrinhoPage() {
-    const { cart, updateQuantity, removeFromCart, cartTotal: subtotal } = useCart();
+    const { cart, updateQuantity, removeFromCart, cartTotal: subtotal, isWholesaleUnlocked } = useCart();
     const { user, token, refreshProfile } = useAuth();
     const [step, setStep] = useState<"cart" | "checkout">("cart");
     const [loading, setLoading] = useState(false);
@@ -158,8 +158,7 @@ export default function CarrinhoPage() {
     const cashbackDiscount = useCashback ? Math.min(availableCashback, subtotal - discount) : 0;
     
     const finalTotal = Math.max(0, subtotal + shippingPrice - discount - cashbackDiscount);
-    const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
-    const isWholesaleEligible = totalItems >= 10 || cart.some(i => i.isWholesale);
+    const isWholesaleEligible = isWholesaleUnlocked;
 
     // ── Load roulette coupon from localStorage on mount + on event ──
     useEffect(() => {
@@ -490,10 +489,11 @@ export default function CarrinhoPage() {
                 },
                 body: JSON.stringify({
                     items: cart.map(i => {
-                        const finalPrice = i.isWholesale ? i.price * 0.7 : i.price;
+                        const isItemDiscounted = i.isWholesale && isWholesaleEligible;
+                        const finalPrice = isItemDiscounted ? i.price * 0.7 : i.price;
                         return {
                             product_id: i.id,
-                            product_name: i.isWholesale ? `${i.name} (Atacado)` : i.name,
+                            product_name: isItemDiscounted ? `${i.name} (Atacado)` : i.name,
                             quantity: i.quantity,
                             price: finalPrice
                         };
@@ -668,7 +668,7 @@ export default function CarrinhoPage() {
                                         
                                         <div className={styles.mobileProductBottom}>
                                             <div className={styles.mobilePrices}>
-                                                {item.isWholesale ? (
+                                                {item.isWholesale && isWholesaleEligible ? (
                                                     <>
                                                         <span className={styles.oldPriceSmall}>R$ {item.price.toFixed(2)}</span>
                                                         <span className={styles.newPriceSmall}>R$ {(item.price * 0.7).toFixed(2)}</span>
@@ -1290,7 +1290,7 @@ export default function CarrinhoPage() {
                                                     {item.isWholesale && <span className={styles.wholesaleBadgeSmall}>ATACADO</span>}
                                                 </div>
                                                 <div className={styles.itemPrices}>
-                                                    {item.isWholesale ? (
+                                                    {item.isWholesale && isWholesaleEligible ? (
                                                         <>
                                                             <span className={styles.oldPriceSmall}>R$ {item.price.toFixed(2)}</span>
                                                             <span className={styles.newPriceSmall}>R$ {(item.price * 0.7).toFixed(2)}</span>

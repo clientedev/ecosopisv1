@@ -156,11 +156,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
     
-    const isWholesaleUnlocked = cartCount >= 10;
+    // Conta apenas os produtos que vieram da aba de atacado
+    const wholesaleItemsCount = cart.filter(item => item.isWholesale).reduce((acc, item) => acc + item.quantity, 0);
+    const isWholesaleUnlocked = wholesaleItemsCount >= 10;
     
-    // Calculate total: 30% discount if wholesale unlocked globally OR for specific isWholesale items
+    // Aplica o desconto de 30% nos itens de atacado APENAS se a regra de 10+ itens for atendida
     const cartTotal = cart.reduce((acc, item) => {
-        const itemPrice = (isWholesaleUnlocked || item.isWholesale) ? item.price * 0.7 : item.price;
+        const isItemDiscounted = item.isWholesale && isWholesaleUnlocked;
+        const itemPrice = isItemDiscounted ? item.price * 0.7 : item.price;
         return acc + (itemPrice * item.quantity);
     }, 0);
 
