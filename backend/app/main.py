@@ -103,7 +103,11 @@ def _apply_startup_migrations():
         ("badge_bg_color",     "VARCHAR DEFAULT '#4a7c59'"),
         ("overlay_color",      "VARCHAR DEFAULT '#000000'"),
         ("overlay_opacity",    "DOUBLE PRECISION DEFAULT 0.3"),
-        ("show_content",      "BOOLEAN DEFAULT TRUE")
+        ("show_content",      "BOOLEAN DEFAULT TRUE"),
+        ("cta_primary_bg_color",   "VARCHAR DEFAULT '#f59e0b'"),
+        ("cta_primary_color",      "VARCHAR DEFAULT '#ffffff'"),
+        ("cta_secondary_bg_color", "VARCHAR DEFAULT 'rgba(255,255,255,0.1)'"),
+        ("cta_secondary_color",    "VARCHAR DEFAULT '#ffffff'"),
     ]
     ANNOUNCE_COLS = [
         ("text",         "VARCHAR"),
