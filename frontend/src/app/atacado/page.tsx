@@ -70,9 +70,14 @@ export default function WholesalePage() {
                     const data = await res.json();
                     const wholesale = data.filter((p: any) => p.is_active && p.is_wholesale).map((p: any) => {
                         const staticData = getStaticProductData(p.slug);
+                        const base = {
+                            ...p,
+                            // Preserva o preço original para uso no atacado (promoção não vale no atacado)
+                            original_price: p.price,
+                        };
                         if (staticData) {
                             return {
-                                ...p,
+                                ...base,
                                 ingredients: staticData.ativos,
                                 benefits: staticData.beneficios,
                                 details: {
@@ -83,7 +88,7 @@ export default function WholesalePage() {
                                 }
                             };
                         }
-                        return p;
+                        return base;
                     });
                     setProducts(wholesale);
                 }
@@ -143,7 +148,8 @@ export default function WholesalePage() {
         ? fuzzySearch(products, searchTerm, ["name", "description"])
         : products;
     
-    const rawTotal = bundle.reduce((acc, p) => acc + (p.price * p.quantity), 0);
+    // REGRA: no atacado, usa o preço original (sem promoção) para cálculo do bundle
+    const rawTotal = bundle.reduce((acc, p) => acc + ((p.original_price ?? p.price) * p.quantity), 0);
     const discountedTotal = rawTotal * 0.7;
     const savings = rawTotal * 0.3;
 
@@ -248,10 +254,25 @@ export default function WholesalePage() {
                                             <div className={styles.cardInfo}>
                                                 <div className={styles.nameAndOldPrice}>
                                                     <h3>{p.name}</h3>
-                                                    <span className={styles.oldPrice}>R$ {p.price.toFixed(2)}</span>
+                                                    {p.is_on_sale && p.sale_price && (
+                                                        <span style={{
+                                                            display: 'inline-block',
+                                                            background: '#fef3c7',
+                                                            color: '#92400e',
+                                                            fontSize: '0.65rem',
+                                                            fontWeight: 700,
+                                                            padding: '2px 7px',
+                                                            borderRadius: '10px',
+                                                            border: '1px solid #f59e0b',
+                                                            marginBottom: '4px'
+                                                        }}>
+                                                            🏷️ Promoção não válida no atacado
+                                                        </span>
+                                                    )}
+                                                    <span className={styles.oldPrice}>R$ {(p.original_price ?? p.price).toFixed(2)}</span>
                                                 </div>
                                                 <div className={styles.priceRow}>
-                                                    <span className={styles.newPrice}>R$ {(p.price * 0.7).toFixed(2)}</span>
+                                                    <span className={styles.newPrice}>R$ {((p.original_price ?? p.price) * 0.7).toFixed(2)}</span>
                                                     <span className={styles.unitLabel}>/ unidade</span>
                                                 </div>
                                                 

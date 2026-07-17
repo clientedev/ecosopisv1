@@ -10,6 +10,9 @@ interface CartItem {
     quantity: number;
     image_url?: string;
     isWholesale?: boolean;
+    is_on_sale?: boolean;
+    sale_price?: number | null;
+    original_price?: number; // preço cheio (antes da promoção)
 }
 
 interface CartContextType {
@@ -117,7 +120,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             const wholesaleItems = items.map(item => ({
                 ...item,
                 quantity: item.quantity || 1,
-                isWholesale: true
+                isWholesale: true,
+                // REGRA: produtos em promoção entram no atacado pelo preço ORIGINAL (sem desconto)
+                price: item.is_on_sale && item.sale_price && item.sale_price > 0
+                    ? (item.original_price ?? item.price)
+                    : item.price,
             }));
             
             showToast(`Kit Atacado de ${items.length} itens adicionado!`, 'success');
