@@ -16,6 +16,8 @@ interface Product {
     shopee_url: string;
     buy_on_site: boolean;
     is_wholesale: boolean;
+    is_on_sale?: boolean;
+    sale_price?: number | null;
     order?: number;
     images?: string[];
     tags?: string[];
@@ -51,6 +53,8 @@ export default function NewProductModal({ onClose, onSave }: Props) {
         shopee_url: "",
         buy_on_site: true,
         is_wholesale: false,
+        is_on_sale: false,
+        sale_price: null,
         order: 0,
         images: [],
         tags: [],
@@ -454,6 +458,81 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                                 Disponível para Atacado
                             </label>
                         </div>
+                    </div>
+
+                    {/* Promoção */}
+                    <div style={{
+                        background: (formData as any).is_on_sale ? 'linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)' : '#f8fafc',
+                        border: (formData as any).is_on_sale ? '2px solid #f59e0b' : '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        padding: '16px 20px',
+                        marginBottom: '20px',
+                        transition: 'all 0.3s ease'
+                    }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginBottom: (formData as any).is_on_sale ? '16px' : 0 }}>
+                            <input
+                                type="checkbox"
+                                checked={(formData as any).is_on_sale ?? false}
+                                onChange={(e) => setFormData({ ...formData, is_on_sale: e.target.checked } as any)}
+                                style={{ width: '18px', height: '18px', accentColor: '#f59e0b' }}
+                            />
+                            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: (formData as any).is_on_sale ? '#92400e' : '#374151' }}>
+                                🏷️ Habilitar Promoção
+                            </span>
+                            {(formData as any).is_on_sale && (
+                                <span style={{
+                                    background: '#f59e0b',
+                                    color: 'white',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 800,
+                                    padding: '2px 8px',
+                                    borderRadius: '20px',
+                                    letterSpacing: '0.05em',
+                                    animation: 'pulse 2s infinite'
+                                }}>EM PROMOÇÃO</span>
+                            )}
+                        </label>
+                        {(formData as any).is_on_sale && (
+                            <div>
+                                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#92400e', display: 'block', marginBottom: '6px' }}>
+                                    Preço Promocional (R$)
+                                </label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={(formData as any).sale_price ?? ''}
+                                        onChange={(e) => setFormData({ ...formData, sale_price: e.target.value ? parseFloat(e.target.value) : null } as any)}
+                                        placeholder="Ex: 29,90"
+                                        style={{
+                                            padding: '10px 14px',
+                                            border: '2px solid #f59e0b',
+                                            borderRadius: '8px',
+                                            fontSize: '1.1rem',
+                                            fontWeight: 700,
+                                            color: '#92400e',
+                                            width: '160px',
+                                            background: 'white'
+                                        }}
+                                    />
+                                    {(formData as any).sale_price && formData.price > 0 && (
+                                        <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                                            Desconto: <strong style={{ color: '#16a34a' }}>
+                                                {Math.round((1 - (formData as any).sale_price / formData.price) * 100)}% OFF
+                                            </strong>
+                                            {' '}(de{' '}
+                                            <s style={{ color: '#9ca3af' }}>R$ {formData.price.toFixed(2).replace('.', ',')}</s>
+                                            {' '}por{' '}
+                                            <strong style={{ color: '#f59e0b' }}>R$ {((formData as any).sale_price).toFixed(2).replace('.', ',')}</strong>)
+                                        </span>
+                                    )}
+                                </div>
+                                <p style={{ fontSize: '0.75rem', color: '#92400e', marginTop: '8px', opacity: 0.8 }}>
+                                    💡 O preço original ficará riscado e o preço promocional aparecerá em destaque no card do produto e na home.
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     <hr style={{ margin: '30px 0', border: '0', borderTop: '1px solid #eee' }} />

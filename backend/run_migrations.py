@@ -52,6 +52,8 @@ MISSING_PRODUCTS_COLUMNS = [
     ("shopee_url",       "VARCHAR"),
     ("is_active",        "BOOLEAN DEFAULT TRUE"),
     ("order",            "INTEGER DEFAULT 0"),
+    ("is_on_sale",       "BOOLEAN DEFAULT FALSE"),
+    ("sale_price",       "DOUBLE PRECISION"),
 ]
 
 MISSING_ORDERS_COLUMNS = [

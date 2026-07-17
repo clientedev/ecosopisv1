@@ -132,7 +132,9 @@ def _apply_startup_migrations():
         ("mercadolivre_url",  "VARCHAR"),
         ("shopee_url",        "VARCHAR"),
         ("is_active",         "BOOLEAN DEFAULT TRUE"),
-        ("order",             "INTEGER DEFAULT 0")
+        ("order",             "INTEGER DEFAULT 0"),
+        ("is_on_sale",        "BOOLEAN DEFAULT FALSE"),
+        ("sale_price",        "DOUBLE PRECISION"),
     ]
     PRODUCT_DETAILS_COLS = [
         ("beneficios", "TEXT"),

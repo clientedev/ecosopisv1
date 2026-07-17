@@ -197,6 +197,8 @@ class ProductBase(BaseModel):
     category: Optional[str] = None
     is_active: Optional[bool] = True
     order: Optional[int] = 0
+    is_on_sale: Optional[bool] = False
+    sale_price: Optional[float] = None
 
 # Product Details Schemas
 class ProductDetailBase(BaseModel):
@@ -247,6 +249,8 @@ class ProductUpdate(BaseModel):
     category: Optional[str] = None
     is_active: Optional[bool] = None
     order: Optional[int] = None
+    is_on_sale: Optional[bool] = None
+    sale_price: Optional[float] = None
 
 # Carousel Schemas
 class CarouselItemBase(BaseModel):

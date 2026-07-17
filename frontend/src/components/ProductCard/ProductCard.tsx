@@ -16,6 +16,8 @@ interface ProductCardProps {
         buy_on_site: boolean;
         mercadolivre_url?: string;
         shopee_url?: string;
+        is_on_sale?: boolean;
+        sale_price?: number | null;
     };
     badge?: string;
     isRecommended?: boolean;
@@ -58,21 +60,23 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
         logClick("site");
-        
-        // Items must have these fields for the cart
         const cartItem = {
             id: (product as any).id,
             name: product.name,
-            price: product.price,
+            price: product.is_on_sale && product.sale_price ? product.sale_price : product.price,
             image_url: product.image_url
         };
-        
         addToCart(cartItem);
     };
 
     const queridinhos = ['oleo-alecrim', 'sabonete-clareador-argila-branca', 'sabonete-liquido-barbatimao', 'oe-melaleuca', 'desodorante-clareador-solido'];
     const rotina = ['sabonete-rosa-mosqueta-argila-rosa', 'tonico-facial-antioxidante', 'oleo-semente-uva'];
-    
+
+    const isOnSale = !!(product.is_on_sale && product.sale_price && product.sale_price > 0);
+    const discountPct = isOnSale && product.price
+        ? Math.round((1 - product.sale_price! / product.price) * 100)
+        : 0;
+
     let finalBadge = badge;
     if (!finalBadge) {
         if (queridinhos.includes(product.slug)) finalBadge = "Queridinho dos clientes";
@@ -80,8 +84,13 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
     }
 
     return (
-        <div className={`${styles.card} ${isRecommended ? styles.recommended : ""}`}>
-            {finalBadge && <div className={styles.productBadge}>{finalBadge}</div>}
+        <div className={`${styles.card} ${isRecommended ? styles.recommended : ""} ${isOnSale ? styles.onSale : ""}`}>
+            {isOnSale && (
+                <div className={styles.saleBadge}>
+                    🔥 {discountPct > 0 ? `${discountPct}% OFF` : "PROMOÇÃO"}
+                </div>
+            )}
+            {!isOnSale && finalBadge && <div className={styles.productBadge}>{finalBadge}</div>}
             {isRecommended && <div className={styles.recommendedLabel}>RECOMENDADO PARA VOCÊ</div>}
             <Link href={`/produtos/${product.slug}`}>
                 <div className={styles.imageWrapper}>
@@ -108,12 +117,27 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
                 <p className={styles.description}>{product.description}</p>
 
                 {product.price && (
-                    <p className={styles.price}>R$ {product.price.toFixed(2).replace(".", ",")}</p>
+                    <div className={styles.priceBlock}>
+                        {isOnSale ? (
+                            <>
+                                <span className={styles.originalPrice}>
+                                    R$ {product.price.toFixed(2).replace(".", ",")}
+                                </span>
+                                <span className={styles.salePrice}>
+                                    R$ {product.sale_price!.toFixed(2).replace(".", ",")}
+                                </span>
+                            </>
+                        ) : (
+                            <p className={styles.price}>R$ {product.price.toFixed(2).replace(".", ",")}</p>
+                        )}
+                    </div>
                 )}
 
                 <div className={styles.actionsContainer}>
                     {product.buy_on_site && (
-                        <button className="btn-primary" onClick={handleAddToCart} style={{ fontSize: '0.8rem', width: '100%' }}>ADICIONAR AO CARRINHO</button>
+                        <button className="btn-primary" onClick={handleAddToCart} style={{ fontSize: '0.8rem', width: '100%' }}>
+                            ADICIONAR AO CARRINHO
+                        </button>
                     )}
                     {showMarketplace && (product.mercadolivre_url || product.shopee_url) && (
                         <div className={styles.marketplaceSection}>

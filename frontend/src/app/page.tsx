@@ -1448,7 +1448,62 @@ export default function Home() {
                 </div>
             </section>
 
+            {/* ── Promoções em Destaque ── */}
+            {allProducts.filter((p: any) => p.is_on_sale && p.sale_price).length > 0 && (
+                <section style={{
+                    background: 'linear-gradient(135deg, #1c0a00 0%, #2d1300 50%, #1c0a00 100%)',
+                    padding: '80px 0',
+                    position: 'relative',
+                    overflow: 'hidden'
+                }}>
+                    {/* Background decoração */}
+                    <div style={{
+                        position: 'absolute', inset: 0, pointerEvents: 'none',
+                        background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(245,158,11,0.12) 0%, transparent 70%)'
+                    }} />
+                    <div className="container" style={{ position: 'relative', zIndex: 1 }}>
+                        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+                            <div style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '10px',
+                                background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                                color: 'white', padding: '6px 20px', borderRadius: '30px',
+                                fontSize: '0.8rem', fontWeight: 800, letterSpacing: '0.1em',
+                                marginBottom: '16px', textTransform: 'uppercase',
+                                boxShadow: '0 6px 20px rgba(245,158,11,0.4)'
+                            }}>
+                                🔥 Ofertas por tempo limitado
+                            </div>
+                            <h2 style={{
+                                fontSize: 'clamp(1.8rem, 4vw, 3rem)',
+                                fontWeight: 900, color: 'white',
+                                margin: '0 0 12px 0', lineHeight: 1.1
+                            }}>
+                                Em <span style={{ color: '#f59e0b' }}>Promoção</span>
+                            </h2>
+                            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '1rem', maxWidth: '480px', margin: '0 auto' }}>
+                                Aproveite os melhores preços nos nossos produtos selecionados
+                            </p>
+                        </div>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                            gap: '24px',
+                            maxWidth: '1100px',
+                            margin: '0 auto'
+                        }}>
+                            {allProducts
+                                .filter((p: any) => p.is_on_sale && p.sale_price && p.is_active)
+                                .map((p: any) => (
+                                    <ProductCard key={p.id} product={p} showMarketplace={false} />
+                                ))
+                            }
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {/* NEW: Stats & Brand Commitment Section - LIVE GROWING VALUES */}
+
             <section className={styles.statsSection}>
                 <div className="container">
                     <div className={styles.statsGrid}>
