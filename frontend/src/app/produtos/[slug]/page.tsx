@@ -135,10 +135,11 @@ export default function ProductDetailPage() {
             return;
         }
         
+        const isOnSale = !!(product.is_on_sale && product.sale_price && product.sale_price > 0);
         const cartItem = {
             id: product.id,
             name: product.name,
-            price: product.price,
+            price: isOnSale ? product.sale_price : product.price,
             image_url: product.image_url
         };
         
@@ -155,10 +156,11 @@ export default function ProductDetailPage() {
         setBuyingNow(true);
         setPaymentError("");
 
+        const isOnSale = !!(product.is_on_sale && product.sale_price && product.sale_price > 0);
         const cartItem = {
             id: product.id,
             name: product.name,
-            price: product.price,
+            price: isOnSale ? product.sale_price : product.price,
             image_url: product.image_url
         };
 
@@ -274,7 +276,31 @@ export default function ProductDetailPage() {
                         )}
                         {product.price && (
                             <div className={styles.priceContainer}>
-                                <p className={styles.price}>R$ {product.price.toFixed(2).replace(".", ",")}</p>
+                                {product.is_on_sale && product.sale_price && product.sale_price > 0 ? (
+                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                                        <span style={{ fontSize: '1.1rem', color: '#9ca3af', textDecoration: 'line-through', fontWeight: 500 }}>
+                                            R$ {product.price.toFixed(2).replace(".", ",")}
+                                        </span>
+                                        <span className={styles.price} style={{ color: '#f59e0b', fontSize: '2rem', fontWeight: 800 }}>
+                                            R$ {product.sale_price.toFixed(2).replace(".", ",")}
+                                        </span>
+                                        <span style={{
+                                            background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
+                                            color: 'white',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 800,
+                                            padding: '4px 10px',
+                                            borderRadius: '20px',
+                                            boxShadow: '0 4px 10px rgba(245,158,11,0.3)',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.05em'
+                                        }}>
+                                            🔥 {Math.round((1 - product.sale_price / product.price) * 100)}% OFF
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <p className={styles.price}>R$ {product.price.toFixed(2).replace(".", ",")}</p>
+                                )}
                                 <span className={styles.socialProofBadge}>⭐ Mais de 20.000 clientes satisfeitos</span>
                             </div>
                         )}

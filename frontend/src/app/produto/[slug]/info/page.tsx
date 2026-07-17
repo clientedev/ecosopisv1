@@ -40,6 +40,8 @@ interface Product {
     images: string[];
     details?: ProductDetail;
     beneficios?: string; // Adding this for safety if it comes directly
+    is_on_sale?: boolean;
+    sale_price?: number | null;
 }
 
 export default function ProductTechnicalPage() {
@@ -268,10 +270,22 @@ export default function ProductTechnicalPage() {
                     </p>
 
                     <div className={styles.heroMeta}>
-                        {product.price
-                            ? <span className={styles.priceTag}>R$ {product.price.toFixed(2).replace(".", ",")}</span>
-                            : <span className={styles.priceTag}>Consulte o preço</span>
-                        }
+                        {product.price ? (
+                            product.is_on_sale && product.sale_price && product.sale_price > 0 ? (
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', textDecoration: 'line-through' }}>
+                                        R$ {product.price.toFixed(2).replace(".", ",")}
+                                    </span>
+                                    <span className={styles.priceTag} style={{ color: '#f59e0b', fontSize: '1.4rem', border: '1px solid #f59e0b', background: 'rgba(245,158,11,0.1)' }}>
+                                        R$ {product.sale_price.toFixed(2).replace(".", ",")}
+                                    </span>
+                                </div>
+                            ) : (
+                                <span className={styles.priceTag}>R$ {product.price.toFixed(2).replace(".", ",")}</span>
+                            )
+                        ) : (
+                            <span className={styles.priceTag}>Consulte o preço</span>
+                        )}
                         <span className={styles.skuTag}>SKU: {product.slug}</span>
                     </div>
 

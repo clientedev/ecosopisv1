@@ -285,20 +285,22 @@ export default function QuizPage() {
   };
 
   const addToCart = (product: any) => {
+    const isOnSale = !!(product.is_on_sale && product.sale_price && product.sale_price > 0);
     contextAddToCart({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: isOnSale ? product.sale_price : product.price,
       image_url: product.image_url
     });
   };
 
   const addAllToCart = () => {
     result.forEach((product: any) => {
+      const isOnSale = !!(product.is_on_sale && product.sale_price && product.sale_price > 0);
       contextAddToCart({
         id: product.id,
         name: product.name,
-        price: product.price,
+        price: isOnSale ? product.sale_price : product.price,
         image_url: product.image_url
       });
     });
@@ -406,7 +408,18 @@ export default function QuizPage() {
                   <div className={styles.productInfo}>
                     <h3>{product.name}</h3>
                     <p className={styles.explanationText}>{product.explanation}</p>
-                    <p className={styles.productPrice}>R$ {product.price.toFixed(2)}</p>
+                    {product.is_on_sale && product.sale_price && product.sale_price > 0 ? (
+                      <p className={styles.productPrice}>
+                        <span style={{ fontSize: '0.85rem', color: '#9ca3af', textDecoration: 'line-through', marginRight: '6px' }}>
+                          R$ {product.price.toFixed(2)}
+                        </span>
+                        <span style={{ color: '#f59e0b', fontWeight: 800 }}>
+                          R$ {product.sale_price.toFixed(2)}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className={styles.productPrice}>R$ {product.price.toFixed(2)}</p>
+                    )}
                     <div className={styles.productActions}>
                       <button 
                         className={styles.detailsBtn}
