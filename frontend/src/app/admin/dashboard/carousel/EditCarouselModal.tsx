@@ -22,6 +22,10 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         cta_primary_link: item?.cta_primary_link || "",
         cta_secondary_text: item?.cta_secondary_text || "",
         cta_secondary_link: item?.cta_secondary_link || "",
+        cta_primary_bg_color: item?.cta_primary_bg_color || "#f59e0b",
+        cta_primary_color: item?.cta_primary_color || "#ffffff",
+        cta_secondary_bg_color: item?.cta_secondary_bg_color || "rgba(255,255,255,0.1)",
+        cta_secondary_color: item?.cta_secondary_color || "#ffffff",
         order: item?.order ?? 0,
         is_active: item?.is_active ?? true,
         alignment: item?.alignment || "left",
@@ -277,29 +281,19 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                         )}
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                        <div className={styles.formGroup}>
-                                            <label>Ordem de Exibição</label>
+                                    <div className={styles.formGroup}>
+                                        <label>Status</label>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
                                             <input
-                                                type="number"
-                                                value={formData.order}
-                                                onChange={e => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                                                type="checkbox"
+                                                id="is_active_check"
+                                                checked={formData.is_active}
+                                                onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
+                                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                                             />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Status</label>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
-                                                <input
-                                                    type="checkbox"
-                                                    id="is_active_check"
-                                                    checked={formData.is_active}
-                                                    onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
-                                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                                />
-                                                <label htmlFor="is_active_check" style={{ cursor: 'pointer', color: formData.is_active ? '#10b981' : '#ef4444', fontWeight: 600 }}>
-                                                    {formData.is_active ? 'Ativo' : 'Inativo'}
-                                                </label>
-                                            </div>
+                                            <label htmlFor="is_active_check" style={{ cursor: 'pointer', color: formData.is_active ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                                {formData.is_active ? 'Ativo' : 'Inativo'}
+                                            </label>
                                         </div>
                                     </div>
 
@@ -531,36 +525,67 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                             {/* ── ACTIONS TAB ── */}
                             {activeTab === 'actions' && (
                                 <div className={styles.formGrid} style={{ gridTemplateColumns: '1fr' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                                        <div className={styles.formGroup}>
-                                            <label>Botão 1 (Texto)</label>
-                                            <input type="text" value={formData.cta_primary_text} onChange={e => setFormData({ ...formData, cta_primary_text: e.target.value })} placeholder="Ex: Ver Produtos" />
+                                    <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                        <label style={{ fontWeight: 700, fontSize: '0.85rem', display: 'block', marginBottom: '8px', color: '#1e293b' }}>🔘 Botão Primário (Botão 1)</label>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                            <div className={styles.formGroup}>
+                                                <label>Texto</label>
+                                                <input type="text" value={formData.cta_primary_text} onChange={e => setFormData({ ...formData, cta_primary_text: e.target.value })} placeholder="Ex: Ver Produtos" />
+                                            </div>
+                                            <div className={styles.formGroup}>
+                                                <label>Link</label>
+                                                <input type="text" value={formData.cta_primary_link} onChange={e => setFormData({ ...formData, cta_primary_link: e.target.value })} placeholder="/produtos" />
+                                            </div>
                                         </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Botão 1 (Link)</label>
-                                            <input type="text" value={formData.cta_primary_link} onChange={e => setFormData({ ...formData, cta_primary_link: e.target.value })} placeholder="/produtos" />
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                                            <div className={styles.formGroup}>
+                                                <label>Cor do Fundo</label>
+                                                <input type="color" value={formData.cta_primary_bg_color} onChange={e => setFormData({ ...formData, cta_primary_bg_color: e.target.value })} style={{ height: '40px', padding: '2px', width: '100%', cursor: 'pointer' }} />
+                                            </div>
+                                            <div className={styles.formGroup}>
+                                                <label>Cor do Texto</label>
+                                                <input type="color" value={formData.cta_primary_color} onChange={e => setFormData({ ...formData, cta_primary_color: e.target.value })} style={{ height: '40px', padding: '2px', width: '100%', cursor: 'pointer' }} />
+                                            </div>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                                        <div className={styles.formGroup}>
-                                            <label>Botão 2 (Texto)</label>
-                                            <input type="text" value={formData.cta_secondary_text} onChange={e => setFormData({ ...formData, cta_secondary_text: e.target.value })} placeholder="Ex: Fazer Quiz" />
+
+                                    <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
+                                        <label style={{ fontWeight: 700, fontSize: '0.85rem', display: 'block', marginBottom: '8px', color: '#1e293b' }}>🔘 Botão Secundário (Botão 2)</label>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                            <div className={styles.formGroup}>
+                                                <label>Texto</label>
+                                                <input type="text" value={formData.cta_secondary_text} onChange={e => setFormData({ ...formData, cta_secondary_text: e.target.value })} placeholder="Ex: Fazer Quiz" />
+                                            </div>
+                                            <div className={styles.formGroup}>
+                                                <label>Link</label>
+                                                <input type="text" value={formData.cta_secondary_link} onChange={e => setFormData({ ...formData, cta_secondary_link: e.target.value })} placeholder="/quizz" />
+                                            </div>
                                         </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Botão 2 (Link)</label>
-                                            <input type="text" value={formData.cta_secondary_link} onChange={e => setFormData({ ...formData, cta_secondary_link: e.target.value })} placeholder="/quizz" />
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                                            <div className={styles.formGroup}>
+                                                <label>Cor do Fundo</label>
+                                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                    <input type="color" value={formData.cta_secondary_bg_color.startsWith('rgba') ? '#ffffff' : formData.cta_secondary_bg_color} onChange={e => setFormData({ ...formData, cta_secondary_bg_color: e.target.value })} style={{ height: '40px', padding: '2px', flex: 1, cursor: 'pointer' }} />
+                                                    <button type="button" onClick={() => setFormData({ ...formData, cta_secondary_bg_color: 'rgba(255,255,255,0.1)' })} style={{ fontSize: '0.7rem', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#ffffff', cursor: 'pointer', fontWeight: 600 }}>Transp.</button>
+                                                </div>
+                                            </div>
+                                            <div className={styles.formGroup}>
+                                                <label>Cor do Texto</label>
+                                                <input type="color" value={formData.cta_secondary_color} onChange={e => setFormData({ ...formData, cta_secondary_color: e.target.value })} style={{ height: '40px', padding: '2px', width: '100%', cursor: 'pointer' }} />
+                                            </div>
                                         </div>
                                     </div>
-                                    <div style={{ marginTop: '10px' }}>
+
+                                    <div style={{ marginTop: '15px', padding: '10px', borderTop: '1px solid #eee' }}>
                                         <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, marginBottom: '10px' }}>Cores do Selo (Badge)</label>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                                             <div className={styles.formGroup}>
                                                 <label>Texto Selo</label>
-                                                <input type="color" value={formData.badge_color} onChange={e => setFormData({ ...formData, badge_color: e.target.value })} style={{ height: '40px', padding: '2px', width: '100%' }} />
+                                                <input type="color" value={formData.badge_color} onChange={e => setFormData({ ...formData, badge_color: e.target.value })} style={{ height: '40px', padding: '2px', width: '100%', cursor: 'pointer' }} />
                                             </div>
                                             <div className={styles.formGroup}>
                                                 <label>Fundo Selo</label>
-                                                <input type="color" value={formData.badge_bg_color} onChange={e => setFormData({ ...formData, badge_bg_color: e.target.value })} style={{ height: '40px', padding: '2px', width: '100%' }} />
+                                                <input type="color" value={formData.badge_bg_color} onChange={e => setFormData({ ...formData, badge_bg_color: e.target.value })} style={{ height: '40px', padding: '2px', width: '100%', cursor: 'pointer' }} />
                                             </div>
                                         </div>
                                     </div>
@@ -689,10 +714,10 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                 )}
                                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: previewDevice === 'mobile' ? 'center' : (formData.alignment === 'right' ? 'flex-end' : formData.alignment === 'center' ? 'center' : 'flex-start') }}>
                                     {formData.cta_primary_text && (
-                                        <button className="btn-primary" style={{ padding: '8px 18px', fontSize: '0.82rem' }}>{formData.cta_primary_text}</button>
+                                        <button className="btn-primary" style={{ padding: '8px 18px', fontSize: '0.82rem', background: formData.cta_primary_bg_color, color: formData.cta_primary_color, border: 'none', boxShadow: `0 4px 14px ${formData.cta_primary_bg_color}66` }}>{formData.cta_primary_text}</button>
                                     )}
                                     {formData.cta_secondary_text && (
-                                        <button className="btn-outline" style={{ padding: '8px 18px', fontSize: '0.82rem', color: 'white', borderColor: 'white', background: 'rgba(255,255,255,0.1)' }}>{formData.cta_secondary_text}</button>
+                                        <button className="btn-outline" style={{ padding: '8px 18px', fontSize: '0.82rem', color: formData.cta_secondary_color, borderColor: formData.cta_secondary_bg_color.startsWith('rgba') ? formData.cta_secondary_color : formData.cta_secondary_bg_color, background: formData.cta_secondary_bg_color }}>{formData.cta_secondary_text}</button>
                                     )}
                                 </div>
                             </div>

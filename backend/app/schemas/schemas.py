@@ -276,6 +276,10 @@ class CarouselItemBase(BaseModel):
     mobile_carousel_height: Optional[str] = "400px"
     slide_duration_ms: Optional[int] = None  # Duration in ms (optional)
     show_content: Optional[bool] = True  # Whether to show text/button overlay
+    cta_primary_bg_color: Optional[str] = "#f59e0b"
+    cta_primary_color: Optional[str] = "#ffffff"
+    cta_secondary_bg_color: Optional[str] = "rgba(255,255,255,0.1)"
+    cta_secondary_color: Optional[str] = "#ffffff"
     is_active: bool = True
 
 class CarouselItemCreate(CarouselItemBase):

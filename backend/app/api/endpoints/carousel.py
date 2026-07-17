@@ -49,6 +49,10 @@ async def create_carousel_item(
     mobile_carousel_height: str = Form("400px"),
     image_fit: str = Form("cover"),
     show_content: bool = Form(True),
+    cta_primary_bg_color: str = Form("#f59e0b"),
+    cta_primary_color: str = Form("#ffffff"),
+    cta_secondary_bg_color: str = Form("rgba(255,255,255,0.1)"),
+    cta_secondary_color: str = Form("#ffffff"),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -119,6 +123,10 @@ async def create_carousel_item(
         mobile_carousel_height=mobile_carousel_height,
         image_fit=image_fit,
         show_content=show_content,
+        cta_primary_bg_color=cta_primary_bg_color,
+        cta_primary_color=cta_primary_color,
+        cta_secondary_bg_color=cta_secondary_bg_color,
+        cta_secondary_color=cta_secondary_color,
     )
 
     if file and file.filename and file.filename.lower().endswith('.gif'):
@@ -164,6 +172,10 @@ async def update_carousel_item(
     mobile_carousel_height: str = Form("400px"),
     image_fit: str = Form("cover"),
     show_content: bool = Form(True),
+    cta_primary_bg_color: str = Form("#f59e0b"),
+    cta_primary_color: str = Form("#ffffff"),
+    cta_secondary_bg_color: str = Form("rgba(255,255,255,0.1)"),
+    cta_secondary_color: str = Form("#ffffff"),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -226,6 +238,10 @@ async def update_carousel_item(
     db_item.mobile_carousel_height = mobile_carousel_height
     db_item.image_fit = image_fit
     db_item.show_content = show_content
+    db_item.cta_primary_bg_color = cta_primary_bg_color
+    db_item.cta_primary_color = cta_primary_color
+    db_item.cta_secondary_bg_color = cta_secondary_bg_color
+    db_item.cta_secondary_color = cta_secondary_color
 
     db.commit()
     db.refresh(db_item)

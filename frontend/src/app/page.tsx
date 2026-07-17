@@ -1195,15 +1195,29 @@ export default function Home() {
                                     <div className={styles.heroActions} style={{
                                         justifyContent: isMobile ? 'center' : (slide.alignment === 'right' ? 'flex-end' : slide.alignment === 'center' ? 'center' : 'flex-start')
                                     }}>
-                                        {slide.ctaPrimary && <Link href={slide.ctaPrimary.link} className="btn-primary" style={{ padding: '0.8rem 2rem' }}>{slide.ctaPrimary.text}</Link>}
+                                        {slide.ctaPrimary && (
+                                            <Link
+                                                href={slide.ctaPrimary.link}
+                                                className="btn-primary"
+                                                style={{
+                                                    padding: '0.8rem 2rem',
+                                                    background: slide.cta_primary_bg_color || '#f59e0b',
+                                                    color: slide.cta_primary_color || '#ffffff',
+                                                    border: 'none',
+                                                    boxShadow: `0 10px 25px ${(slide.cta_primary_bg_color || '#f59e0b')}66`
+                                                }}
+                                            >
+                                                {slide.ctaPrimary.text}
+                                            </Link>
+                                        )}
                                         {slide.ctaSecondary && (
                                             <Link
                                                 href={slide.ctaSecondary.link}
                                                 className="btn-outline"
                                                 style={{
-                                                    color: 'white',
-                                                    borderColor: 'white',
-                                                    background: 'rgba(255,255,255,0.1)',
+                                                    color: slide.cta_secondary_color || 'white',
+                                                    borderColor: (slide.cta_secondary_bg_color && !slide.cta_secondary_bg_color.startsWith('rgba')) ? slide.cta_secondary_bg_color : (slide.cta_secondary_color || 'white'),
+                                                    background: slide.cta_secondary_bg_color || 'rgba(255,255,255,0.1)',
                                                     padding: '0.8rem 2rem'
                                                 }}
                                             >
@@ -1216,15 +1230,6 @@ export default function Home() {
                         </div>
                     );
                 })}
-                <div className={styles.carouselDots}>
-                    {deviceSlides.map((_, index) => (
-                        <button
-                            key={index}
-                            className={`${styles.dot} ${index === currentSlide ? styles.activeDot : ''}`}
-                            onClick={() => setCurrentSlide(index)}
-                        />
-                    ))}
-                </div>
             </section>
 
             {/* NEW: World Cup Guesses Section (Bolão) */}

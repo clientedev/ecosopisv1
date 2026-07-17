@@ -4,12 +4,15 @@ import { useRouter } from "next/navigation";
 import styles from "../dashboard.module.css";
 import EditCarouselModal from "./EditCarouselModal";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+import { GripVertical } from "lucide-react";
 
 export default function CarouselAdmin() {
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+    const [isSavingOrder, setIsSavingOrder] = useState(false);
     const router = useRouter();
 
     const fetchItems = async () => {
@@ -53,19 +56,74 @@ export default function CarouselAdmin() {
         }
     };
 
-    const toggleActive = async (item: any) => {
+    const updateCarouselItem = async (item: any, updates: Record<string, any>) => {
         try {
+            const updatedItem = { ...item, ...updates };
             const data = new FormData();
-            data.append("is_active", (!item.is_active).toString());
-            data.append("order", String(item.order ?? 0));
+            
+            Object.entries(updatedItem).forEach(([key, value]) => {
+                if (key === "id" || key === "file" || key === "mobile_file" || key === "created_at" || key === "slide_duration_ms") return;
+                if (value === null || value === undefined) return;
+                if (typeof value === "boolean") {
+                    data.append(key, value ? "true" : "false");
+                } else if (typeof value === "number") {
+                    data.append(key, String(value));
+                } else {
+                    data.append(key, String(value));
+                }
+            });
+
             const res = await fetch(`/api/carousel/${item.id}`, {
                 method: "PUT",
                 headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
                 body: data,
             });
-            if (res.ok) fetchItems();
+            return res.ok;
         } catch (error) {
-            console.error("Error toggling active:", error);
+            console.error("Error updating carousel item:", error);
+            return false;
+        }
+    };
+
+    const toggleActive = async (item: any) => {
+        const success = await updateCarouselItem(item, { is_active: !item.is_active });
+        if (success) fetchItems();
+    };
+
+    const handleDragStart = (e: React.DragEvent, index: number) => {
+        setDraggedIndex(index);
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", String(index));
+    };
+
+    const handleDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        if (draggedIndex === null || draggedIndex === index) return;
+
+        const reorderedItems = [...items];
+        const [draggedItem] = reorderedItems.splice(draggedIndex, 1);
+        reorderedItems.splice(index, 0, draggedItem);
+        
+        setDraggedIndex(index);
+        setItems(reorderedItems);
+    };
+
+    const handleDragEnd = async () => {
+        if (draggedIndex === null) return;
+        setDraggedIndex(null);
+        
+        setIsSavingOrder(true);
+        try {
+            const promises = items.map((item, idx) => {
+                if (item.order === idx) return Promise.resolve(true);
+                return updateCarouselItem(item, { order: idx });
+            });
+            await Promise.all(promises);
+        } catch (error) {
+            console.error("Error saving new order:", error);
+        } finally {
+            setIsSavingOrder(false);
+            fetchItems();
         }
     };
 
@@ -74,7 +132,14 @@ export default function CarouselAdmin() {
             <AdminSidebar activePath="/admin/dashboard/carousel" />
             <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
-                    <h1>Gerenciar Banners</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <h1>Gerenciar Banners</h1>
+                        {isSavingOrder && (
+                            <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                ⏳ Salvando nova ordem...
+                            </span>
+                        )}
+                    </div>
                     <button className="btn-primary" onClick={() => setIsCreateModalOpen(true)}>+ Novo Banner</button>
                 </header>
 
@@ -91,18 +156,38 @@ export default function CarouselAdmin() {
                 ) : (
                     <div style={{ padding: '0 16px 24px' }}>
                         <div style={{ display: 'grid', gap: '12px' }}>
-                            {items.map((item: any) => (
-                                <div key={item.id} style={{
-                                    background: 'white',
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '12px',
-                                    overflow: 'hidden',
-                                    display: 'flex',
-                                    alignItems: 'stretch',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                                    opacity: item.is_active === false ? 0.65 : 1,
-                                    transition: 'opacity 0.2s',
-                                }}>
+                            {items.map((item: any, index: number) => (
+                                <div key={item.id}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragOver={(e) => handleDragOver(e, index)}
+                                    onDragEnd={handleDragEnd}
+                                    style={{
+                                        background: 'white',
+                                        border: draggedIndex === index ? '1px dashed #10b981' : '1px solid #e5e7eb',
+                                        borderRadius: '12px',
+                                        overflow: 'hidden',
+                                        display: 'flex',
+                                        alignItems: 'stretch',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                                        opacity: draggedIndex === index ? 0.4 : (item.is_active === false ? 0.65 : 1),
+                                        transition: 'opacity 0.2s, border-color 0.2s',
+                                        cursor: 'grab',
+                                    }}
+                                >
+                                    {/* Drag Handle */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: '0 12px',
+                                        color: '#94a3b8',
+                                        borderRight: '1px solid #f1f5f9',
+                                        background: '#fafafa',
+                                        userSelect: 'none',
+                                    }}>
+                                        <GripVertical size={20} />
+                                    </div>
                                     {/* Image Thumbnail */}
                                     <div style={{ width: '160px', minWidth: '160px', height: '90px', position: 'relative', overflow: 'hidden', background: '#f3f4f6' }}>
                                         {(item.image_url || item.mobile_image_url) ? (

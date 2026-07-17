@@ -196,6 +196,10 @@ class CarouselItem(Base):
     image_fit = Column(String, default="cover")
     slide_duration_ms = Column(Integer, nullable=True)  # Duration in ms (optional)
     show_content = Column(Boolean, default=True)  # Whether to show text/button overlay
+    cta_primary_bg_color = Column(String, default="#f59e0b")
+    cta_primary_color = Column(String, default="#ffffff")
+    cta_secondary_bg_color = Column(String, default="rgba(255,255,255,0.1)")
+    cta_secondary_color = Column(String, default="#ffffff")
 
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
