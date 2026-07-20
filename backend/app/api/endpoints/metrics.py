@@ -37,9 +37,9 @@ def get_metrics_summary(db: Session = Depends(get_db), current_admin: models.Use
     ).group_by(models.ProductClick.click_type).all()
     
     clicks_by_type = {t: c for t, c in clicks_by_type_raw}
-    clicks_by_type["shopee"] = clicks_by_type.get("shopee", 0) + 3900
+    clicks_by_type["shopee"] = clicks_by_type.get("shopee", 0) + 5400
     
-    total_clicks = db.query(models.ProductClick).count() + 3900
+    total_clicks = db.query(models.ProductClick).count() + 5400
     
     # Clicks by product — LEFT JOIN so products with 0 real clicks still appear
     clicks_by_product_raw = db.query(
@@ -51,9 +51,32 @@ def get_metrics_summary(db: Session = Depends(get_db), current_admin: models.Use
      .all()
      
     product_clicks = {name: count for name, count in clicks_by_product_raw}
-    product_clicks["Sabonete de Açafrão & Dolomita"] = product_clicks.get("Sabonete de Açafrão & Dolomita", 0) + 2000
-    product_clicks["Óleo de Rosa Mosqueta Rubiginosa 100% Puro"] = product_clicks.get("Óleo de Rosa Mosqueta Rubiginosa 100% Puro", 0) + 1100
-    product_clicks["Sabonete de Rosa Mosqueta & Argila Rosa"] = product_clicks.get("Sabonete de Rosa Mosqueta & Argila Rosa", 0) + 800
+    
+    # We apply the hardcoded clicks (including the extra 1500 shopee clicks added to Sabonete de Açafrão)
+    # to whichever name variation exists in the DB (local vs remote DB names)
+    has_acafrao = False
+    has_rosa_mosqueta = False
+    has_argila_rosa = False
+    
+    for key in list(product_clicks.keys()):
+        norm_key = key.lower().replace("&", "e").strip()
+        if "sabonete de açafrão" in norm_key and "dolomita" in norm_key:
+            product_clicks[key] += 3500  # 2000 + 1500 extra shopee clicks
+            has_acafrao = True
+        elif "óleo" in norm_key and "rosa mosqueta" in norm_key and "rubiginosa" in norm_key and "refil" not in norm_key:
+            product_clicks[key] += 1100
+            has_rosa_mosqueta = True
+        elif "sabonete" in norm_key and "rosa mosqueta" in norm_key and "argila rosa" in norm_key:
+            product_clicks[key] += 800
+            has_argila_rosa = True
+            
+    # Fallback to default names if the products were not returned in query
+    if not has_acafrao:
+        product_clicks["Sabonete de Açafrão & Dolomita"] = 3500
+    if not has_rosa_mosqueta:
+        product_clicks["Óleo de Rosa Mosqueta Rubiginosa 100% Puro"] = 1100
+    if not has_argila_rosa:
+        product_clicks["Sabonete de Rosa Mosqueta & Argila Rosa"] = 800
     
     sorted_clicks = sorted(product_clicks.items(), key=lambda x: x[1], reverse=True)
     clicks_by_product = [{"name": name, "count": count} for name, count in sorted_clicks if count > 0][:10]
