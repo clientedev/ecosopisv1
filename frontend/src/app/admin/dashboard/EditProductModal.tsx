@@ -713,8 +713,10 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                             type="button"
                                             onClick={async () => {
                                                 try {
-                                                    const response = await fetch(`/api/static/qrcodes/${product.slug}.png`);
-                                                    const blob = await response.blob();
+                                                    const response = await fetch(`/static/qrcodes/${product.slug}.png`);
+                                                    if (!response.ok) throw new Error(`Status ${response.status}`);
+                                                    const rawBlob = await response.blob();
+                                                    const blob = new Blob([rawBlob], { type: 'image/png' });
                                                     const url = window.URL.createObjectURL(blob);
                                                     const link = document.createElement('a');
                                                     link.href = url;
@@ -722,9 +724,10 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                                     document.body.appendChild(link);
                                                     link.click();
                                                     document.body.removeChild(link);
+                                                    window.URL.revokeObjectURL(url);
                                                 } catch (err) {
                                                     console.error("Erro ao baixar", err);
-                                                    alert("Houve um erro ao baixar o QR Code.");
+                                                    alert("Houve um erro ao baixar o QR Code. Verifique se o QR foi gerado.");
                                                 }
                                             }}
                                             className={styles.editBtn}

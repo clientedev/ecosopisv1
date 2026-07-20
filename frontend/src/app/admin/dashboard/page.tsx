@@ -224,8 +224,10 @@ export default function AdminDashboard() {
                                             <button
                                                 onClick={async () => {
                                                     try {
-                                                        const response = await fetch(`/api/static/qrcodes/${p.slug}.png`);
-                                                        const blob = await response.blob();
+                                                        const response = await fetch(`/static/qrcodes/${p.slug}.png`);
+                                                        if (!response.ok) throw new Error(`Status ${response.status}`);
+                                                        const rawBlob = await response.blob();
+                                                        const blob = new Blob([rawBlob], { type: 'image/png' });
                                                         const url = window.URL.createObjectURL(blob);
                                                         const link = document.createElement('a');
                                                         link.href = url;
@@ -233,9 +235,10 @@ export default function AdminDashboard() {
                                                         document.body.appendChild(link);
                                                         link.click();
                                                         document.body.removeChild(link);
+                                                        window.URL.revokeObjectURL(url);
                                                     } catch (err) {
                                                         console.error("Erro ao baixar QR Code", err);
-                                                        alert("Erro ao baixar QR Code");
+                                                        alert("Erro ao baixar QR Code. Verifique se o QR foi gerado.");
                                                     }
                                                 }}
                                                 className={styles.editBtn}
