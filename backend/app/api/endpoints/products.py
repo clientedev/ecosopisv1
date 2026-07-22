@@ -11,6 +11,7 @@ from pydantic import BaseModel
 import uuid
 import qrcode
 import os
+import io
 from sqlalchemy import text
 
 router = APIRouter()
@@ -100,6 +101,46 @@ def list_products(db: Session = Depends(get_db), include_inactive: bool = False)
     query = query.order_by(models.Product.order.asc(), models.Product.id.asc())
     # Eager load details to ensure QR code path is available
     return query.options(joinedload(models.Product.details)).all()
+
+@router.get("/{slug}/qrcode")
+def get_product_qrcode(slug: str, request: Request, db: Session = Depends(get_db)):
+    """Generate and return QR code image for a product on-the-fly (no disk required)."""
+    product = db.query(models.Product).filter(models.Product.slug == slug).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # Determine base URL from request origin
+    origin = request.headers.get("origin") or request.headers.get("referer") or ""
+    if not origin or "localhost" in origin or "127.0.0.1" in origin:
+        base_url = os.getenv("RAILWAY_STATIC_URL") or "https://ecosopis.com.br"
+        if base_url and not base_url.startswith("http"):
+            base_url = f"https://{base_url}"
+    else:
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+        base_url = f"{parsed.scheme}://{parsed.netloc}"
+
+    target_url = f"{base_url.rstrip('/')}/produto/{slug}/info"
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(target_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+
+    return Response(
+        content=buf.read(),
+        media_type="image/png",
+        headers={"Content-Disposition": f'attachment; filename="qrcode-{slug}.png"'}
+    )
 
 @router.get("/{slug}", response_model=schemas.ProductResponse)
 def get_product(slug: str, db: Session = Depends(get_db)):

@@ -1449,58 +1449,75 @@ export default function Home() {
             </section>
 
             {/* ── Promoções em Destaque ── */}
-            {allProducts.filter((p: any) => p.is_on_sale && p.sale_price).length > 0 && (
-                <section style={{
-                    background: 'linear-gradient(135deg, #1c0a00 0%, #2d1300 50%, #1c0a00 100%)',
-                    padding: '80px 0',
-                    position: 'relative',
-                    overflow: 'hidden'
-                }}>
-                    {/* Background decoração */}
-                    <div style={{
-                        position: 'absolute', inset: 0, pointerEvents: 'none',
-                        background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(245,158,11,0.12) 0%, transparent 70%)'
-                    }} />
-                    <div className="container" style={{ position: 'relative', zIndex: 1 }}>
-                        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-                            <div style={{
-                                display: 'inline-flex', alignItems: 'center', gap: '10px',
-                                background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
-                                color: 'white', padding: '6px 20px', borderRadius: '30px',
-                                fontSize: '0.8rem', fontWeight: 800, letterSpacing: '0.1em',
-                                marginBottom: '16px', textTransform: 'uppercase',
-                                boxShadow: '0 6px 20px rgba(245,158,11,0.4)'
-                            }}>
-                                🔥 Ofertas por tempo limitado
-                            </div>
-                            <h2 style={{
-                                fontSize: 'clamp(1.8rem, 4vw, 3rem)',
-                                fontWeight: 900, color: 'white',
-                                margin: '0 0 12px 0', lineHeight: 1.1
-                            }}>
-                                Em <span style={{ color: '#f59e0b' }}>Promoção</span>
-                            </h2>
-                            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '1rem', maxWidth: '480px', margin: '0 auto' }}>
-                                Aproveite os melhores preços nos nossos produtos selecionados
-                            </p>
-                        </div>
+            {(() => {
+                const promoProducts = allProducts.filter((p: any) => p.is_on_sale && p.sale_price && p.is_active);
+                if (promoProducts.length === 0) return null;
+                return (
+                    <section style={{
+                        background: 'linear-gradient(135deg, #0e1a0f 0%, #17301c 50%, #0e1a0f 100%)',
+                        padding: '80px 0',
+                        position: 'relative',
+                        overflow: 'hidden'
+                    }}>
+                        {/* Background decoração */}
                         <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                            gap: '24px',
-                            maxWidth: '1100px',
-                            margin: '0 auto'
-                        }}>
-                            {allProducts
-                                .filter((p: any) => p.is_on_sale && p.sale_price && p.is_active)
-                                .map((p: any) => (
+                            position: 'absolute', inset: 0, pointerEvents: 'none',
+                            background: 'radial-gradient(circle at 50% -20%, rgba(162, 233, 74, 0.15) 0%, transparent 60%)'
+                        }} />
+                        <div className="container" style={{ position: 'relative', zIndex: 1 }}>
+                            <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+                                <div style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    background: 'rgba(162, 233, 74, 0.1)',
+                                    border: '1px solid rgba(162, 233, 74, 0.3)',
+                                    color: '#a2e94a',
+                                    padding: '8px 24px',
+                                    borderRadius: '50px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 700,
+                                    letterSpacing: '0.15em',
+                                    marginBottom: '16px',
+                                    textTransform: 'uppercase',
+                                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)'
+                                }}>
+                                    <Sparkles size={14} style={{ color: '#a2e94a' }} />
+                                    <span>Ofertas por tempo limitado</span>
+                                </div>
+                                <h2 style={{
+                                    fontSize: 'clamp(2rem, 5vw, 3.2rem)',
+                                    fontWeight: 900,
+                                    color: 'white',
+                                    margin: '0 0 16px 0',
+                                    lineHeight: 1.1,
+                                    textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                                    letterSpacing: '-0.02em'
+                                }}>
+                                    Em <span style={{ background: 'linear-gradient(to right, #a2e94a, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>Promoção</span>
+                                </h2>
+                                <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1.05rem', maxWidth: '520px', margin: '0 auto', lineHeight: 1.6 }}>
+                                    Aproveite os melhores preços nos nossos produtos selecionados
+                                </p>
+                            </div>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: promoProducts.length === 1
+                                    ? 'repeat(1, minmax(220px, 280px))'
+                                    : 'repeat(auto-fit, minmax(220px, 280px))',
+                                gap: '24px',
+                                maxWidth: '1100px',
+                                margin: '0 auto',
+                                justifyContent: 'center'
+                              }}>
+                                {promoProducts.map((p: any) => (
                                     <ProductCard key={p.id} product={p} showMarketplace={false} />
-                                ))
-                            }
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                </section>
-            )}
+                    </section>
+                );
+            })()}
 
             {/* NEW: Stats & Brand Commitment Section - LIVE GROWING VALUES */}
 
