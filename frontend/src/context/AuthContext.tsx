@@ -22,7 +22,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; status?: number }>;
+  login: (email: string, password: string, remember?: boolean) => Promise<{ success: boolean; status?: number }>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
   isLoading: boolean;
@@ -43,6 +43,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initAuth = async () => {
+      // Clear credentials on new session if user didn't request to stay connected
+      if (typeof window !== 'undefined') {
+        const sessionActive = sessionStorage.getItem('session_active');
+        if (!sessionActive) {
+          const rememberMe = localStorage.getItem('remember_me');
+          if (rememberMe === 'false') {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('remember_me');
+          }
+          sessionStorage.setItem('session_active', 'true');
+        }
+      }
+
       const storedToken = localStorage.getItem('token');
       if (storedToken) {
         if (isTokenExpired(storedToken)) {
@@ -50,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setToken(null);
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          localStorage.removeItem('remember_me');
           setIsLoading(false);
           return;
         }
@@ -69,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setToken(null);
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            localStorage.removeItem('remember_me');
           } else {
             // For 500 or other errors, try to use stored user as fallback
             const storedUser = localStorage.getItem('user');
@@ -109,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; status?: number }> => {
+  const login = async (email: string, password: string, remember: boolean = false): Promise<{ success: boolean; status?: number }> => {
     try {
       const params = new URLSearchParams();
       params.append("username", email);
@@ -127,6 +143,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
         setToken(data.access_token);
         localStorage.setItem('token', data.access_token);
+        localStorage.setItem('remember_me', remember ? 'true' : 'false');
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('session_active', 'true');
+        }
 
         // Clear roulette flags on fresh login so it checks again
         if (typeof window !== 'undefined') {
@@ -159,6 +179,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('remember_me');
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('session_active');
+    }
     
     // Clear roulette flags on logout
     if (typeof window !== 'undefined') {

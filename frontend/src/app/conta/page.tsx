@@ -27,6 +27,7 @@ export default function ContaPage() {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [rememberMe, setRememberMe] = useState(true);
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
     const [isAdmin, setIsAdmin] = useState(false);
@@ -97,7 +98,7 @@ export default function ContaPage() {
 
         if (isLogin) {
             try {
-                const result = await login(email, password);
+                const result = await login(email, password, rememberMe);
                 if (result.success) {
                     const searchParams = new URLSearchParams(window.location.search);
                     const redirect = searchParams.get('redirect') || "/";
@@ -374,6 +375,20 @@ export default function ContaPage() {
                                     <label>Senha</label>
                                     <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                                 </div>
+                                {isLogin && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                        <input
+                                            type="checkbox"
+                                            id="rememberMe"
+                                            checked={rememberMe}
+                                            onChange={(e) => setRememberMe(e.target.checked)}
+                                            style={{ width: 'auto', cursor: 'pointer', margin: 0 }}
+                                        />
+                                        <label htmlFor="rememberMe" style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none', fontWeight: 600 }}>
+                                            Manter-se conectado
+                                        </label>
+                                    </div>
+                                )}
                                 <button type="submit" className="btn-primary" style={{ width: '100%' }}>
                                     {isLogin ? "ENTRAR" : "CRIAR CONTA"}
                                 </button>
