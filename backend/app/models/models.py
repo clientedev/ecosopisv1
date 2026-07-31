@@ -60,11 +60,10 @@ class User(Base):
     cart_json = Column(Text, nullable=True) # JSON string of cart items
     cart_updated_at = Column(DateTime(timezone=True), nullable=True)
     
-    # Roulette fields
+    # Scratchcard fields
     total_compras = Column(Integer, default=0)
-    pode_girar_roleta = Column(Boolean, default=False)
-    tentativas_roleta = Column(Integer, default=0)
-    ultimo_premio_id = Column(Integer, ForeignKey("roulette_prizes.id"), nullable=True)
+    scratch_used = Column(Boolean, default=False)
+    scratch_reward_id = Column(Integer, ForeignKey("scratch_rewards.id"), nullable=True)
     
     profile_picture = Column(String, nullable=True)
     phone = Column(String, nullable=True)
@@ -72,45 +71,34 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     orders = relationship("Order", back_populates="user")
-    roulette_history = relationship("RouletteHistory", back_populates="user")
+    scratch_reward = relationship("ScratchReward", foreign_keys=[scratch_reward_id])
     addresses = relationship("Address", back_populates="user", cascade="all, delete-orphan")
 
-class RouletteConfig(Base):
-    __tablename__ = "roulette_config"
+class ScratchSettings(Base):
+    __tablename__ = "scratch_settings"
 
     id = Column(Integer, primary_key=True, index=True)
-    ativa = Column(Boolean, default=False)
-    popup_ativo = Column(Boolean, default=False)
-    regra_novo_usuario = Column(Boolean, default=False)
-    regra_5_compras = Column(Boolean, default=False)
+    enabled = Column(Boolean, default=True)
+    reward_type = Column(String, default="percentage") # percentage, fixed, free_shipping
+    reward_value = Column(Float, default=10.0)
+    coupon_prefix = Column(String, default="BEMVINDO")
+    coupon_valid_days = Column(Integer, default=30)
+    message = Column(Text, default="Parabéns! Você ganhou 10% de desconto.")
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
-class RoulettePrize(Base):
-    __tablename__ = "roulette_prizes"
+class ScratchReward(Base):
+    __tablename__ = "scratch_rewards"
 
     id = Column(Integer, primary_key=True, index=True)
-    nome = Column(String, nullable=False)
-    descricao = Column(Text)
-    ativo = Column(Boolean, default=True)
-    selecionado_para_sair = Column(Boolean, default=False)
-    quantidade_disponivel = Column(Integer, nullable=True) # Optional stock control
-    
-    # New coupon fields
-    discount_type = Column(String, nullable=True) # percentage, fixed
-    discount_value = Column(Float, nullable=True)
-    
+    user_id = Column(Integer, ForeignKey("users.id"))
+    reward_type = Column(String, nullable=False)
+    reward_value = Column(Float, nullable=False)
+    coupon_code = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False)
 
-class RouletteHistory(Base):
-    __tablename__ = "roulette_history"
-
-    id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer, ForeignKey("users.id"))
-    premio_id = Column(Integer, ForeignKey("roulette_prizes.id"))
-    data_giro = Column(DateTime(timezone=True), server_default=func.now())
-
-    user = relationship("User", back_populates="roulette_history")
-    prize = relationship("RoulettePrize")
+    user = relationship("User", foreign_keys=[user_id])
 
 class Product(Base):
     __tablename__ = "products"

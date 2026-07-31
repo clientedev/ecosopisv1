@@ -41,9 +41,8 @@ def _apply_startup_migrations():
         ("cart_updated_at",          "TIMESTAMP WITH TIME ZONE"),
         ("can_post_news",            "BOOLEAN DEFAULT FALSE"),
         ("total_compras",            "INTEGER DEFAULT 0"),
-        ("pode_girar_roleta",        "BOOLEAN DEFAULT FALSE"),
-        ("tentativas_roleta",        "INTEGER DEFAULT 0"),
-        ("ultimo_premio_id",         "INTEGER"),
+        ("scratch_used",             "BOOLEAN DEFAULT FALSE"),
+        ("scratch_reward_id",        "INTEGER"),
         ("profile_picture",          "VARCHAR"),
         ("phone",                    "VARCHAR")
     ]
@@ -304,6 +303,33 @@ def _ensure_extra_tables():
     except Exception as e:
         logger.warning(f"cashback_transactions ensure: {e}")
 
+    # scratch_settings
+    try:
+        with engine.begin() as conn:
+            if is_sqlite:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS scratch_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, enabled BOOLEAN DEFAULT TRUE, reward_type VARCHAR DEFAULT 'percentage', reward_value REAL DEFAULT 10.0, coupon_prefix VARCHAR DEFAULT 'BEMVINDO', coupon_valid_days INTEGER DEFAULT 30, message TEXT DEFAULT 'Parabéns! Você ganhou 10% de desconto.', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+            else:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS scratch_settings (id SERIAL PRIMARY KEY, enabled BOOLEAN DEFAULT TRUE, reward_type VARCHAR DEFAULT 'percentage', reward_value DOUBLE PRECISION DEFAULT 10.0, coupon_prefix VARCHAR DEFAULT 'BEMVINDO', coupon_valid_days INTEGER DEFAULT 30, message TEXT DEFAULT 'Parabéns! Você ganhou 10% de desconto.', updated_at TIMESTAMPTZ DEFAULT now())"))
+            
+            # Ensure default settings record exists
+            res = conn.execute(text("SELECT COUNT(*) FROM scratch_settings")).scalar()
+            if res == 0:
+                conn.execute(text("INSERT INTO scratch_settings (enabled, reward_type, reward_value, coupon_prefix, coupon_valid_days, message) VALUES (TRUE, 'percentage', 10.0, 'BEMVINDO', 30, 'Parabéns! Você ganhou 10% de desconto.')"))
+        logger.info("✓ scratch_settings table ensured.")
+    except Exception as e:
+        logger.warning(f"scratch_settings ensure: {e}")
+
+    # scratch_rewards
+    try:
+        with engine.begin() as conn:
+            if is_sqlite:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS scratch_rewards (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, reward_type VARCHAR NOT NULL, reward_value REAL NOT NULL, coupon_code VARCHAR UNIQUE NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, expires_at TIMESTAMP NOT NULL, used BOOLEAN DEFAULT FALSE)"))
+            else:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS scratch_rewards (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, reward_type VARCHAR NOT NULL, reward_value DOUBLE PRECISION NOT NULL, coupon_code VARCHAR UNIQUE NOT NULL, created_at TIMESTAMPTZ DEFAULT now(), expires_at TIMESTAMPTZ NOT NULL, used BOOLEAN DEFAULT FALSE)"))
+        logger.info("✓ scratch_rewards table ensured.")
+    except Exception as e:
+        logger.warning(f"scratch_rewards ensure: {e}")
+
     logger.info("Extra tables ensured successfully.")
 
 
@@ -427,7 +453,7 @@ async def root():
 # Import and include routers
 from app.api.endpoints import (
     auth, products, coupons, carousel, orders, settings, reviews, 
-    images, news, metrics, chat, roulette, admin_roulette, 
+    images, news, metrics, chat, scratchcard, admin_scratchcard, 
     shipping, addresses, cart, payment, crm, cashback, raw_materials,
     world_cup
 )
@@ -444,8 +470,8 @@ app.include_router(images.router, prefix="/images", tags=["images"])
 app.include_router(news.router, prefix="/news", tags=["news"])
 app.include_router(metrics.router, prefix="/metrics", tags=["metrics"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
-app.include_router(roulette.router, prefix="/roleta", tags=["roulette"])
-app.include_router(admin_roulette.router, prefix="/admin/roleta", tags=["admin_roulette"])
+app.include_router(scratchcard.router, prefix="/raspadinha", tags=["scratchcard"])
+app.include_router(admin_scratchcard.router, prefix="/admin/raspadinha", tags=["admin_scratchcard"])
 app.include_router(shipping.router, prefix="/shipping", tags=["shipping"])
 app.include_router(addresses.router, prefix="/addresses", tags=["addresses"])
 app.include_router(cart.router, prefix="/cart", tags=["cart"])

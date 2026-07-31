@@ -156,16 +156,7 @@ export default function ContaPage() {
                         </div>
                     )}
 
-                    {!isAdmin && user && user.pode_girar_roleta && (
-                        <div className={styles.rouletteCard} onClick={() => window.dispatchEvent(new CustomEvent('open-roulette'))}>
-                            <span className={styles.spinIcon}>🎡</span>
-                            <h2>VOCÊ TEM UM GIRO GRÁTIS!</h2>
-                            <p>Use sua sorte agora para ganhar prêmios exclusivos de autocuidado.</p>
-                            <span className={styles.cardBtn}>GIRAR RULETA AGORA</span>
-                        </div>
-                    )}
-
-                    {/* ── Meus Cupons (roulette reward) ── */}
+                    {/* ── Meus Cupons ── */}
                     {!isAdmin && token && user && activeCoupon && (
                         <div className={styles.myCouponsSection}>
                             <h3 className={styles.myCouponsTitle}>
@@ -179,7 +170,7 @@ export default function ContaPage() {
                                 <div className={styles.couponInfo}>
                                     <p className={styles.couponName}>{activeCoupon.name}</p>
                                     <p className={styles.couponValue}>{formatDiscount(activeCoupon)}</p>
-                                    <p className={styles.couponHint}>Ganho na Roleta da Sorte</p>
+                                    <p className={styles.couponHint}>Cupom de Desconto ECOSOPIS</p>
                                 </div>
                                 <div className={styles.couponActions}>
                                     <Link href="/carrinho" className={styles.useCouponBtn}>

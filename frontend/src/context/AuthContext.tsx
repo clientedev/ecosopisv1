@@ -9,12 +9,11 @@ interface User {
   phone?: string;
   role: string;
   can_post_news?: boolean;
-  pode_girar_roleta: boolean;
+  scratch_used?: boolean;
+  scratch_reward_id?: number;
   addresses?: any[];
   profile_picture?: string;
   total_compras?: number;
-  tentativas_roleta?: number;
-  ultimo_premio_id?: number;
   cart_json?: string | null;
   cart_updated_at?: string | null;
 }
@@ -25,6 +24,7 @@ interface AuthContextType {
   login: (email: string, password: string, remember?: boolean) => Promise<{ success: boolean; status?: number }>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
+  updateUser: (data: Partial<User>) => void;
   isLoading: boolean;
 }
 
@@ -148,12 +148,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           sessionStorage.setItem('session_active', 'true');
         }
 
-        // Clear roulette flags on fresh login so it checks again
+        // Clear obsolete flags on login
         if (typeof window !== 'undefined') {
           sessionStorage.removeItem("roulette_spin_shown");
-          sessionStorage.removeItem("roulette_teaser_shown");
-          sessionStorage.removeItem("roulette_modal_open");
-          sessionStorage.removeItem("roulette_manual_trigger");
         }
 
         // Fetch user profile immediately
@@ -184,17 +181,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.removeItem('session_active');
     }
     
-    // Clear roulette flags on logout
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem("roulette_spin_shown");
-      sessionStorage.removeItem("roulette_teaser_shown");
-      sessionStorage.removeItem("roulette_modal_open");
-      sessionStorage.removeItem("roulette_manual_trigger");
-    }
+  const updateUser = (data: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      const updated = { ...prev, ...data };
+      localStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, refreshProfile, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, refreshProfile, updateUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

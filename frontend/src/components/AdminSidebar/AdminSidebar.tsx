@@ -17,6 +17,7 @@ import {
     BarChart3,
     TrendingUp,
     Gamepad2,
+    Sparkles,
     Settings,
     LogOut,
     ExternalLink,
@@ -63,7 +64,7 @@ const CATEGORIES: Category[] = [
     {
         label: "Marketing",
         items: [
-            { label: "Roleta", path: "/admin/dashboard/roleta", icon: <Gamepad2 size={18} /> },
+            { label: "Raspadinha", path: "/admin/dashboard/raspadinha", icon: <Sparkles size={18} /> },
             { label: "Bolão Copa", path: "/admin/bolao", icon: <Trophy size={18} /> },
             { label: "Cupons", path: "/admin/dashboard/cupons", icon: <Ticket size={18} /> },
             { label: "Banner Principal", path: "/admin/dashboard/carousel", icon: <ImageIcon size={18} /> },

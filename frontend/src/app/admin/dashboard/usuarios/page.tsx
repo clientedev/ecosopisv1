@@ -98,25 +98,7 @@ export default function UserManagement() {
         }
     };
 
-    const handleToggleRoulette = async (userId: number) => {
-        try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`/api/auth/users/${userId}/toggle-roulette`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
-            if (res.ok) {
-                fetchUsers();
-            } else {
-                const error = await res.json();
-                alert(error.detail || "Erro ao alterar permissão da roleta");
-            }
-        } catch (error) {
-            console.error("Error toggling roulette:", error);
-        }
-    };
+
 
     const filteredUsers = users.filter((u: any) => 
         u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -394,7 +376,6 @@ export default function UserManagement() {
                                 <th>Email</th>
                                 <th>WhatsApp</th>
                                 <th>Cargo</th>
-                                <th>Roleta</th>
                                 <th>Data Cadastro</th>
                                 <th>Ações</th>
                             </tr>
@@ -442,21 +423,9 @@ export default function UserManagement() {
                                             {user.role}
                                         </span>
                                     </td>
-                                    <td data-label="Roleta">
-                                        <span className={`${styles.stockBadge} ${user.pode_girar_roleta ? styles.stockOk : styles.deleteBtn}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
-                                            {user.pode_girar_roleta ? "DISPONÍVEL" : "BLOQUEADO"}
-                                        </span>
-                                    </td>
                                     <td data-label="Data Cadastro">{new Date(user.created_at).toLocaleDateString('pt-BR')}</td>
                                     <td data-label="Ações">
                                         <div className={styles.actions}>
-                                            <button
-                                                className={styles.editBtn}
-                                                onClick={() => handleToggleRoulette(user.id)}
-                                                style={{ backgroundColor: user.pode_girar_roleta ? '#ef4444' : '#b8860b', color: 'white' }}
-                                            >
-                                                {user.pode_girar_roleta ? "Remover Giro" : "Liberar Giro"}
-                                            </button>
                                             {user.role !== 'admin' && (
                                                 <button
                                                     className={styles.editBtn}

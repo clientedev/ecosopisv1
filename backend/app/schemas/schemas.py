@@ -33,8 +33,8 @@ class UserResponse(UserBase):
     is_verified: bool = False
     can_post_news: Optional[bool] = False
     total_compras: Optional[int] = 0
-    pode_girar_roleta: Optional[bool] = False
-    tentativas_roleta: Optional[int] = 0
+    scratch_used: Optional[bool] = False
+    scratch_reward_id: Optional[int] = None
     profile_picture: Optional[str] = None
     phone: Optional[str] = None
     cart_json: Optional[str] = None
@@ -363,71 +363,59 @@ class MetricsSummary(BaseModel):
     clicks_by_type: Dict[str, int]
     clicks_by_product: List[Dict[str, Any]]
 
-# Roulette Schemas
-class RouletteConfigBase(BaseModel):
-    ativa: bool = False
-    popup_ativo: bool = False
-    regra_novo_usuario: bool = False
-    regra_5_compras: bool = False
+# Scratchcard Schemas
+class ScratchSettingsBase(BaseModel):
+    enabled: bool = True
+    reward_type: str = "percentage" # percentage, fixed, free_shipping
+    reward_value: float = 10.0
+    coupon_prefix: str = "BEMVINDO"
+    coupon_valid_days: int = 30
+    message: str = "Parabéns! Você ganhou 10% de desconto."
 
-class RouletteConfigUpdate(BaseModel):
-    ativa: Optional[bool] = None
-    popup_ativo: Optional[bool] = None
-    regra_novo_usuario: Optional[bool] = None
-    regra_5_compras: Optional[bool] = None
+class ScratchSettingsUpdate(BaseModel):
+    enabled: Optional[bool] = None
+    reward_type: Optional[str] = None
+    reward_value: Optional[float] = None
+    coupon_prefix: Optional[str] = None
+    coupon_valid_days: Optional[int] = None
+    message: Optional[str] = None
 
-class RouletteConfigResponse(RouletteConfigBase):
+class ScratchSettingsResponse(ScratchSettingsBase):
     id: int
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
+
     class Config:
         from_attributes = True
 
-class RoulettePrizeBase(BaseModel):
-    nome: str
-    descricao: Optional[str] = None
-    ativo: bool = True
-    selecionado_para_sair: bool = False
-    quantidade_disponivel: Optional[int] = None
-    discount_type: Optional[str] = None # percentage, fixed
-    discount_value: Optional[float] = None
-
-class RoulettePrizeCreate(RoulettePrizeBase):
-    pass
-
-class RoulettePrizeUpdate(BaseModel):
-    nome: Optional[str] = None
-    descricao: Optional[str] = None
-    ativo: Optional[bool] = None
-    selecionado_para_sair: Optional[bool] = None
-    quantidade_disponivel: Optional[int] = None
-    discount_type: Optional[str] = None
-    discount_value: Optional[float] = None
-
-class RoulettePrizeResponse(RoulettePrizeBase):
-    id: int
-    created_at: datetime
-    class Config:
-        from_attributes = True
-
-class RouletteSpinResponse(BaseModel):
-    prize: RoulettePrizeResponse
-    
-class RouletteHistoryUser(BaseModel):
+class ScratchRewardUser(BaseModel):
     id: int
     full_name: Optional[str] = None
     email: str
+
     class Config:
         from_attributes = True
 
-class RouletteHistoryResponse(BaseModel):
+class ScratchRewardResponse(BaseModel):
     id: int
-    usuario_id: int
-    premio_id: int
-    data_giro: datetime
-    prize: RoulettePrizeResponse
-    user: Optional[RouletteHistoryUser] = None
+    user_id: int
+    reward_type: str
+    reward_value: float
+    coupon_code: str
+    created_at: datetime
+    expires_at: datetime
+    used: bool
+    user: Optional[ScratchRewardUser] = None
+
     class Config:
         from_attributes = True
+
+class ScratchPlayResponse(BaseModel):
+    reward_type: str
+    reward_value: float
+    coupon_code: str
+    expires_at: datetime
+    message: str
+
 
 # Raw Materials Schemas
 class RawMaterialResponse(BaseModel):

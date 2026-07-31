@@ -23,12 +23,6 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_password = security.get_password_hash(user_in.password)
-    # Check roulette config for new user rule
-    config = db.query(models.RouletteConfig).first()
-    can_spin = False
-    if config and config.ativa and config.regra_novo_usuario:
-        can_spin = True
-
     verification_token = str(uuid.uuid4())
     
     new_user = models.User(
@@ -37,7 +31,7 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
         full_name=user_in.full_name,
         phone=user_in.phone,
         role="client",
-        pode_girar_roleta=can_spin,
+        scratch_used=False,
         is_verified=False,
         verification_token=verification_token
     )
@@ -293,21 +287,6 @@ def toggle_blog_permission(
     db.refresh(user)
     return {"user_id": user_id, "can_post_news": user.can_post_news, "email": user.email}
 
-@router.post("/users/{user_id}/toggle-roulette")
-def toggle_roulette_permission(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_admin: models.User = Depends(get_current_admin)
-):
-    """Grant or revoke roulette spin permission for a user."""
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    user.pode_girar_roleta = not user.pode_girar_roleta
-    db.commit()
-    db.refresh(user)
-    return {"user_id": user_id, "pode_girar_roleta": user.pode_girar_roleta, "email": user.email}
 
 @router.get("/users/{user_id}/blog-permission")
 def get_blog_permission(

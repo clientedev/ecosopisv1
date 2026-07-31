@@ -120,6 +120,8 @@ async def checkout(
             coupon_code = coupon.code
             if coupon.discount_type == "percentage":
                 discount_amount = (subtotal * coupon.discount_value) / 100
+            elif coupon.discount_type == "free_shipping":
+                discount_amount = shipping_price
             else:
                 discount_amount = coupon.discount_value
 

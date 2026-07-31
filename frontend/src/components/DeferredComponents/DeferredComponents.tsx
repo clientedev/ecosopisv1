@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 
 const ChatIA = dynamic(() => import("@/components/ChatIA/ChatIA"), { ssr: false });
-const RouletteModal = dynamic(() => import("@/components/RouletteModal/RouletteModal"), { ssr: false });
+const ScratchCardModal = dynamic(() => import("@/components/ScratchCardModal/ScratchCardModal"), { ssr: false });
 
 let hasDeferredLoaded = false;
 
@@ -25,7 +25,7 @@ export default function DeferredComponents() {
     return (
         <>
             <ChatIA />
-            <RouletteModal />
+            <ScratchCardModal />
         </>
     );
 }
