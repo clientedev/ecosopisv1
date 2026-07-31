@@ -180,7 +180,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('session_active');
     }
-    
+  };
+
   const updateUser = (data: Partial<User>) => {
     setUser(prev => {
       if (!prev) return null;
