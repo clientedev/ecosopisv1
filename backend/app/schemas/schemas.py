@@ -33,7 +33,8 @@ class UserResponse(UserBase):
     is_verified: bool = False
     can_post_news: Optional[bool] = False
     total_compras: Optional[int] = 0
-    scratch_used: Optional[bool] = False
+    scratch_used: Optional[bool] = False  # deprecated - kept for legacy UI compat
+    scratch_last_used_at: Optional[datetime] = None
     scratch_reward_id: Optional[int] = None
     profile_picture: Optional[str] = None
     phone: Optional[str] = None
@@ -415,6 +416,7 @@ class ScratchPlayResponse(BaseModel):
     coupon_code: str
     expires_at: datetime
     message: str
+    user_email: Optional[str] = None
 
 
 # Raw Materials Schemas

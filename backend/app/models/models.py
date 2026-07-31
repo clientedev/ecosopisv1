@@ -62,13 +62,25 @@ class User(Base):
     
     # Scratchcard fields
     total_compras = Column(Integer, default=0)
-    scratch_used = Column(Boolean, default=False)
+    scratch_last_used_at = Column(DateTime(timezone=True), nullable=True)  # None = nunca usou; monthly control
     scratch_reward_id = Column(Integer, ForeignKey("scratch_rewards.id"), nullable=True)
     
     profile_picture = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    @property
+    def scratch_used(self) -> bool:
+        """Retrocompat: retorna True se o usuário já usou a raspadinha no mês atual."""
+        if not self.scratch_last_used_at:
+            return False
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        last = self.scratch_last_used_at
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        return last.year == now.year and last.month == now.month
 
     orders = relationship("Order", back_populates="user")
     scratch_reward = relationship("ScratchReward", foreign_keys=[scratch_reward_id])
@@ -82,7 +94,7 @@ class ScratchSettings(Base):
     reward_type = Column(String, default="percentage") # percentage, fixed, free_shipping
     reward_value = Column(Float, default=10.0)
     coupon_prefix = Column(String, default="BEMVINDO")
-    coupon_valid_days = Column(Integer, default=30)
+    coupon_valid_days = Column(Integer, default=15)
     message = Column(Text, default="Parabéns! Você ganhou 10% de desconto.")
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 

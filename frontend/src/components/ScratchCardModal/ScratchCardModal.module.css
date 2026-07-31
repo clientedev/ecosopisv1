@@ -4,7 +4,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.78);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -25,8 +25,8 @@
   border-radius: 24px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(74, 124, 89, 0.2);
   width: 100%;
-  max-width: 440px;
-  padding: 2rem 1.5rem;
+  max-width: 460px;
+  padding: 2rem 1.75rem;
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -98,7 +98,7 @@
   position: relative;
   width: 320px;
   height: 180px;
-  margin: 0 auto 1.5rem;
+  margin: 0 auto 1.25rem;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
@@ -145,6 +145,31 @@
   z-index: 2;
 }
 
+/* Loading overlay */
+.loadingOverlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 16px;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(245, 158, 11, 0.3);
+  border-top-color: #f59e0b;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .instructionHint {
   font-size: 0.85rem;
   color: #94a3b8;
@@ -154,10 +179,14 @@
   gap: 6px;
 }
 
-/* Result Reveal Section */
+/* ===================== Result Reveal Section ===================== */
 .resultContainer {
-  padding: 1rem 0 0.5rem;
+  padding: 0.5rem 0;
   animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
 }
 
 @keyframes bounceIn {
@@ -171,76 +200,136 @@
   }
 }
 
-.congratsTitle {
-  font-size: 1.8rem;
-  font-weight: 900;
-  color: #f59e0b;
-  margin-bottom: 0.5rem;
+.confettiEmoji {
+  font-size: 3rem;
+  animation: pop 0.6s ease-out;
 }
 
-.resultText {
-  font-size: 1rem;
-  color: #e2e8f0;
-  margin-bottom: 0.25rem;
+@keyframes pop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.congratsTitle {
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #f59e0b;
+  margin: 0;
 }
 
 .rewardHighlight {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: #ffffff;
-  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(74,124,89,0.3) 0%, rgba(45,90,39,0.3) 100%);
+  border: 1px solid rgba(74, 124, 89, 0.4);
+  border-radius: 12px;
+  padding: 0.6rem 1.2rem;
 }
 
+.rewardIcon {
+  color: #4ade80;
+  flex-shrink: 0;
+}
+
+/* ===== BIG COUPON BOX ===== */
 .couponBox {
-  background: rgba(255, 255, 255, 0.07);
-  border: 2px dashed rgba(245, 158, 11, 0.6);
-  border-radius: 12px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
+  background: rgba(245, 158, 11, 0.06);
+  border: 2px dashed rgba(245, 158, 11, 0.7);
+  border-radius: 16px;
+  padding: 1.25rem 1rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .couponLabel {
   font-size: 0.75rem;
   color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 0.25rem;
+  letter-spacing: 1.5px;
 }
 
-.couponCode {
-  font-family: monospace;
-  font-size: 1.6rem;
+.couponCodeBig {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 2rem;
   font-weight: 900;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   color: #f59e0b;
+  text-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+  animation: glowPulse 2s ease-in-out infinite;
 }
 
-.buttonGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+@keyframes glowPulse {
+  0%, 100% { text-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+  50% { text-shadow: 0 0 35px rgba(245, 158, 11, 0.8); }
 }
 
-.primaryBtn {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: #ffffff;
-  font-size: 1rem;
-  font-weight: 700;
-  padding: 0.85rem 1.5rem;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
-  transition: all 0.2s ease;
+.couponExpiry {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.couponExpiry strong {
+  color: #94a3b8;
+}
+
+/* Copy Button */
+.copyBtn {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.75rem 1.75rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.45);
+  transition: all 0.25s ease;
+  margin-top: 0.25rem;
 }
 
-.primaryBtn:hover {
+.copyBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6);
+  box-shadow: 0 6px 22px rgba(245, 158, 11, 0.65);
+}
+
+.copyBtnSuccess {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.45) !important;
+}
+
+/* Email Notice */
+.emailNotice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  width: 100%;
+  text-align: left;
+}
+
+.emailIcon {
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+
+.emailNotice strong {
+  color: #e2e8f0;
 }
 
 .secondaryBtn {
@@ -253,6 +342,7 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   cursor: pointer;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
 .secondaryBtn:hover {
@@ -267,14 +357,15 @@
   }
 
   .title {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
   }
 
   .rewardHighlight {
-    font-size: 1.4rem;
+    font-size: 1.25rem;
   }
 
-  .couponCode {
-    font-size: 1.4rem;
+  .couponCodeBig {
+    font-size: 1.6rem;
+    letter-spacing: 2px;
   }
 }

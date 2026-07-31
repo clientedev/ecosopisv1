@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import styles from './ScratchCardModal.module.css';
-import { X, Sparkles, Copy, Check, ShoppingBag } from 'lucide-react';
+import { X, Sparkles, Copy, Check, ShoppingBag, Mail, Gift } from 'lucide-react';
 
 interface ScratchPlayResult {
   reward_type: string;
@@ -11,6 +11,7 @@ interface ScratchPlayResult {
   coupon_code: string;
   expires_at: string;
   message: string;
+  user_email?: string;
 }
 
 export default function ScratchCardModal() {
@@ -32,7 +33,7 @@ export default function ScratchCardModal() {
       return;
     }
 
-    // Check if user already used scratchcard
+    // scratch_used now reflects "used this month" (computed server-side)
     if (user.scratch_used) {
       setIsOpen(false);
       return;
@@ -124,7 +125,7 @@ export default function ScratchCardModal() {
         const data: ScratchPlayResult = await res.json();
         setResult(data);
         setRevealed(true);
-        // Update user state locally
+        // Update user state locally - scratch_used = true for this month
         if (updateUser) {
           updateUser({ scratch_used: true });
         }
@@ -152,7 +153,6 @@ export default function ScratchCardModal() {
     const pixels = imgData.data;
     let transparentCount = 0;
 
-    // Check alpha channel (pixels[i+3])
     for (let i = 3; i < pixels.length; i += 4) {
       if (pixels[i] === 0) {
         transparentCount++;
@@ -162,7 +162,6 @@ export default function ScratchCardModal() {
     const totalPixels = pixels.length / 4;
     const ratio = transparentCount / totalPixels;
 
-    // Trigger reveal if ~45% - 50% scratched
     if (ratio > 0.45) {
       claimReward();
     }
@@ -188,7 +187,6 @@ export default function ScratchCardModal() {
     checkScratchPercentage();
   };
 
-  // Event Listeners for Mouse and Touch
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     isDrawing.current = true;
     scratch(e.clientX, e.clientY);
@@ -223,7 +221,7 @@ export default function ScratchCardModal() {
     if (!result?.coupon_code) return;
     navigator.clipboard.writeText(result.coupon_code);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setTimeout(() => setCopied(false), 3000);
   };
 
   const handleClose = () => {
@@ -242,6 +240,21 @@ export default function ScratchCardModal() {
       return 'FRETE GRÁTIS';
     }
     return `${result.reward_value} DE DESCONTO`;
+  };
+
+  const formatExpiry = () => {
+    if (!result?.expires_at) return '';
+    const d = new Date(result.expires_at);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  // Mask email for display: ga****@gmail.com
+  const maskEmail = (email?: string) => {
+    if (!email) return '';
+    const [local, domain] = email.split('@');
+    if (!domain) return email;
+    const visible = local.slice(0, 2);
+    return `${visible}****@${domain}`;
   };
 
   return (
@@ -280,6 +293,12 @@ export default function ScratchCardModal() {
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
               />
+
+              {loading && (
+                <div className={styles.loadingOverlay}>
+                  <div className={styles.spinner} />
+                </div>
+              )}
             </div>
 
             <p className={styles.instructionHint}>
@@ -288,25 +307,46 @@ export default function ScratchCardModal() {
           </>
         ) : (
           <div className={styles.resultContainer}>
-            <h2 className={styles.congratsTitle}>🎉 Parabéns!</h2>
-            <p className={styles.resultText}>{result?.message || 'Você ganhou um presente especial!'}</p>
-            <div className={styles.rewardHighlight}>{formatRewardLabel()}</div>
+            <div className={styles.confettiEmoji}>🎉</div>
+            <h2 className={styles.congratsTitle}>Parabéns! Você ganhou!</h2>
 
+            <div className={styles.rewardHighlight}>
+              <Gift size={22} className={styles.rewardIcon} />
+              {formatRewardLabel()}
+            </div>
+
+            {/* BIG COUPON BOX */}
             <div className={styles.couponBox}>
-              <div className={styles.couponLabel}>Seu código de cupom exclusivo:</div>
-              <div className={styles.couponCode}>{result?.coupon_code}</div>
+              <div className={styles.couponLabel}>Seu cupom exclusivo:</div>
+              <div className={styles.couponCodeBig}>{result?.coupon_code}</div>
+              <div className={styles.couponExpiry}>
+                Válido até: <strong>{formatExpiry()}</strong>
+              </div>
+              <button
+                className={`${styles.copyBtn} ${copied ? styles.copyBtnSuccess : ''}`}
+                onClick={handleCopyCoupon}
+              >
+                {copied ? (
+                  <><Check size={18} /> Cupom Copiado!</>
+                ) : (
+                  <><Copy size={18} /> Copiar Cupom</>
+                )}
+              </button>
             </div>
 
-            <div className={styles.buttonGroup}>
-              <button className={styles.primaryBtn} onClick={handleCopyCoupon}>
-                {copied ? <Check size={18} /> : <Copy size={18} />}
-                {copied ? 'Cupom Copiado!' : 'Copiar Cupom'}
-              </button>
-              <button className={styles.secondaryBtn} onClick={handleClose}>
-                <ShoppingBag size={16} style={{ display: 'inline', marginRight: 6 }} />
-                Continuar Comprando
-              </button>
+            {/* EMAIL NOTICE */}
+            <div className={styles.emailNotice}>
+              <Mail size={16} className={styles.emailIcon} />
+              <span>
+                Enviamos o cupom para{' '}
+                <strong>{maskEmail(result?.user_email || user?.email)}</strong>
+              </span>
             </div>
+
+            <button className={styles.secondaryBtn} onClick={handleClose}>
+              <ShoppingBag size={16} style={{ display: 'inline', marginRight: 6 }} />
+              Usar agora nas compras
+            </button>
           </div>
         )}
       </div>

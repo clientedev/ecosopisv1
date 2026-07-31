@@ -42,6 +42,7 @@ def _apply_startup_migrations():
         ("can_post_news",            "BOOLEAN DEFAULT FALSE"),
         ("total_compras",            "INTEGER DEFAULT 0"),
         ("scratch_used",             "BOOLEAN DEFAULT FALSE"),
+        ("scratch_last_used_at",     "TIMESTAMP WITH TIME ZONE"),
         ("scratch_reward_id",        "INTEGER"),
         ("profile_picture",          "VARCHAR"),
         ("phone",                    "VARCHAR")
@@ -314,7 +315,7 @@ def _ensure_extra_tables():
             # Ensure default settings record exists
             res = conn.execute(text("SELECT COUNT(*) FROM scratch_settings")).scalar()
             if res == 0:
-                conn.execute(text("INSERT INTO scratch_settings (enabled, reward_type, reward_value, coupon_prefix, coupon_valid_days, message) VALUES (TRUE, 'percentage', 10.0, 'BEMVINDO', 30, 'Parabéns! Você ganhou 10% de desconto.')"))
+                conn.execute(text("INSERT INTO scratch_settings (enabled, reward_type, reward_value, coupon_prefix, coupon_valid_days, message) VALUES (TRUE, 'percentage', 10.0, 'BEMVINDO', 15, 'Parabéns! Você ganhou 10% de desconto.')"))
         logger.info("✓ scratch_settings table ensured.")
     except Exception as e:
         logger.warning(f"scratch_settings ensure: {e}")
