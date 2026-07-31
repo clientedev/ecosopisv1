@@ -8,7 +8,7 @@ import { X, Sparkles, Copy, Check, ShoppingBag } from 'lucide-react';
 interface ScratchPlayResult {
   reward_type: string;
   reward_value: number;
-  coupon_code: str;
+  coupon_code: string;
   expires_at: string;
   message: string;
 }
