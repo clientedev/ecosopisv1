@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
 from app.api.endpoints.auth import get_current_user
+from app.core import emails
 
 router = APIRouter()
 
@@ -119,6 +120,20 @@ def play_scratchcard(db: Session = Depends(get_db), current_user: models.User = 
     db.add(current_user)
 
     db.commit()
+
+    # Enviar email com o cupom
+    expires_str = expires_at.strftime('%d/%m/%Y')
+    try:
+        emails.send_scratchcard_coupon_email(
+            email=current_user.email,
+            coupon_code=code,
+            reward_type=config.reward_type,
+            reward_value=config.reward_value,
+            expires_at=expires_str
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Scratchcard email failed: {e}")
 
     return schemas.ScratchPlayResponse(
         reward_type=config.reward_type,

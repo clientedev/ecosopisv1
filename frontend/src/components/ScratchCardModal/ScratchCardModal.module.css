@@ -1,17 +1,17 @@
-/* =====================================================
-   RASPADINHA — visual de bilhete físico real
-   ===================================================== */
+/* ================================================
+   RASPADINHA — estilo ECOSOPIS (verde natural, clean)
+   ================================================ */
 
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 99999;
   padding: 1rem;
-  animation: fadeIn 0.25s ease;
+  animation: fadeIn 0.2s ease;
 }
 
 @keyframes fadeIn {
@@ -19,77 +19,77 @@
   to   { opacity: 1; }
 }
 
-/* ===== CARD (bilhete) ===== */
-.card {
-  background: #fffdf5;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 380px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.12);
-  overflow: hidden;
-  animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(40px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0)   scale(1); }
-}
-
-/* ===== HEADER STRIPE ===== */
-.headerStripe {
-  background: #c0392b;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 18px;
-  color: #fff;
-}
-
-.headerLeft {
-  font-size: 1rem;
-  font-weight: 900;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-.headerRight {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 2px;
-  opacity: 0.85;
-  text-transform: uppercase;
-}
-
-/* ===== SCRATCH PHASE ===== */
-.scratchPhase {
-  padding: 20px 20px 8px;
-}
-
-.scratchHint {
-  text-align: center;
-  font-size: 0.9rem;
-  color: #555;
-  margin: 0 0 14px;
-}
-
-.cardArea {
+/* ===== MODAL ===== */
+.modal {
   position: relative;
-  width: 300px;
-  height: 160px;
-  margin: 0 auto;
-  border-radius: 8px;
+  background: #fff;
+  border-radius: 6px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
   overflow: hidden;
-  border: 2px solid #ddd;
+  animation: rise 0.3s ease;
+  font-family: var(--font-body, 'Karla', Arial, sans-serif);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== TOP BAR (verde do site) ===== */
+.topBar {
+  background: #4B8411;
+  padding: 12px 20px;
+}
+
+.topBarLabel {
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-family: var(--font-header, 'Raleway', Arial, sans-serif);
+}
+
+/* ===== BODY ===== */
+.body {
+  padding: 24px 24px 28px;
+}
+
+.title {
+  font-family: var(--font-header, 'Raleway', Arial, sans-serif);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1.3;
+  margin: 0 0 8px;
+}
+
+.subtitle {
+  font-size: 0.88rem;
+  color: #666;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+/* ===== SCRATCH AREA ===== */
+.scratchWrapper {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
   user-select: none;
   touch-action: none;
+  margin-bottom: 10px;
 }
 
-/* Prize hidden behind silver */
 .prizeBack {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #f9c74f 0%, #f8961e 100%);
+  background: linear-gradient(135deg, #eef6e6 0%, #d4eabc 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -97,19 +97,19 @@
   gap: 6px;
 }
 
-.prizeBackIcon {
-  font-size: 2.2rem;
+.leafIcon {
+  font-size: 2rem;
+  line-height: 1;
 }
 
-.prizeBackText {
-  font-size: 0.8rem;
+.prizeBackHint {
+  font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 2px;
-  color: rgba(0,0,0,0.45);
+  letter-spacing: 2.5px;
+  color: #4B8411;
   text-transform: uppercase;
 }
 
-/* Scratch canvas over everything */
 .canvas {
   position: absolute;
   inset: 0;
@@ -119,229 +119,205 @@
   z-index: 2;
 }
 
-/* Progress bar below canvas */
-.progressBar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: rgba(0,0,0,0.08);
-  z-index: 3;
-}
-
-.progressFill {
-  height: 100%;
-  background: #c0392b;
-  transition: width 0.15s ease;
-}
-
-/* Loading dots */
-.loadingLayer {
+/* Loading */
+.loadingCover {
   position: absolute;
   inset: 0;
-  background: rgba(255,253,245,0.88);
+  background: rgba(255,255,255,0.82);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10;
 }
 
-.dots {
-  display: flex;
-  gap: 8px;
-}
-
-.dots span {
-  width: 10px;
-  height: 10px;
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e0e0e0;
+  border-top-color: #4B8411;
   border-radius: 50%;
-  background: #c0392b;
-  animation: bounce 0.8s ease-in-out infinite;
+  animation: spin 0.7s linear infinite;
 }
 
-.dots span:nth-child(2) { animation-delay: 0.15s; }
-.dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); opacity: 0.6; }
-  50%       { transform: translateY(-8px); opacity: 1; }
+/* Progress */
+.progressTrack {
+  width: 100%;
+  height: 3px;
+  background: #eeeeee;
+  border-radius: 4px;
+  margin-bottom: 6px;
 }
 
-/* ===== RESULT PHASE ===== */
-.resultPhase {
-  padding: 22px 20px 12px;
+.progressBar {
+  height: 100%;
+  background: #4B8411;
+  border-radius: 4px;
+  transition: width 0.15s ease;
+}
+
+.progressLabel {
+  font-size: 0.76rem;
+  color: #999;
+  text-align: center;
+  margin: 0;
+}
+
+/* ===== RESULT AREA ===== */
+.resultArea {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  gap: 16px;
+  animation: popIn 0.35s ease;
 }
 
 @keyframes popIn {
-  from { opacity: 0; transform: scale(0.88); }
+  from { opacity: 0; transform: scale(0.94); }
   to   { opacity: 1; transform: scale(1); }
 }
 
-.winBadge {
-  background: #c0392b;
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 900;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  padding: 5px 18px;
-  border-radius: 100px;
+.resultTop {
+  text-align: center;
 }
 
-.discountValue {
-  font-size: 3rem;
-  font-weight: 900;
-  color: #c0392b;
-  line-height: 1;
-  letter-spacing: -1px;
+.winIcon { font-size: 2.4rem; display: block; margin-bottom: 6px; }
+
+.winTitle {
+  font-family: var(--font-header, 'Raleway', Arial, sans-serif);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0 0 6px;
 }
 
-.resultMsg {
+.winDesc {
   font-size: 0.88rem;
   color: #666;
-  text-align: center;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
-/* ===== TICKET ===== */
-.ticket {
-  position: relative;
-  background: #fff;
-  border: 1.5px dashed #c0392b;
-  border-radius: 8px;
+/* Discount badge */
+.discountBadge {
+  background: #4B8411;
+  color: #fff;
+  font-family: var(--font-header, 'Raleway', Arial, sans-serif);
+  font-size: 1.6rem;
+  font-weight: 900;
+  padding: 10px 28px;
+  border-radius: 4px;
+  letter-spacing: 1px;
+}
+
+/* Coupon */
+.couponArea {
   width: 100%;
-  padding: 14px 20px;
-}
-
-/* Left notch */
-.ticketNotchLeft {
-  position: absolute;
-  left: -10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #fffdf5;
-  border: 1.5px solid #ddd;
-}
-
-/* Right notch */
-.ticketNotchRight {
-  position: absolute;
-  right: -10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #fffdf5;
-  border: 1.5px solid #ddd;
-}
-
-.ticketInner {
+  border: 1.5px dashed #4B8411;
+  border-radius: 4px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  background: #f7faf3;
 }
 
-.ticketLabel {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 2px;
-  color: #aaa;
+.couponHint {
+  font-size: 0.72rem;
+  color: #888;
+  letter-spacing: 1px;
   text-transform: uppercase;
 }
 
-.ticketCode {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 1.55rem;
-  font-weight: 900;
-  letter-spacing: 3px;
-  color: #1a1a1a;
+.couponRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.ticketExpiry {
-  font-size: 0.72rem;
+.couponCode {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #1a1a1a;
+  letter-spacing: 3px;
+}
+
+.copyBtn {
+  background: #4B8411;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.copyBtn:hover { background: #3a660d; }
+.copyOk { background: #2d7a2d !important; }
+
+.couponExpiry {
+  font-size: 0.75rem;
   color: #999;
 }
 
-/* ===== COPY BUTTON ===== */
-.copyBtn {
-  background: #1a1a1a;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.92rem;
-  font-weight: 700;
-  padding: 11px 28px;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.15s;
-  letter-spacing: 0.3px;
-  width: 100%;
-}
-
-.copyBtn:hover {
-  background: #333;
-  transform: translateY(-1px);
-}
-
-.copied {
-  background: #27ae60 !important;
-}
-
-/* ===== EMAIL NOTE ===== */
-.emailNote {
+/* Email info */
+.emailInfo {
   font-size: 0.8rem;
   color: #888;
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.5;
+  margin: 0;
 }
 
-.emailNote strong {
-  color: #444;
+.emailInfo strong { color: #444; }
+
+/* Shop button */
+.shopBtn {
+  background: none;
+  border: 1.5px solid #4B8411;
+  color: #4B8411;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 10px 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  font-family: var(--font-body, 'Karla', Arial, sans-serif);
 }
 
-/* ===== CLOSE LINK ===== */
-.closeLink {
+.shopBtn:hover {
+  background: #4B8411;
+  color: #fff;
+}
+
+/* ===== CLOSE BTN ===== */
+.closeBtn {
+  position: absolute;
+  top: 10px;
+  right: 14px;
   background: none;
   border: none;
-  color: #c0392b;
-  font-size: 0.85rem;
-  font-weight: 700;
+  color: rgba(255,255,255,0.8);
+  font-size: 1rem;
   cursor: pointer;
-  text-decoration: underline;
-  padding: 0;
-  transition: opacity 0.2s;
+  line-height: 1;
+  padding: 2px 6px;
+  transition: color 0.2s;
 }
 
-.closeLink:hover { opacity: 0.7; }
-
-/* ===== SERIAL BAR ===== */
-.serialBar {
-  background: #f0ece0;
-  border-top: 1px solid #e0dbd0;
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 18px;
-  font-size: 0.68rem;
-  color: #aaa;
-  font-family: 'Courier New', Courier, monospace;
-  letter-spacing: 0.5px;
-}
+.closeBtn:hover { color: #fff; }
 
 /* ===== MOBILE ===== */
 @media (max-width: 420px) {
-  .card { max-width: 100%; border-radius: 10px; }
-  .cardArea { width: 100%; }
-  .ticketCode { font-size: 1.25rem; letter-spacing: 2px; }
-  .discountValue { font-size: 2.5rem; }
+  .modal { max-width: 100%; border-radius: 6px 6px 0 0; margin-bottom: 0; }
+  .overlay { align-items: flex-end; padding: 0; }
+  .couponCode { font-size: 1.2rem; letter-spacing: 2px; }
+  .discountBadge { font-size: 1.3rem; }
 }

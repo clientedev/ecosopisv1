@@ -333,3 +333,47 @@ def send_bolao_winner_email(email: str, name: str, coupon_code: str, discount_va
     </div>
     """
     return send_email(email, subject, html)
+
+
+def send_scratchcard_coupon_email(email: str, coupon_code: str, reward_type: str, reward_value: float, expires_at: str):
+    """Envia o cupom da raspadinha de boas-vindas para o e-mail do usuário."""
+    if reward_type == "percentage":
+        reward_label = f"{reward_value:.0f}% de desconto"
+    elif reward_type == "fixed":
+        reward_label = f"R$ {reward_value:.2f} de desconto"
+    else:
+        reward_label = "Frete grátis"
+
+    subject = "🎁 Seu cupom de boas-vindas chegou! - ECOSOPIS"
+    html = f"""
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: auto; background: #ffffff; border: 1px solid #e8e8e8; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #4B8411; padding: 28px 32px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 1.4rem; font-weight: 700; letter-spacing: 1px;">ECOSOPIS</h1>
+            <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0; font-size: 0.8rem; letter-spacing: 2px;">COSMÉTICOS NATURAIS E VEGANOS</p>
+        </div>
+        <div style="padding: 32px;">
+            <h2 style="color: #1a1a1a; font-size: 1.25rem; margin: 0 0 12px;">Você ganhou um presente! 🎉</h2>
+            <p style="color: #555; line-height: 1.7; margin: 0 0 24px;">
+                Obrigada por se cadastrar na ECOSOPIS! Você raspou nossa raspadinha de boas-vindas e ganhou
+                <strong style="color: #4B8411;">{reward_label}</strong> para usar em sua compra.
+            </p>
+            <div style="background: #f7faf3; border: 2px dashed #4B8411; border-radius: 8px; padding: 24px; text-align: center; margin: 0 0 24px;">
+                <p style="color: #888; font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 8px;">Seu código exclusivo</p>
+                <div style="font-family: 'Courier New', monospace; font-size: 2rem; font-weight: 900; color: #4B8411; letter-spacing: 4px;">{coupon_code}</div>
+                <p style="color: #aaa; font-size: 0.78rem; margin: 10px 0 0;">Válido até: <strong style="color: #666;">{expires_at}</strong></p>
+            </div>
+            <p style="color: #777; font-size: 0.85rem; line-height: 1.6; margin: 0 0 24px;">
+                📌 <strong>Como usar:</strong> No carrinho, clique em "Inserir cupom" e cole o código acima. O desconto será aplicado automaticamente.
+            </p>
+            <div style="text-align: center;">
+                <a href="{FRONTEND_URL}/produtos" style="background-color: #4B8411; color: #ffffff; padding: 13px 32px; text-decoration: none; border-radius: 4px; font-weight: 700; font-size: 0.92rem; display: inline-block;">
+                    Usar meu desconto agora →
+                </a>
+            </div>
+        </div>
+        <div style="background: #f9f9f9; border-top: 1px solid #eee; padding: 16px 32px; text-align: center;">
+            <p style="color: #bbb; font-size: 0.73rem; margin: 0;">© ECOSOPIS · Cosméticos Naturais e Veganos · nao-responda@ecosopis.com.br</p>
+        </div>
+    </div>
+    """
+    return send_email(email, subject, html)
