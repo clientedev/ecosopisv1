@@ -341,7 +341,12 @@
 
 /* Print / PDF Mode */
 @media print {
-    :global(nav), :global(aside), .biControls, .biTabs, .pdfExportBtn {
+    .biControls, .biTabs, .pdfExportBtn {
+        display: none !important;
+    }
+
+    .metricsContainer :global(nav),
+    .metricsContainer :global(aside) {
         display: none !important;
     }
 
