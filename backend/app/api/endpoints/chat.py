@@ -48,6 +48,20 @@ def get_product_context(db: Session) -> str:
     )
     return context
 
+def detect_topic(msg: str) -> str:
+    msg_lower = msg.lower()
+    if any(w in msg_lower for w in ["acne", "espinha", "cravos", "oleosidade", "oleosa"]):
+        return "Acne & Oleosidade"
+    elif any(w in msg_lower for w in ["mancha", "clarear", "clareamento", "melasma", "açafrão"]):
+        return "Clareamento & Manchas"
+    elif any(w in msg_lower for w in ["seca", "hidratação", "ressecada", "pés", "manteiga"]):
+        return "Hidratação & Pele Seca"
+    elif any(w in msg_lower for w in ["óleo", "oleo", "alecrim", "cabelo", "ricino", "aroma"]):
+        return "Óleos & Cuidados Capilares"
+    elif any(w in msg_lower for w in ["sabonete", "íntimo", "barbatimão"]):
+        return "Higiene Natural & Sabonetes"
+    return "Dúvidas Gerais"
+
 @router.post("")
 def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
     try:
@@ -64,8 +78,25 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
             temperature=0.7,
         )
 
-        return {"response": response.choices[0].message.content}
+        bot_reply = response.choices[0].message.content
+        topic = detect_topic(request.message)
+
+        # Log interaction in DB
+        try:
+            interaction = models.LiaInteraction(
+                user_message=request.message,
+                bot_response=bot_reply,
+                topic=topic
+            )
+            db.add(interaction)
+            db.commit()
+        except Exception as log_err:
+            db.rollback()
+            print(f"Failed to log LIA interaction: {log_err}")
+
+        return {"response": bot_reply}
 
     except Exception as e:
         print(f"Groq Chat Error: {e}")
         return {"response": "Desculpe, tive um pequeno problema técnico. Tente novamente em instantes! 🌿"}
+

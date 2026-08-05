@@ -331,7 +331,20 @@ def _ensure_extra_tables():
     except Exception as e:
         logger.warning(f"scratch_rewards ensure: {e}")
 
+    # lia_interactions
+    try:
+        with engine.begin() as conn:
+            if is_sqlite:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS lia_interactions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users(id), user_message TEXT NOT NULL, bot_response TEXT, topic VARCHAR, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+            else:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS lia_interactions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), user_message TEXT NOT NULL, bot_response TEXT, topic VARCHAR, created_at TIMESTAMPTZ DEFAULT now())"))
+        logger.info("✓ lia_interactions table ensured.")
+    except Exception as e:
+        logger.warning(f"lia_interactions ensure: {e}")
+
     logger.info("Extra tables ensured successfully.")
+
+
 
 
 # Apply migrations on startup

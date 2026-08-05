@@ -485,3 +485,14 @@ class WorldCupGuess(Base):
     user = relationship("User")
 
 
+class LiaInteraction(Base):
+    __tablename__ = "lia_interactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_message = Column(Text, nullable=False)
+    bot_response = Column(Text, nullable=True)
+    topic = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")

@@ -1,0 +1,371 @@
+/* ── Metrics & BI Dashboard CSS Module ── */
+
+.metricsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    padding-bottom: 3rem;
+}
+
+/* Header & Controls */
+.biHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    padding: 1.75rem 2rem;
+    border-radius: 1.25rem;
+    color: white;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.biHeaderInfo h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0 0 0.35rem 0;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.biHeaderInfo p {
+    color: #94a3b8;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.biControls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.periodSelector {
+    display: flex;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.75rem;
+    padding: 0.25rem;
+    backdrop-filter: blur(8px);
+}
+
+.periodBtn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.825rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.periodBtn:hover {
+    color: white;
+}
+
+.periodBtnActive {
+    background: #10b981;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.pdfExportBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+    color: white;
+    border: none;
+    padding: 0.65rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35);
+}
+
+.pdfExportBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(236, 72, 153, 0.45);
+}
+
+/* Tabs Navigation */
+.biTabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+}
+
+.tabBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #64748b;
+    border-radius: 0.75rem 0.75rem 0 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    border-bottom: 3px solid transparent;
+}
+
+.tabBtn:hover {
+    color: #1e293b;
+    background: #f1f5f9;
+}
+
+.tabBtnActive {
+    color: #10b981 !important;
+    background: #f0fdf4 !important;
+    border-bottom-color: #10b981 !important;
+}
+
+/* KPI Grid */
+.kpiGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+}
+
+.kpiCard {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.35rem 1.5rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.kpiCard:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+}
+
+.kpiHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.kpiTitle {
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.kpiIcon {
+    width: 38px;
+    height: 38px;
+    border-radius: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kpiValue {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+.kpiTrend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.775rem;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    border-radius: 9999px;
+}
+
+.trendUp {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.trendNeutral {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+/* Charts & Section Layout */
+.chartGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .chartGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.chartCard {
+    background: white;
+    border-radius: 1.15rem;
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+}
+
+.chartCardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.chartCardTitle {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.chartCardSubtitle {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.chartBody {
+    width: 100%;
+    height: 300px;
+}
+
+/* Tables in BI */
+.biTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+}
+
+.biTable th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-size: 0.775rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.biTable td {
+    padding: 0.85rem 1rem;
+    font-size: 0.875rem;
+    color: #1e293b;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.biTable tr:hover {
+    background: #f8fafc;
+}
+
+/* Parametrization Panel */
+.paramPanel {
+    background: white;
+    border-radius: 1.25rem;
+    padding: 2rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.paramGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.paramCard {
+    background: #f8fafc;
+    padding: 1.25rem;
+    border-radius: 0.85rem;
+    border: 1px solid #cbd5e1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.paramCard label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.paramCard input {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.5rem;
+    border: 1px solid #cbd5e1;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+/* Print / PDF Mode */
+@media print {
+    :global(nav), :global(aside), .biControls, .biTabs, .pdfExportBtn {
+        display: none !important;
+    }
+
+    .metricsContainer {
+        padding: 0;
+        gap: 1rem;
+    }
+
+    .biHeader {
+        background: #0f172a !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color: white !important;
+        padding: 1.5rem !important;
+    }
+
+    .biHeaderInfo h1 {
+        -webkit-text-fill-color: white !important;
+        color: white !important;
+    }
+
+    .kpiCard, .chartCard {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+}
