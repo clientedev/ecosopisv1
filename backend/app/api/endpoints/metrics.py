@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, cast, Date
 from typing import List, Dict, Any
 from app.core.database import get_db
 from app.models import models
@@ -29,10 +29,6 @@ def log_click(click_log: schemas.ProductClickLog, db: Session = Depends(get_db))
 @router.get("/admin/bi-analytics")
 def get_bi_analytics(
     period: str = "30d",
-    shopee_offset: int = 5400,
-    site_revenue_offset: float = 14500.0,
-    visits_offset: int = 8900,
-    lia_chats_offset: int = 420,
     db: Session = Depends(get_db),
     current_admin: models.User = Depends(get_current_admin)
 ):
@@ -40,26 +36,31 @@ def get_bi_analytics(
 
     now = datetime.now(timezone.utc)
     if period == "7d":
-        start_date = now - timedelta(days=7)
+        days_count = 7
     elif period == "90d":
-        start_date = now - timedelta(days=90)
+        days_count = 90
     elif period == "all":
-        start_date = datetime(2020, 1, 1, tzinfo=timezone.utc)
-    else: # default 30d
-        start_date = now - timedelta(days=30)
+        days_count = 365
+    else:
+        days_count = 30
+
+    start_date = now - timedelta(days=days_count)
 
     # -------------------------------------------------------------
-    # 1. VISITS ANALYTICS
+    # 1. VISITS ANALYTICS — dados reais apenas
     # -------------------------------------------------------------
-    real_visits_count = db.query(models.SiteVisit).filter(models.SiteVisit.created_at >= start_date).count()
-    total_visits = real_visits_count + visits_offset
+    total_visits = db.query(models.SiteVisit).filter(
+        models.SiteVisit.created_at >= start_date
+    ).count()
 
     raw_paths = db.query(
         models.SiteVisit.path,
         func.count(models.SiteVisit.id)
-    ).filter(models.SiteVisit.created_at >= start_date).group_by(models.SiteVisit.path).all()
+    ).filter(
+        models.SiteVisit.created_at >= start_date
+    ).group_by(models.SiteVisit.path).all()
 
-    path_map = {}
+    path_map: Dict[str, int] = {}
     for path_name, count in raw_paths:
         clean_path = path_name or "/"
         if clean_path.startswith("/produto"):
@@ -76,32 +77,26 @@ def get_bi_analytics(
             clean_path = "Raspadinha Prêmios"
         path_map[clean_path] = path_map.get(clean_path, 0) + count
 
-    # Add default realistic distribution if empty
-    if not path_map:
-        path_map = {
-            "Página de Produtos": int(total_visits * 0.45),
-            "Home / Início": int(total_visits * 0.25),
-            "Quiz de Pele": int(total_visits * 0.12),
-            "LIA Consultora IA": int(total_visits * 0.10),
-            "Atacado": int(total_visits * 0.08)
-        }
-
     top_paths = [{"path": k, "visits": v} for k, v in sorted(path_map.items(), key=lambda x: x[1], reverse=True)[:6]]
 
-    # Visits timeline
-    days_count = 7 if period == "7d" else (90 if period == "90d" else 30)
+    # Timeline de visitas por dia — dados reais
+    visits_by_day_raw = db.query(
+        cast(models.SiteVisit.created_at, Date).label("day"),
+        func.count(models.SiteVisit.id).label("cnt")
+    ).filter(
+        models.SiteVisit.created_at >= start_date
+    ).group_by("day").order_by("day").all()
+
+    visits_by_day = {str(row.day): row.cnt for row in visits_by_day_raw}
     visits_timeline = []
-    base_daily_visit = total_visits / days_count
     for i in range(days_count - 1, -1, -1):
         dt = now - timedelta(days=i)
-        dt_str = dt.strftime("%d/%m")
-        # Pseudo-variance for smooth BI visual
-        variance = 1.0 + 0.15 * ((i % 5) - 2)
-        day_val = int(base_daily_visit * variance)
-        visits_timeline.append({"date": dt_str, "visits": day_val})
+        day_key = dt.strftime("%Y-%m-%d")
+        dt_label = dt.strftime("%d/%m")
+        visits_timeline.append({"date": dt_label, "visits": visits_by_day.get(day_key, 0)})
 
     # -------------------------------------------------------------
-    # 2. SHOPEE & CHANNELS ANALYTICS
+    # 2. PRODUCT CLICKS ANALYTICS — dados reais apenas
     # -------------------------------------------------------------
     clicks_raw = db.query(
         models.ProductClick.click_type,
@@ -109,139 +104,138 @@ def get_bi_analytics(
     ).filter(models.ProductClick.created_at >= start_date).group_by(models.ProductClick.click_type).all()
 
     clicks_by_type = {t: c for t, c in clicks_raw}
-    real_shopee_clicks = clicks_by_type.get("shopee", 0)
-    total_shopee_clicks = real_shopee_clicks + shopee_offset
-    total_site_clicks = clicks_by_type.get("site", 0) + int(total_visits * 0.22)
-    total_ml_clicks = clicks_by_type.get("mercadolivre", 0) + 980
+    total_shopee_clicks = clicks_by_type.get("shopee", 0)
+    total_site_clicks = clicks_by_type.get("site", 0)
+    total_ml_clicks = clicks_by_type.get("mercadolivre", 0)
 
     channel_distribution = [
         {"name": "Shopee", "value": total_shopee_clicks, "color": "#ee4d2d"},
-        {"name": "Loja Própria", "value": total_site_clicks, "color": "#4a7c59"},
-        {"name": "Mercado Livre", "value": total_ml_clicks, "color": "#ffe600"}
+        {"name": "Loja Própria (Comprar)", "value": total_site_clicks, "color": "#4a7c59"},
+        {"name": "Mercado Livre", "value": total_ml_clicks, "color": "#f59e0b"}
     ]
 
-    # Top Shopee Products
+    # Top produtos por cliques (shopee) — dados reais
     product_shopee_raw = db.query(
         models.Product.name,
         func.count(models.ProductClick.id).label("count")
-    ).outerjoin(models.ProductClick, models.Product.id == models.ProductClick.product_id)\
-     .filter(models.Product.is_active == True)\
+    ).join(models.ProductClick, models.Product.id == models.ProductClick.product_id)\
+     .filter(
+         models.ProductClick.click_type == "shopee",
+         models.ProductClick.created_at >= start_date
+     )\
      .group_by(models.Product.name)\
-     .all()
+     .order_by(func.count(models.ProductClick.id).desc())\
+     .limit(8).all()
 
-    product_clicks = {name: count for name, count in product_shopee_raw}
-    product_clicks["Sabonete de Açafrão & Dolomita"] = product_clicks.get("Sabonete de Açafrão & Dolomita", 0) + 3500
-    product_clicks["Óleo de Rosa Mosqueta Rubiginosa 100% Puro"] = product_clicks.get("Óleo de Rosa Mosqueta Rubiginosa 100% Puro", 0) + 1100
-    product_clicks["Sabonete de Rosa Mosqueta & Argila Rosa"] = product_clicks.get("Sabonete de Rosa Mosqueta & Argila Rosa", 0) + 800
-    product_clicks["Kit Clareamento de Manchas"] = product_clicks.get("Kit Clareamento de Manchas", 0) + 650
-    product_clicks["Desodorante Clareador Sólido"] = product_clicks.get("Desodorante Clareador Sólido", 0) + 420
+    top_shopee_products = [{"name": name, "clicks": count} for name, count in product_shopee_raw]
 
-    sorted_shopee = sorted(product_clicks.items(), key=lambda x: x[1], reverse=True)[:8]
-    top_shopee_products = [{"name": name, "clicks": count} for name, count in sorted_shopee]
+    # Timeline de cliques shopee e site por dia — dados reais
+    shopee_by_day_raw = db.query(
+        cast(models.ProductClick.created_at, Date).label("day"),
+        models.ProductClick.click_type,
+        func.count(models.ProductClick.id).label("cnt")
+    ).filter(
+        models.ProductClick.created_at >= start_date
+    ).group_by("day", models.ProductClick.click_type).order_by("day").all()
 
-    # Shopee Timeline
+    shopee_day: Dict[str, int] = {}
+    site_day: Dict[str, int] = {}
+    for row in shopee_by_day_raw:
+        day_key = str(row.day)
+        if row.click_type == "shopee":
+            shopee_day[day_key] = shopee_day.get(day_key, 0) + row.cnt
+        elif row.click_type == "site":
+            site_day[day_key] = site_day.get(day_key, 0) + row.cnt
+
     clicks_timeline = []
-    base_shopee_daily = total_shopee_clicks / days_count
-    base_site_daily = total_site_clicks / days_count
     for i in range(days_count - 1, -1, -1):
         dt = now - timedelta(days=i)
-        dt_str = dt.strftime("%d/%m")
-        shopee_val = int(base_shopee_daily * (1.0 + 0.12 * ((i % 4) - 2)))
-        site_val = int(base_site_daily * (1.0 + 0.18 * (((i+1) % 5) - 2)))
-        clicks_timeline.append({"date": dt_str, "shopee": shopee_val, "site": site_val})
+        day_key = dt.strftime("%Y-%m-%d")
+        dt_label = dt.strftime("%d/%m")
+        clicks_timeline.append({
+            "date": dt_label,
+            "shopee": shopee_day.get(day_key, 0),
+            "site": site_day.get(day_key, 0)
+        })
 
     # -------------------------------------------------------------
-    # 3. SITE SALES & REVENUE ANALYTICS
+    # 3. SITE BUY CLICKS — dados reais apenas
     # -------------------------------------------------------------
-    orders = db.query(models.Order).filter(models.Order.created_at >= start_date).all()
-    real_revenue = sum(o.total or 0.0 for o in orders if o.status in ["paid", "shipped", "delivered"])
-    real_orders_count = len(orders)
+    top_site_raw = db.query(
+        models.Product.name,
+        func.count(models.ProductClick.id).label("count")
+    ).join(models.ProductClick, models.Product.id == models.ProductClick.product_id)\
+     .filter(
+         models.ProductClick.click_type == "site",
+         models.ProductClick.created_at >= start_date
+     )\
+     .group_by(models.Product.name)\
+     .order_by(func.count(models.ProductClick.id).desc())\
+     .limit(8).all()
 
-    total_revenue = real_revenue + site_revenue_offset
-    total_orders = real_orders_count + int(site_revenue_offset / 78.50)
-    avg_ticket = round(total_revenue / max(1, total_orders), 2)
+    top_site_clicked = [{"name": name, "clicks": count} for name, count in top_site_raw]
 
-    paid_orders = len([o for o in orders if o.status in ["paid", "shipped", "delivered"]]) + int(total_orders * 0.88)
-    pending_orders = max(0, total_orders - paid_orders)
-
-    revenue_by_status = [
-        {"name": "Aprovado / Pago", "value": paid_orders, "color": "#10b981"},
-        {"name": "Pendente / Processando", "value": pending_orders, "color": "#f59e0b"}
-    ]
-
-    revenue_timeline = []
-    daily_rev_base = total_revenue / days_count
-    daily_ord_base = total_orders / days_count
-    for i in range(days_count - 1, -1, -1):
-        dt = now - timedelta(days=i)
-        dt_str = dt.strftime("%d/%m")
-        rev_val = round(daily_rev_base * (1.0 + 0.22 * ((i % 3) - 1)), 2)
-        ord_val = max(1, int(daily_ord_base * (1.0 + 0.20 * ((i % 3) - 1))))
-        revenue_timeline.append({"date": dt_str, "revenue": rev_val, "orders": ord_val})
-
-    # Top selling products on site
-    top_selling_site = [
-        {"name": "Sabonete de Açafrão & Dolomita", "sales": int(total_orders * 0.32), "revenue": round(total_revenue * 0.30, 2)},
-        {"name": "Kit Clareamento de Manchas", "sales": int(total_orders * 0.20), "revenue": round(total_revenue * 0.28, 2)},
-        {"name": "Óleo de Rosa Mosqueta Rubiginosa 100% Puro", "sales": int(total_orders * 0.18), "revenue": round(total_revenue * 0.18, 2)},
-        {"name": "Creme Para Oleosidade & Acne", "sales": int(total_orders * 0.15), "revenue": round(total_revenue * 0.14, 2)},
-        {"name": "Desodorante Clareador Sólido", "sales": int(total_orders * 0.10), "revenue": round(total_revenue * 0.10, 2)},
-    ]
+    buy_clicks_timeline = [{"date": item["date"], "clicks": item["site"]} for item in clicks_timeline]
 
     # -------------------------------------------------------------
-    # 4. LIA AI INTERACTIONS ANALYTICS
+    # 4. LIA AI INTERACTIONS — dados reais apenas
     # -------------------------------------------------------------
-    real_lia_count = db.query(models.LiaInteraction).filter(models.LiaInteraction.created_at >= start_date).count()
-    total_lia_interactions = real_lia_count + lia_chats_offset
+    total_lia_interactions = db.query(models.LiaInteraction).filter(
+        models.LiaInteraction.created_at >= start_date
+    ).count()
 
     lia_topics_raw = db.query(
         models.LiaInteraction.topic,
         func.count(models.LiaInteraction.id)
-    ).filter(models.LiaInteraction.created_at >= start_date).group_by(models.LiaInteraction.topic).all()
+    ).filter(
+        models.LiaInteraction.created_at >= start_date,
+        models.LiaInteraction.topic != None
+    ).group_by(models.LiaInteraction.topic).order_by(func.count(models.LiaInteraction.id).desc()).all()
 
-    topics_dict = {t: c for t, c in lia_topics_raw if t}
-    # Seed realistic topics breakdown if low volume
-    topics_dict["Clareamento & Manchas"] = topics_dict.get("Clareamento & Manchas", 0) + int(total_lia_interactions * 0.38)
-    topics_dict["Acne & Oleosidade"] = topics_dict.get("Acne & Oleosidade", 0) + int(total_lia_interactions * 0.28)
-    topics_dict["Hidratação & Pele Seca"] = topics_dict.get("Hidratação & Pele Seca", 0) + int(total_lia_interactions * 0.16)
-    topics_dict["Óleos & Cuidados Capilares"] = topics_dict.get("Óleos & Cuidados Capilares", 0) + int(total_lia_interactions * 0.10)
-    topics_dict["Dúvidas Gerais"] = topics_dict.get("Dúvidas Gerais", 0) + int(total_lia_interactions * 0.08)
+    topics_breakdown = [{"topic": t or "Geral", "count": c} for t, c in lia_topics_raw]
 
-    topics_breakdown = [{"topic": k, "count": v} for k, v in sorted(topics_dict.items(), key=lambda x: x[1], reverse=True)]
+    # Perguntas mais recentes reais
+    recent_interactions_db = db.query(models.LiaInteraction)\
+        .filter(models.LiaInteraction.created_at >= start_date)\
+        .order_by(models.LiaInteraction.created_at.desc())\
+        .limit(10).all()
 
-    recent_interactions_db = db.query(models.LiaInteraction).order_by(models.LiaInteraction.created_at.desc()).limit(5).all()
-    recent_queries = [{"message": item.user_message, "topic": item.topic or "Geral", "date": item.created_at.strftime("%d/%m %H:%M") if item.created_at else "Hoje"} for item in recent_interactions_db]
+    recent_queries = [
+        {
+            "message": item.user_message,
+            "topic": item.topic or "Geral",
+            "date": item.created_at.strftime("%d/%m %H:%M") if item.created_at else ""
+        }
+        for item in recent_interactions_db
+    ]
 
-    if not recent_queries:
-        recent_queries = [
-            {"message": "Qual é o melhor sabonete para tratar foliculite e manchas?", "topic": "Clareamento & Manchas", "date": "Hoje 10:14"},
-            {"message": "Como aplicar o óleo de rosa mosqueta na rotina noturna?", "topic": "Óleos & Cuidados Capilares", "date": "Hoje 09:42"},
-            {"message": "Quais produtos são indicados para acne severa?", "topic": "Acne & Oleosidade", "date": "Ontem 18:30"},
-            {"message": "O desodorante natural escurece as axilas?", "topic": "Higiene Natural", "date": "Ontem 15:12"},
-            {"message": "Vocês possuem kits promocionais no atacado?", "topic": "Dúvidas Gerais", "date": "Ontem 11:05"}
-        ]
+    # Timeline de chats LIA por dia — dados reais
+    lia_by_day_raw = db.query(
+        cast(models.LiaInteraction.created_at, Date).label("day"),
+        func.count(models.LiaInteraction.id).label("cnt")
+    ).filter(
+        models.LiaInteraction.created_at >= start_date
+    ).group_by("day").order_by("day").all()
 
+    lia_by_day = {str(row.day): row.cnt for row in lia_by_day_raw}
     lia_timeline = []
-    base_lia_daily = total_lia_interactions / days_count
     for i in range(days_count - 1, -1, -1):
         dt = now - timedelta(days=i)
-        dt_str = dt.strftime("%d/%m")
-        chats_val = int(base_lia_daily * (1.0 + 0.25 * ((i % 4) - 2)))
-        lia_timeline.append({"date": dt_str, "chats": chats_val})
+        day_key = dt.strftime("%Y-%m-%d")
+        dt_label = dt.strftime("%d/%m")
+        lia_timeline.append({"date": dt_label, "chats": lia_by_day.get(day_key, 0)})
 
-    # Conversion rate calculation
-    conversion_rate = round((total_orders / max(1, total_visits)) * 100, 2)
+    # CTR real
+    ctr = round((total_site_clicks / max(1, total_visits)) * 100, 2) if total_visits > 0 else 0.0
 
     return {
         "period": period,
         "summary_kpis": {
-            "total_revenue": total_revenue,
-            "total_orders": total_orders,
+            "total_site_clicks": total_site_clicks,
             "shopee_clicks": total_shopee_clicks,
             "site_visits": total_visits,
             "lia_interactions": total_lia_interactions,
-            "average_order_value": avg_ticket,
-            "conversion_rate": conversion_rate
+            "click_through_rate": ctr
         },
         "shopee_analytics": {
             "total_shopee_clicks": total_shopee_clicks,
@@ -249,12 +243,10 @@ def get_bi_analytics(
             "channel_distribution": channel_distribution,
             "clicks_timeline": clicks_timeline
         },
-        "sales_analytics": {
-            "total_revenue": total_revenue,
-            "total_orders": total_orders,
-            "revenue_by_status": revenue_by_status,
-            "top_selling_site": top_selling_site,
-            "revenue_timeline": revenue_timeline
+        "site_clicks_analytics": {
+            "total_site_clicks": total_site_clicks,
+            "top_site_clicked": top_site_clicked,
+            "buy_clicks_timeline": buy_clicks_timeline
         },
         "visits_analytics": {
             "total_visits": total_visits,
@@ -266,12 +258,5 @@ def get_bi_analytics(
             "topics_breakdown": topics_breakdown,
             "recent_queries": recent_queries,
             "lia_timeline": lia_timeline
-        },
-        "parametrization": {
-            "shopee_offset": shopee_offset,
-            "site_revenue_offset": site_revenue_offset,
-            "visits_offset": visits_offset,
-            "lia_chats_offset": lia_chats_offset
         }
     }
-
