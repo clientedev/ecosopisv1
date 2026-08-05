@@ -478,7 +478,7 @@ export default function AdminMetricsPage() {
                                                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8b5cf6' }}>{q.topic}</span>
                                                 <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{q.date}</span>
                                             </div>
-                                            <p style={{ margin: 0, fontSize: '0.875rem', color: '#1e293b' }}>"{q.message}"</p>
+                                            <p style={{ margin: 0, fontSize: '0.875rem', color: '#1e293b' }}>&quot;{q.message}&quot;</p>
                                         </div>
                                     ))}
                                 </div>
