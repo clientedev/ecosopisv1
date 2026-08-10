@@ -10,6 +10,36 @@ import { useToast } from "@/components/Toast/Toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+const BRAZILIAN_STATES = [
+    { code: "AC", name: "Acre" },
+    { code: "AL", name: "Alagoas" },
+    { code: "AP", name: "Amapá" },
+    { code: "AM", name: "Amazonas" },
+    { code: "BA", name: "Bahia" },
+    { code: "CE", name: "Ceará" },
+    { code: "DF", name: "Distrito Federal" },
+    { code: "ES", name: "Espírito Santo" },
+    { code: "GO", name: "Goiás" },
+    { code: "MA", name: "Maranhão" },
+    { code: "MT", name: "Mato Grosso" },
+    { code: "MS", name: "Mato Grosso do Sul" },
+    { code: "MG", name: "Minas Gerais" },
+    { code: "PA", name: "Pará" },
+    { code: "PB", name: "Paraíba" },
+    { code: "PR", name: "Paraná" },
+    { code: "PE", name: "Pernambuco" },
+    { code: "PI", name: "Piauí" },
+    { code: "RJ", name: "Rio de Janeiro" },
+    { code: "RN", name: "Rio Grande do Norte" },
+    { code: "RS", name: "Rio Grande do Sul" },
+    { code: "RO", name: "Rondônia" },
+    { code: "RR", name: "Roraima" },
+    { code: "SC", name: "Santa Catarina" },
+    { code: "SP", name: "São Paulo" },
+    { code: "SE", name: "Sergipe" },
+    { code: "TO", name: "Tocantins" }
+];
+
 import { useAuth } from "@/context/AuthContext";
 
 export default function CarrinhoPage() {
@@ -321,20 +351,26 @@ export default function CarrinhoPage() {
             const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
             const data = await res.json();
             if (!data.erro) {
-                setAddress({
-                    ...address,
-                    street: data.logradouro,
-                    neighborhood: data.bairro,
-                    city: data.localidade,
-                    state: data.uf
-                });
-            } else {
-                alert("CEP não encontrado.");
+                setAddress((prev: any) => ({
+                    ...prev,
+                    street: data.logradouro || prev.street,
+                    neighborhood: data.bairro || prev.neighborhood,
+                    city: data.localidade || prev.city,
+                    state: data.uf ? data.uf.toUpperCase() : prev.state
+                }));
             }
         } catch (error) {
             console.error("CEP lookup error", error);
         }
     };
+
+    // Auto lookup address from ViaCEP as soon as CEP has 8 digits
+    useEffect(() => {
+        const cleanCep = cep.replace(/\D/g, "");
+        if (cleanCep.length === 8) {
+            handleCepLookup();
+        }
+    }, [cep]);
 
     const handleSaveAddress = async () => {
         const cleanCep = cep.replace(/\D/g, "");
@@ -468,8 +504,8 @@ export default function CarrinhoPage() {
         }
 
         const stateVal = address.state.trim().toUpperCase();
-        if (stateVal.length !== 2) {
-            alert("⚠️ O campo Estado/UF deve conter exatamente 2 letras (ex: SP, MG, RJ).");
+        if (!stateVal || stateVal.length !== 2) {
+            alert("⚠️ Selecione o Estado (UF) de entrega.");
             return;
         }
         
@@ -956,16 +992,19 @@ export default function CarrinhoPage() {
                                                     onChange={(e) => setAddress({ ...address, city: e.target.value })}
                                                 />
                                             </div>
-                                            <div className={styles.mobileInputGroup} style={{ flex: 1 }}>
+                                            <div className={styles.mobileInputGroup} style={{ flex: 1, minWidth: '110px' }}>
                                                 <label className={styles.mobileLabel}>Estado (UF)</label>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Ex: SP" 
+                                                <select 
                                                     className={styles.mobileInputField} 
+                                                    style={{ backgroundColor: '#fff', cursor: 'pointer' }}
                                                     value={address.state} 
-                                                    onChange={(e) => setAddress({ ...address, state: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') })}
-                                                    maxLength={2}
-                                                />
+                                                    onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                                                >
+                                                    <option value="">UF</option>
+                                                    {BRAZILIAN_STATES.map(s => (
+                                                        <option key={s.code} value={s.code}>{s.code}</option>
+                                                    ))}
+                                                </select>
                                             </div>
                                         </div>
                                         {token && (
@@ -1385,17 +1424,20 @@ export default function CarrinhoPage() {
                                             </div>
                                             <div className={styles.inputRow}>
                                                 <input type="text" placeholder="Bairro" className={styles.inputField} value={address.neighborhood} onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })} />
+                                            </div>
+                                            <div className={styles.inputRow}>
                                                 <input type="text" placeholder="Cidade" className={styles.inputField} style={{ flex: 2 }} value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} />
-                                                <input
-                                                    type="text"
-                                                    placeholder="UF (ex: SP)"
-                                                    title="Estado com 2 letras, ex: SP, MG, RJ"
+                                                <select
                                                     className={styles.inputField}
-                                                    style={{ flex: 1, minWidth: '90px' }}
+                                                    style={{ flex: 1, minWidth: '150px', backgroundColor: '#fff', cursor: 'pointer' }}
                                                     value={address.state}
-                                                    onChange={(e) => setAddress({ ...address, state: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') })}
-                                                    maxLength={2}
-                                                />
+                                                    onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                                                >
+                                                    <option value="">Selecione o Estado (UF)</option>
+                                                    {BRAZILIAN_STATES.map(s => (
+                                                        <option key={s.code} value={s.code}>{s.code} - {s.name}</option>
+                                                    ))}
+                                                </select>
                                             </div>
                                             {token && (
                                                 <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
