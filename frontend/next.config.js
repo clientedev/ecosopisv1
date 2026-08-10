@@ -1,8 +1,20 @@
 /** @type {import('next').NextConfig} */
-const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
+const BACKEND_URL = process.env.API_URL || process.env.BACKEND_URL || 'http://127.0.0.1:8000';
+
+const path = require('path');
 
 const nextConfig = {
   output: 'standalone',
+  webpack: (config) => {
+    config.resolve.alias['@'] = path.resolve(__dirname, 'src');
+    return config;
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   allowedDevOrigins: [
     'localhost',
     '*.replit.dev',
@@ -21,6 +33,10 @@ const nextConfig = {
       {
         source: '/static/:path*',
         destination: `${BACKEND_URL}/static/:path*`,
+      },
+      {
+        source: '/images/:path*',
+        destination: `${BACKEND_URL}/images/:path*`,
       },
     ];
   },

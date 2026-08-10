@@ -137,8 +137,13 @@ export default function AdminSidebar({ activePath }: AdminSidebarProps) {
     const sidebarContent = (
         <>
             <div className={styles.logo}>
-                <div className={styles.logoCircle}>ES</div>
-                <span>ECOSOPIS</span>
+                <Link href="/admin/dashboard" className={styles.logoLink}>
+                    <img
+                        src="/logo_nova_transparent.png"
+                        alt="ECOSOPIS Naturais"
+                        className={styles.logoImg}
+                    />
+                </Link>
                 {/* Close button inside drawer on mobile */}
                 <button
                     className={styles.mobileCloseBtn}
@@ -226,8 +231,13 @@ export default function AdminSidebar({ activePath }: AdminSidebarProps) {
                     <Menu size={22} />
                 </button>
                 <div className={styles.mobileLogoSmall}>
-                    <div className={styles.logoCircleSmall}>ES</div>
-                    <span>ECOSOPIS</span>
+                    <Link href="/admin/dashboard" className={styles.logoLink}>
+                        <img
+                            src="/logo_nova_transparent.png"
+                            alt="ECOSOPIS Naturais"
+                            className={styles.logoImgMobile}
+                        />
+                    </Link>
                 </div>
                 <button onClick={handleLogout} className={styles.mobileLogoutBtn} aria-label="Sair">
                     <LogOut size={18} />

@@ -22,7 +22,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         cta_primary_link: item?.cta_primary_link || "",
         cta_secondary_text: item?.cta_secondary_text || "",
         cta_secondary_link: item?.cta_secondary_link || "",
-        cta_primary_bg_color: item?.cta_primary_bg_color || "#f59e0b",
+        cta_primary_bg_color: item?.cta_primary_bg_color || "#2e5a27",
         cta_primary_color: item?.cta_primary_color || "#ffffff",
         cta_secondary_bg_color: item?.cta_secondary_bg_color || "rgba(255,255,255,0.1)",
         cta_secondary_color: item?.cta_secondary_color || "#ffffff",

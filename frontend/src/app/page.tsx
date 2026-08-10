@@ -389,6 +389,10 @@ export default function Home() {
                             image_fit: item.image_fit || "cover",
                             ctaPrimary: item.cta_primary_text && item.cta_primary_text !== "-" ? { text: item.cta_primary_text, link: item.cta_primary_link || "/produtos" } : null,
                             ctaSecondary: item.cta_secondary_text && item.cta_secondary_text !== "-" ? { text: item.cta_secondary_text, link: item.cta_secondary_link || "/quizz" } : null,
+                            cta_primary_bg_color: item.cta_primary_bg_color,
+                            cta_primary_color: item.cta_primary_color,
+                            cta_secondary_bg_color: item.cta_secondary_bg_color,
+                            cta_secondary_color: item.cta_secondary_color,
                             show_content: item.show_content !== false,
                             };
                           });
