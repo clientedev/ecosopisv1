@@ -77,11 +77,11 @@ export default function CarrinhoPage() {
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [savingAddress, setSavingAddress] = useState(false);
 
-    // Initialize data from logged in user
+    // Initialize data from logged in user — always pre-fill as soon as user is available
     useEffect(() => {
         if (user) {
-            if (!customerName && (step === "checkout" || mobileStep !== "cart")) setCustomerName(user.full_name || "");
-            if (!customerPhone && (step === "checkout" || mobileStep !== "cart")) setCustomerPhone(user.phone || "");
+            if (!customerName) setCustomerName(user.full_name || "");
+            if (!customerPhone) setCustomerPhone(user.phone || "");
             
             // Auto select default address if available
             if (user.addresses && user.addresses.length > 0 && !cep) {
@@ -95,12 +95,12 @@ export default function CarrinhoPage() {
                     city: defaultAddr.city,
                     state: defaultAddr.state
                 });
-                if (step === "checkout" || mobileStep !== "cart") setShowAddressForm(false);
+                setShowAddressForm(false);
             } else if (!user.addresses || user.addresses.length === 0) {
-                if (step === "checkout" || mobileStep !== "cart") setShowAddressForm(true);
+                setShowAddressForm(true);
             }
         }
-    }, [user, step, mobileStep]);
+    }, [user]);
 
     // Payment/Coupon states
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
@@ -448,12 +448,15 @@ export default function CarrinhoPage() {
     })();
 
     const handleCheckout = async () => {
-        if (!customerName || !cep) {
+        const nameToUse = customerName.trim() || (user?.full_name?.trim() ?? "");
+        const cepToUse = cep.trim();
+
+        if (!nameToUse || !cepToUse) {
             alert("⚠️ Preencha seu nome e CEP.");
             return;
         }
 
-        const cleanCep = cep.replace(/\D/g, "");
+        const cleanCep = cepToUse.replace(/\D/g, "");
         if (cleanCep.length !== 8) {
             alert("⚠️ Digite um CEP válido com 8 dígitos.");
             return;
@@ -464,7 +467,8 @@ export default function CarrinhoPage() {
             return;
         }
 
-        if (address.state.trim().length !== 2) {
+        const stateVal = address.state.trim().toUpperCase();
+        if (stateVal.length !== 2) {
             alert("⚠️ O campo Estado/UF deve conter exatamente 2 letras (ex: SP, MG, RJ).");
             return;
         }
@@ -501,7 +505,7 @@ export default function CarrinhoPage() {
                     total: finalTotal,
                     shipping_price: shippingPrice,
                     shipping_method: selectedShipping?.name || "Melhor Envio",
-                    customer_name: customerName,
+                    customer_name: customerName.trim() || (user?.full_name?.trim() ?? ""),
                     customer_phone: customerPhone,
                     customer_cpf: customerCpf.replace(/\D/g, ""),
                     address: {
@@ -953,13 +957,14 @@ export default function CarrinhoPage() {
                                                 />
                                             </div>
                                             <div className={styles.mobileInputGroup} style={{ flex: 1 }}>
-                                                <label className={styles.mobileLabel}>Estado</label>
+                                                <label className={styles.mobileLabel}>Estado (UF)</label>
                                                 <input 
                                                     type="text" 
-                                                    placeholder="UF" 
+                                                    placeholder="Ex: SP" 
                                                     className={styles.mobileInputField} 
                                                     value={address.state} 
-                                                    onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                                                    onChange={(e) => setAddress({ ...address, state: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') })}
+                                                    maxLength={2}
                                                 />
                                             </div>
                                         </div>
@@ -1381,7 +1386,16 @@ export default function CarrinhoPage() {
                                             <div className={styles.inputRow}>
                                                 <input type="text" placeholder="Bairro" className={styles.inputField} value={address.neighborhood} onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })} />
                                                 <input type="text" placeholder="Cidade" className={styles.inputField} style={{ flex: 2 }} value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} />
-                                                <input type="text" placeholder="UF" className={styles.inputField} style={{ flex: 1 }} value={address.state} onChange={(e) => setAddress({ ...address, state: e.target.value.toUpperCase() })} maxLength={2} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="UF (ex: SP)"
+                                                    title="Estado com 2 letras, ex: SP, MG, RJ"
+                                                    className={styles.inputField}
+                                                    style={{ flex: 1, minWidth: '90px' }}
+                                                    value={address.state}
+                                                    onChange={(e) => setAddress({ ...address, state: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') })}
+                                                    maxLength={2}
+                                                />
                                             </div>
                                             {token && (
                                                 <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
