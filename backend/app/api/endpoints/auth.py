@@ -31,7 +31,6 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
         full_name=user_in.full_name,
         phone=user_in.phone,
         role="client",
-        scratch_used=False,
         is_verified=False,
         verification_token=verification_token
     )

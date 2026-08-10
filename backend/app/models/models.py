@@ -82,6 +82,15 @@ class User(Base):
             last = last.replace(tzinfo=timezone.utc)
         return last.year == now.year and last.month == now.month
 
+    @scratch_used.setter
+    def scratch_used(self, value: bool):
+        """Setter retrocompatível: se True, define a data atual para scratch_last_used_at; se False, reseta para None."""
+        if value:
+            from datetime import datetime, timezone
+            self.scratch_last_used_at = datetime.now(timezone.utc)
+        else:
+            self.scratch_last_used_at = None
+
     orders = relationship("Order", back_populates="user")
     scratch_reward = relationship("ScratchReward", foreign_keys=[scratch_reward_id])
     addresses = relationship("Address", back_populates="user", cascade="all, delete-orphan")
