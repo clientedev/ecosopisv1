@@ -26,27 +26,40 @@
 .logo {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0.25rem 0.5rem;
+    justify-content: center;
+    padding: 0.5rem 0;
     margin-bottom: 2rem;
+    position: relative;
+    width: 100%;
 }
 
 .logoLink {
     display: flex;
     align-items: center;
+    justify-content: center;
     text-decoration: none;
+    width: 100%;
 }
 
 .logoImg {
-    height: 48px;
+    height: 72px;
     width: auto;
-    max-width: 210px;
+    max-width: 250px;
     object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.logoImg:hover {
+    transform: scale(1.03);
 }
 
 /* Mobile close button — hidden on desktop */
 .mobileCloseBtn {
     display: none;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
     background: #F0E9DC;
     border: 1px solid #E5DDD0;
     color: #4A433A;
@@ -215,12 +228,14 @@
 .mobileLogoSmall {
     display: flex;
     align-items: center;
+    justify-content: center;
+    flex: 1;
 }
 
 .logoImgMobile {
-    height: 36px;
+    height: 44px;
     width: auto;
-    max-width: 170px;
+    max-width: 200px;
     object-fit: contain;
 }
 

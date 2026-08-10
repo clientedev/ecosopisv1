@@ -17,7 +17,7 @@ interface CartItem {
 
 interface CartContextType {
     cart: CartItem[];
-    addToCart: (product: any) => void;
+    addToCart: (product: any, quantity?: number) => void;
     addWholesaleBundleToCart: (items: any[]) => void;
     removeFromCart: (id: number) => void;
     updateQuantity: (id: number, delta: number) => void;
@@ -99,17 +99,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [cart, token, isInitialized]);
 
-    const addToCart = useCallback((product: any) => {
+    const addToCart = useCallback((product: any, quantityToAdd: number = 1) => {
+        const qty = Math.max(1, quantityToAdd);
         setCart((prev) => {
             const existingItem = prev.find((item) => item.id === product.id && !item.isWholesale);
             if (existingItem) {
-                showToast(`${product.name}: quantidade atualizada!`, 'success');
+                showToast(`${product.name}: +${qty} no carrinho!`, 'success');
                 return prev.map((item) =>
-                    (item.id === product.id && !item.isWholesale) ? { ...item, quantity: item.quantity + 1 } : item
+                    (item.id === product.id && !item.isWholesale) ? { ...item, quantity: item.quantity + qty } : item
                 );
             }
-            showToast(`${product.name} adicionado ao carrinho!`, 'success');
-            return [...prev, { ...product, quantity: 1, isWholesale: false }];
+            showToast(`${product.name} (${qty}x) adicionado ao carrinho!`, 'success');
+            return [...prev, { ...product, quantity: qty, isWholesale: false }];
         });
     }, [showToast]);
 

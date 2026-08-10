@@ -6,7 +6,7 @@ import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
 import styles from "./page.module.css";
 import Image from "next/image";
-import { QrCode, Download } from "lucide-react";
+import { QrCode, Download, Plus, Minus, ShoppingBag } from "lucide-react";
 import { useToast } from "@/components/Toast/Toast";
 import { useCart } from "@/context/CartContext";
 import { getStaticProductData } from "@/lib/productData";
@@ -23,6 +23,15 @@ export default function ProductDetailPage() {
     const [approvedReviews, setApprovedReviews] = useState<any[]>([]);
     const [buyingNow, setBuyingNow] = useState(false);
     const [paymentError, setPaymentError] = useState("");
+    const [quantity, setQuantity] = useState(1);
+
+    const handleDecrement = () => {
+        setQuantity(prev => Math.max(1, prev - 1));
+    };
+
+    const handleIncrement = () => {
+        setQuantity(prev => Math.min(99, prev + 1));
+    };
 
     const faqs = [
         { q: "Qual o prazo de entrega?", a: "O prazo médio de entrega é de 5 a 10 dias úteis, dependendo da sua região." },
@@ -143,7 +152,7 @@ export default function ProductDetailPage() {
             image_url: product.image_url
         };
         
-        addToCart(cartItem);
+        addToCart(cartItem, quantity);
         logClick("site");
     };
 
@@ -164,7 +173,7 @@ export default function ProductDetailPage() {
             image_url: product.image_url
         };
 
-        addToCart(cartItem);
+        addToCart(cartItem, quantity);
         logClick("site");
         router.push("/carrinho");
     };
@@ -308,14 +317,41 @@ export default function ProductDetailPage() {
                         <div className={styles.buyActions}>
                             {product.buy_on_site && (
                                 <>
+                                    <div className={styles.quantityAndAddContainer}>
+                                        <div className={styles.quantitySelector}>
+                                            <button 
+                                                type="button"
+                                                className={styles.quantityBtn} 
+                                                onClick={handleDecrement}
+                                                disabled={quantity <= 1}
+                                                aria-label="Diminuir quantidade"
+                                            >
+                                                <Minus size={16} />
+                                            </button>
+                                            <span className={styles.quantityValue}>{quantity}</span>
+                                            <button 
+                                                type="button"
+                                                className={styles.quantityBtn} 
+                                                onClick={handleIncrement}
+                                                aria-label="Aumentar quantidade"
+                                            >
+                                                <Plus size={16} />
+                                            </button>
+                                        </div>
+
+                                        <button className={styles.addToCartBtn} onClick={handleAddToCart}>
+                                            <ShoppingBag size={20} />
+                                            <span>ADICIONAR AO CARRINHO</span>
+                                        </button>
+                                    </div>
+
                                     <button
                                         className={styles.buyNowBtn}
                                         onClick={handleBuyNow}
                                         disabled={buyingNow}
                                     >
-                                        {buyingNow ? '⏳ Redirecionando...' : 'COMPRAR AGORA'}
+                                        {buyingNow ? '⏳ Redirecionando...' : '⚡ COMPRAR AGORA'}
                                     </button>
-                                    <button className={styles.addToCartBtn} onClick={handleAddToCart}>ADICIONAR AO CARRINHO</button>
                                 </>
                             )}
 
