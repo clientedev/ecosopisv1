@@ -190,13 +190,6 @@ export default function ProductTechnicalPage() {
             delay: "0.3s",
             featured: true
         },
-        {
-            icon: <FlaskConical size={24} />,
-            title: "Composição",
-            content: details?.composicao,
-            delay: "0.35s",
-            featured: true
-        },
     ];
 
     const secondaryCards = [
@@ -327,6 +320,28 @@ export default function ProductTechnicalPage() {
                             </div>
                         ))}
                     </div>
+
+                    {details?.composicao && (
+                        <div className={styles.compositionCard} style={{ animationDelay: "0.35s" }}>
+                            <div className={styles.compositionHeader}>
+                                <div className={styles.compositionIconWrap}>
+                                    <FlaskConical size={22} />
+                                </div>
+                                <div className={styles.compositionTitleWrap}>
+                                    <div className={styles.compositionTitleRow}>
+                                        <h3 className={styles.compositionTitle}>Composição Completa</h3>
+                                        <span className={styles.compositionBadge}>Fórmula INCI</span>
+                                    </div>
+                                    <p className={styles.compositionSubtitle}>
+                                        Fórmula 100% declarada com ingredientes naturais, minerais e ativos botânicos.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className={styles.compositionContent}>
+                                <p className={styles.compositionText}>{details.composicao}</p>
+                            </div>
+                        </div>
+                    )}
 
                     <div className={styles.sectionDivider}>
                         <span></span>

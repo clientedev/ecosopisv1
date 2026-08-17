@@ -271,9 +271,101 @@
 
 .primaryGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 24px;
-    margin-bottom: 60px;
+    margin-bottom: 24px;
+}
+
+/* ── COMPOSITION HORIZONTAL CARD ── */
+.compositionCard {
+    background: linear-gradient(135deg, #ffffff 0%, #f6f9f5 100%);
+    border: 1px solid rgba(45, 90, 39, 0.18);
+    border-radius: 18px;
+    padding: 28px 32px;
+    box-shadow: 0 4px 20px rgba(33, 63, 31, 0.06);
+    margin-bottom: 50px;
+    animation: fadeInUp 0.8s ease-out both;
+    transition: transform 0.28s ease, box-shadow 0.28s ease;
+}
+
+.compositionCard:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(33, 63, 31, 0.1);
+}
+
+.compositionHeader {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.compositionIconWrap {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #2d5a27 0%, #1a3a16 100%);
+    color: #ffffff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(45, 90, 39, 0.25);
+}
+
+.compositionTitleWrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.compositionTitleRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.compositionTitle {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #1a3a16;
+    margin: 0;
+    letter-spacing: -0.2px;
+}
+
+.compositionBadge {
+    display: inline-block;
+    background: #e8f3e5;
+    color: #2d5a27;
+    border: 1px solid #c5dfc0;
+    padding: 3px 10px;
+    border-radius: 50px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+}
+
+.compositionSubtitle {
+    font-size: 0.82rem;
+    color: #6b7b6c;
+    margin: 0;
+}
+
+.compositionContent {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(45, 90, 39, 0.1);
+    border-radius: 14px;
+    padding: 18px 22px;
+}
+
+.compositionText {
+    font-size: 0.9rem;
+    line-height: 1.75;
+    color: #2e3e2d;
+    margin: 0;
+    word-break: break-word;
 }
 
 .secondaryGrid {
@@ -731,6 +823,23 @@
 
     .card {
         padding: 24px 20px;
+    }
+
+    .compositionCard {
+        padding: 20px 18px;
+        margin-bottom: 36px;
+    }
+
+    .compositionHeader {
+        gap: 12px;
+    }
+
+    .compositionTitle {
+        font-size: 1.05rem;
+    }
+
+    .compositionContent {
+        padding: 14px 16px;
     }
 
     /* Nature banner */
