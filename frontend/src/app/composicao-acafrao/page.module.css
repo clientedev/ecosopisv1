@@ -1,43 +1,112 @@
 .page {
-    padding: 32px 24px;
-    font-family: 'Inter', 'Segoe UI', sans-serif;
-    max-width: 800px;
+    padding: 40px 24px 60px;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    max-width: 900px;
     margin: 0 auto;
+    color: #1a2e1a;
+}
+
+.docHeader {
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #2d5a27;
+}
+
+.docBrand {
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #2d5a27;
+    margin: 0 0 8px;
+}
+
+.docTitle {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #1a3a16;
+    margin: 0 0 12px;
+    line-height: 1.2;
+}
+
+.docSubtitle {
+    font-size: 0.95rem;
+    color: #4a5e4a;
+    line-height: 1.6;
+    margin: 0 0 16px;
+}
+
+.docMeta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: #6a7e6a;
+}
+
+.docMeta strong {
+    color: #2d5a27;
+}
+
+.composicaoBlock {
+    margin-bottom: 36px;
+}
+
+.blockTitle {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #1a3a16;
+    margin: 0 0 6px;
+}
+
+.blockNote {
+    font-size: 0.82rem;
+    color: #6a7e6a;
+    margin: 0 0 20px;
 }
 
 .table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
+    border: 1px solid #c5dfc0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 }
 
-.thIndex, .thInci, .thPt {
-    padding: 10px 14px;
-    text-align: left;
+.table thead {
     background: #1a3a16;
-    color: #fff;
+    color: #ffffff;
+}
+
+.thN, .thInci, .thPt, .thFuncao {
+    padding: 12px 14px;
+    text-align: left;
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
-    border: 1px solid #2d5a27;
 }
 
-.thIndex {
+.thN {
     width: 44px;
     text-align: center;
 }
 
-.trEven { background: #ffffff; }
-.trOdd  { background: #f5f9f4; }
+.trEven {
+    background: #ffffff;
+}
 
-.tdIndex {
+.trOdd {
+    background: #f8faf7;
+}
+
+.tdN {
     padding: 10px 14px;
     text-align: center;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-weight: 700;
     color: #2d5a27;
-    border: 1px solid #ddeedd;
+    border: 1px solid #e2efe0;
 }
 
 .tdInci {
@@ -45,11 +114,80 @@
     font-style: italic;
     font-weight: 600;
     color: #1a2e1a;
-    border: 1px solid #ddeedd;
+    border: 1px solid #e2efe0;
 }
 
 .tdPt {
     padding: 10px 14px;
-    color: #4a5e4a;
-    border: 1px solid #ddeedd;
+    color: #3a4e3a;
+    border: 1px solid #e2efe0;
+}
+
+.tdFuncao {
+    padding: 10px 14px;
+    color: #5a6e5a;
+    font-size: 0.82rem;
+    border: 1px solid #e2efe0;
+}
+
+.tagAlergeno {
+    display: inline-block;
+    margin-left: 6px;
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 700;
+}
+
+.separatorRow {
+    background: #eaf3e8;
+}
+
+.separatorCell {
+    padding: 8px 14px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #2d5a27;
+    text-align: center;
+    border: 1px solid #c5dfc0;
+}
+
+.avisoBlock {
+    background: #fffdf5;
+    border: 1px solid #ffe8a1;
+    border-left: 4px solid #f59e0b;
+    border-radius: 8px;
+    padding: 16px 20px;
+}
+
+.avisoTitle {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #b45309;
+    margin: 0 0 6px;
+}
+
+.avisoText {
+    font-size: 0.82rem;
+    color: #78350f;
+    line-height: 1.5;
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .page {
+        padding: 24px 16px;
+    }
+
+    .docTitle {
+        font-size: 1.4rem;
+    }
+
+    .thFuncao, .tdFuncao {
+        display: none;
+    }
 }
