@@ -304,13 +304,45 @@ export default function ProductTechnicalPage() {
                 <div className={styles.cardsSectionInner}>
                     <p className={styles.cardsSectionLabel}>RITUAL E COMPOSIÇÃO</p>
                     <h2 className={styles.cardsSectionTitle}>O Coração do Produto</h2>
+
+                    {details?.composicao && (
+                        <div className={styles.featuredCompositionCard} style={{ animationDelay: "0.1s" }}>
+                            <div className={styles.featuredCompositionHeader}>
+                                <div className={styles.featuredCompositionIconWrap}>
+                                    <FlaskConical size={26} />
+                                </div>
+                                <div className={styles.featuredCompositionTitleWrap}>
+                                    <div className={styles.featuredCompositionTopRow}>
+                                        <h3 className={styles.featuredCompositionTitle}>Composição Completa (Fórmula INCI)</h3>
+                                        <span className={styles.featuredCompositionBadge}>✨ Fórmula 100% Declarada</span>
+                                    </div>
+                                    <p className={styles.featuredCompositionSubtitle}>
+                                        Ingredientes botânicos, minerais e ativos selecionados para máxima eficácia no cuidado e uniformização da pele.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className={styles.featuredCompositionBody}>
+                                <p className={styles.featuredCompositionText}>{details.composicao}</p>
+
+                                <div className={styles.compositionHighlights}>
+                                    <span className={styles.highlightChip}>🌱 Curcuma longa (Açafrão)</span>
+                                    <span className={styles.highlightChip}>🌳 Stryphnodendron adstringens (Barbatimão)</span>
+                                    <span className={styles.highlightChip}>💎 Dolomita Natural</span>
+                                    <span className={styles.highlightChip}>🌽 Amido de Milho</span>
+                                    <span className={styles.highlightChip}>💧 Glicerol Hidratante</span>
+                                    <span className={styles.highlightChip}>✨ 100% Livre de Parabenos</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     
                     <div className={styles.primaryGrid}>
                         {primaryCards.filter(card => card.content).map((card, idx) => (
                             <div
                                 key={idx}
                                 className={`${styles.card} ${styles.primaryCard}`}
-                                style={{ animationDelay: card.delay }}
+                                style={{ animationDelay: `0.${idx + 2}s` }}
                             >
                                 <div className={styles.cardHeader}>
                                     <div className={styles.cardIcon}>{card.icon}</div>
@@ -320,28 +352,6 @@ export default function ProductTechnicalPage() {
                             </div>
                         ))}
                     </div>
-
-                    {details?.composicao && (
-                        <div className={styles.compositionCard} style={{ animationDelay: "0.35s" }}>
-                            <div className={styles.compositionHeader}>
-                                <div className={styles.compositionIconWrap}>
-                                    <FlaskConical size={22} />
-                                </div>
-                                <div className={styles.compositionTitleWrap}>
-                                    <div className={styles.compositionTitleRow}>
-                                        <h3 className={styles.compositionTitle}>Composição Completa</h3>
-                                        <span className={styles.compositionBadge}>Fórmula INCI</span>
-                                    </div>
-                                    <p className={styles.compositionSubtitle}>
-                                        Fórmula 100% declarada com ingredientes naturais, minerais e ativos botânicos.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className={styles.compositionContent}>
-                                <p className={styles.compositionText}>{details.composicao}</p>
-                            </div>
-                        </div>
-                    )}
 
                     <div className={styles.sectionDivider}>
                         <span></span>
