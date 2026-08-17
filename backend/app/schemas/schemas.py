@@ -207,6 +207,7 @@ class ProductDetailBase(BaseModel):
     modo_de_uso: Optional[str] = None
     ingredientes: Optional[str] = None
     beneficios: Optional[str] = None
+    composicao: Optional[str] = None
     cuidados: Optional[str] = None
     contraindicacoes: Optional[str] = None
     observacoes: Optional[str] = None

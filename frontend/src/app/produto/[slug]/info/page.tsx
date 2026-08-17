@@ -15,6 +15,7 @@ import {
     Send,
     Leaf,
     Heart,
+    FlaskConical,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -28,6 +29,7 @@ interface ProductDetail {
     contraindicacoes: string;
     observacoes: string;
     beneficios: string | null;
+    composicao?: string;
 }
 
 interface Product {
@@ -69,12 +71,14 @@ export default function ProductTechnicalPage() {
                             data.details.modo_de_uso = data.details.modo_de_uso || staticData.modo_de_uso;
                             data.details.beneficios = data.details.beneficios || staticData.beneficios;
                             data.details.curiosidades = data.details.curiosidades || staticData.curiosidades;
+                            data.details.composicao = data.details.composicao || staticData.composicao;
                         } else {
                             data.details = {
                                 ingredientes: staticData.ativos,
                                 modo_de_uso: staticData.modo_de_uso,
                                 beneficios: staticData.beneficios,
                                 curiosidades: staticData.curiosidades,
+                                composicao: staticData.composicao,
                                 cuidados: null,
                                 contraindicacoes: null,
                                 observacoes: null,
@@ -184,6 +188,13 @@ export default function ProductTechnicalPage() {
             title: "Benefícios Reais",
             content: details?.beneficios || (product as any).benefits,
             delay: "0.3s",
+            featured: true
+        },
+        {
+            icon: <FlaskConical size={24} />,
+            title: "Composição",
+            content: details?.composicao,
+            delay: "0.35s",
             featured: true
         },
     ];

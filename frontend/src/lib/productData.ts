@@ -6,6 +6,7 @@ export interface StaticProductData {
   modo_de_uso: string;
   curiosidades?: string;
   frase_decisao?: string;
+  composicao?: string;
 }
 
 export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
@@ -14,7 +15,8 @@ export const PRODUCT_STATIC_DATA: Record<string, StaticProductData> = {
     beneficios: "Ajuda a reduzir a foliculite, secar espinhas e uniformizar o tom da pele.",
     modo_de_uso: "Aplique sobre a pele molhada, massageando com movimentos circulares. Deixe agir por 3 minutos e, em seguida, enxágue completamente. Uso diário.",
     curiosidades: "O açafrão, também conhecido como cúrcuma, é utilizado há séculos na medicina ayurvédica por suas propriedades antissépticas e clareadoras naturais.",
-    frase_decisao: "Indicado para uso diário. Ideal para foliculite e manchas."
+    frase_decisao: "Indicado para uso diário. Ideal para foliculite e manchas.",
+    composicao: "Sodium Palmate (Palmato de Sódio), Zea mays Starch (Amido de Milho), Sodium Stearate (Estearato de Sódio), Calcium Carbonate (Carbonato de Cálcio), Aqua (Água), Sodium Palm Kernelate (Palmistato de Sódio), Curcuma longa Root Powder (Pó da Raiz de Cúrcuma), Stryphnodendron adstringens Bark Extract  (Extrato da Casca de Barbatimão), Parfum (Perfume), Dolomite (Dolomita), Glycerin (Glicerol), Sodium Chloride (Cloreto de Sódio), Sodium Cocoyl Isethionate (Cocoil Isetionato de Sódio), Sodium Hydroxide (Hidróxido de Sódio), Etidronic Acid (Ácido Etidrônico), Sodium Gluconate (Gluconato de Sódio), Tetrasodium EDTA (Edetato Tetrassódico), Linalool (Linalol), Citronellol (Citronelol), Coumarin (Cumarina), Hexyl Cinnamal (Hexil Cinamal), Amyl Cinnamal (Amil Cinamal)."
   },
   "sabonete-clareador-argila-branca": {
     ativos: "Argila Branca, Dolomita, Aloe Vera",

@@ -73,6 +73,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
         modo_de_uso: product.details?.modo_de_uso || staticData?.modo_de_uso || "",
         ingredientes: product.details?.ingredientes || staticData?.ativos || "",
         beneficios: (product.details as any)?.beneficios || staticData?.beneficios || "",
+        composicao: product.details?.composicao || staticData?.composicao || "",
         cuidados: product.details?.cuidados || "",
         contraindicacoes: product.details?.contraindicacoes || "",
         observacoes: product.details?.observacoes || "",
@@ -797,6 +798,15 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                             value={(technicalData as any).beneficios || ""}
                                             onChange={(e) => setTechnicalData({ ...technicalData, beneficios: e.target.value } as any)}
                                             placeholder="Benefícios que aparecem na ficha técnica..."
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Composição (Ficha Técnica)</label>
+                                        <textarea
+                                            rows={3}
+                                            value={technicalData.composicao || ""}
+                                            onChange={(e) => setTechnicalData({ ...technicalData, composicao: e.target.value })}
+                                            placeholder="Fórmula / Composição química completa..."
                                         />
                                     </div>
                                     <div className={styles.formGroup}>
