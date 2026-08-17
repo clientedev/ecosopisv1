@@ -74,6 +74,7 @@ MISSING_ORDERS_COLUMNS = [
 
 MISSING_PRODUCT_DETAILS_COLUMNS = [
     ("beneficios", "TEXT"),
+    ("composicao", "TEXT"),
 ]
 
 MISSING_WORLD_CUP_MATCHES_COLUMNS = [

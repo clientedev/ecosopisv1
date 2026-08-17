@@ -41,6 +41,7 @@ def migrate_remote():
         
         print("Adding missing columns to 'product_details' table if they don't exist...")
         conn.execute(text("ALTER TABLE product_details ADD COLUMN IF NOT EXISTS beneficios TEXT;"))
+        conn.execute(text("ALTER TABLE product_details ADD COLUMN IF NOT EXISTS composicao TEXT;"))
         
         print("Ensuring system_settings, world_cup_matches, and world_cup_guesses tables exist...")
         conn.execute(text("CREATE TABLE IF NOT EXISTS system_settings (id SERIAL PRIMARY KEY, key VARCHAR UNIQUE NOT NULL, value TEXT, updated_at TIMESTAMPTZ DEFAULT now())"))
