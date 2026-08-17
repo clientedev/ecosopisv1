@@ -150,27 +150,29 @@ def get_product(slug: str, db: Session = Depends(get_db)):
     return product
 
 def generate_qr_code(slug: str, base_url: Optional[str] = None):
-    """Generate a permanent QR code for the product technical page."""
-    # Strict Production Enforcement: If no URL provided or URL is localhost, try production fallbacks
-    is_replit = os.getenv("REPLIT_DEV_DOMAIN") or os.getenv("REPL_ID") or os.getenv("REPL_SLUG")
-    is_railway = os.getenv("RAILWAY_STATIC_URL") or os.getenv("RAILWAY_PROJECT_ID")
-    is_local_dev = os.getenv("ENV") == "development" or os.getenv("LOCAL_DEV") == "true"
+    """Generate a permanent QR code for the product technical page pointing to production domain."""
+    # Priority: QR_BASE_URL > PUBLIC_URL > FRONTEND_URL (if not localhost) > base_url (if not localhost) > https://ecosopis.com.br
+    effective_url = os.getenv("QR_BASE_URL") or os.getenv("PUBLIC_URL")
     
-    if not base_url or ("localhost" in base_url or "127.0.0.1" in base_url):
-        if not is_local_dev:
-            replit_domain = os.getenv("REPLIT_DEV_DOMAIN")
-            if replit_domain:
-                base_url = f"https://{replit_domain}"
-            elif os.getenv("RAILWAY_STATIC_URL"):
-                base_url = f"https://{os.getenv('RAILWAY_STATIC_URL')}"
-            else:
-                base_url = "https://ecosopis.com.br"
+    if not effective_url:
+        frontend_env = os.getenv("FRONTEND_URL")
+        if frontend_env and "localhost" not in frontend_env and "127.0.0.1" not in frontend_env:
+            effective_url = frontend_env
+
+    if not effective_url and base_url and "localhost" not in base_url and "127.0.0.1" not in base_url:
+        effective_url = base_url
+
+    if not effective_url:
+        if os.getenv("RAILWAY_STATIC_URL"):
+            effective_url = f"https://{os.getenv('RAILWAY_STATIC_URL')}"
+        elif os.getenv("REPLIT_DEV_DOMAIN"):
+            effective_url = f"https://{os.getenv('REPLIT_DEV_DOMAIN')}"
         else:
-            base_url = base_url or "http://localhost:3000"
+            effective_url = "https://ecosopis.com.br"
     
     # Remove trailing slash if present
-    base_url = base_url.rstrip('/')
-    target_url = f"{base_url}/produto/{slug}/info"
+    effective_url = effective_url.rstrip('/')
+    target_url = f"{effective_url}/produto/{slug}/info"
     
     qr = qrcode.QRCode(
         version=1,

@@ -176,7 +176,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
     };
 
     const handleRegenerateQR = async () => {
-        if (!confirm("Isso irá atualizar o link do QR Code para o endereço atual. Deseja continuar?")) return;
+        if (!confirm("Isso irá regenerar o QR Code apontando para a ficha técnica oficial do produto. Deseja continuar?")) return;
 
         setRegeneratingQR(true);
         try {
