@@ -228,7 +228,48 @@ export default function ProductTechnicalPage() {
     return (
         <div className={styles.pageContainer}>
 
+            {/* ── TOP COMPOSITION SECTION (BEFORE HERO & PHOTO) ── */}
+            {details?.composicao && (
+                <section className={styles.topCompositionSection}>
+                    <div className={styles.topCompositionInner}>
+                        <div className={styles.topCompositionBar}>
+                            <Link href={`/produtos/${product.slug}`} className={styles.backLink}>
+                                <ArrowLeft size={16} /> Voltar ao Produto
+                            </Link>
+                            <span className={styles.topCompositionBadge}>✨ COMPOSIÇÃO 100% DECLARADA</span>
+                        </div>
 
+                        <div className={styles.featuredCompositionCard}>
+                            <div className={styles.featuredCompositionHeader}>
+                                <div className={styles.featuredCompositionIconWrap}>
+                                    <FlaskConical size={28} />
+                                </div>
+                                <div className={styles.featuredCompositionTitleWrap}>
+                                    <div className={styles.featuredCompositionTopRow}>
+                                        <h2 className={styles.featuredCompositionTitle}>Composição Completa (Fórmula INCI)</h2>
+                                    </div>
+                                    <p className={styles.featuredCompositionSubtitle}>
+                                        Fórmula botânica e mineral declarada para o <strong>{product.name}</strong>. Transparência total em cada ingrediente.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className={styles.featuredCompositionBody}>
+                                <p className={styles.featuredCompositionText}>{details.composicao}</p>
+
+                                <div className={styles.compositionHighlights}>
+                                    <span className={styles.highlightChip}>🌱 Curcuma longa (Açafrão)</span>
+                                    <span className={styles.highlightChip}>🌳 Stryphnodendron adstringens (Barbatimão)</span>
+                                    <span className={styles.highlightChip}>💎 Dolomita Natural</span>
+                                    <span className={styles.highlightChip}>🌽 Amido de Milho</span>
+                                    <span className={styles.highlightChip}>💧 Glicerol Hidratante</span>
+                                    <span className={styles.highlightChip}>✨ 100% Livre de Parabenos</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* ── HERO SPLIT ── */}
             <section className={styles.hero}>
@@ -261,9 +302,11 @@ export default function ProductTechnicalPage() {
 
                 {/* Right – info panel */}
                 <div className={styles.heroRight}>
-                    <Link href={`/produtos/${product.slug}`} className={styles.backLink}>
-                        <ArrowLeft size={16} /> Voltar ao Produto
-                    </Link>
+                    {!details?.composicao && (
+                        <Link href={`/produtos/${product.slug}`} className={styles.backLink}>
+                            <ArrowLeft size={16} /> Voltar ao Produto
+                        </Link>
+                    )}
 
                     <span className={styles.badge}>Ficha Técnica</span>
 
@@ -302,40 +345,8 @@ export default function ProductTechnicalPage() {
             {/* ── CARDS SECTION ── */}
             <section className={styles.cardsSection}>
                 <div className={styles.cardsSectionInner}>
-                    <p className={styles.cardsSectionLabel}>RITUAL E COMPOSIÇÃO</p>
+                    <p className={styles.cardsSectionLabel}>RITUAL E ATIVOS</p>
                     <h2 className={styles.cardsSectionTitle}>O Coração do Produto</h2>
-
-                    {details?.composicao && (
-                        <div className={styles.featuredCompositionCard} style={{ animationDelay: "0.1s" }}>
-                            <div className={styles.featuredCompositionHeader}>
-                                <div className={styles.featuredCompositionIconWrap}>
-                                    <FlaskConical size={26} />
-                                </div>
-                                <div className={styles.featuredCompositionTitleWrap}>
-                                    <div className={styles.featuredCompositionTopRow}>
-                                        <h3 className={styles.featuredCompositionTitle}>Composição Completa (Fórmula INCI)</h3>
-                                        <span className={styles.featuredCompositionBadge}>✨ Fórmula 100% Declarada</span>
-                                    </div>
-                                    <p className={styles.featuredCompositionSubtitle}>
-                                        Ingredientes botânicos, minerais e ativos selecionados para máxima eficácia no cuidado e uniformização da pele.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className={styles.featuredCompositionBody}>
-                                <p className={styles.featuredCompositionText}>{details.composicao}</p>
-
-                                <div className={styles.compositionHighlights}>
-                                    <span className={styles.highlightChip}>🌱 Curcuma longa (Açafrão)</span>
-                                    <span className={styles.highlightChip}>🌳 Stryphnodendron adstringens (Barbatimão)</span>
-                                    <span className={styles.highlightChip}>💎 Dolomita Natural</span>
-                                    <span className={styles.highlightChip}>🌽 Amido de Milho</span>
-                                    <span className={styles.highlightChip}>💧 Glicerol Hidratante</span>
-                                    <span className={styles.highlightChip}>✨ 100% Livre de Parabenos</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                     
                     <div className={styles.primaryGrid}>
                         {primaryCards.filter(card => card.content).map((card, idx) => (
