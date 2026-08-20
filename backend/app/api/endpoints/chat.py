@@ -145,29 +145,61 @@ def call_zai_chat(api_key: str, system_prompt: str, user_message: str):
     raise ValueError("Falha ao comunicar com Z.AI")
 
 
+def generate_fallback_response(user_msg: str, db: Session) -> str:
+    """Generates a smart, product-aware fallback response in Lia's persona when offline or without API keys."""
+    msg = user_msg.lower()
+    
+    # Try fetching active products for personalized catalog matching
+    try:
+        products = db.query(models.Product).filter(models.Product.is_active == True).all()
+    except Exception:
+        products = []
+
+    if any(w in msg for w in ["acne", "espinha", "cravos", "oleos"]):
+        return "Para acne e oleosidade, os mais recomendados são o **Sabonete de Argila Verde** e o **Creme Anti Oleosidade**. Lembre-se de higienizar a pele de manhã e à noite! Você encontra estes itens na nossa seção de produtos no site. 🌿"
+    elif any(w in msg for w in ["mancha", "clarear", "clareamento", "melasma"]):
+        return "Para o tratamento de manchas, recomendo o nosso **Kit Clareamento** acompanhado do **Óleo de Rosa Mosqueta**. Atenção importante: os óleos vegetais são fotossensíveis e devem ser usados **somente à noite**! 🌸"
+    elif any(w in msg for w in ["foliculite", "açafrão", "acafrao"]):
+        return "Para acalmar a pele e prevenir a foliculite, o nosso **Sabonete de Açafrão** é o mais indicado! Ele é 100% natural e tem excelente ação suavizante. 🍃"
+    elif any(w in msg for w in ["seca", "ressecad", "hidrat", "pés"]):
+        return "Para hidratação intensa e restauração da pele, nossas **Manteigas Corporais** e **Óleos Vegetais** são perfeitos. Se tiver dúvidas sobre o seu tipo de pele, experimente nosso Quiz de Pele no menu do site! ✨"
+    elif any(w in msg for w in ["óleo", "oleo", "alecrim", "cabelo", "ricino"]):
+        return "Nossos **Óleos Vegetais e Essenciais** (como Alecrim e Rícino) são ótimos para cuidados capilares e umectação! Lembre-se: óleos essenciais não devem ser usados puros na pele, e óleos vegetais devem ser aplicados à noite. 💧"
+    
+    # Check match with products in catalog
+    matched = []
+    for p in products:
+        p_name = p.name.lower()
+        if any(term in msg for term in p_name.split() if len(term) > 3):
+            matched.append(p)
+            
+    if matched:
+        p = matched[0]
+        price_str = f"R$ {p.price:.2f}".replace(".", ",")
+        return f"Recomendo o nosso **{p.name}** ({price_str})! {p.description or 'Excelente escolha 100% natural para a sua rotina.'} Você pode adicioná-lo ao carrinho diretamente no site! 🌿"
+
+    return "Olá! Sou a Lia, consultora de beleza da ECOSOPIS. Nossos cosméticos são 100% naturais, artesanais e sustentáveis! Como posso te ajudar a cuidar da sua pele hoje? Se quiser uma recomendação sob medida, confira o nosso Quiz de Pele no menu do site! 🌿"
+
+
 @router.post("")
 def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
+    bot_reply = None
+    topic = detect_topic(request.message)
+
     try:
         zai_key = os.getenv("ZAI_API_KEY") or os.getenv("Z_API_KEY") or os.getenv("ZHIPU_API_KEY")
         xai_key = os.getenv("XAI_API_KEY") or os.getenv("GROK_API_KEY")
         groq_key = os.getenv("GROQ_API_KEY")
+        use_ollama = os.getenv("USE_OLLAMA", "").lower() in ["true", "1", "yes"] or os.getenv("OLLAMA_HOST")
 
         system_prompt = get_product_context(db)
 
-        # 1. Z.AI (z.ai / ZhipuAI / Z-Code)
-        if zai_key or (groq_key and ("z.ai" in groq_key.lower() or groq_key.startswith("zai-"))):
-            api_key = zai_key or groq_key
-            response = call_zai_chat(api_key, system_prompt, request.message)
-
-        # 2. xAI Grok (console.x.ai)
-        elif xai_key or (groq_key and groq_key.startswith("xai-")):
-            api_key = xai_key or groq_key
-            client = OpenAI(
-                api_key=api_key,
-                base_url="https://api.x.ai/v1"
-            )
-            model_name = os.getenv("XAI_MODEL", "grok-2-1212")
+        # 0. Ollama Local Llama (100% Offline / Local)
+        if use_ollama:
             try:
+                ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+                model_name = os.getenv("OLLAMA_MODEL", "llama3.2")
+                client = OpenAI(api_key="ollama", base_url=ollama_url, max_retries=1)
                 response = client.chat.completions.create(
                     model=model_name,
                     messages=[
@@ -177,10 +209,61 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
                     max_tokens=350,
                     temperature=0.7,
                 )
-            except Exception as model_err:
-                print(f"xAI failed with model '{model_name}': {model_err}. Trying fallback 'grok-beta'...")
+                bot_reply = response.choices[0].message.content
+                print("Lia responded using Local Ollama Llama.")
+            except Exception as ollama_err:
+                print(f"Ollama local error: {ollama_err}")
+
+        # 1. Z.AI (z.ai / ZhipuAI / Z-Code)
+        if not bot_reply and (zai_key or (groq_key and ("z.ai" in groq_key.lower() or groq_key.startswith("zai-")))):
+            try:
+                api_key = zai_key or groq_key
+                response = call_zai_chat(api_key, system_prompt, request.message)
+                bot_reply = response.choices[0].message.content
+            except Exception as zai_err:
+                print(f"Z.AI API Error: {zai_err}")
+
+        # 2. xAI Grok (console.x.ai)
+        if not bot_reply and (xai_key or (groq_key and groq_key.startswith("xai-"))):
+            try:
+                api_key = xai_key or groq_key
+                client = OpenAI(
+                    api_key=api_key,
+                    base_url="https://api.x.ai/v1",
+                    max_retries=1
+                )
+                model_name = os.getenv("XAI_MODEL", "grok-2-1212")
+                try:
+                    response = client.chat.completions.create(
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": request.message}
+                        ],
+                        max_tokens=350,
+                        temperature=0.7,
+                    )
+                except Exception as model_err:
+                    print(f"xAI failed with model '{model_name}': {model_err}. Trying fallback 'grok-beta'...")
+                    response = client.chat.completions.create(
+                        model="grok-beta",
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": request.message}
+                        ],
+                        max_tokens=350,
+                        temperature=0.7,
+                    )
+                bot_reply = response.choices[0].message.content
+            except Exception as xai_err:
+                print(f"xAI Grok Error: {xai_err}")
+
+        # 3. Groq Official Free Tier (console.groq.com)
+        if not bot_reply and groq_key and not groq_key.startswith("xai-") and not groq_key.startswith("zai-"):
+            try:
+                client = Groq(api_key=groq_key)
                 response = client.chat.completions.create(
-                    model="grok-beta",
+                    model="llama-3.3-70b-versatile",
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": request.message}
@@ -188,24 +271,14 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
                     max_tokens=350,
                     temperature=0.7,
                 )
+                bot_reply = response.choices[0].message.content
+            except Exception as groq_err:
+                print(f"Groq API Error: {groq_err}")
 
-        # 3. Groq (console.groq.com)
-        elif groq_key:
-            client = Groq(api_key=groq_key)
-            response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": request.message}
-                ],
-                max_tokens=350,
-                temperature=0.7,
-            )
-        else:
-            raise ValueError("Nenhuma chave de API configurada (ZAI_API_KEY, XAI_API_KEY ou GROQ_API_KEY).")
-
-        bot_reply = response.choices[0].message.content
-        topic = detect_topic(request.message)
+        # 4. Fallback Inteligente Local (Sem depender de NENHUMA API remota / 100% Garantido)
+        if not bot_reply:
+            print("Using Intelligent Local Catalog Fallback for Lia.")
+            bot_reply = generate_fallback_response(request.message, db)
 
         # Log interaction in DB
         try:
@@ -223,7 +296,8 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
         return {"response": bot_reply}
 
     except Exception as e:
-        print(f"Chat AI Error: {e}")
-        return {"response": "Desculpe, tive um pequeno problema técnico. Tente novamente em instantes! 🌿"}
+        print(f"Chat AI Critical Error: {e}")
+        fallback_reply = generate_fallback_response(request.message, db)
+        return {"response": fallback_reply}
 
 
