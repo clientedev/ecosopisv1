@@ -77,15 +77,27 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
                 base_url="https://api.x.ai/v1"
             )
             model_name = os.getenv("XAI_MODEL", "grok-2-1212")
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": request.message}
-                ],
-                max_tokens=350,
-                temperature=0.7,
-            )
+            try:
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": request.message}
+                    ],
+                    max_tokens=350,
+                    temperature=0.7,
+                )
+            except Exception as model_err:
+                print(f"Failed with model '{model_name}': {model_err}. Trying fallback 'grok-beta'...")
+                response = client.chat.completions.create(
+                    model="grok-beta",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": request.message}
+                    ],
+                    max_tokens=350,
+                    temperature=0.7,
+                )
         elif groq_key:
             client = Groq(api_key=groq_key)
             response = client.chat.completions.create(
