@@ -61,6 +61,77 @@ def detect_topic(msg: str) -> str:
         return "Higiene Natural & Sabonetes"
     return "Dúvidas Gerais"
 
+def call_zai_chat(api_key: str, system_prompt: str, user_message: str):
+    # Try both Base URLs: Coding Plan (/coding/paas/v4) vs General API (/paas/v4)
+    base_urls = []
+    custom_url = os.getenv("ZAI_BASE_URL")
+    if custom_url:
+        base_urls.append(custom_url)
+    base_urls.extend([
+        "https://api.z.ai/api/coding/paas/v4",
+        "https://api.z.ai/api/paas/v4"
+    ])
+
+    last_error = None
+
+    for base_url in base_urls:
+        try:
+            client = OpenAI(api_key=api_key, base_url=base_url)
+
+            # 1. Discover models available for this key/account
+            candidate_models = []
+            custom_model = os.getenv("ZAI_MODEL")
+            if custom_model:
+                candidate_models.append(custom_model)
+
+            try:
+                m_list = client.models.list()
+                fetched_models = [m.id for m in m_list.data if hasattr(m, 'id')]
+                print(f"Z.AI [{base_url}] fetched models: {fetched_models}")
+                candidate_models.extend(fetched_models)
+            except Exception as list_err:
+                print(f"Could not list models from Z.AI [{base_url}]: {list_err}")
+
+            # Standard model candidates
+            candidate_models.extend([
+                "glm-5.3", "glm-5-turbo", "glm-4.7", "glm-4-air",
+                "glm-4-plus", "glm-4", "glm-4-flash", "codegeex-4"
+            ])
+
+            # Deduplicate preserving order
+            seen = set()
+            unique_models = []
+            for m in candidate_models:
+                if m and m not in seen:
+                    seen.add(m)
+                    unique_models.append(m)
+
+            for model_name in unique_models:
+                try:
+                    response = client.chat.completions.create(
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_message}
+                        ],
+                        max_tokens=350,
+                        temperature=0.7,
+                    )
+                    print(f"Z.AI succeeded with base_url={base_url}, model={model_name}")
+                    return response
+                except Exception as model_err:
+                    last_error = model_err
+                    print(f"Z.AI failed with base_url={base_url}, model={model_name}: {model_err}")
+
+        except Exception as client_err:
+            last_error = client_err
+            print(f"Z.AI client failed on base_url={base_url}: {client_err}")
+
+    if last_error:
+        raise last_error
+    raise ValueError("Falha ao comunicar com Z.AI")
+
+
 @router.post("")
 def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
     try:
@@ -73,33 +144,7 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
         # 1. Z.AI (z.ai / ZhipuAI / Z-Code)
         if zai_key or (groq_key and ("z.ai" in groq_key.lower() or groq_key.startswith("zai-"))):
             api_key = zai_key or groq_key
-            base_url = os.getenv("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4")
-            client = OpenAI(
-                api_key=api_key,
-                base_url=base_url
-            )
-            model_name = os.getenv("ZAI_MODEL", "glm-4-flash")
-            try:
-                response = client.chat.completions.create(
-                    model=model_name,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": request.message}
-                    ],
-                    max_tokens=350,
-                    temperature=0.7,
-                )
-            except Exception as model_err:
-                print(f"Z.AI failed with model '{model_name}': {model_err}. Trying fallback 'glm-4'...")
-                response = client.chat.completions.create(
-                    model="glm-4",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": request.message}
-                    ],
-                    max_tokens=350,
-                    temperature=0.7,
-                )
+            response = call_zai_chat(api_key, system_prompt, request.message)
 
         # 2. xAI Grok (console.x.ai)
         elif xai_key or (groq_key and groq_key.startswith("xai-")):
