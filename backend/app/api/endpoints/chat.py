@@ -72,11 +72,19 @@ def call_zai_chat(api_key: str, system_prompt: str, user_message: str):
         "https://api.z.ai/api/paas/v4"
     ])
 
+    # Remove duplicates preserving order
+    seen_urls = set()
+    unique_base_urls = []
+    for u in base_urls:
+        if u not in seen_urls:
+            seen_urls.add(u)
+            unique_base_urls.append(u)
+
     last_error = None
 
-    for base_url in base_urls:
+    for base_url in unique_base_urls:
         try:
-            client = OpenAI(api_key=api_key, base_url=base_url)
+            client = OpenAI(api_key=api_key, base_url=base_url, max_retries=1)
 
             # 1. Discover models available for this key/account
             candidate_models = []
@@ -121,7 +129,12 @@ def call_zai_chat(api_key: str, system_prompt: str, user_message: str):
                     return response
                 except Exception as model_err:
                     last_error = model_err
-                    print(f"Z.AI failed with base_url={base_url}, model={model_name}: {model_err}")
+                    err_msg = str(model_err)
+                    print(f"Z.AI failed with base_url={base_url}, model={model_name}: {err_msg}")
+                    # If error is insufficient balance (1113), break out to next base_url
+                    if "1113" in err_msg or "Insufficient balance" in err_msg:
+                        print(f"Base URL {base_url} returned Insufficient Balance (1113). Switching endpoint...")
+                        break
 
         except Exception as client_err:
             last_error = client_err
