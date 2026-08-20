@@ -5,10 +5,9 @@ from app.models import models
 from pydantic import BaseModel
 import os
 from groq import Groq
+from openai import OpenAI
 
 router = APIRouter()
-
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 class ChatRequest(BaseModel):
     message: str
@@ -65,18 +64,41 @@ def detect_topic(msg: str) -> str:
 @router.post("")
 def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
     try:
-        client = Groq(api_key=GROQ_API_KEY)
+        xai_key = os.getenv("XAI_API_KEY") or os.getenv("GROK_API_KEY")
+        groq_key = os.getenv("GROQ_API_KEY")
+
         system_prompt = get_product_context(db)
 
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": request.message}
-            ],
-            max_tokens=350,
-            temperature=0.7,
-        )
+        # Detect if xAI key is provided or if GROQ_API_KEY contains an xai- key
+        if xai_key or (groq_key and groq_key.startswith("xai-")):
+            api_key = xai_key or groq_key
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.x.ai/v1"
+            )
+            model_name = os.getenv("XAI_MODEL", "grok-2-1212")
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": request.message}
+                ],
+                max_tokens=350,
+                temperature=0.7,
+            )
+        elif groq_key:
+            client = Groq(api_key=groq_key)
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": request.message}
+                ],
+                max_tokens=350,
+                temperature=0.7,
+            )
+        else:
+            raise ValueError("Nenhuma chave de API configurada (XAI_API_KEY ou GROQ_API_KEY).")
 
         bot_reply = response.choices[0].message.content
         topic = detect_topic(request.message)
@@ -97,6 +119,7 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
         return {"response": bot_reply}
 
     except Exception as e:
-        print(f"Groq Chat Error: {e}")
+        print(f"Chat AI Error: {e}")
         return {"response": "Desculpe, tive um pequeno problema técnico. Tente novamente em instantes! 🌿"}
+
 
