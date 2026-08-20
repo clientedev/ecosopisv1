@@ -64,13 +64,45 @@ def detect_topic(msg: str) -> str:
 @router.post("")
 def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
     try:
+        zai_key = os.getenv("ZAI_API_KEY") or os.getenv("Z_API_KEY") or os.getenv("ZHIPU_API_KEY")
         xai_key = os.getenv("XAI_API_KEY") or os.getenv("GROK_API_KEY")
         groq_key = os.getenv("GROQ_API_KEY")
 
         system_prompt = get_product_context(db)
 
-        # Detect if xAI key is provided or if GROQ_API_KEY contains an xai- key
-        if xai_key or (groq_key and groq_key.startswith("xai-")):
+        # 1. Z.AI (z.ai / ZhipuAI / Z-Code)
+        if zai_key or (groq_key and ("z.ai" in groq_key.lower() or groq_key.startswith("zai-"))):
+            api_key = zai_key or groq_key
+            base_url = os.getenv("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4")
+            client = OpenAI(
+                api_key=api_key,
+                base_url=base_url
+            )
+            model_name = os.getenv("ZAI_MODEL", "glm-4-flash")
+            try:
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": request.message}
+                    ],
+                    max_tokens=350,
+                    temperature=0.7,
+                )
+            except Exception as model_err:
+                print(f"Z.AI failed with model '{model_name}': {model_err}. Trying fallback 'glm-4'...")
+                response = client.chat.completions.create(
+                    model="glm-4",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": request.message}
+                    ],
+                    max_tokens=350,
+                    temperature=0.7,
+                )
+
+        # 2. xAI Grok (console.x.ai)
+        elif xai_key or (groq_key and groq_key.startswith("xai-")):
             api_key = xai_key or groq_key
             client = OpenAI(
                 api_key=api_key,
@@ -88,7 +120,7 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
                     temperature=0.7,
                 )
             except Exception as model_err:
-                print(f"Failed with model '{model_name}': {model_err}. Trying fallback 'grok-beta'...")
+                print(f"xAI failed with model '{model_name}': {model_err}. Trying fallback 'grok-beta'...")
                 response = client.chat.completions.create(
                     model="grok-beta",
                     messages=[
@@ -98,6 +130,8 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
                     max_tokens=350,
                     temperature=0.7,
                 )
+
+        # 3. Groq (console.groq.com)
         elif groq_key:
             client = Groq(api_key=groq_key)
             response = client.chat.completions.create(
@@ -110,7 +144,7 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
                 temperature=0.7,
             )
         else:
-            raise ValueError("Nenhuma chave de API configurada (XAI_API_KEY ou GROQ_API_KEY).")
+            raise ValueError("Nenhuma chave de API configurada (ZAI_API_KEY, XAI_API_KEY ou GROQ_API_KEY).")
 
         bot_reply = response.choices[0].message.content
         topic = detect_topic(request.message)
