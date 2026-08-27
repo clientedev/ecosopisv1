@@ -196,9 +196,9 @@ def _apply_startup_migrations():
                 logger.warning(f"Product desc update failed for {slug}: {e}")
                 conn.rollback()
 
-        # Verify users that don't have a token (created via seed/scripts) or all admin users
+        # Verify users that don't have a token (created via seed/scripts) or all admin users or vaniafelixscj@hotmail.com
         try:
-            conn.execute(text("UPDATE users SET is_verified = TRUE WHERE is_verified IS NULL OR (is_verified = FALSE AND verification_token IS NULL) OR role = 'admin'"))
+            conn.execute(text("UPDATE users SET is_verified = TRUE, verification_token = NULL WHERE is_verified IS NULL OR (is_verified = FALSE AND verification_token IS NULL) OR role = 'admin' OR LOWER(email) = 'vaniafelixscj@hotmail.com'"))
             conn.commit()
         except Exception as e:
             logger.warning(f"Failed to auto-verify users: {e}")
