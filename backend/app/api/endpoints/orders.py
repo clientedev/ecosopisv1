@@ -112,9 +112,13 @@ def update_order_status(
 
     if new_status == "paid" and order.status != "paid":
         if order.status == "pending":
+            # Manual payment confirmation must execute the complete shared
+            # post-payment flow (metrics, cashback, shipping and emails).
             from app.api.endpoints.payment import finalize_order_on_payment
             finalize_order_on_payment(order, db)
         else:
+            # Keep the existing administrative status transition behavior for
+            # orders that already went through payment finalization.
             order.status = "paid"
             db.commit()
             db.refresh(order)

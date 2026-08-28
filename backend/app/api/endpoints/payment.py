@@ -141,14 +141,13 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
     if buyer_email: order.buyer_email = buyer_email
     if buyer_name: order.buyer_name = buyer_name
 
-    # Update user purchase count / roulette
+    # Update the purchase metric used by the current promotions and cashback
+    # flows. The old RouletteConfig model was removed when the roulette was
+    # replaced by the monthly ScratchSettings feature; payment finalization
+    # must not depend on that obsolete model.
     user = db.query(models.User).filter(models.User.id == order.user_id).first()
     if user:
         user.total_compras = (user.total_compras or 0) + 1
-        config = db.query(models.RouletteConfig).first()
-        if config and config.ativa and config.regra_5_compras:
-            if user.total_compras >= 5:
-                user.pode_girar_roleta = True
         
         # Cashback logic
         try:
@@ -498,6 +497,8 @@ async def update_order_status(order_id: int, body: StatusUpdateIn, db: Session =
     
     if body.status == "paid" and order.status != "paid":
         if order.status == "pending":
+            # Keep the legacy admin endpoint on the same post-payment path as
+            # the main orders endpoint and both payment webhooks.
             finalize_order_on_payment(order, db)
         else:
             order.status = "paid"

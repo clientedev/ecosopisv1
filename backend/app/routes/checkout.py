@@ -224,7 +224,14 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             service = OrderService(repo)
             
             # Executa a regra de negócio (Atualizar para pago + Criar Envio)
-            service.handle_payment_success(pedido_id)
+            customer_details = session.get("customer_details") or {}
+            service.handle_payment_success(
+                pedido_id,
+                payment_id=session.get("payment_intent"),
+                session_id=session.get("id"),
+                buyer_email=customer_details.get("email"),
+                buyer_name=customer_details.get("name"),
+            )
             db.commit()
             print(f"Webhook processado para pedido {pedido_id}")
             

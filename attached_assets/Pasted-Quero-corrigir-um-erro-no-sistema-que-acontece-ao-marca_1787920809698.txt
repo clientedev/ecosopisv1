@@ -1,0 +1,56 @@
+Quero corrigir um erro no sistema que acontece ao marcar manualmente uma compra de cliente como paga.
+
+Erro apresentado
+
+Ao marcar uma compra como paga, aparece:
+
+❌ Falha ao atualizar status
+Erro interno: module ‘app.models.models’ has no attribute ‘RouletteConfig’
+
+Contexto
+
+A compra não foi marcada como paga automaticamente, então precisei entrar no sistema e alterar manualmente o status da compra para pago. Nesse momento ocorreu o erro.
+
+O que preciso que você faça
+
+1. Investigue o fluxo completo executado quando uma compra tem seu status alterado manualmente para pago.
+2. Identifique exatamente por que esse processo está tentando acessar app.models.models.RouletteConfig.
+3. Verifique os arquivos relacionados a:
+    * modelos/banco de dados;
+    * pedidos/compras;
+    * atualização de status;
+    * pagamento;
+    * roleta/promoções, caso estejam envolvidos;
+    * rotinas automáticas de pagamento;
+    * funções executadas após uma compra ser marcada como paga.
+4. Verifique se RouletteConfig:
+    * deveria realmente existir;
+    * foi renomeado;
+    * está em outro módulo;
+    * está sendo importado incorretamente;
+    * ou está sendo chamado desnecessariamente nesse fluxo.
+5. Não crie simplesmente uma classe RouletteConfig para esconder o erro. Primeiro descubra a causa real.
+6. A correção deve preservar o funcionamento atual do sistema e não quebrar:
+    * pagamento automático;
+    * pagamento manual;
+    * atualização de status;
+    * geração/entrega do pedido;
+    * registro da venda;
+    * roleta/promoções, se aplicável.
+7. Caso RouletteConfig seja realmente necessário, implemente-o corretamente seguindo o padrão dos demais modelos existentes no projeto.
+8. Caso seja uma chamada indevida, remova/corrija essa dependência apenas do fluxo em que ela não deveria existir.
+9. Verifique também se a alteração manual para pago está executando as mesmas rotinas necessárias do pagamento automático.
+10. Depois da correção, faça uma revisão para garantir que não existem outros pontos no código com o mesmo problema.
+
+Importante
+
+Não altere o banco de dados, migrações ou modelos sem verificar primeiro como o projeto está estruturado.
+
+Quero uma solução definitiva, não um workaround.
+
+Ao finalizar, me informe:
+
+* qual era a causa do erro;
+* quais arquivos foram alterados;
+* o que foi alterado em cada arquivo;
+* e como testar o pagamento manual e automático para confirmar que tudo está funcionando.

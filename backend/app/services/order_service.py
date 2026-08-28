@@ -1,7 +1,6 @@
 from typing import List
 from app.repositories.order_repository import OrderRepository
 from app.services.stripe_service import StripeService
-from app.services.melhorenvio_service import MelhorEnvioV2Service
 
 class OrderService:
     def __init__(self, repo: OrderRepository):
@@ -60,55 +59,37 @@ class OrderService:
             "checkout_url": stripe_res["checkout_url"]
         }
 
-    def handle_payment_success(self, pedido_id: int):
+    def handle_payment_success(
+        self,
+        pedido_id: int,
+        payment_id: str = None,
+        session_id: str = None,
+        buyer_email: str = None,
+        buyer_name: str = None,
+    ):
         """
-        1. Marcar como pago
-        2. Chamar ME criar envio
-        3. Atualizar codigo rastreio
+        Finaliza um pedido pago usando o mesmo fluxo dos webhooks atuais.
+
+        Este método é mantido como ponto de compatibilidade para o webhook
+        legado em /checkout/webhook/stripe. A regra de negócio real fica
+        centralizada em finalize_order_on_payment, que também é usada pelo
+        pagamento manual e pelos webhooks atuais.
         """
-        order = self.repo.update_order_status(pedido_id, "paid")
+        order = self.repo.get_order_by_id(pedido_id)
         if not order:
             return None
-            
-        print(f"Pedido {pedido_id} marcado como pago.")
-        
-        # Build user address info for shipping from order JSON address
-        address_info = order.address or {}
-        user_info = {
-            "name": order.customer_name or address_info.get("name") or "Cliente",
-            "phone": order.customer_phone or address_info.get("phone") or "11999999999",
-            "email": order.customer_email or address_info.get("email") or "cliente@email.com",
-            "postal_code": address_info.get("postal_code", "01000000"),
-            "document": address_info.get("document", "00000000000"),
-            "address": address_info.get("street", "Rua"),
-            "number": address_info.get("number", "S/N"),
-            "complement": address_info.get("complement", ""),
-            "district": address_info.get("neighborhood", "Bairro"),
-            "city": address_info.get("city", "Cidade"),
-            "state": address_info.get("state", "SP")
-        }
-        
-        items_payload = []
-        for oi in order.order_items:
-            items_payload.append({
-                "price": oi.price,
-                "quantity": oi.quantity
-            })
-            
-        try:
-            me_res = MelhorEnvioV2Service.criar_envio(
-                pedido_id=order.id,
-                user_info=user_info,
-                items=items_payload,
-                shipping_service_id=int(order.shipping_method) if order.shipping_method and order.shipping_method.isdigit() else 1
-            )
-            
-            if me_res and me_res.get("tracking_code"):
-                self.repo.save_tracking_code(order.id, me_res["tracking_code"])
-                print(f"Pedido {pedido_id} etiquetado ME com tracking {me_res['tracking_code']}")
-        except Exception as e:
-            print(f"Erro ao criar envio ME: {e}")
-            
+
+        # Local import avoids the payment.py -> OrderService import cycle.
+        from app.api.endpoints.payment import finalize_order_on_payment
+
+        finalize_order_on_payment(
+            order=order,
+            db=self.repo.db,
+            payment_id=payment_id,
+            session_id=session_id,
+            buyer_email=buyer_email,
+            buyer_name=buyer_name,
+        )
         return order
 
     def sync_order_status(self, order_id: int):
@@ -124,7 +105,14 @@ class OrderService:
             session = StripeService.get_checkout_session(order.stripe_session_id)
             if session and session.payment_status == "paid":
                 print(f"Sincronização: Pedido {order_id} detectado como pago na Stripe.")
-                return self.handle_payment_success(order_id)
+                customer_details = getattr(session, "customer_details", None) or {}
+                return self.handle_payment_success(
+                    order_id,
+                    payment_id=getattr(session, "payment_intent", None),
+                    session_id=getattr(session, "id", None),
+                    buyer_email=customer_details.get("email"),
+                    buyer_name=customer_details.get("name"),
+                )
         except Exception as e:
             err_str = str(e)
             if "No such checkout.session" in err_str or "no such" in err_str.lower():
