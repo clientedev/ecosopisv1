@@ -79,6 +79,9 @@ def _resolve_frontend_url(request: Request) -> str:
 
 def _get_or_create_order(data: CreateCheckoutIn, current_user: models.User, db: Session, payment_method: str) -> models.Order:
     repo = OrderRepository(db)
+    if any("(Atacado)" in (item.product_name or "") for item in data.items):
+        data.coupon_code = ""
+        data.discount_amount = 0.0
     if data.order_id:
         order = repo.get_order_by_id(data.order_id)
         if not order:
