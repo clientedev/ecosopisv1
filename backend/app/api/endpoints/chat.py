@@ -260,20 +260,41 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
 
         # 3. Groq Official Free Tier (console.groq.com)
         if not bot_reply and groq_key and not groq_key.startswith("xai-") and not groq_key.startswith("zai-"):
+            # List of current Groq models to try in order (most capable first)
+            groq_models = [
+                "llama-3.3-70b-versatile",
+                "llama-3.1-70b-versatile",
+                "llama3-70b-8192",
+                "llama-3.1-8b-instant",
+                "llama3-8b-8192",
+                "mixtral-8x7b-32768",
+                "gemma2-9b-it",
+            ]
             try:
                 client = Groq(api_key=groq_key)
-                response = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": request.message}
-                    ],
-                    max_tokens=350,
-                    temperature=0.7,
-                )
-                bot_reply = response.choices[0].message.content
+                for groq_model in groq_models:
+                    try:
+                        response = client.chat.completions.create(
+                            model=groq_model,
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": request.message}
+                            ],
+                            max_tokens=350,
+                            temperature=0.7,
+                        )
+                        bot_reply = response.choices[0].message.content
+                        print(f"Lia responded via Groq model: {groq_model}")
+                        break
+                    except Exception as model_err:
+                        err_str = str(model_err)
+                        print(f"Groq model '{groq_model}' failed: {err_str}")
+                        if "authentication" in err_str.lower() or "invalid" in err_str.lower():
+                            # Key is invalid, no point trying other models
+                            break
+                        # Otherwise try next model
             except Exception as groq_err:
-                print(f"Groq API Error: {groq_err}")
+                print(f"Groq client initialization Error: {groq_err}")
 
         # 4. Fallback Inteligente Local (Sem depender de NENHUMA API remota / 100% Garantido)
         if not bot_reply:
