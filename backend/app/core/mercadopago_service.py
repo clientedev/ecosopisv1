@@ -157,6 +157,8 @@ def get_payment_status(payment_id: str) -> dict:
         "status": response.get("status", "unknown"),
         "status_detail": response.get("status_detail", ""),
         "external_reference": response.get("external_reference", ""),
+        "payer": response.get("payer", {}),
+        "merchant_order_id": str(response.get("order", {}).get("id", "")),
     }
 
 

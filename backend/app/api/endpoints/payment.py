@@ -3,12 +3,12 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import stripe
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.api.endpoints.auth import get_current_user
+from app.api.endpoints.auth import get_current_user, get_current_user_optional
 from app.repositories.order_repository import OrderRepository
 from app.core.stripe_service import create_checkout_session, verify_webhook_signature, get_session
 from app.core.mercadopago_service import create_checkout_pro_preference, get_payment_status as get_mp_payment_status
@@ -326,20 +326,31 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Receives notification from Mercado Pago (topic: merchant_order or payment).
+    Handles JSON payloads (Webhooks v2), Form URL Encoded payloads (IPN), and Query Parameters.
     """
+    data = {}
     try:
         data = await request.json()
+        if not isinstance(data, dict):
+            data = {}
     except Exception:
-        data = {}
+        try:
+            form_data = await request.form()
+            data = dict(form_data)
+        except Exception:
+            data = {}
 
     if not data:
         data = dict(request.query_params)
 
     logger.info(f"MP Webhook received. Data: {data}, Query: {dict(request.query_params)}")
 
-    # Extract resource ID and topic/type broadly
+    # Extract resource ID safely without crashing on null nested fields
+    data_obj = data.get("data")
+    data_id = data_obj.get("id") if isinstance(data_obj, dict) else None
+
     resource_id = (
-        data.get("data", {}).get("id") or 
+        data_id or 
         data.get("id") or 
         data.get("resource") or
         request.query_params.get("data.id") or 
@@ -354,19 +365,21 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     )
     
     action = data.get("action") or request.query_params.get("action")
-    if action:
+    if action and isinstance(action, str):
         if action.startswith("payment."):
             topic = "payment"
         elif action.startswith("merchant_order."):
             topic = "merchant_order"
 
-    if topic == "payment" and resource_id:
+    if not topic and resource_id:
+        topic = "payment"
+
+    if topic in ("payment", "collection") and resource_id:
         try:
             payment_info = get_mp_payment_status(str(resource_id))
             if payment_info.get("status") in ["approved", "authorized"]:
                 pedido_id = payment_info.get("external_reference")
                 if pedido_id:
-                    # Robust lookup: try to find by ID
                     try:
                         order_id_int = int(pedido_id)
                         order = db.query(models.Order).filter(models.Order.id == order_id_int).first()
@@ -393,7 +406,6 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                 
                 has_approved_payment = False
                 approved_payment_id = None
-                buyer_email = None
                 
                 for p in payments:
                     if p.get("status") in ["approved", "authorized"]:
@@ -428,15 +440,34 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
 @router.get("/status/{order_id}")
 async def get_payment_status(
     order_id: int,
+    payment_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
 ):
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
-    if not order: raise HTTPException(status_code=404)
-    if current_user.role != "admin" and order.user_id != current_user.id:
-        raise HTTPException(status_code=403)
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+        
+    if current_user and current_user.role != "admin" and order.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Acesso negado")
 
-    # Proactive sync
+    # If explicit payment_id provided, attempt immediate verification
+    if payment_id and order.status == "pending":
+        try:
+            payment_info = get_mp_payment_status(str(payment_id))
+            if payment_info.get("status") in ["approved", "authorized"]:
+                finalize_order_on_payment(
+                    order=order,
+                    db=db,
+                    payment_id=str(payment_id),
+                    buyer_email=payment_info.get("payer", {}).get("email")
+                )
+                db.commit()
+                db.refresh(order)
+        except Exception as e:
+            logger.warning(f"Error checking explicit payment_id {payment_id} for order {order_id}: {e}")
+
+    # Proactive sync if still pending
     if order.status == "pending":
         from app.repositories.order_repository import OrderRepository
         from app.services.order_service import OrderService
@@ -446,7 +477,7 @@ async def get_payment_status(
             service.sync_order_status(order.id)
             db.commit()
             db.refresh(order)
-        elif getattr(order, "mercadopago_preference_id", None):
+        if order.status == "pending" and (getattr(order, "mercadopago_preference_id", None) or getattr(order, "mercadopago_payment_id", None) or order.payment_method == "mercadopago"):
             service.sync_mp_order_status(order.id)
             db.commit()
             db.refresh(order)
@@ -466,7 +497,6 @@ async def get_payment_status(
                         d = action["boleto_display_details"]
                         payment_details = {"method": "boleto", "url": d.get("hosted_voucher_url"), "number": d.get("number")}
             except: pass
-        # Potentially add MP pending details if needed
 
     return {
         "order_id": order.id,

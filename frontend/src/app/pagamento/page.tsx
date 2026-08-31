@@ -8,17 +8,20 @@ import { Copy, ExternalLink, QrCode, FileText } from "lucide-react";
 
 function PaymentContent() {
     const searchParams = useSearchParams();
-    const status = searchParams.get("status") || "pending";
-    const orderId = searchParams.get("order_id");
+    const statusParam = searchParams.get("status") || searchParams.get("collection_status") || "pending";
+    const orderId = searchParams.get("order_id") || searchParams.get("external_reference");
+    const paymentId = searchParams.get("payment_id") || searchParams.get("collection_id");
 
-    const [orderStatus, setOrderStatus] = useState<string>(status === "approved" ? "pending" : status);
+    const [orderStatus, setOrderStatus] = useState<string>(
+        statusParam === "approved" || statusParam === "paid" ? "approved" : statusParam
+    );
     const [paymentDetails, setPaymentDetails] = useState<any>(null);
     const [polling, setPolling] = useState(true);
     const [attempts, setAttempts] = useState(0);
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
-        if (!orderId || status === "failure") {
+        if (!orderId || statusParam === "failure" || statusParam === "rejected") {
             setPolling(false);
             return;
         }
@@ -26,13 +29,15 @@ function PaymentContent() {
         // Poll backend to confirm payment status
         const checkStatus = async () => {
             try {
-                const token = localStorage.getItem("token");
-                if (!token) { setPolling(false); return; }
+                const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+                const headers: Record<string, string> = {};
+                if (token) {
+                    headers["Authorization"] = `Bearer ${token}`;
+                }
 
                 const apiUrl = "/api";
-                const res = await fetch(`${apiUrl}/payment/status/${orderId}`, {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
+                const queryPaymentId = paymentId ? `?payment_id=${paymentId}` : "";
+                const res = await fetch(`${apiUrl}/payment/status/${orderId}${queryPaymentId}`, { headers });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.status === "paid") {
@@ -60,7 +65,7 @@ function PaymentContent() {
             checkStatus();
             return () => clearInterval(interval);
         }
-    }, [orderId, status, polling]);
+    }, [orderId, paymentId, statusParam, polling]);
 
     const isApproved = orderStatus === "approved" || orderStatus === "paid";
     const isFailure = status === "failure" || status === "rejected";

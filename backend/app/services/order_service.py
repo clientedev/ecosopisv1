@@ -125,22 +125,40 @@ class OrderService:
     def sync_mp_order_status(self, order_id: int):
         """
         Sincroniza proativamente o status do pedido com o Mercado Pago.
-        Busca pagamentos relacionados ao external_reference (order_id).
+        Busca pagamentos relacionados ao external_reference (order_id) por múltiplos métodos.
         """
         order = self.repo.get_order_by_id(order_id)
-        if not order or order.status != "pending" or not getattr(order, 'mercadopago_preference_id', None):
+        if not order or order.status in ("paid", "shipped", "delivered", "cancelled"):
             return order
 
         try:
-            from app.core.mercadopago_service import sdk as mp_sdk
+            from app.core.mercadopago_service import sdk as mp_sdk, get_payment_status as get_mp_payment_status
+            
+            # 1. Se já possui mercadopago_payment_id associado, consulta diretamente
+            mp_payment_id = getattr(order, "mercadopago_payment_id", None)
+            if mp_payment_id:
+                try:
+                    p_info = get_mp_payment_status(str(mp_payment_id))
+                    if p_info.get("status") in ["approved", "authorized"]:
+                        from app.api.endpoints.payment import finalize_order_on_payment
+                        finalize_order_on_payment(
+                            order=order,
+                            db=self.repo.db,
+                            payment_id=str(mp_payment_id),
+                            buyer_email=p_info.get("payer", {}).get("email")
+                        )
+                        return order
+                except Exception as p_err:
+                    print(f"Aviso na consulta direta MP payment {mp_payment_id}: {p_err}")
+
+            # 2. Busca por payment().search
             filters = {"external_reference": str(order_id)}
             result = mp_sdk.payment().search(filters)
             if result.get("status") in [200, 201]:
                 payments = result.get("response", {}).get("results", [])
                 for payment in payments:
                     if payment.get("status") in ["approved", "authorized"]:
-                        print(f"Sincronização: Pedido {order_id} detectado como pago no Mercado Pago.")
-                        
+                        print(f"Sincronização: Pedido {order_id} detectado como pago no Mercado Pago via payment.search.")
                         from app.api.endpoints.payment import finalize_order_on_payment
                         finalize_order_on_payment(
                             order=order,
@@ -149,6 +167,24 @@ class OrderService:
                             buyer_email=payment.get("payer", {}).get("email")
                         )
                         return order
+
+            # 3. Busca por merchant_order().search
+            mo_result = mp_sdk.merchant_order().search(filters)
+            if mo_result.get("status") in [200, 201]:
+                merchant_orders = mo_result.get("response", {}).get("elements", []) or mo_result.get("response", {}).get("results", [])
+                for mo in merchant_orders:
+                    payments = mo.get("payments", [])
+                    for p in payments:
+                        if p.get("status") in ["approved", "authorized"]:
+                            print(f"Sincronização: Pedido {order_id} detectado como pago no Mercado Pago via merchant_order.")
+                            from app.api.endpoints.payment import finalize_order_on_payment
+                            finalize_order_on_payment(
+                                order=order,
+                                db=self.repo.db,
+                                payment_id=str(p.get("id")),
+                                buyer_email=mo.get("payer", {}).get("email")
+                            )
+                            return order
         except Exception as e:
             print(f"Erro ao sincronizar pedido {order_id} com Mercado Pago: {e}")
         
