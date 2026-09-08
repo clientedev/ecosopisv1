@@ -16,7 +16,7 @@
     width: 100%;
     padding-top: 100%;
     /* Square aspect ratio */
-    background-color: var(--neutral-gray-100);
+    background-color: #ffffff;
     overflow: hidden;
 }
 
