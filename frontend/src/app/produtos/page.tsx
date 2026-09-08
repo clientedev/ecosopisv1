@@ -155,15 +155,11 @@ export default function ProductsPage() {
             {/* Clean Hero Section */}
             <section className={styles.cleanCatalogHero}>
                 <div className={styles.heroInnerContainer}>
-                    <div className={styles.heroBadge}>
-                        <ShieldCheck size={14} style={{ marginRight: 6 }} /> COSMÉTICA NATURAL & BOTÂNICA
-                    </div>
-
                     <h1 className={styles.heroTitle}>
                         {activeCategory === "all" ? "Nossos Produtos" : categories.find(c => c.id === activeCategory)?.name}
                     </h1>
                     <p className={styles.heroSubtitle}>
-                        Fórmulas botânicas puras criadas com ingredientes naturais de alta performance para o cuidado diário da sua pele.
+                        Fórmulas botânicas puras elaboradas com extratos vegetais e óleos essenciais para o seu ritual diário de cuidados.
                     </p>
 
                     {/* Category Buttons Bar */}

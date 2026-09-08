@@ -96,6 +96,29 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
     const currentPrice = product.is_on_sale && product.sale_price ? product.sale_price : product.price || 0;
     const wholesaleEstimatePrice = (currentPrice * 0.7).toFixed(2).replace(".", ",");
 
+    const getHumanCategoryLabel = (p: any) => {
+        const tags = Array.isArray(p.tags) ? p.tags : [];
+        if (tags.includes("sabonete") || tags.includes("sabonete-liquido")) return "Sabonete Botânico";
+        if (tags.includes("creme") || tags.includes("manteiga")) return "Creme Hidratante";
+        if (tags.includes("oleo")) return "Óleo Vegetal Puro";
+        if (tags.includes("oe")) return "Óleo Essencial";
+        if (tags.includes("kit")) return "Kit de Cuidados";
+        if (tags.includes("desodorante")) return "Desodorante Natural";
+        if (tags.includes("tonico")) return "Tônico Facial";
+        return "Cuidado Natural";
+    };
+
+    const getHumanSkinLabel = (tags: string[]) => {
+        if (!tags || !Array.isArray(tags)) return null;
+        if (tags.includes("skin:oily")) return "Pele Oleosa";
+        if (tags.includes("skin:dry")) return "Pele Seca";
+        if (tags.includes("skin:normal") || tags.includes("skin:mixed")) return "Pele Normal / Mista";
+        if (tags.includes("sensitivity")) return "Pele Sensível";
+        return null;
+    };
+
+    const skinLabel = getHumanSkinLabel(product.tags);
+
     return (
         <div className={`${styles.card} ${isV2Theme ? styles.cardV2 : ""} ${isRecommended ? styles.recommended : ""} ${isOnSale ? styles.onSale : ""}`}>
             {isOnSale && (
@@ -104,15 +127,7 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
                 </div>
             )}
             {!isOnSale && finalBadge && <div className={styles.productBadge}>{finalBadge}</div>}
-            {isRecommended && <div className={styles.recommendedLabel}>RECOMENDADO PARA VOCÊ</div>}
-
-            {isV2Theme && (
-                <div className={styles.v2TopBadges}>
-                    <span className={styles.v2DermoBadge}>
-                        <ShieldCheck size={11} style={{ marginRight: 3 }} /> Dermatológico
-                    </span>
-                </div>
-            )}
+            {isRecommended && <div className={styles.recommendedLabel}>RECOMENDADO</div>}
 
             <Link href={`/produtos/${product.slug}`}>
                 <div className={styles.imageWrapper}>
@@ -121,48 +136,37 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
                         alt={product.name}
                         fill
                         className={styles.image}
-                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                 </div>
             </Link>
 
             <div className={styles.content}>
-                {isV2Theme ? (
-                    <div className={styles.v2Subline}>
-                        {product.tags && product.tags.length > 0
-                            ? product.tags.slice(0, 2).map(t => t.replace("skin:", "pele ").toUpperCase()).join(" • ")
-                            : "CUIDADO BOTÂNICO ERVAS & BOTÂNICA"}
-                    </div>
-                ) : (
-                    <div className={styles.tags}>
-                        {product.tags.map(tag => (
-                            <span key={tag} className="scientific-badge">{tag}</span>
-                        ))}
-                    </div>
-                )}
+                <div className={styles.v2Subline}>
+                    <span>{getHumanCategoryLabel(product)}</span>
+                    {skinLabel && <span> • {skinLabel}</span>}
+                </div>
 
                 <Link href={`/produtos/${product.slug}`}>
                     <h3 className={styles.name}>{product.name}</h3>
                 </Link>
 
-                {isV2Theme && activeIngredients && (
+                {activeIngredients && (
                     <div className={styles.v2IngredientsLine}>
                         <span className={styles.v2IngredientsLabel}>Ativos:</span> {activeIngredients}
                     </div>
                 )}
 
-                {isV2Theme && (
-                    <div className={styles.v2RatingRow}>
-                        <div className={styles.starsRow}>
-                            <Star size={12} fill="#4B8411" color="#4B8411" />
-                            <Star size={12} fill="#4B8411" color="#4B8411" />
-                            <Star size={12} fill="#4B8411" color="#4B8411" />
-                            <Star size={12} fill="#4B8411" color="#4B8411" />
-                            <Star size={12} fill="#4B8411" color="#4B8411" />
-                        </div>
-                        <span className={styles.v2RatingText}>4.9 (48)</span>
+                <div className={styles.v2RatingRow}>
+                    <div className={styles.starsRow}>
+                        <Star size={13} fill="#4B8411" color="#4B8411" />
+                        <Star size={13} fill="#4B8411" color="#4B8411" />
+                        <Star size={13} fill="#4B8411" color="#4B8411" />
+                        <Star size={13} fill="#4B8411" color="#4B8411" />
+                        <Star size={13} fill="#4B8411" color="#4B8411" />
                     </div>
-                )}
+                    <span className={styles.v2RatingText}>4.9</span>
+                </div>
 
                 <p className={styles.description}>{product.description}</p>
 
