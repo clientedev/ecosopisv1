@@ -235,4 +235,103 @@
     font-weight: 800;
     color: #f59e0b;
     letter-spacing: -0.02em;
-}
+}
+
+/* --- V2 CERAVE CLEAN STYLING --- */
+.cardV2 {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    position: relative;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+}
+
+.cardV2:hover {
+    border-color: #00529b;
+    box-shadow: 0 8px 24px rgba(0, 82, 155, 0.12);
+    transform: translateY(-3px);
+}
+
+.v2TopBadges {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 5;
+    display: flex;
+    gap: 6px;
+}
+
+.v2DermoBadge {
+    display: inline-flex;
+    align-items: center;
+    background-color: #f1f5f9;
+    color: #00529b;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid #cbd5e1;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.v2Subline {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #00529b;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+}
+
+.v2IngredientsLine {
+    font-size: 0.76rem;
+    color: #475569;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+.v2IngredientsLabel {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.v2RatingRow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.starsRow {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.v2RatingText {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.v2WholesaleCardTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background-color: #f8fafc;
+    border: 1px dashed #00529b;
+    color: #00529b;
+    padding: 5px 8px;
+    border-radius: 5px;
+    font-size: 0.72rem;
+    margin-bottom: 10px;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.v2WholesaleCardTag:hover {
+    background-color: #e8eef3;
+}
+

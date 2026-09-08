@@ -36,6 +36,7 @@ interface ProductDetail {
     modo_de_uso: string;
     ingredientes: string;
     beneficios: string;
+    composicao?: string;
     cuidados: string;
     contraindicacoes: string;
     observacoes: string;

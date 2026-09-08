@@ -3,6 +3,9 @@ import styles from "./ProductCard.module.css";
 import Image from "next/image";
 import { useToast } from "@/components/Toast/Toast";
 import { useCart } from "@/context/CartContext";
+import { useTheme } from "@/context/ThemeContext";
+import { PRODUCT_STATIC_DATA } from "@/lib/productData";
+import { Star, ShieldCheck, Package } from "lucide-react";
 
 interface ProductCardProps {
     product: {
@@ -18,6 +21,8 @@ interface ProductCardProps {
         shopee_url?: string;
         is_on_sale?: boolean;
         sale_price?: number | null;
+        ingredients?: string;
+        is_wholesale?: boolean;
     };
     badge?: string;
     isRecommended?: boolean;
@@ -25,6 +30,9 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, badge, isRecommended, showMarketplace = true }: ProductCardProps) {
+    const { activeTheme } = useTheme();
+    const isV2Theme = activeTheme === 'pg_produtos_v2';
+
     const getImageUrl = (url?: string) => {
         if (!url) return "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
         if (url.startsWith("http")) return url;
@@ -83,8 +91,13 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
         else if (rotina.includes(product.slug)) finalBadge = "Rotina completa";
     }
 
+    const staticData = PRODUCT_STATIC_DATA[product.slug];
+    const activeIngredients = staticData?.ativos || product.ingredients || "";
+    const currentPrice = product.is_on_sale && product.sale_price ? product.sale_price : product.price || 0;
+    const wholesaleEstimatePrice = (currentPrice * 0.7).toFixed(2).replace(".", ",");
+
     return (
-        <div className={`${styles.card} ${isRecommended ? styles.recommended : ""} ${isOnSale ? styles.onSale : ""}`}>
+        <div className={`${styles.card} ${isV2Theme ? styles.cardV2 : ""} ${isRecommended ? styles.recommended : ""} ${isOnSale ? styles.onSale : ""}`}>
             {isOnSale && (
                 <div className={styles.saleBadge}>
                     🔥 {discountPct > 0 ? `${discountPct}% OFF` : "PROMOÇÃO"}
@@ -92,6 +105,15 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
             )}
             {!isOnSale && finalBadge && <div className={styles.productBadge}>{finalBadge}</div>}
             {isRecommended && <div className={styles.recommendedLabel}>RECOMENDADO PARA VOCÊ</div>}
+
+            {isV2Theme && (
+                <div className={styles.v2TopBadges}>
+                    <span className={styles.v2DermoBadge}>
+                        <ShieldCheck size={11} style={{ marginRight: 3 }} /> Dermatológico
+                    </span>
+                </div>
+            )}
+
             <Link href={`/produtos/${product.slug}`}>
                 <div className={styles.imageWrapper}>
                     <Image
@@ -105,16 +127,51 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
             </Link>
 
             <div className={styles.content}>
-                <div className={styles.tags}>
-                    {product.tags.map(tag => (
-                        <span key={tag} className="scientific-badge">{tag}</span>
-                    ))}
-                </div>
+                {isV2Theme ? (
+                    <div className={styles.v2Subline}>
+                        {product.tags && product.tags.length > 0
+                            ? product.tags.slice(0, 2).map(t => t.replace("skin:", "pele ").toUpperCase()).join(" • ")
+                            : "CUIDADO BOTÂNICO ERVAS & BOTÂNICA"}
+                    </div>
+                ) : (
+                    <div className={styles.tags}>
+                        {product.tags.map(tag => (
+                            <span key={tag} className="scientific-badge">{tag}</span>
+                        ))}
+                    </div>
+                )}
 
                 <Link href={`/produtos/${product.slug}`}>
                     <h3 className={styles.name}>{product.name}</h3>
                 </Link>
+
+                {isV2Theme && activeIngredients && (
+                    <div className={styles.v2IngredientsLine}>
+                        <span className={styles.v2IngredientsLabel}>Ativos:</span> {activeIngredients}
+                    </div>
+                )}
+
+                {isV2Theme && (
+                    <div className={styles.v2RatingRow}>
+                        <div className={styles.starsRow}>
+                            <Star size={12} fill="#00529B" color="#00529B" />
+                            <Star size={12} fill="#00529B" color="#00529B" />
+                            <Star size={12} fill="#00529B" color="#00529B" />
+                            <Star size={12} fill="#00529B" color="#00529B" />
+                            <Star size={12} fill="#00529B" color="#00529B" />
+                        </div>
+                        <span className={styles.v2RatingText}>4.9 (48)</span>
+                    </div>
+                )}
+
                 <p className={styles.description}>{product.description}</p>
+
+                {isV2Theme && (
+                    <Link href="/atacado" className={styles.v2WholesaleCardTag} title="Ver preços especiais para compras acima de 10 unidades">
+                        <Package size={12} />
+                        <span>Preço Atacado: <strong>R$ {wholesaleEstimatePrice}</strong></span>
+                    </Link>
+                )}
 
                 {product.price && (
                     <div className={styles.priceBlock}>
@@ -161,3 +218,4 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
         </div>
     );
 }
+

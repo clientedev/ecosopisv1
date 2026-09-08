@@ -35,6 +35,14 @@ const THEMES: Record<string, Record<string, string>> = {
         text_secondary: "#5a450c",
         bg_color: "#fffcf4",
     },
+    pg_produtos_v2: {
+        primary_color: "#00529B",
+        primary_color_dark: "#002B49",
+        secondary_color: "#ffffff",
+        text_primary: "#0F172A",
+        text_secondary: "#475569",
+        bg_color: "#FAFAFA",
+    },
 };
 
 export default function DynamicBranding() {
@@ -468,6 +476,56 @@ export default function DynamicBranding() {
         }
     ` : '';
 
+    const pgProdutosV2Extras = themeId === "pg_produtos_v2" ? `
+        /* ============================================
+           PG DE PRODUTOS V2 (CERAVE CLEAN) OVERRIDES
+           ============================================ */
+        .btn-primary {
+            background: linear-gradient(135deg, #00529B 0%, #003366 100%) !important;
+            box-shadow: 0 4px 14px rgba(0, 82, 155, 0.25) !important;
+            border-color: #00529B !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.03em !important;
+            border-radius: 6px !important;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #003366 0%, #002244 100%) !important;
+            box-shadow: 0 6px 18px rgba(0, 51, 102, 0.35) !important;
+            transform: translateY(-1px);
+        }
+        .btn-outline {
+            border-color: #00529B !important;
+            color: #00529B !important;
+            border-radius: 6px !important;
+        }
+        .btn-outline:hover {
+            background-color: rgba(0, 82, 155, 0.08) !important;
+        }
+
+        html[data-theme="pg_produtos_v2"] [class*="announcementBar"] {
+            background-color: #002B49 !important;
+            color: #ffffff !important;
+        }
+
+        html[data-theme="pg_produtos_v2"] [class*="cartBadge"] {
+            background: #00529B !important;
+            color: #ffffff !important;
+        }
+
+        html[data-theme="pg_produtos_v2"] [class*="sectionBadge"],
+        html[data-theme="pg_produtos_v2"] [class*="scientificBadge"],
+        html[data-theme="pg_produtos_v2"] .scientific-badge {
+            background: #E8EEF3 !important;
+            color: #00529B !important;
+            border: 1px solid #CBD5E1 !important;
+            font-weight: 600 !important;
+            font-size: 0.72rem !important;
+            letter-spacing: 0.04em !important;
+            border-radius: 4px !important;
+        }
+    ` : '';
+
     return (
         <style dangerouslySetInnerHTML={{
             __html: `
@@ -505,6 +563,7 @@ export default function DynamicBranding() {
                 ${valentinesExtras}
                 ${copaMundoExtras}
                 ${aniversario4AnosExtras}
+                ${pgProdutosV2Extras}
             `
         }} />
     );

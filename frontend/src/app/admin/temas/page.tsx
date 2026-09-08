@@ -159,6 +159,18 @@ const THEME_DEFINITIONS: ThemeDefinition[] = [
         tags: ["Sazonal", "Dourado", "Aniversário"],
         features: ["Cores douradas premium", "Animação de balões e confetes festivos", "Design comemorativo de luxo"],
     },
+    {
+        id: "pg_produtos_v2",
+        name: "PG de Produtos V2 (CeraVe Clean)",
+        description: "Novo catálogo dermocosmético ultra clean inspirado na CeraVe. Filtros de alta precisão por ativo, tipo de pele e necessidade, cards modernos sem cara de I.A e destaque estratégico para compras no Atacado.",
+        emoji: "🧴",
+        primary: "#00529B",
+        primaryDark: "#002B49",
+        bg: "#FFFFFF",
+        accent: "#E8EEF3",
+        tags: ["Produtos V2", "CeraVe Style", "Atacado Highlight"],
+        features: ["Cards de produto minimalistas e refinados", "Filtros precisos por tipo de pele e benefício", "Destaque banner para Área de Atacado", "Visual dermocosmético clean"],
+    },
 ];
 
 export default function AdminTemas() {
