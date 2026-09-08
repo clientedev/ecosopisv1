@@ -26,6 +26,10 @@ interface CartContextType {
     cartTotal: number;
     wholesaleTotalRaw: number; // Sum of original prices before wholesale discount
     isWholesaleUnlocked: boolean;
+    isCartOpen: boolean;
+    setIsCartOpen: (open: boolean) => void;
+    openCart: () => void;
+    closeCart: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -38,9 +42,13 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [cart, setCart] = useState<CartItem[]>([]);
+    const [isCartOpen, setIsCartOpen] = useState(false);
     const { showToast } = useToast();
     const { user, token } = useAuth();
     const [isInitialized, setIsInitialized] = useState(false);
+
+    const openCart = useCallback(() => setIsCartOpen(true), []);
+    const closeCart = useCallback(() => setIsCartOpen(false), []);
 
     // 1. Load cart from localStorage on mount
     useEffect(() => {
@@ -112,17 +120,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             showToast(`${product.name} (${qty}x) adicionado ao carrinho!`, 'success');
             return [...prev, { ...product, quantity: qty, isWholesale: false }];
         });
+        setIsCartOpen(true);
     }, [showToast]);
 
     const addWholesaleBundleToCart = useCallback((items: any[]) => {
         setCart((prev) => {
-            // Filter out any existing wholesale items to "replace" the bundle or just append?
-            // User requested "add to cart", usually we append.
             const wholesaleItems = items.map(item => ({
                 ...item,
                 quantity: item.quantity || 1,
                 isWholesale: true,
-                // REGRA: produtos em promoção entram no atacado pelo preço ORIGINAL (sem desconto)
                 price: item.is_on_sale && item.sale_price && item.sale_price > 0
                     ? (item.original_price ?? item.price)
                     : item.price,
@@ -131,11 +137,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             showToast(`Kit Atacado de ${items.length} itens adicionado!`, 'success');
             return [...prev, ...wholesaleItems];
         });
+        setIsCartOpen(true);
     }, [showToast]);
 
     const removeFromCart = useCallback((id: number) => {
         setCart((prev) => {
-            // Find index of item to remove (first match)
             const index = prev.findIndex(item => item.id === id);
             if (index === -1) return prev;
             const newCart = [...prev];
@@ -146,9 +152,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     const updateQuantity = useCallback((id: number, delta: number) => {
         setCart((prev) =>
-            prev.map((item, idx) => {
-                // If it's wholesale, we might want to prevent quantity changes or handle them.
-                // For now, allow simple quantity update.
+            prev.map((item) => {
                 if (item.id === id) {
                     const newQty = Math.max(1, item.quantity + delta);
                     return { ...item, quantity: newQty };
@@ -164,11 +168,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
     
-    // Conta apenas os produtos que vieram da aba de atacado
     const wholesaleItemsCount = cart.filter(item => item.isWholesale).reduce((acc, item) => acc + item.quantity, 0);
     const isWholesaleUnlocked = wholesaleItemsCount >= 10;
     
-    // Aplica o desconto de 30% nos itens de atacado APENAS se a regra de 10+ itens for atendida
     const cartTotal = cart.reduce((acc, item) => {
         const isItemDiscounted = item.isWholesale && isWholesaleUnlocked;
         const itemPrice = isItemDiscounted ? item.price * 0.7 : item.price;
@@ -190,7 +192,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             cartCount,
             cartTotal,
             wholesaleTotalRaw,
-            isWholesaleUnlocked
+            isWholesaleUnlocked,
+            isCartOpen,
+            setIsCartOpen,
+            openCart,
+            closeCart
         }}>
             {children}
         </CartContext.Provider>

@@ -9,7 +9,7 @@ import styles from "./MobileBottomNav.module.css";
 
 export default function MobileBottomNav() {
     const pathname = usePathname();
-    const { cartCount } = useCart();
+    const { cartCount, openCart } = useCart();
     const { user } = useAuth();
 
     // All hooks must be declared before any conditional returns (Rules of Hooks)
@@ -129,9 +129,11 @@ export default function MobileBottomNav() {
                     <span>Lia AI</span>
                 </Link>
 
-                <Link 
-                    href="/carrinho" 
+                <button 
+                    onClick={openCart} 
                     className={`${styles.navItem} ${pathname === "/carrinho" ? styles.active : ""}`}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                    type="button"
                 >
                     <div className={styles.cartIconWrapper}>
                         <ShoppingCart size={22} />
@@ -140,7 +142,7 @@ export default function MobileBottomNav() {
                         )}
                     </div>
                     <span>Carrinho</span>
-                </Link>
+                </button>
 
                 <Link 
                     href={user ? "/perfil" : "/conta"} 

@@ -39,6 +39,8 @@ export const viewport = {
     maximumScale: 1,
 };
 
+import CartDrawer from "@/components/CartDrawer/CartDrawer";
+
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -56,6 +58,7 @@ export default function RootLayout({
                                 <WorldCupAnimation />
                                 <AnniversaryAnimation />
                                 {children}
+                                <CartDrawer />
                                 <DeferredComponents />
                                 <MobileBottomNav />
                             </ThemeProvider>

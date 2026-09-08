@@ -36,12 +36,12 @@ const THEMES: Record<string, Record<string, string>> = {
         bg_color: "#fffcf4",
     },
     pg_produtos_v2: {
-        primary_color: "#00529B",
-        primary_color_dark: "#002B49",
+        primary_color: "#4B8411",
+        primary_color_dark: "#3a660d",
         secondary_color: "#ffffff",
-        text_primary: "#0F172A",
-        text_secondary: "#475569",
-        bg_color: "#FAFAFA",
+        text_primary: "#1a1a1a",
+        text_secondary: "#4a4a4a",
+        bg_color: "#fdfcf9",
     },
 };
 
@@ -478,48 +478,48 @@ export default function DynamicBranding() {
 
     const pgProdutosV2Extras = themeId === "pg_produtos_v2" ? `
         /* ============================================
-           PG DE PRODUTOS V2 (CERAVE CLEAN) OVERRIDES
+           PG DE PRODUTOS V2 (PREMIUM CLEAN GREEN) OVERRIDES
            ============================================ */
         .btn-primary {
-            background: linear-gradient(135deg, #00529B 0%, #003366 100%) !important;
-            box-shadow: 0 4px 14px rgba(0, 82, 155, 0.25) !important;
-            border-color: #00529B !important;
+            background: linear-gradient(135deg, #4B8411 0%, #3a660d 100%) !important;
+            box-shadow: 0 4px 14px rgba(75, 132, 17, 0.25) !important;
+            border-color: #4B8411 !important;
             color: #ffffff !important;
-            font-weight: 600 !important;
+            font-weight: 700 !important;
             letter-spacing: 0.03em !important;
             border-radius: 6px !important;
         }
         .btn-primary:hover {
-            background: linear-gradient(135deg, #003366 0%, #002244 100%) !important;
-            box-shadow: 0 6px 18px rgba(0, 51, 102, 0.35) !important;
+            background: linear-gradient(135deg, #3a660d 0%, #294a08 100%) !important;
+            box-shadow: 0 6px 18px rgba(58, 102, 13, 0.35) !important;
             transform: translateY(-1px);
         }
         .btn-outline {
-            border-color: #00529B !important;
-            color: #00529B !important;
+            border-color: #4B8411 !important;
+            color: #4B8411 !important;
             border-radius: 6px !important;
         }
         .btn-outline:hover {
-            background-color: rgba(0, 82, 155, 0.08) !important;
+            background-color: rgba(75, 132, 17, 0.08) !important;
         }
 
         html[data-theme="pg_produtos_v2"] [class*="announcementBar"] {
-            background-color: #002B49 !important;
+            background-color: #2d5a27 !important;
             color: #ffffff !important;
         }
 
         html[data-theme="pg_produtos_v2"] [class*="cartBadge"] {
-            background: #00529B !important;
+            background: #4B8411 !important;
             color: #ffffff !important;
         }
 
         html[data-theme="pg_produtos_v2"] [class*="sectionBadge"],
         html[data-theme="pg_produtos_v2"] [class*="scientificBadge"],
         html[data-theme="pg_produtos_v2"] .scientific-badge {
-            background: #E8EEF3 !important;
-            color: #00529B !important;
-            border: 1px solid #CBD5E1 !important;
-            font-weight: 600 !important;
+            background: #edf7e6 !important;
+            color: #3a660d !important;
+            border: 1px solid #cce8b5 !important;
+            font-weight: 700 !important;
             font-size: 0.72rem !important;
             letter-spacing: 0.04em !important;
             border-radius: 4px !important;

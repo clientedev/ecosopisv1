@@ -9,7 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 
 export default function Header() {
-    const { cartCount, cartTotal } = useCart();
+    const { cartCount, cartTotal, openCart } = useCart();
     const { user, logout } = useAuth();
     const { activeTheme } = useTheme();
     const isAdmin = user?.role === 'admin';
@@ -253,13 +253,13 @@ export default function Header() {
                 </div>
 
                 <div className={styles.actions} style={{ position: 'relative', zIndex: 1000 }}>
-                    <Link href="/carrinho" className={styles.actionIcon}>
+                    <button onClick={openCart} className={styles.actionIcon} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                         <div className={styles.cartIconWrapper}>
                             <ShoppingCart size={22} />
                             {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
                             <span className={styles.cartLabel}>CARRINHO</span>
                         </div>
-                    </Link>
+                    </button>
 
                     {user ? (
 

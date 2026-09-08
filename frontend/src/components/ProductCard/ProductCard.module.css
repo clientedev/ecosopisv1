@@ -237,27 +237,27 @@
     letter-spacing: -0.02em;
 }
 
-/* --- V2 CERAVE CLEAN STYLING --- */
+/* --- V2 CLEAN GREEN STYLING --- */
 .cardV2 {
     background-color: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     position: relative;
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     overflow: hidden;
 }
 
 .cardV2:hover {
-    border-color: #00529b;
-    box-shadow: 0 8px 24px rgba(0, 82, 155, 0.12);
-    transform: translateY(-3px);
+    border-color: #4B8411;
+    box-shadow: 0 10px 30px rgba(75, 132, 17, 0.12);
+    transform: translateY(-4px);
 }
 
 .v2TopBadges {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 12px;
+    left: 12px;
     z-index: 5;
     display: flex;
     gap: 6px;
@@ -266,13 +266,13 @@
 .v2DermoBadge {
     display: inline-flex;
     align-items: center;
-    background-color: #f1f5f9;
-    color: #00529b;
+    background-color: #edf7e6;
+    color: #3a660d;
     font-size: 0.68rem;
     font-weight: 700;
     padding: 3px 8px;
     border-radius: 4px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid #cce8b5;
     letter-spacing: 0.03em;
     text-transform: uppercase;
 }
@@ -280,7 +280,7 @@
 .v2Subline {
     font-size: 0.68rem;
     font-weight: 700;
-    color: #00529b;
+    color: #3a660d;
     letter-spacing: 0.06em;
     margin-bottom: 6px;
 }

@@ -154,24 +154,17 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
                 {isV2Theme && (
                     <div className={styles.v2RatingRow}>
                         <div className={styles.starsRow}>
-                            <Star size={12} fill="#00529B" color="#00529B" />
-                            <Star size={12} fill="#00529B" color="#00529B" />
-                            <Star size={12} fill="#00529B" color="#00529B" />
-                            <Star size={12} fill="#00529B" color="#00529B" />
-                            <Star size={12} fill="#00529B" color="#00529B" />
+                            <Star size={12} fill="#4B8411" color="#4B8411" />
+                            <Star size={12} fill="#4B8411" color="#4B8411" />
+                            <Star size={12} fill="#4B8411" color="#4B8411" />
+                            <Star size={12} fill="#4B8411" color="#4B8411" />
+                            <Star size={12} fill="#4B8411" color="#4B8411" />
                         </div>
                         <span className={styles.v2RatingText}>4.9 (48)</span>
                     </div>
                 )}
 
                 <p className={styles.description}>{product.description}</p>
-
-                {isV2Theme && (
-                    <Link href="/atacado" className={styles.v2WholesaleCardTag} title="Ver preços especiais para compras acima de 10 unidades">
-                        <Package size={12} />
-                        <span>Preço Atacado: <strong>R$ {wholesaleEstimatePrice}</strong></span>
-                    </Link>
-                )}
 
                 {product.price && (
                     <div className={styles.priceBlock}>
