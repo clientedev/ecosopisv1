@@ -6,8 +6,23 @@ load_dotenv()
 
 MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5000")
+BACKEND_URL = os.getenv("BACKEND_URL", "https://web-production-33f04.up.railway.app")
 
 sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
+
+
+def _get_backend_base() -> str:
+    """Return backend base URL for notification/webhook URLs.
+    Prefers explicit BACKEND_URL env var. Falls back to FRONTEND_URL port
+    replacement only for localhost (dev) environments."""
+    if BACKEND_URL:
+        return BACKEND_URL.rstrip("/")
+    # Dev fallback: assume backend runs on port 8000
+    if "localhost" in FRONTEND_URL or "127.0.0.1" in FRONTEND_URL:
+        return FRONTEND_URL.replace("3000", "8000").replace("5000", "8000").rstrip("/")
+    # In production without BACKEND_URL set, use FRONTEND_URL as-is
+    # (Nginx/reverse-proxy routes /api/* to the backend)
+    return FRONTEND_URL.rstrip("/")
 
 
 def create_pix_payment(order_id: int, total: float, customer_email: str,
@@ -16,7 +31,7 @@ def create_pix_payment(order_id: int, total: float, customer_email: str,
     Creates a PIX payment via Mercado Pago API.
     """
     # Prefer standardized backend notification path
-    webhook_url = os.getenv("MP_WEBHOOK_URL") or f"{FRONTEND_URL.replace('3000', '8000')}/api/payment/webhook/mercadopago"
+    webhook_url = os.getenv("MP_WEBHOOK_URL") or f"{_get_backend_base()}/api/payment/webhook/mercadopago"
     
     payment_data = {
         "transaction_amount": round(float(total), 2),
@@ -54,7 +69,7 @@ def create_checkout_pro_preference(order_id: int, items: list, shipping_price: f
     """
     Creates a Checkout Pro preference including products and shipping.
     """
-    webhook_url = os.getenv("MP_WEBHOOK_URL") or f"{FRONTEND_URL.replace('3000', '8000')}/api/payment/webhook/mercadopago"
+    webhook_url = os.getenv("MP_WEBHOOK_URL") or f"{_get_backend_base()}/api/payment/webhook/mercadopago"
     
     total_items_price = sum(float(item.get("price", 0)) * int(item.get("quantity", 1)) for item in items)
     

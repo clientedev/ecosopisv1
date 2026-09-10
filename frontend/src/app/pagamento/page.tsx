@@ -55,7 +55,7 @@ function PaymentContent() {
 
             setAttempts(prev => {
                 const next = prev + 1;
-                if (next >= 8) setPolling(false); // max 8 attempts = ~40s
+                if (next >= 20) setPolling(false); // max 20 attempts = ~100s
                 return next;
             });
         };
@@ -68,7 +68,7 @@ function PaymentContent() {
     }, [orderId, paymentId, statusParam, polling]);
 
     const isApproved = orderStatus === "approved" || orderStatus === "paid";
-    const isFailure = status === "failure" || status === "rejected";
+    const isFailure = statusParam === "failure" || statusParam === "rejected";
     const isPending = !isApproved && !isFailure;
 
     const copyToClipboard = (text: string) => {
@@ -150,14 +150,14 @@ function PaymentContent() {
                     <>
                         <div style={{ fontSize: "4rem", marginBottom: "20px" }}>⏳</div>
                         <h1 style={{ color: "#d97706", fontSize: "2rem", marginBottom: "12px" }}>
-                            {polling && attempts < 8 ? "Verificando pagamento..." : "Pagamento em análise"}
+                            {polling && attempts < 20 ? "Verificando pagamento..." : "Pagamento em análise"}
                         </h1>
                         <p style={{ color: "#555", fontSize: "1.1rem", marginBottom: "8px" }}>
-                            {polling && attempts < 8
+                            {polling && attempts < 20
                                 ? "Aguarde enquanto confirmamos seu pagamento..."
                                 : "Seu pagamento está sendo processado. Você receberá uma confirmação em breve."}
                         </p>
-                        {polling && attempts < 8 && (
+                        {polling && attempts < 20 && (
                             <div style={{ margin: "20px auto", width: "40px", height: "40px", border: "4px solid #f3f4f6", borderTop: "4px solid #2d5a27", borderRadius: "50%", animation: "spin 1s linear infinite" }}>
                                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                             </div>

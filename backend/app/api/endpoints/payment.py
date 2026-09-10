@@ -127,6 +127,8 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
     except Exception as ref_err:
         logger.warning(f"Could not refresh order {order.id} state from DB: {ref_err}")
 
+    # Re-read status from the refreshed object to avoid race conditions
+    # where another webhook call already finalized this order concurrently.
     if order.status in ("paid", "shipped", "delivered", "processando_envio", "erro_envio", "PROCESSANDO_ENVIO", "ERRO_ENVIO"):
         logger.info(f"Order {order.id} already in status '{order.status}'. Skipping finalize.")
         return
