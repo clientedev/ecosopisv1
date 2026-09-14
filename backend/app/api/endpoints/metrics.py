@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func, cast, Date
+from sqlalchemy import func, cast, String
 from typing import List, Dict, Any
 from app.core.database import get_db
 from app.models import models
@@ -44,7 +44,8 @@ def get_bi_analytics(
     else:
         days_count = 30
 
-    start_date = now - timedelta(days=days_count)
+    # Ensure start_date is naive for database query compatibility (SQLite & Postgres)
+    start_date = (now - timedelta(days=days_count)).replace(tzinfo=None)
 
     # -------------------------------------------------------------
     # 1. VISITS ANALYTICS — dados reais apenas
@@ -81,7 +82,7 @@ def get_bi_analytics(
 
     # Timeline de visitas por dia — dados reais
     visits_by_day_raw = db.query(
-        cast(models.SiteVisit.created_at, Date).label("day"),
+        func.substr(cast(models.SiteVisit.created_at, String), 1, 10).label("day"),
         func.count(models.SiteVisit.id).label("cnt")
     ).filter(
         models.SiteVisit.created_at >= start_date
@@ -131,7 +132,7 @@ def get_bi_analytics(
 
     # Timeline de cliques shopee e site por dia — dados reais
     shopee_by_day_raw = db.query(
-        cast(models.ProductClick.created_at, Date).label("day"),
+        func.substr(cast(models.ProductClick.created_at, String), 1, 10).label("day"),
         models.ProductClick.click_type,
         func.count(models.ProductClick.id).label("cnt")
     ).filter(
@@ -211,7 +212,7 @@ def get_bi_analytics(
 
     # Timeline de chats LIA por dia — dados reais
     lia_by_day_raw = db.query(
-        cast(models.LiaInteraction.created_at, Date).label("day"),
+        func.substr(cast(models.LiaInteraction.created_at, String), 1, 10).label("day"),
         func.count(models.LiaInteraction.id).label("cnt")
     ).filter(
         models.LiaInteraction.created_at >= start_date
