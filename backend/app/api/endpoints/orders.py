@@ -48,6 +48,10 @@ def create_order(
     db_order.customer_phone = order_in.customer_phone or ""
     db_order.payment_method = order_in.payment_method or "stripe"
     
+    # Clear saved cart JSON on order creation
+    current_user.cart_json = None
+    current_user.cart_updated_at = None
+
     db.commit()
     db.refresh(db_order)
 

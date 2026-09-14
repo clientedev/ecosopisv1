@@ -164,7 +164,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     const clearCart = useCallback(() => {
         setCart([]);
-    }, []);
+        localStorage.removeItem('cart');
+        if (token) {
+            fetch('/api/cart/sync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify([])
+            }).catch(e => console.error("Failed to clear cart on server", e));
+        }
+    }, [token]);
 
     const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
     

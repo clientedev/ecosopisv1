@@ -1,16 +1,19 @@
 "use client";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
 import { Copy, ExternalLink, QrCode, FileText } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
 function PaymentContent() {
     const searchParams = useSearchParams();
     const statusParam = searchParams.get("status") || searchParams.get("collection_status") || "pending";
     const orderId = searchParams.get("order_id") || searchParams.get("external_reference");
     const paymentId = searchParams.get("payment_id") || searchParams.get("collection_id");
+    const { clearCart } = useCart();
+    const cartClearedRef = useRef(false);
 
     const [orderStatus, setOrderStatus] = useState<string>(
         statusParam === "approved" || statusParam === "paid" ? "approved" : statusParam
@@ -66,6 +69,14 @@ function PaymentContent() {
             return () => clearInterval(interval);
         }
     }, [orderId, paymentId, statusParam, polling]);
+
+    // Clear cart once when payment is approved
+    useEffect(() => {
+        if ((orderStatus === "approved" || orderStatus === "paid") && !cartClearedRef.current) {
+            cartClearedRef.current = true;
+            clearCart();
+        }
+    }, [orderStatus, clearCart]);
 
     const isApproved = orderStatus === "approved" || orderStatus === "paid";
     const isFailure = statusParam === "failure" || statusParam === "rejected";

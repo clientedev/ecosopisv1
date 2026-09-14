@@ -43,7 +43,7 @@ const BRAZILIAN_STATES = [
 import { useAuth } from "@/context/AuthContext";
 
 export default function CarrinhoPage() {
-    const { cart, updateQuantity, removeFromCart, cartTotal: subtotal, isWholesaleUnlocked } = useCart();
+    const { cart, updateQuantity, removeFromCart, cartTotal: subtotal, isWholesaleUnlocked, clearCart } = useCart();
     const { user, token, refreshProfile } = useAuth();
     const [step, setStep] = useState<"cart" | "checkout">("cart");
     const [loading, setLoading] = useState(false);
@@ -84,7 +84,7 @@ export default function CarrinhoPage() {
     const [customerName, setCustomerName] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
     const [customerCpf, setCustomerCpf] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState<"stripe" | "mercadopago">("mercadopago");
+    const [paymentMethod] = useState<"mercadopago">("mercadopago"); // Stripe desativado — sempre MP
 
     const formatCpf = (value: string) => {
         const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -509,9 +509,8 @@ export default function CarrinhoPage() {
         setLoading(true);
         const token = localStorage.getItem("token");
         try {
-            const endpoint = paymentMethod === 'stripe' 
-                ? '/api/payment/create-stripe-checkout' 
-                : '/api/payment/create-mercadopago-checkout';
+            // Stripe desativado — sempre usar MercadoPago
+            const endpoint = '/api/payment/create-mercadopago-checkout';
 
             const activeCouponCode = isWholesaleEligible ? null : (appliedCoupon?.code || null);
             const activeDiscountAmount = isWholesaleEligible ? 0.0 : discount;
@@ -552,9 +551,10 @@ export default function CarrinhoPage() {
 
             if (res.ok) {
                 const data = await res.json();
-                localStorage.removeItem("cart");
+                // NÃO limpar o carrinho aqui — só limpar após confirmação de pagamento
+                // Isso evita perda de carrinho se o usuário cancelar no Stripe
 
-                // Redirect to Stripe Checkout
+                // Redirect to Stripe/MP Checkout
                 if (data.checkout_url) {
                     window.location.href = data.checkout_url;
                 } else {

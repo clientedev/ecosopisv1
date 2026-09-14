@@ -107,6 +107,10 @@ def _get_or_create_order(data: CreateCheckoutIn, current_user: models.User, db: 
         order.customer_email = current_user.email
         order.customer_phone = data.customer_phone or ""
         
+        # Clear saved cart JSON upon checkout creation
+        current_user.cart_json = None
+        current_user.cart_updated_at = None
+
     db.commit()
     db.refresh(order)
     return order
@@ -147,12 +151,12 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
     if buyer_name: order.buyer_name = buyer_name
 
     # Update the purchase metric used by the current promotions and cashback
-    # flows. The old RouletteConfig model was removed when the roulette was
-    # replaced by the monthly ScratchSettings feature; payment finalization
-    # must not depend on that obsolete model.
+    # flows. Clear saved cart JSON on payment confirmation.
     user = db.query(models.User).filter(models.User.id == order.user_id).first()
     if user:
         user.total_compras = (user.total_compras or 0) + 1
+        user.cart_json = None
+        user.cart_updated_at = None
         
         # Cashback logic
         try:

@@ -141,6 +141,8 @@ async def get_crm_summary(db: Session = Depends(get_db), current_user: models.Us
         db.query(func.count(models.User.id))
         .filter(
             models.User.cart_json.is_not(None),
+            models.User.cart_json != "",
+            models.User.cart_json != "[]",
             models.User.cart_updated_at < one_hour_ago,
         )
         .scalar()

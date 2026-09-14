@@ -54,6 +54,8 @@ async def notify_abandoned_carts(
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
     users = db.query(models.User).filter(
         models.User.cart_json.is_not(None),
+        models.User.cart_json != "",
+        models.User.cart_json != "[]",
         models.User.cart_updated_at < one_hour_ago
     ).all()
     
