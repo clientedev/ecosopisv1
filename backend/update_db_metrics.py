@@ -15,7 +15,7 @@ def update_metrics_exact():
 
         product_ids = [p.id for p in products]
 
-        # Use naive UTC datetime
+        # Use UTC naive datetime matching DB timestamps
         now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         paths = [
@@ -43,68 +43,50 @@ def update_metrics_exact():
         db.query(models.LiaInteraction).delete()
         db.commit()
 
-        print("Injetando métricas exatas para os últimos 7 dias...")
-        # Target for Last 7 Days (days 0 to 6):
-        # Visitas Site: 172
-        # Saídas Shopee: 70
-        # Cliques Comprar (Site): 35
-        # Interações LIA: 17
+        print("Injetando métricas exatas e garantidas para os últimos 7 dias...")
+        
+        # 1. Exact targets for the last 7 days (placed safely within days 0 to 5, so no border truncation occurs)
+        total_visits_7d = 172
+        total_shopee_7d = 70
+        total_site_7d = 35
+        total_lia_7d = 17
 
-        # Distribute targets across the 7 days (day 0 is today, day 6 is 6 days ago)
-        # We assign daily proportions that sum up to EXACT targets
-        def distribute_counts(total, days=7):
-            base = total // days
-            remainder = total % days
-            counts = [base] * days
-            for i in range(remainder):
-                counts[i] += 1
-            random.shuffle(counts)
-            return counts
+        # Distribute across days 0..5 (recent 6 days)
+        for i in range(total_visits_7d):
+            day_offset = random.uniform(0.05, 5.8)
+            r_time = now - timedelta(days=day_offset)
+            db.add(models.SiteVisit(path=random.choice(paths), created_at=r_time))
 
-        visits_7d = distribute_counts(172, 7)
-        shopee_7d = distribute_counts(70, 7)
-        site_7d = distribute_counts(35, 7)
-        lia_7d = distribute_counts(17, 7)
+        for i in range(total_shopee_7d):
+            day_offset = random.uniform(0.05, 5.8)
+            r_time = now - timedelta(days=day_offset)
+            db.add(models.ProductClick(
+                product_id=random.choice(product_ids),
+                click_type="shopee",
+                created_at=r_time
+            ))
 
-        # 1. Insert Last 7 Days (exact totals)
-        for day in range(7):
-            date_target = now - timedelta(days=day)
+        for i in range(total_site_7d):
+            day_offset = random.uniform(0.05, 5.8)
+            r_time = now - timedelta(days=day_offset)
+            db.add(models.ProductClick(
+                product_id=random.choice(product_ids),
+                click_type="site",
+                created_at=r_time
+            ))
 
-            # Visits
-            for _ in range(visits_7d[day]):
-                r_time = date_target - timedelta(hours=random.randint(0, 23), minutes=random.randint(0, 59))
-                db.add(models.SiteVisit(path=random.choice(paths), created_at=r_time))
+        for i in range(total_lia_7d):
+            day_offset = random.uniform(0.05, 5.8)
+            r_time = now - timedelta(days=day_offset)
+            db.add(models.LiaInteraction(
+                user_message=random.choice(lia_questions),
+                bot_response="Resposta da Lia...",
+                topic=random.choice(lia_topics),
+                created_at=r_time
+            ))
 
-            # Shopee Clicks
-            for _ in range(shopee_7d[day]):
-                r_time = date_target - timedelta(hours=random.randint(0, 23), minutes=random.randint(0, 59))
-                db.add(models.ProductClick(
-                    product_id=random.choice(product_ids),
-                    click_type="shopee",
-                    created_at=r_time
-                ))
-
-            # Site Buy Clicks
-            for _ in range(site_7d[day]):
-                r_time = date_target - timedelta(hours=random.randint(0, 23), minutes=random.randint(0, 59))
-                db.add(models.ProductClick(
-                    product_id=random.choice(product_ids),
-                    click_type="site",
-                    created_at=r_time
-                ))
-
-            # Lia Interactions
-            for _ in range(lia_7d[day]):
-                r_time = date_target - timedelta(hours=random.randint(0, 23), minutes=random.randint(0, 59))
-                db.add(models.LiaInteraction(
-                    user_message=random.choice(lia_questions),
-                    bot_response="Resposta personalizada da Lia...",
-                    topic=random.choice(lia_topics),
-                    created_at=r_time
-                ))
-
-        # 2. Insert Historical Data (days 7 to 30) for 30d/90d views
-        for day in range(7, 30):
+        # 2. Historical Data for older period (days 8 to 30)
+        for day in range(8, 30):
             date_target = now - timedelta(days=day)
             num_v = random.randint(15, 25)
             num_s = random.randint(5, 10)
@@ -141,7 +123,7 @@ def update_metrics_exact():
                 ))
 
         db.commit()
-        print("Métricas injetadas com sucesso!")
+        print("Métricas injetadas com garantia total de precisão!")
 
     except Exception as e:
         db.rollback()

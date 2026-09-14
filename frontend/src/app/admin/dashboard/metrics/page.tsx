@@ -36,11 +36,13 @@ export default function AdminMetricsPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`/api/metrics/admin/bi-analytics?period=${period}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const headers: Record<string, string> = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch(`/api/metrics/admin/bi-analytics?period=${period}`, { headers });
             if (res.ok) {
-                setData(await res.json());
+                const json = await res.json();
+                setData(json);
             }
         } catch (err) {
             console.error("Error fetching BI metrics:", err);

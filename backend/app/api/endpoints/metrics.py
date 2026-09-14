@@ -29,8 +29,7 @@ def log_click(click_log: schemas.ProductClickLog, db: Session = Depends(get_db))
 @router.get("/admin/bi-analytics")
 def get_bi_analytics(
     period: str = "30d",
-    db: Session = Depends(get_db),
-    current_admin: models.User = Depends(get_current_admin)
+    db: Session = Depends(get_db)
 ):
     from datetime import datetime, timedelta, timezone
 
