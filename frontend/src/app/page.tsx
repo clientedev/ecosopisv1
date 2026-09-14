@@ -25,7 +25,10 @@ import {
     Moon,
     ArrowDown,
     Heart,
-    Users
+    Users,
+    ShoppingBag,
+    Globe,
+    Activity
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -258,11 +261,20 @@ export default function Home() {
     const [clientesCount, setClientesCount] = useState(51283.80);
     const [ativosCount, setAtivosCount] = useState(12345.67);
 
+    // Live daily metrics (Injetando +70 saídas Shopee, +172 visitas site, +17 interações Lia IA)
+    const [shopeeCount, setShopeeCount] = useState(70);
+    const [visitasCount, setVisitasCount] = useState(172);
+    const [liaCount, setLiaCount] = useState(17);
+
     useEffect(() => {
         const interval = setInterval(() => {
             setPedidosCount(prev => prev + Number((Math.random() * 0.15 + 0.05).toFixed(2)));
             setClientesCount(prev => prev + Number((Math.random() * 0.08 + 0.02).toFixed(2)));
             setAtivosCount(prev => prev + Number((Math.random() * 0.12 + 0.03).toFixed(2)));
+
+            if (Math.random() > 0.6) setShopeeCount(prev => prev + 1);
+            if (Math.random() > 0.4) setVisitasCount(prev => prev + 1);
+            if (Math.random() > 0.7) setLiaCount(prev => prev + 1);
         }, 10000);
         return () => clearInterval(interval);
     }, []);
@@ -1236,6 +1248,49 @@ export default function Home() {
                 })}
             </section>
 
+            {/* Live Activity & Social Proof Bar */}
+            <div className={styles.liveActivityBar}>
+                <div className="container">
+                    <div className={styles.liveActivityWrapper}>
+                        <div className={styles.liveBadge}>
+                            <span className={styles.pulseDot}></span>
+                            <span className={styles.liveText}>AO VIVO HOJE</span>
+                        </div>
+                        <div className={styles.liveMetricsGrid}>
+                            <div className={`${styles.liveMetricCard} ${styles.shopeeCard}`}>
+                                <div className={styles.liveMetricIcon}>
+                                    <ShoppingBag size={18} />
+                                </div>
+                                <div className={styles.liveMetricInfo}>
+                                    <span className={styles.liveMetricValue}>+{shopeeCount}</span>
+                                    <span className={styles.liveMetricLabel}>saídas Shopee</span>
+                                </div>
+                            </div>
+
+                            <div className={`${styles.liveMetricCard} ${styles.visitsCard}`}>
+                                <div className={styles.liveMetricIcon}>
+                                    <Globe size={18} />
+                                </div>
+                                <div className={styles.liveMetricInfo}>
+                                    <span className={styles.liveMetricValue}>+{visitasCount}</span>
+                                    <span className={styles.liveMetricLabel}>visitas no site</span>
+                                </div>
+                            </div>
+
+                            <div className={`${styles.liveMetricCard} ${styles.liaCard}`}>
+                                <div className={styles.liveMetricIcon}>
+                                    <Sparkles size={18} />
+                                </div>
+                                <div className={styles.liveMetricInfo}>
+                                    <span className={styles.liveMetricValue}>+{liaCount}</span>
+                                    <span className={styles.liveMetricLabel}>interações Lia IA</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* NEW: World Cup Guesses Section (Bolão) */}
             {activeTheme === "copa_do_mundo" && (
                 <section style={{
@@ -1541,7 +1596,28 @@ export default function Home() {
                         <div className={styles.statCard}>
                             <div className={styles.statIcon}><ShieldCheck size={32} /></div>
                             <h3>{ativosCount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-                            <p>Ingredientes naturais processados (kg)</p>
+                            <p>Ingredientes naturais (kg)</p>
+                        </div>
+                        <div className={`${styles.statCard} ${styles.statCardHighlight}`}>
+                            <div className={styles.statIcon} style={{ background: 'rgba(238, 77, 45, 0.1)', color: '#ee4d2d' }}>
+                                <ShoppingBag size={32} />
+                            </div>
+                            <h3>+{shopeeCount}</h3>
+                            <p>Saídas para Shopee hoje</p>
+                        </div>
+                        <div className={`${styles.statCard} ${styles.statCardHighlight}`}>
+                            <div className={styles.statIcon} style={{ background: 'rgba(162, 233, 74, 0.15)', color: '#4a7c59' }}>
+                                <Globe size={32} />
+                            </div>
+                            <h3>+{visitasCount}</h3>
+                            <p>Visitas ao site hoje</p>
+                        </div>
+                        <div className={`${styles.statCard} ${styles.statCardHighlight}`}>
+                            <div className={styles.statIcon} style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#8b5cf6' }}>
+                                <Sparkles size={32} />
+                            </div>
+                            <h3>+{liaCount}</h3>
+                            <p>Consultorias com Lia IA hoje</p>
                         </div>
                     </div>
                 </div>
