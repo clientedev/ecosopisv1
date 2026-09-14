@@ -33,7 +33,6 @@ def get_bi_analytics(
 ):
     from datetime import datetime, timedelta, timezone
 
-    now = datetime.now(timezone.utc)
     if period == "7d":
         days_count = 7
     elif period == "90d":
@@ -43,8 +42,10 @@ def get_bi_analytics(
     else:
         days_count = 30
 
-    # Ensure start_date is naive for database query compatibility (SQLite & Postgres)
-    start_date = (now - timedelta(days=days_count)).replace(tzinfo=None)
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    now_local = datetime.now()
+    now = now_utc
+    start_date = min(now_utc - timedelta(days=days_count), now_local - timedelta(days=days_count))
 
     # -------------------------------------------------------------
     # 1. VISITS ANALYTICS — dados reais apenas
