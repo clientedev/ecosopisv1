@@ -84,7 +84,7 @@ export default function CarrinhoPage() {
     const [customerName, setCustomerName] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
     const [customerCpf, setCustomerCpf] = useState("");
-    const [paymentMethod] = useState<"mercadopago">("mercadopago"); // Stripe desativado — sempre MP
+    const [paymentMethod, setPaymentMethod] = useState<"mercadopago">("mercadopago"); // Stripe desativado — sempre MP
 
     const formatCpf = (value: string) => {
         const digits = value.replace(/\D/g, "").slice(0, 11);

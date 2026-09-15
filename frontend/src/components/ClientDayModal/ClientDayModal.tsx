@@ -47,34 +47,33 @@ export default function ClientDayModal() {
             onClick={(e) => { if (e.target === e.currentTarget) close(); }}
             aria-modal="true"
             role="dialog"
-            aria-label="Promo��o Dia do Cliente"
+            aria-label="Promoção Dia do Cliente"
         >
             <div className={styles.modal}>
                 <div className={styles.topStrip}>
-                    <span>?</span>
+                    <span>✦</span>
                     <span className={styles.stripText}>DIA DO CLIENTE</span>
-                    <span>?</span>
+                    <span>✦</span>
                 </div>
 
                 <button className={styles.closeBtn} onClick={close} aria-label="Fechar">
-                    ?
+                    ✕
                 </button>
 
                 <div className={styles.body}>
                     <div className={styles.badge}>
                         <span className={styles.badgeNum}>15%</span>
-                        <span className={styles.badgeOff}>OFF</span>
+                        <span className={styles.badgeText}>OFF</span>
                     </div>
 
-                    <h2 className={styles.title}>Presente<br />da Ecosopis</h2>
+                    <h2 className={styles.title}>Dia do Cliente</h2>
 
-                    <p className={styles.sub}>
-                        Cuidado real vem da natureza.<br />
-                        Hoje a gente facilita o caminho.
+                    <p className={styles.subtitle}>
+                        Uma celebração especial para você que faz parte da nossa história.
                     </p>
 
                     <p className={styles.rule}>
-                        Em compras acima de <strong>R$&nbsp;50,00</strong> � V�lido at� meia-noite
+                        Em compras acima de <strong>R$&nbsp;50,00</strong> · Válido até meia-noite
                     </p>
 
                     <div className={styles.couponRow}>
@@ -83,21 +82,21 @@ export default function ClientDayModal() {
                             className={copied ? `${styles.copyBtn} ${styles.copyBtnDone}` : styles.copyBtn}
                             onClick={handleCopy}
                         >
-                            {copied ? "Copiado ?" : "Copiar"}
+                            {copied ? "Copiado ✓" : "Copiar"}
                         </button>
                     </div>
 
                     <p className={styles.couponHint}>
-                        O cupom � aplicado automaticamente no carrinho
+                        O cupom é aplicado automaticamente no carrinho
                     </p>
 
                     <button className={styles.ctaBtn} onClick={handleGoToProducts}>
                         Quero aproveitar
-                        <span className={styles.ctaArrow}>?</span>
+                        <span className={styles.ctaArrow}>→</span>
                     </button>
 
                     <button className={styles.skipBtn} onClick={close}>
-                        Agora n�o
+                        Agora não
                     </button>
                 </div>
             </div>
