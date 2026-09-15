@@ -215,26 +215,50 @@ export default function CarrinhoPage() {
         return () => window.removeEventListener("roulette_discount_applied", loadRouletteCoupon);
     }, []);
 
-    // ── Wholesale restrictions & first-purchase coupon ──
+    // ── Wholesale restrictions & first-purchase coupon & Dia do Cliente ──
     useEffect(() => {
         if (isWholesaleEligible) {
             if (appliedCoupon) {
                 setAppliedCoupon(null);
                 setCouponError("Os cupons de desconto não são acumulativos com a promoção de atacado.");
             }
-        } else if (user && !firstPurchaseChecked) {
-            const rouletteDiscount = localStorage.getItem("active_roulette_discount");
-            if (!rouletteDiscount && user.total_compras === 0 && !appliedCoupon) {
-                setAppliedCoupon({
-                    code: "PRIMEIRACOMPRA",
-                    type: "percentage",
-                    value: 10,
-                    name: "10% OFF na Primeira Compra"
-                });
+        } else {
+            // Dia do Cliente auto-discount logic
+            const now = new Date();
+            const clientDayEnd = new Date('2026-09-16T00:00:00-03:00');
+            const isClientDay = now < clientDayEnd;
+            const canApplyClientDay = isClientDay && subtotal >= 50;
+            const isAutoCoupon = appliedCoupon?.code === "PRIMEIRACOMPRA" || appliedCoupon?.code === "DIADOCLIENTE";
+            
+            if (canApplyClientDay && (!appliedCoupon || isAutoCoupon)) {
+                if (appliedCoupon?.code !== "DIADOCLIENTE") {
+                    setAppliedCoupon({
+                        code: "DIADOCLIENTE",
+                        type: "percentage",
+                        value: 15,
+                        name: "15% OFF Dia do Cliente"
+                    });
+                    setCouponError(""); // Clear any errors
+                }
+            } else if (isClientDay && subtotal < 50 && appliedCoupon?.code === "DIADOCLIENTE") {
+                setAppliedCoupon(null); // Remove if subtotal drops below 50
+            } else if (!isClientDay || (subtotal < 50 && appliedCoupon?.code !== "DIADOCLIENTE")) {
+                // Fallback to first purchase discount
+                if (user && !firstPurchaseChecked) {
+                    const rouletteDiscount = localStorage.getItem("active_roulette_discount");
+                    if (!rouletteDiscount && user.total_compras === 0 && (!appliedCoupon || appliedCoupon.code === "DIADOCLIENTE")) {
+                        setAppliedCoupon({
+                            code: "PRIMEIRACOMPRA",
+                            type: "percentage",
+                            value: 10,
+                            name: "10% OFF na Primeira Compra"
+                        });
+                    }
+                    setFirstPurchaseChecked(true);
+                }
             }
-            setFirstPurchaseChecked(true);
         }
-    }, [user, appliedCoupon, firstPurchaseChecked, isWholesaleEligible]);
+    }, [user, appliedCoupon, firstPurchaseChecked, isWholesaleEligible, subtotal]);
 
     // Fetch Cashback balance and config
     useEffect(() => {

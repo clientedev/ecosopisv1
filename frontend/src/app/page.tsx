@@ -258,6 +258,27 @@ export default function Home() {
     const [isMobile, setIsMobile] = useState(false);
 
 
+    // Dia do Cliente Modal state
+    const [showClientDayModal, setShowClientDayModal] = useState(false);
+    const [isClientDay, setIsClientDay] = useState(false);
+
+    useEffect(() => {
+        const now = new Date();
+        const clientDayEnd = new Date('2026-09-16T00:00:00-03:00');
+        if (now < clientDayEnd) {
+            setIsClientDay(true);
+            const hasSeenModal = localStorage.getItem('seenClientDayModal');
+            if (!hasSeenModal) {
+                setShowClientDayModal(true);
+            }
+        }
+    }, []);
+
+    const closeClientDayModal = () => {
+        setShowClientDayModal(false);
+        localStorage.setItem('seenClientDayModal', 'true');
+    };
+
     // AI Chat state
     const [chatMessages, setChatMessages] = useState<{ role: string, content: string }[]>([
         { role: 'assistant', content: 'Olá! Sou a Lia, sua consultora de beleza natural. Como posso ajudar com sua rotina hoje?' }

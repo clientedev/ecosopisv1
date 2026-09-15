@@ -519,7 +519,7 @@ export default function AdminPedidosPage() {
                                                 <p>{email}</p>
                                                 {order.payment_method && (
                                                     <span style={{ display: 'inline-block', fontSize: "0.7rem", backgroundColor: "#e2e8f0", padding: "2px 6px", borderRadius: "8px", color: "#475569", fontWeight: 700, marginTop: "2px", marginBottom: "2px" }}>
-                                                        Via {order.payment_method === 'mercadopago' ? 'Mercado Pago' : order.payment_method === 'stripe' ? 'Stripe' : order.payment_method}
+                                                        Via {order.payment_method === 'mercadopago' ? 'Mercado Pago' : order.payment_method}
                                                     </span>
                                                 )}
                                                 {trackingCode && (
