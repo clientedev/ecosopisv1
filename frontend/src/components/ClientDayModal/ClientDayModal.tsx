@@ -7,7 +7,6 @@ import styles from "./ClientDayModal.module.css";
 export default function ClientDayModal() {
     const [mounted, setMounted] = useState(false);
     const [visible, setVisible] = useState(false);
-    const [copied, setCopied] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -28,12 +27,6 @@ export default function ClientDayModal() {
         sessionStorage.setItem("cdm_seen", "1");
     }, []);
 
-    const handleCopy = useCallback(() => {
-        navigator.clipboard.writeText("DIADOCLIENTE").catch(() => {});
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    }, []);
-
     const handleGoToProducts = useCallback(() => {
         close();
         router.push("/produtos");
@@ -47,57 +40,41 @@ export default function ClientDayModal() {
             onClick={(e) => { if (e.target === e.currentTarget) close(); }}
             aria-modal="true"
             role="dialog"
-            aria-label="Promoção Dia do Cliente"
+            aria-label="Dia do Cliente Ecosopis"
         >
             <div className={styles.modal}>
-                <div className={styles.topStrip}>
-                    <span>✦</span>
-                    <span className={styles.stripText}>DIA DO CLIENTE</span>
-                    <span>✦</span>
-                </div>
-
-                <button className={styles.closeBtn} onClick={close} aria-label="Fechar">
+                <button className={styles.closeBtn} onClick={close} aria-label="Fechar modal">
                     ✕
                 </button>
 
-                <div className={styles.body}>
-                    <div className={styles.badge}>
-                        <span className={styles.badgeNum}>15%</span>
-                        <span className={styles.badgeText}>OFF</span>
+                <div className={styles.content}>
+                    <div className={styles.tag}>Especial Dia do Cliente</div>
+
+                    <h2 className={styles.title}>15% OFF em todo o site</h2>
+
+                    <p className={styles.description}>
+                        Hoje suas compras acima de <strong>R$&nbsp;50,00</strong> ganham 15% de desconto especial.
+                    </p>
+
+                    <div className={styles.autoApplyNotice}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>O desconto entra automaticamente no seu carrinho</span>
                     </div>
 
-                    <h2 className={styles.title}>Dia do Cliente</h2>
-
-                    <p className={styles.subtitle}>
-                        Uma celebração especial para você que faz parte da nossa história.
+                    <p className={styles.validity}>
+                        Válido somente hoje até as 23h59
                     </p>
 
-                    <p className={styles.rule}>
-                        Em compras acima de <strong>R$&nbsp;50,00</strong> · Válido até meia-noite
-                    </p>
-
-                    <div className={styles.couponRow}>
-                        <div className={styles.couponBox}>DIADOCLIENTE</div>
-                        <button
-                            className={copied ? `${styles.copyBtn} ${styles.copyBtnDone}` : styles.copyBtn}
-                            onClick={handleCopy}
-                        >
-                            {copied ? "Copiado ✓" : "Copiar"}
+                    <div className={styles.actions}>
+                        <button className={styles.primaryBtn} onClick={handleGoToProducts}>
+                            Aproveitar desconto
+                        </button>
+                        <button className={styles.secondaryBtn} onClick={close}>
+                            Continuar navegando
                         </button>
                     </div>
-
-                    <p className={styles.couponHint}>
-                        O cupom é aplicado automaticamente no carrinho
-                    </p>
-
-                    <button className={styles.ctaBtn} onClick={handleGoToProducts}>
-                        Quero aproveitar
-                        <span className={styles.ctaArrow}>→</span>
-                    </button>
-
-                    <button className={styles.skipBtn} onClick={close}>
-                        Agora não
-                    </button>
                 </div>
             </div>
         </div>,
