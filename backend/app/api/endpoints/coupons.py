@@ -58,6 +58,25 @@ def validate_coupon(code: str, db: Session = Depends(get_db)):
             created_at=datetime.now(timezone.utc)
         )
 
+    if code.upper() == "DIADOCLIENTE":
+        from datetime import timedelta
+        import pytz
+        brt = pytz.timezone("America/Sao_Paulo")
+        now_brt = datetime.now(brt)
+        end_of_day_brt = now_brt.replace(hour=23, minute=59, second=59, microsecond=0)
+        if now_brt <= end_of_day_brt and now_brt.date() == end_of_day_brt.date():
+            return schemas.CouponResponse(
+                id=0,
+                code="DIADOCLIENTE",
+                discount_type="percentage",
+                discount_value=15.0,
+                min_purchase_value=50.0,
+                is_active=True,
+                usage_count=0,
+                created_at=datetime.now(timezone.utc)
+            )
+        raise HTTPException(status_code=400, detail="Este cupom expirou")
+
     coupon = db.query(models.Coupon).filter(models.Coupon.code == code, models.Coupon.is_active == True).first()
     if not coupon:
         raise HTTPException(status_code=404, detail="Cupom inválido ou expirado")

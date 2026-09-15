@@ -1008,7 +1008,7 @@ export default function Home() {
                 <div style={{
                     position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
                     background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', zIndex: 10000, padding: '20px'
+                    justifyContent: 'center', zIndex: 999999, padding: '20px'
                 }}>
                     <div style={{
                         background: 'white', borderRadius: '20px', padding: '44px 40px',
@@ -1042,10 +1042,35 @@ export default function Home() {
                         }}>
                             15% OFF
                         </div>
-                        <p style={{ color: '#475569', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '28px' }}>
-                            Aplicado automaticamente em compras acima de <strong>R$ 50,00</strong>.<br />
-                            Válido somente até a meia-noite de hoje.
+                        <p style={{ color: '#475569', fontSize: '0.85rem', lineHeight: 1.6, marginBottom: '16px' }}>
+                            Em compras acima de <strong>R$ 50,00</strong>. Válido até meia-noite de hoje.
                         </p>
+                        <p style={{ color: '#334155', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>
+                            Use o cupom no carrinho:
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
+                            <div style={{
+                                flex: 1, background: '#f1f5f9', border: '2px dashed #2d5a27',
+                                borderRadius: '10px', padding: '12px 16px',
+                                fontSize: '1.3rem', fontWeight: 900, color: '#1a3a16',
+                                letterSpacing: '2px'
+                            }}>
+                                DIADOCLIENTE
+                            </div>
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText('DIADOCLIENTE');
+                                    closeClientDayModal();
+                                }}
+                                style={{
+                                    background: '#2d5a27', color: 'white', border: 'none',
+                                    padding: '12px 16px', borderRadius: '10px', cursor: 'pointer',
+                                    fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap'
+                                }}
+                            >
+                                Copiar
+                            </button>
+                        </div>
                         <button
                             onClick={closeClientDayModal}
                             style={{
@@ -1055,7 +1080,7 @@ export default function Home() {
                                 letterSpacing: '0.5px', textTransform: 'uppercase'
                             }}
                         >
-                            Aproveitar Agora
+                            Ir para os Produtos
                         </button>
                     </div>
                 </div>
