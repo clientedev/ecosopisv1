@@ -1002,6 +1002,65 @@ export default function Home() {
     return (
         <main>
             <Header />
+
+            {/* Dia do Cliente Modal */}
+            {showClientDayModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                    background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', zIndex: 10000, padding: '20px'
+                }}>
+                    <div style={{
+                        background: 'white', borderRadius: '20px', padding: '44px 40px',
+                        maxWidth: '440px', width: '100%', textAlign: 'center',
+                        position: 'relative', boxShadow: '0 30px 60px rgba(0,0,0,0.2)',
+                        border: '2px solid #2d5a27', fontFamily: 'inherit'
+                    }}>
+                        <button
+                            onClick={closeClientDayModal}
+                            style={{
+                                position: 'absolute', top: '14px', right: '14px',
+                                background: 'none', border: 'none', cursor: 'pointer',
+                                color: '#94a3b8', padding: '6px', lineHeight: 1,
+                                fontSize: '1.3rem', fontWeight: 700
+                            }}
+                        >✕</button>
+                        <p style={{ fontSize: '0.8rem', letterSpacing: '2px', fontWeight: 700, color: '#2d5a27', textTransform: 'uppercase', marginBottom: '10px' }}>
+                            Dia do Cliente
+                        </p>
+                        <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#1a3a16', marginBottom: '6px', lineHeight: 1.2 }}>
+                            Presente da Ecosopis
+                        </h2>
+                        <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '24px' }}>
+                            Para você que cuida da sua pele com naturalidade.
+                        </p>
+                        <div style={{
+                            background: 'linear-gradient(135deg, #2d5a27, #4a7c59)',
+                            color: 'white', fontSize: '3.5rem', fontWeight: 900,
+                            padding: '16px 28px', borderRadius: '14px', marginBottom: '20px',
+                            display: 'inline-block', letterSpacing: '-2px', lineHeight: 1
+                        }}>
+                            15% OFF
+                        </div>
+                        <p style={{ color: '#475569', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '28px' }}>
+                            Aplicado automaticamente em compras acima de <strong>R$ 50,00</strong>.<br />
+                            Válido somente até a meia-noite de hoje.
+                        </p>
+                        <button
+                            onClick={closeClientDayModal}
+                            style={{
+                                width: '100%', background: '#2d5a27', color: 'white',
+                                border: 'none', padding: '16px', borderRadius: '50px',
+                                fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer',
+                                letterSpacing: '0.5px', textTransform: 'uppercase'
+                            }}
+                        >
+                            Aproveitar Agora
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <section
                 className={styles.heroCarousel}
                 onTouchStart={(e) => { touchStartXRef.current = e.touches[0].clientX; }}
