@@ -1,17 +1,31 @@
 "use client";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import styles from "./CartDrawer.module.css";
-import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, Truck, CheckCircle2 } from "lucide-react";
+import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, Truck, CheckCircle2, Tag, RotateCcw } from "lucide-react";
 
 export default function CartDrawer() {
-    const { cart, isCartOpen, closeCart, removeFromCart, updateQuantity, cartCount, cartTotal } = useCart();
+    const { cart, isCartOpen, closeCart, removeFromCart, updateQuantity, cartCount, cartTotal, clientDayCoupon, clientDayCouponDismissed, dismissClientDayCoupon, restoreClientDayCoupon, isClientDay } = useCart();
 
     const freeShippingThreshold = 150;
     const remainingForFreeShipping = freeShippingThreshold - cartTotal;
     const shippingProgress = Math.min(100, (cartTotal / freeShippingThreshold) * 100);
+
+    // Track first time coupon appears to show a toast-like notification
+    const prevCouponRef = useRef<boolean>(false);
+    useEffect(() => {
+        const hasCoupon = !!clientDayCoupon;
+        if (hasCoupon && !prevCouponRef.current && isCartOpen) {
+            // coupon just became active
+        }
+        prevCouponRef.current = hasCoupon;
+    }, [clientDayCoupon, isCartOpen]);
+
+    // Coupon discount value
+    const couponDiscount = clientDayCoupon ? cartTotal * 0.15 : 0;
+    const totalWithCoupon = clientDayCoupon ? cartTotal - couponDiscount : cartTotal;
 
     const getImageUrl = (url?: string) => {
         if (!url) return "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
@@ -58,6 +72,54 @@ export default function CartDrawer() {
                         <div className={styles.progressBarFill} style={{ width: `${shippingProgress}%` }} />
                     </div>
                 </div>
+
+                {/* Dia do Cliente Coupon Banner */}
+                {isClientDay && cart.length > 0 && (
+                    <div className={clientDayCoupon ? styles.couponBannerActive : styles.couponBannerDismissed}>
+                        {clientDayCoupon ? (
+                            <>
+                                <div className={styles.couponBannerLeft}>
+                                    <Tag size={16} className={styles.couponBannerIcon} />
+                                    <div>
+                                        <div className={styles.couponBannerTitle}>🎉 Cupom Dia do Cliente aplicado!</div>
+                                        <div className={styles.couponBannerCode}>
+                                            <strong>DIADOCLIENTE</strong> — 15% OFF
+                                            {cartTotal >= 50 && (
+                                                <span className={styles.couponBannerSaving}>
+                                                    &nbsp;(−R$ {couponDiscount.toFixed(2).replace(".", ",")})
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    className={styles.couponBannerRemove}
+                                    onClick={dismissClientDayCoupon}
+                                    title="Remover cupom para usar outro"
+                                >
+                                    <X size={15} />
+                                    <span>Remover</span>
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <div className={styles.couponBannerLeft}>
+                                    <Tag size={16} className={styles.couponBannerIconDim} />
+                                    <div className={styles.couponBannerDismissedText}>
+                                        Cupom <strong>DIADOCLIENTE</strong> removido. Use outro ou
+                                    </div>
+                                </div>
+                                <button
+                                    className={styles.couponBannerRestore}
+                                    onClick={restoreClientDayCoupon}
+                                >
+                                    <RotateCcw size={13} />
+                                    <span>Restaurar 15%</span>
+                                </button>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 {/* Body / Item List */}
                 <div className={styles.body}>
@@ -144,7 +206,19 @@ export default function CartDrawer() {
                             <span className={styles.subtotalLabel}>Subtotal:</span>
                             <span className={styles.subtotalValue}>R$ {cartTotal.toFixed(2).replace(".", ",")}</span>
                         </div>
-                        <p className={styles.taxNote}>Frete e cupons calculados no checkout</p>
+                        {clientDayCoupon && (
+                            <div className={styles.couponDiscountRow}>
+                                <span className={styles.couponDiscountLabel}>Desconto (DIADOCLIENTE 15%):</span>
+                                <span className={styles.couponDiscountValue}>−R$ {couponDiscount.toFixed(2).replace(".", ",")}</span>
+                            </div>
+                        )}
+                        {clientDayCoupon && (
+                            <div className={styles.totalWithCouponRow}>
+                                <span className={styles.totalWithCouponLabel}>Total estimado:</span>
+                                <span className={styles.totalWithCouponValue}>R$ {totalWithCoupon.toFixed(2).replace(".", ",")}</span>
+                            </div>
+                        )}
+                        <p className={styles.taxNote}>{clientDayCoupon ? 'Cupom aplicado! Frete calculado no checkout.' : 'Frete e cupons calculados no checkout'}</p>
 
                         <Link href="/carrinho" className={styles.checkoutBtn} onClick={closeCart}>
                             <span>FINALIZAR COMPRA</span>
