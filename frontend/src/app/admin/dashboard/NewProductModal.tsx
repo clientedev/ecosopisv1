@@ -70,10 +70,27 @@ export default function NewProductModal({ onClose, onSave }: Props) {
     const [loading, setLoading] = useState(false);
     const [tagInput, setTagInput] = useState("");
     const [showTechnicalInfo, setShowTechnicalInfo] = useState(false);
+    const [priceInput, setPriceInput] = useState<string>("");
+    const [salePriceInput, setSalePriceInput] = useState<string>("");
+
+    const parsePriceInput = (value: string): number => {
+        if (!value || value.trim() === "") return 0;
+        const normalized = value.replace(",", ".").trim();
+        const parsed = parseFloat(normalized);
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const parseSalePriceInput = (value: string): number | null => {
+        if (!value || value.trim() === "") return null;
+        const normalized = value.replace(",", ".").trim();
+        const parsed = parseFloat(normalized);
+        return Number.isFinite(parsed) ? parsed : null;
+    };
 
     const toNumberOrZero = (value: string) => {
-        if (value.trim() === "") return 0;
-        const parsed = Number(value);
+        if (!value || value.trim() === "") return 0;
+        const normalized = value.replace(",", ".").trim();
+        const parsed = parseFloat(normalized);
         return Number.isFinite(parsed) ? parsed : 0;
     };
 
@@ -273,12 +290,17 @@ export default function NewProductModal({ onClose, onSave }: Props) {
 
                     <div className={styles.formGrid}>
                         <div className={styles.formGroup}>
-                            <label>Preço</label>
+                            <label>Preço (R$) *</label>
                             <input
-                                type="number"
-                                step="0.01"
-                                value={formData.price}
-                                onChange={(e) => setFormData({ ...formData, price: toNumberOrZero(e.target.value) })}
+                                type="text"
+                                inputMode="decimal"
+                                value={priceInput}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setPriceInput(val);
+                                    setFormData({ ...formData, price: parsePriceInput(val) });
+                                }}
+                                placeholder="Ex: 29,90 ou 29.90"
                                 required
                             />
                         </div>
@@ -499,12 +521,15 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                                 </label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                                     <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={(formData as any).sale_price ?? ''}
-                                        onChange={(e) => setFormData({ ...formData, sale_price: e.target.value ? parseFloat(e.target.value) : null } as any)}
-                                        placeholder="Ex: 29,90"
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={salePriceInput}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setSalePriceInput(val);
+                                            setFormData({ ...formData, sale_price: parseSalePriceInput(val) });
+                                        }}
+                                        placeholder="Ex: 25,90 ou 25.90"
                                         style={{
                                             padding: '10px 14px',
                                             border: '2px solid #f59e0b',

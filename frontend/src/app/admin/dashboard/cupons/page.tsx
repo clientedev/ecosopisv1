@@ -174,9 +174,15 @@ export default function CouponManagement() {
                                     <div className={styles.formGroup}>
                                         <label>Valor</label>
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="decimal"
                                             value={formData.discount_value || ""}
-                                            onChange={(e) => setFormData({ ...formData, discount_value: e.target.value === "" ? 0 : parseFloat(e.target.value) })}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(",", ".").trim();
+                                                const parsed = parseFloat(val);
+                                                setFormData({ ...formData, discount_value: e.target.value === "" ? 0 : (Number.isFinite(parsed) ? parsed : 0) });
+                                            }}
+                                            placeholder="Ex: 15 ou 15,50"
                                             required
                                         />
                                     </div>
@@ -185,9 +191,15 @@ export default function CouponManagement() {
                                     <div className={styles.formGroup}>
                                         <label>Compra Mínima (R$)</label>
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="decimal"
                                             value={formData.min_purchase_value || ""}
-                                            onChange={(e) => setFormData({ ...formData, min_purchase_value: e.target.value === "" ? 0 : parseFloat(e.target.value) })}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(",", ".").trim();
+                                                const parsed = parseFloat(val);
+                                                setFormData({ ...formData, min_purchase_value: e.target.value === "" ? 0 : (Number.isFinite(parsed) ? parsed : 0) });
+                                            }}
+                                            placeholder="Ex: 50,00"
                                         />
                                     </div>
                                     <div className={styles.formGroup}>
