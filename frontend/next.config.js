@@ -24,6 +24,15 @@ const nextConfig = {
     '*.repl.co',
     '*.replit.app',
   ],
+  async redirects() {
+    return [
+      {
+        source: '/produto/:slug/info',
+        destination: '/produtos/:slug',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

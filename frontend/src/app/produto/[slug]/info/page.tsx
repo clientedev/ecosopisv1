@@ -1,5 +1,5 @@
 "use client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import styles from "./page.module.css";
 import {
@@ -48,6 +48,15 @@ interface Product {
 
 export default function ProductTechnicalPage() {
     const params = useParams();
+    const router = useRouter();
+
+    useEffect(() => {
+        const slug = params?.slug;
+        if (slug) {
+            router.replace(`/produtos/${slug}`);
+        }
+    }, [params, router]);
+
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
