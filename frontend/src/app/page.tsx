@@ -258,11 +258,7 @@ export default function Home() {
     const [isMobile, setIsMobile] = useState(false);
 
 
-    // Dia do Cliente — estado usado em outras partes da página
-    const [isClientDay] = useState(() => {
-        const now = new Date();
-        return now < new Date('2026-09-16T00:00:00-03:00');
-    });
+
 
     // AI Chat state
     const [chatMessages, setChatMessages] = useState<{ role: string, content: string }[]>([

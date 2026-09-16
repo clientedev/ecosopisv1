@@ -40,7 +40,6 @@ export const viewport = {
 };
 
 import CartDrawer from "@/components/CartDrawer/CartDrawer";
-import ClientDayModal from "@/components/ClientDayModal/ClientDayModal";
 
 export default function RootLayout({
     children,
@@ -60,7 +59,6 @@ export default function RootLayout({
                                 <AnniversaryAnimation />
                                 {children}
                                 <CartDrawer />
-                                <ClientDayModal />
                                 <DeferredComponents />
                                 <MobileBottomNav />
                             </ThemeProvider>

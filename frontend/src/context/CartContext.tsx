@@ -30,12 +30,6 @@ interface CartContextType {
     setIsCartOpen: (open: boolean) => void;
     openCart: () => void;
     closeCart: () => void;
-    // Dia do Cliente coupon
-    clientDayCoupon: { code: string; discount: number } | null;
-    clientDayCouponDismissed: boolean;
-    dismissClientDayCoupon: () => void;
-    restoreClientDayCoupon: () => void;
-    isClientDay: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -46,26 +40,12 @@ export const useCart = () => {
     return context;
 };
 
-// Check if Dia do Cliente is still active (until midnight 15/09/2026 Brasília time)
-const checkIsClientDay = () => {
-    const now = new Date();
-    const clientDayEnd = new Date('2026-09-16T00:00:00-03:00');
-    return now < clientDayEnd;
-};
-
 export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const { showToast } = useToast();
     const { user, token } = useAuth();
     const [isInitialized, setIsInitialized] = useState(false);
-
-    // Dia do Cliente coupon state
-    const [isClientDay] = useState(checkIsClientDay);
-    const [clientDayCouponDismissed, setClientDayCouponDismissed] = useState(() => {
-        if (typeof window === 'undefined') return false;
-        return localStorage.getItem('clientDayCouponDismissed') === 'true';
-    });
 
     const openCart = useCallback(() => setIsCartOpen(true), []);
     const closeCart = useCallback(() => setIsCartOpen(false), []);
@@ -212,22 +192,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return acc + (item.price * item.quantity);
     }, 0);
 
-    // Dia do Cliente: auto-apply coupon when total >= R$50 and not dismissed
-    const clientDayCouponEligible = isClientDay && cartTotal >= 50 && !isWholesaleUnlocked;
-    const clientDayCoupon = clientDayCouponEligible && !clientDayCouponDismissed
-        ? { code: 'DIADOCLIENTE', discount: 15 }
-        : null;
-
-    const dismissClientDayCoupon = useCallback(() => {
-        setClientDayCouponDismissed(true);
-        localStorage.setItem('clientDayCouponDismissed', 'true');
-    }, []);
-
-    const restoreClientDayCoupon = useCallback(() => {
-        setClientDayCouponDismissed(false);
-        localStorage.removeItem('clientDayCouponDismissed');
-    }, []);
-
     return (
         <CartContext.Provider value={{ 
             cart, 
@@ -244,11 +208,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             setIsCartOpen,
             openCart,
             closeCart,
-            clientDayCoupon,
-            clientDayCouponDismissed,
-            dismissClientDayCoupon,
-            restoreClientDayCoupon,
-            isClientDay,
         }}>
             {children}
         </CartContext.Provider>

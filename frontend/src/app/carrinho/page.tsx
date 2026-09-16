@@ -43,7 +43,7 @@ const BRAZILIAN_STATES = [
 import { useAuth } from "@/context/AuthContext";
 
 export default function CarrinhoPage() {
-    const { cart, updateQuantity, removeFromCart, cartTotal: subtotal, isWholesaleUnlocked, clearCart, clientDayCoupon, clientDayCouponDismissed, dismissClientDayCoupon, restoreClientDayCoupon, isClientDay } = useCart();
+    const { cart, updateQuantity, removeFromCart, cartTotal: subtotal, isWholesaleUnlocked, clearCart } = useCart();
     const { user, token, refreshProfile } = useAuth();
     const [step, setStep] = useState<"cart" | "checkout">("cart");
     const [loading, setLoading] = useState(false);
@@ -137,22 +137,6 @@ export default function CarrinhoPage() {
     const [couponCode, setCouponCode] = useState("");
     const [couponError, setCouponError] = useState("");
     const [firstPurchaseChecked, setFirstPurchaseChecked] = useState(false);
-
-    // Auto-apply DIADOCLIENTE when it becomes eligible (from context)
-    useEffect(() => {
-        if (clientDayCoupon && !appliedCoupon && !isWholesaleUnlocked) {
-            setAppliedCoupon({
-                code: clientDayCoupon.code,
-                type: 'percentage',
-                value: clientDayCoupon.discount,
-                name: `${clientDayCoupon.discount}% OFF Dia do Cliente`
-            });
-            showToast(`🎉 Cupom DIADOCLIENTE aplicado! ${clientDayCoupon.discount}% de desconto`, 'success');
-        } else if (!clientDayCoupon && appliedCoupon?.code === 'DIADOCLIENTE') {
-            // User dismissed the coupon — clear it from applied
-            setAppliedCoupon(null);
-        }
-    }, [clientDayCoupon, isWholesaleUnlocked]);
 
     const [availableRouletteCoupon, setAvailableRouletteCoupon] = useState<any>(() => {
         if (typeof window === "undefined") return null;
@@ -1150,10 +1134,7 @@ export default function CarrinhoPage() {
                                 {appliedCoupon && (
                                     <div className={styles.mobileAppliedCouponBox}>
                                         <span>Cupom ativo: <strong>{appliedCoupon.code}</strong></span>
-                                        <button onClick={() => {
-                                            if (appliedCoupon.code === 'DIADOCLIENTE') dismissClientDayCoupon();
-                                            setAppliedCoupon(null);
-                                        }}>Remover</button>
+                                        <button onClick={() => setAppliedCoupon(null)}>Remover</button>
                                     </div>
                                 )}
                                 {availableRouletteCoupon && availableRouletteCoupon.hasDiscount && (!appliedCoupon || !appliedCoupon.code?.startsWith("ROLETA")) && (
@@ -1585,10 +1566,7 @@ export default function CarrinhoPage() {
                             {appliedCoupon && (
                                 <div className={styles.appliedCoupon}>
                                     <span>Cupom: {appliedCoupon.code}</span>
-                                    <button onClick={() => {
-                                        if (appliedCoupon.code === 'DIADOCLIENTE') dismissClientDayCoupon();
-                                        setAppliedCoupon(null);
-                                    }}>Remover</button>
+                                    <button onClick={() => setAppliedCoupon(null)}>Remover</button>
                                 </div>
                             )}
                             
