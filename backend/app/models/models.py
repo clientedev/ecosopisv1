@@ -147,6 +147,7 @@ class Product(Base):
     order = Column(Integer, default=0)
     is_on_sale = Column(Boolean, default=False)  # Promoção ativa
     sale_price = Column(Float, nullable=True)      # Preço promocional
+    story_videos = Column(JSON, default=list) # List of dicts: [{"id": "1", "title": "Textura", "video_url": "...", "thumbnail_url": "..."}]
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")

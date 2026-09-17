@@ -54,6 +54,7 @@ MISSING_PRODUCTS_COLUMNS = [
     ("order",            "INTEGER DEFAULT 0"),
     ("is_on_sale",       "BOOLEAN DEFAULT FALSE"),
     ("sale_price",       "DOUBLE PRECISION"),
+    ("story_videos",     "JSON DEFAULT '[]'"),
 ]
 
 MISSING_ORDERS_COLUMNS = [

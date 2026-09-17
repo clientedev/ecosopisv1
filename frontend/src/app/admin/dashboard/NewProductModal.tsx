@@ -58,6 +58,7 @@ export default function NewProductModal({ onClose, onSave }: Props) {
         order: 0,
         images: [],
         tags: [],
+        story_videos: [],
         details: {
             curiosidades: "",
             modo_de_uso: "",
@@ -66,8 +67,9 @@ export default function NewProductModal({ onClose, onSave }: Props) {
             contraindicacoes: "",
             observacoes: ""
         }
-    });
+    } as any);
     const [loading, setLoading] = useState(false);
+    const [uploadingStoryIndex, setUploadingStoryIndex] = useState<number | null>(null);
     const [tagInput, setTagInput] = useState("");
     const [showTechnicalInfo, setShowTechnicalInfo] = useState(false);
     const [priceInput, setPriceInput] = useState<string>("");
@@ -224,6 +226,53 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                 });
             }
         }
+    };
+
+    const handleUploadStoryVideo = async (index: number, file: File) => {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        setUploadingStoryIndex(index);
+        const fd = new FormData();
+        fd.append("file", file);
+        try {
+            const res = await fetch(`/api/images/upload`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` },
+                body: fd
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const stories = [...(((formData as any).story_videos) || [])];
+                stories[index] = { ...(stories[index] || {}), video_url: data.url };
+                setFormData(prev => ({ ...prev, story_videos: stories } as any));
+            } else {
+                alert("Erro ao enviar arquivo de vídeo");
+            }
+        } catch (err) {
+            console.error("Error uploading story video", err);
+            alert("Erro de conexão ao enviar vídeo");
+        } finally {
+            setUploadingStoryIndex(null);
+        }
+    };
+
+    const handleAddStory = () => {
+        const current = ((formData as any).story_videos) || [];
+        if (current.length >= 4) return;
+        const titles = ["Textura", "Como Usar", "Resultados", "Detalhes"];
+        const newStory = {
+            id: `story_${Date.now()}`,
+            title: titles[current.length] || `Vídeo ${current.length + 1}`,
+            video_url: "",
+            thumbnail_url: ""
+        };
+        setFormData(prev => ({ ...prev, story_videos: [...current, newStory] } as any));
+    };
+
+    const handleRemoveStory = (index: number) => {
+        const current = ((formData as any).story_videos) || [];
+        const updated = current.filter((_: any, i: number) => i !== index);
+        setFormData(prev => ({ ...prev, story_videos: updated } as any));
     };
 
     const getImageUrl = (url: string) => {
@@ -556,6 +605,146 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                                 <p style={{ fontSize: '0.75rem', color: '#92400e', marginTop: '8px', opacity: 0.8 }}>
                                     💡 O preço original ficará riscado e o preço promocional aparecerá em destaque no card do produto e na home.
                                 </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Vídeos de Demonstração (Stories - Estilo Rituária) */}
+                    <div style={{
+                        background: '#fcf8f6',
+                        border: '1px solid #f3d5ca',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        marginBottom: '20px'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                            <div>
+                                <h4 style={{ margin: 0, color: '#c86d51', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span>🎬</span> Vídeos de Demonstração (Stories - até 4)
+                                </h4>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#666' }}>
+                                    Estes vídeos aparecem em círculos estilo Stories logo abaixo do botão comprar no site.
+                                </p>
+                            </div>
+                            {(!((formData as any).story_videos) || ((formData as any).story_videos).length < 4) && (
+                                <button
+                                    type="button"
+                                    onClick={handleAddStory}
+                                    style={{
+                                        background: '#c86d51',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        padding: '6px 14px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    + Adicionar Vídeo ({((formData as any).story_videos || []).length}/4)
+                                </button>
+                            )}
+                        </div>
+
+                        {((formData as any).story_videos || []).length === 0 ? (
+                            <p style={{ fontSize: '0.82rem', color: '#999', fontStyle: 'italic', margin: 0 }}>
+                                Nenhum vídeo de story adicionado. Clique no botão acima para incluir vídeos curtos do produto.
+                            </p>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                {((formData as any).story_videos || []).map((story: any, index: number) => (
+                                    <div key={story.id || index} style={{
+                                        background: 'white',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '10px',
+                                        padding: '14px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '10px'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#333' }}>
+                                                Vídeo {index + 1}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveStory(index)}
+                                                style={{
+                                                    background: '#fee2e2',
+                                                    color: '#ef4444',
+                                                    border: 'none',
+                                                    borderRadius: '6px',
+                                                    padding: '4px 10px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Remover
+                                            </button>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+                                            <div>
+                                                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#555', display: 'block', marginBottom: '4px' }}>
+                                                    Rótulo do Círculo *
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={story.title || ""}
+                                                    onChange={(e) => {
+                                                        const stories = [...(((formData as any).story_videos) || [])];
+                                                        stories[index] = { ...stories[index], title: e.target.value };
+                                                        setFormData(prev => ({ ...prev, story_videos: stories } as any));
+                                                    }}
+                                                    placeholder="Ex: Textura, Como Usar"
+                                                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.85rem' }}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#555', display: 'block', marginBottom: '4px' }}>
+                                                    URL do Vídeo (MP4, WebM) ou Upload *
+                                                </label>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <input
+                                                        type="text"
+                                                        value={story.video_url || ""}
+                                                        onChange={(e) => {
+                                                            const stories = [...(((formData as any).story_videos) || [])];
+                                                            stories[index] = { ...stories[index], video_url: e.target.value };
+                                                            setFormData(prev => ({ ...prev, story_videos: stories } as any));
+                                                        }}
+                                                        placeholder="https://... ou faça upload"
+                                                        style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.85rem' }}
+                                                    />
+                                                    <label style={{
+                                                        background: '#4a7c59',
+                                                        color: 'white',
+                                                        padding: '8px 12px',
+                                                        borderRadius: '6px',
+                                                        fontSize: '0.78rem',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        {uploadingStoryIndex === index ? '⏳ Enviando...' : '📁 Upload Vídeo'}
+                                                        <input
+                                                            type="file"
+                                                            accept="video/*"
+                                                            style={{ display: 'none' }}
+                                                            onChange={(e) => {
+                                                                if (e.target.files && e.target.files[0]) {
+                                                                    handleUploadStoryVideo(index, e.target.files[0]);
+                                                                }
+                                                            }}
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>

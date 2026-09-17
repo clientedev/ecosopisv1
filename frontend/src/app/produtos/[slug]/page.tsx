@@ -11,6 +11,9 @@ import { useToast } from "@/components/Toast/Toast";
 import { useCart } from "@/context/CartContext";
 import { getStaticProductData } from "@/lib/productData";
 
+import ProductStoryCircles from "@/components/ProductStory/ProductStoryCircles";
+import ProductStoryModal from "@/components/ProductStory/ProductStoryModal";
+
 export default function ProductDetailPage() {
     const params = useParams();
     const router = useRouter();
@@ -24,6 +27,7 @@ export default function ProductDetailPage() {
     const [buyingNow, setBuyingNow] = useState(false);
     const [paymentError, setPaymentError] = useState("");
     const [quantity, setQuantity] = useState(1);
+    const [selectedStoryIndex, setSelectedStoryIndex] = useState<number | null>(null);
 
     const handleDecrement = () => {
         setQuantity(prev => Math.max(1, prev - 1));
@@ -353,6 +357,25 @@ export default function ProductDetailPage() {
                                         {buyingNow ? '⏳ Redirecionando...' : '⚡ COMPRAR AGORA'}
                                     </button>
                                 </>
+                            )}
+
+                            {/* Vídeos em Formato Story (estilo Rituária) */}
+                            <ProductStoryCircles
+                                storyVideos={product.story_videos}
+                                onSelectStory={(index) => setSelectedStoryIndex(index)}
+                                productImage={product.image_url}
+                            />
+
+                            {selectedStoryIndex !== null && product.story_videos && product.story_videos.length > 0 && (
+                                <ProductStoryModal
+                                    storyVideos={product.story_videos}
+                                    initialIndex={selectedStoryIndex}
+                                    productName={product.name}
+                                    productImage={product.image_url}
+                                    productPrice={product.is_on_sale && product.sale_price ? product.sale_price : product.price}
+                                    onClose={() => setSelectedStoryIndex(null)}
+                                    onBuyNow={handleBuyNow}
+                                />
                             )}
 
                             {paymentError && (

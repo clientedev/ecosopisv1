@@ -200,6 +200,7 @@ class ProductBase(BaseModel):
     order: Optional[int] = 0
     is_on_sale: Optional[bool] = False
     sale_price: Optional[float] = None
+    story_videos: Optional[List[Dict[str, Any]]] = []
 
 # Product Details Schemas
 class ProductDetailBase(BaseModel):
@@ -253,6 +254,7 @@ class ProductUpdate(BaseModel):
     order: Optional[int] = None
     is_on_sale: Optional[bool] = None
     sale_price: Optional[float] = None
+    story_videos: Optional[List[Dict[str, Any]]] = None
 
 # Carousel Schemas
 class CarouselItemBase(BaseModel):

@@ -1,0 +1,415 @@
+/* Container do Círculo de Stories (Abaixo do Botão Comprar) */
+.storySectionContainer {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.storySectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+
+.storySectionTitle {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-terracotta, #c86d51);
+    font-family: var(--font-karla, sans-serif);
+}
+
+.storyBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: linear-gradient(135deg, #e07a5f 0%, #d4a373 100%);
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.storyRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+}
+
+.storyRow::-webkit-scrollbar {
+    display: none;
+}
+
+.storyItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    outline: none;
+}
+
+.storyItem:hover {
+    transform: translateY(-3px) scale(1.05);
+}
+
+.storyItem:active {
+    transform: scale(0.95);
+}
+
+/* Anel externo gradiente (estilo Instagram Stories) */
+.storyCircleRing {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    padding: 3px;
+    background: linear-gradient(135deg, #d4a373 0%, #e07a5f 50%, #cca43b 100%);
+    box-shadow: 0 4px 12px rgba(224, 122, 95, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    animation: ringGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes ringGlow {
+    0% {
+        box-shadow: 0 0 8px rgba(224, 122, 95, 0.3);
+    }
+    100% {
+        box-shadow: 0 0 16px rgba(212, 163, 115, 0.6);
+    }
+}
+
+.storyCircleInner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #111111;
+    border: 2px solid #ffffff;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.storyMediaPreview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.storyPlayOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    transition: background 0.2s ease;
+}
+
+.storyItem:hover .storyPlayOverlay {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.storyLabel {
+    margin-top: 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #2b2b2b;
+    text-align: center;
+    max-width: 76px;
+    line-height: 1.15;
+    font-family: var(--font-karla, sans-serif);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* =================================================== */
+/* MODAL DE STORIES EM TELA CHEIA */
+/* =================================================== */
+
+.storyModalOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(16px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    animation: fadeInModal 0.25s forwards ease-out;
+}
+
+@keyframes fadeInModal {
+    to {
+        opacity: 1;
+    }
+}
+
+.storyModalContainer {
+    width: 100%;
+    max-width: 420px;
+    height: 100vh;
+    max-height: 840px;
+    background: #000000;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+@media (min-width: 640px) {
+    .storyModalContainer {
+        height: 92vh;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+}
+
+/* Barra de Progresso do Topo */
+.storyProgressHeader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    padding: 12px 16px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.progressBarsRow {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+}
+
+.progressBarTrack {
+    flex: 1;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progressBarFill {
+    height: 100%;
+    background: #ffffff;
+    border-radius: 4px;
+    transition: width 0.1s linear;
+}
+
+/* Header com info do produto e fechar */
+.storyModalHeaderInfo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #ffffff;
+}
+
+.storyProductInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.storyProductThumb {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid #ffffff;
+}
+
+.storyTitleText {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.storyCloseBtn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #ffffff;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s ease;
+}
+
+.storyCloseBtn:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* Conteúdo de Vídeo */
+.storyVideoWrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000000;
+}
+
+.storyVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Zonas de Toque para navegação */
+.storyTouchZoneLeft {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 35%;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.storyTouchZoneRight {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 35%;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.storyTouchZoneCenter {
+    position: absolute;
+    left: 35%;
+    right: 35%;
+    top: 0;
+    bottom: 0;
+    z-index: 10;
+    cursor: pointer;
+}
+
+/* Controles Flutuantes e CTA */
+.storyFooterCTA {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 25;
+    padding: 24px 16px 20px 16px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.storyAudioBtn {
+    position: absolute;
+    right: 16px;
+    bottom: 80px;
+    z-index: 26;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+}
+
+.buyStoryBtn {
+    width: 100%;
+    padding: 0.85rem;
+    background: linear-gradient(135deg, #e07a5f 0%, #c86d51 100%);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border: none;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(224, 122, 95, 0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.buyStoryBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(224, 122, 95, 0.6);
+}
+
+/* Botões de navegação lateral para desktop */
+.navChevronLeft,
+.navChevronRight {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s;
+}
+
+@media (min-width: 768px) {
+    .navChevronLeft {
+        display: flex;
+        left: -60px;
+    }
+    .navChevronRight {
+        display: flex;
+        right: -60px;
+    }
+}
+
+.navChevronLeft:hover,
+.navChevronRight:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
