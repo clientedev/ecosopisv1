@@ -40,9 +40,9 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         badge_bg_color: item?.badge_bg_color || "#4a7c59",
         overlay_color: item?.overlay_color || "#000000",
         overlay_opacity: item?.overlay_opacity ?? 0.3,
-        carousel_height: item?.carousel_height || "600px",
-        mobile_carousel_height: item?.mobile_carousel_height || "400px",
-        image_fit: item?.image_fit || "cover",
+        carousel_height: item?.carousel_height || "520px",
+        mobile_carousel_height: item?.mobile_carousel_height || "380px",
+        image_fit: item?.image_fit || "proportional",
         show_content: item?.show_content ?? true,
     });
 
@@ -365,6 +365,33 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                         )}
                                     </div>
 
+                                    <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
+                                        <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e293b', display: 'block', marginBottom: '8px' }}>Atalhos de Altura & Proporção</label>
+                                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, carousel_height: 'auto', mobile_carousel_height: 'auto', image_fit: 'auto' })}
+                                                style={{ fontSize: '0.74rem', padding: '6px 12px', borderRadius: '6px', border: '1px solid #10b981', background: formData.image_fit === 'auto' ? '#10b981' : '#f0fdf4', color: formData.image_fit === 'auto' ? '#fff' : '#166534', cursor: 'pointer', fontWeight: 700 }}
+                                            >
+                                                📐 Altura 100% Automática
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, carousel_height: '520px', mobile_carousel_height: '380px', image_fit: 'proportional' })}
+                                                style={{ fontSize: '0.74rem', padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: formData.image_fit === 'proportional' ? '#e2e8f0' : '#fff', color: '#334155', cursor: 'pointer', fontWeight: 600 }}
+                                            >
+                                                ✨ Proporcional Clássico (520px)
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, carousel_height: '650px', mobile_carousel_height: '420px', image_fit: 'proportional' })}
+                                                style={{ fontSize: '0.74rem', padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#334155', cursor: 'pointer', fontWeight: 600 }}
+                                            >
+                                                📺 Widescreen Amplo (650px)
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                         <div className={styles.formGroup}>
                                             <label>Altura Desktop</label>
@@ -372,9 +399,9 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                                 type="text"
                                                 value={formData.carousel_height}
                                                 onChange={e => setFormData({ ...formData, carousel_height: e.target.value })}
-                                                placeholder="Ex: 600px ou 70vh"
+                                                placeholder="Ex: 520px, auto ou 70vh"
                                             />
-                                            <p className={styles.helpText}>Altura no desktop</p>
+                                            <p className={styles.helpText}>"auto" adapta proporcionalmente</p>
                                         </div>
                                         <div className={styles.formGroup}>
                                             <label>Altura Mobile</label>
@@ -382,19 +409,19 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                                 type="text"
                                                 value={formData.mobile_carousel_height}
                                                 onChange={e => setFormData({ ...formData, mobile_carousel_height: e.target.value })}
-                                                placeholder="Ex: 400px ou 50vh"
+                                                placeholder="Ex: 380px, auto ou 50vh"
                                             />
-                                            <p className={styles.helpText}>Altura no celular</p>
+                                            <p className={styles.helpText}>"auto" adapta proporcionalmente</p>
                                         </div>
                                     </div>
 
                                     <div className={styles.formGroup}>
-                                        <label>Ajuste da Imagem</label>
+                                        <label>Ajuste Visual (Enquadramento)</label>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '8px' }}>
                                             {[
-                                                { value: 'cover', label: '🔲 Cobrir', desc: 'Preenche tudo' },
-                                                { value: 'contain', label: '⬜ Conter', desc: 'Imagem inteira' },
-                                                { value: '100% 100%', label: '↔️ Esticar', desc: 'Preenche tudo' },
+                                                { value: 'proportional', label: '✨ Proporcional', desc: 'Nunca corta e nunca estica (Recomendado)' },
+                                                { value: 'auto', label: '📐 Altura Auto', desc: '100% largura na proporção original' },
+                                                { value: 'cover', label: '🔲 Preencher Área', desc: 'Preenche tela (pode cortar bordas)' },
                                             ].map(opt => (
                                                 <button
                                                     key={opt.value}
@@ -413,7 +440,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                                 >
                                                     <div style={{ fontSize: '1.2rem', marginBottom: '4px' }}>{opt.label.split(' ')[0]}</div>
                                                     <div style={{ fontSize: '0.72rem', fontWeight: 700, color: formData.image_fit === opt.value ? '#10b981' : '#374151' }}>{opt.label.split(' ').slice(1).join(' ')}</div>
-                                                    <div style={{ fontSize: '0.68rem', color: '#6b7280', marginTop: '2px' }}>{opt.desc}</div>
+                                                    <div style={{ fontSize: '0.66rem', color: '#6b7280', marginTop: '3px', lineHeight: 1.3 }}>{opt.desc}</div>
                                                 </button>
                                             ))}
                                         </div>
@@ -658,20 +685,71 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                             borderRadius: '12px',
                             position: 'relative',
                             overflow: 'hidden',
-                            backgroundColor: '#1a1a1a',
-                            backgroundImage: currentPreviewUrl
-                                ? `linear-gradient(${overlayColor}, ${overlayColor}), url(${currentPreviewUrl})`
-                                : 'none',
-                            backgroundSize: formData.image_fit,
-                            backgroundPosition: 'center',
-                            backgroundRepeat: 'no-repeat',
-                            height: previewDevice === 'mobile' ? formData.mobile_carousel_height : formData.carousel_height,
+                            backgroundColor: '#0b140e',
+                            height: previewDevice === 'mobile' ? (formData.mobile_carousel_height === 'auto' ? '280px' : formData.mobile_carousel_height) : (formData.carousel_height === 'auto' ? '420px' : formData.carousel_height),
                             boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
                             transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-                            flexShrink: 0
+                            flexShrink: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                         }}>
-                            {!currentPreviewUrl && (
-                                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', flexDirection: 'column', gap: '8px' }}>
+                            {currentPreviewUrl ? (
+                                <>
+                                    {/* Ambient Backdrop (only when not cover) */}
+                                    {formData.image_fit !== 'cover' && (
+                                        <div
+                                            style={{
+                                                position: 'absolute',
+                                                inset: -20,
+                                                backgroundImage: `url(${currentPreviewUrl})`,
+                                                backgroundSize: 'cover',
+                                                backgroundPosition: 'center',
+                                                filter: 'blur(30px) brightness(0.65) saturate(1.2)',
+                                                transform: 'scale(1.2)',
+                                                opacity: 0.6,
+                                                pointerEvents: 'none',
+                                                zIndex: 0,
+                                            }}
+                                        />
+                                    )}
+
+                                    {/* Main banner image - 0% cut off, 0% stretched */}
+                                    <div style={{
+                                        position: 'relative',
+                                        width: '100%',
+                                        height: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        zIndex: 1,
+                                    }}>
+                                        <img
+                                            src={currentPreviewUrl}
+                                            alt="Preview"
+                                            style={{
+                                                maxWidth: '100%',
+                                                maxHeight: '100%',
+                                                width: formData.image_fit === 'auto' ? '100%' : 'auto',
+                                                height: formData.image_fit === 'auto' ? 'auto' : '100%',
+                                                objectFit: formData.image_fit === 'cover' ? 'cover' : 'contain',
+                                                display: 'block',
+                                                margin: '0 auto',
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Color Overlay */}
+                                    <div style={{
+                                        position: 'absolute',
+                                        inset: 0,
+                                        background: overlayColor,
+                                        zIndex: 1,
+                                        pointerEvents: 'none',
+                                    }} />
+                                </>
+                            ) : (
+                                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', flexDirection: 'column', gap: '8px' }}>
                                     <span style={{ fontSize: '2.5rem' }}>🖼️</span>
                                     <span style={{ fontSize: '0.85rem' }}>Adicione uma imagem para ver a prévia</span>
                                 </div>

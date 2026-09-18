@@ -135,9 +135,13 @@ def _apply_startup_migrations():
         ("order",             "INTEGER DEFAULT 0"),
         ("is_on_sale",        "BOOLEAN DEFAULT FALSE"),
         ("sale_price",        "DOUBLE PRECISION"),
+        ("story_videos",      "TEXT DEFAULT '[]'"),
     ]
     PRODUCT_DETAILS_COLS = [
         ("beneficios", "TEXT"),
+    ]
+    REVIEWS_COLS = [
+        ("images", "TEXT DEFAULT '[]'"),
     ]
     
     with engine.connect() as conn:
@@ -150,6 +154,7 @@ def _apply_startup_migrations():
             ("news", NEWS_COLS),
             ("products", PRODUCT_COLS),
             ("product_details", PRODUCT_DETAILS_COLS),
+            ("reviews", REVIEWS_COLS),
         ]
         for table, cols in tables_to_sync:
             # Check if table exists, create if not
@@ -341,6 +346,17 @@ def _ensure_extra_tables():
         logger.info("✓ lia_interactions table ensured.")
     except Exception as e:
         logger.warning(f"lia_interactions ensure: {e}")
+
+    # home_stories
+    try:
+        with engine.begin() as conn:
+            if is_sqlite:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS home_stories (id INTEGER PRIMARY KEY AUTOINCREMENT, title VARCHAR NOT NULL, video_url VARCHAR NOT NULL, thumbnail_url VARCHAR, \"order\" INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+            else:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS home_stories (id SERIAL PRIMARY KEY, title VARCHAR NOT NULL, video_url VARCHAR NOT NULL, thumbnail_url VARCHAR, \"order\" INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT now())"))
+        logger.info("✓ home_stories table ensured.")
+    except Exception as e:
+        logger.warning(f"home_stories ensure: {e}")
 
     logger.info("Extra tables ensured successfully.")
 

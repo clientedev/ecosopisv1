@@ -11,14 +11,14 @@ cd /d "%ROOT_DIR%"
 
 REM Start Backend in a new window
 echo Starting Backend...
-start "ECOSOPIS Backend" cmd /c "cd /d "%ROOT_DIR%backend" && (if not exist venv python -m venv venv) && venv\Scripts\activate && pip install -r requirements.txt && uvicorn app.main:app --reload --port 8000"
+start "ECOSOPIS Backend" cmd /k "cd /d "%ROOT_DIR%backend" && (if exist venv\Scripts\uvicorn.exe (call venv\Scripts\activate && uvicorn app.main:app --reload --port 8000) else (python -m uvicorn app.main:app --reload --port 8000))"
 
 REM Start Frontend in a new window
 echo Starting Frontend...
-start "ECOSOPIS Frontend" cmd /c "cd /d "%ROOT_DIR%frontend" && (if not exist node_modules npm install) && npm run dev"
+start "ECOSOPIS Frontend" cmd /k "cd /d "%ROOT_DIR%frontend" && (if not exist node_modules npm install) && npm run dev"
 
 echo ==========================================
-echo Backend should be starting at http://localhost:8000
-echo Frontend should be starting at http://localhost:5000
+echo Backend starting at http://localhost:8000
+echo Frontend starting at http://localhost:5000
 echo ==========================================
 pause

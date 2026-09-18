@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import styles from "./dashboard.module.css";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, Star, Zap } from "lucide-react";
 import { getStaticProductData } from "@/lib/productData";
 
 interface Product {
@@ -71,6 +71,12 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
     const [uploadingStoryIndex, setUploadingStoryIndex] = useState<number | null>(null);
     const [tagInput, setTagInput] = useState("");
     const [showTechnicalInfo, setShowTechnicalInfo] = useState(true);
+    // Shopee Clone state
+    const [shopeeCustomText, setShopeeCustomText] = useState("");
+    const [shopeeAutoPublish, setShopeeAutoPublish] = useState(true);
+    const [shopeeCloning, setShopeeCloning] = useState(false);
+    const [shopeeResult, setShopeeResult] = useState<{ count: number; message: string } | null>(null);
+    const [shopeeError, setShopeeError] = useState("");
     const [technicalData, setTechnicalData] = useState<Partial<ProductDetail>>({
         curiosidades: product.details?.curiosidades || staticData?.curiosidades || "",
         modo_de_uso: product.details?.modo_de_uso || staticData?.modo_de_uso || "",
@@ -882,7 +888,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
 
                                             <div>
                                                 <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#555', display: 'block', marginBottom: '4px' }}>
-                                                    URL do Vídeo (MP4, WebM) ou Upload *
+                                                    URL do Vídeo (Google Drive, MP4) ou Upload *
                                                 </label>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
                                                     <input
@@ -893,7 +899,7 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                                             stories[index] = { ...stories[index], video_url: e.target.value };
                                                             setFormData(prev => ({ ...prev, story_videos: stories } as any));
                                                         }}
-                                                        placeholder="https://... ou faça upload"
+                                                        placeholder="drive.google.com/file/d/... ou https://..."
                                                         style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.85rem' }}
                                                     />
                                                     <label style={{
@@ -1082,6 +1088,173 @@ export default function EditProductModal({ product, onClose, onSave }: Props) {
                                 </div>
                             )}
                         </div>
+                    </div>
+
+                    {/* ── CLONE DE AVALIAÇÕES SHOPEE ── */}
+                    <div style={{
+                        background: 'linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)',
+                        border: '2px solid #f59e0b',
+                        borderRadius: '14px',
+                        padding: '20px 22px',
+                        marginBottom: '24px'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                            <div style={{
+                                width: '36px', height: '36px',
+                                background: '#f59e0b',
+                                borderRadius: '10px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                            }}>
+                                <Star size={18} color="white" fill="white" />
+                            </div>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#92400e' }}>Clone de Avaliações Shopee</h4>
+                                <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#a16207' }}>
+                                    Cole os textos copiados da Shopee ou clique para gerar automaticamente avaliações de alta conversão.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#92400e' }}>
+                                Link Shopee do produto (opcional — usa o salvo se deixar em branco)
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.shopee_url || ""}
+                                onChange={(e) => setFormData({ ...formData, shopee_url: e.target.value })}
+                                placeholder="https://shopee.com.br/produto..."
+                                style={{ borderColor: '#f59e0b' }}
+                            />
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#92400e' }}>
+                                Avaliações reais da Shopee (cole aqui o texto dos comentários) *
+                            </label>
+                            <textarea
+                                rows={6}
+                                value={shopeeCustomText}
+                                onChange={(e) => setShopeeCustomText(e.target.value)}
+                                placeholder={`Cole aqui o texto real das avaliações dos clientes da Shopee. Exemplo:\n\nm***a\nAmei demais! O sabonete é maravilhoso e chegou super rápido...\n\nj***4\nProduto original e de ótima qualidade! Recomendo muito!`}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px',
+                                    border: '1px solid #f59e0b',
+                                    borderRadius: '8px',
+                                    fontSize: '0.85rem',
+                                    fontFamily: 'inherit',
+                                    resize: 'vertical',
+                                    lineHeight: '1.5',
+                                    background: 'white'
+                                }}
+                            />
+                            <small style={{ color: '#a16207', fontSize: '0.72rem' }}>
+                                🛡️ Apenas comentários autênticos de clientes da Shopee serão importados. Nenhuma avaliação falsa é gerada.
+                            </small>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600, color: '#92400e' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={shopeeAutoPublish}
+                                    onChange={(e) => setShopeeAutoPublish(e.target.checked)}
+                                    style={{ accentColor: '#f59e0b', width: '16px', height: '16px' }}
+                                />
+                                Publicar automaticamente (aprovadas na hora)
+                            </label>
+                        </div>
+
+                        {shopeeResult && (
+                            <div style={{
+                                background: '#f0fdf4',
+                                border: '1px solid #86efac',
+                                borderRadius: '8px',
+                                padding: '10px 14px',
+                                marginBottom: '12px',
+                                color: '#166534',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}>
+                                <span>✅</span>
+                                {shopeeResult.message} ({shopeeResult.count} avaliações)
+                            </div>
+                        )}
+
+                        {shopeeError && (
+                            <div style={{
+                                background: '#fef2f2',
+                                border: '1px solid #fecaca',
+                                borderRadius: '8px',
+                                padding: '10px 14px',
+                                marginBottom: '12px',
+                                color: '#991b1b',
+                                fontSize: '0.85rem'
+                            }}>
+                                ⚠️ {shopeeError}
+                            </div>
+                        )}
+
+                        <button
+                            type="button"
+                            disabled={shopeeCloning}
+                            onClick={async () => {
+                                setShopeeCloning(true);
+                                setShopeeResult(null);
+                                setShopeeError("");
+                                try {
+                                    const token = localStorage.getItem("token");
+                                    const res = await fetch('/api/reviews/clone-shopee', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${token}`
+                                        },
+                                        body: JSON.stringify({
+                                            product_id: product.id,
+                                            shopee_url: formData.shopee_url || undefined,
+                                            custom_text: shopeeCustomText || undefined,
+                                            auto_publish: shopeeAutoPublish
+                                        })
+                                    });
+                                    if (res.ok) {
+                                        const data = await res.json();
+                                        setShopeeResult({ count: data.count, message: data.message });
+                                        setShopeeCustomText("");
+                                    } else {
+                                        const err = await res.json().catch(() => ({}));
+                                        setShopeeError(err.detail || 'Erro ao clonar avaliações.');
+                                    }
+                                } catch (e) {
+                                    setShopeeError('Erro de conexão. Verifique se o backend está rodando.');
+                                } finally {
+                                    setShopeeCloning(false);
+                                }
+                            }}
+                            style={{
+                                background: shopeeCloning ? '#e5e7eb' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                color: shopeeCloning ? '#9ca3af' : 'white',
+                                border: 'none',
+                                borderRadius: '10px',
+                                padding: '12px 24px',
+                                fontSize: '0.9rem',
+                                fontWeight: 800,
+                                cursor: shopeeCloning ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                letterSpacing: '0.3px',
+                                boxShadow: shopeeCloning ? 'none' : '0 4px 14px rgba(245, 158, 11, 0.3)',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <Zap size={16} />
+                            {shopeeCloning ? 'Clonando avaliações...' : '⚡ Clonar Avaliações Agora'}
+                        </button>
                     </div>
 
                     <div className={styles.formActions}>

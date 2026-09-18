@@ -1,45 +1,153 @@
 .heroCarousel {
-  background-color: var(--neutral-gray-100);
-  height: 500px;
-  display: flex;
-  align-items: center;
+  background-color: transparent;
+  width: 100%;
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: unset;
+  user-select: none;
 }
 
 .carouselSlide {
   width: 100%;
-  opacity: 0;
-  transition: opacity 0.8s ease-in-out;
+  height: auto;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease-in-out;
 }
 
 .activeSlide {
   opacity: 1;
 }
 
+/* Ambient blurred backdrop that matches banner colors on widescreen edges */
+.bannerAmbientBackdrop {
+  position: absolute;
+  inset: -30px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(40px) brightness(0.65) saturate(1.2);
+  transform: scale(1.18);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Image container that guarantees 0% crop, 0% stretch and adapts vertically */
+.bannerImageContainer {
+  position: relative;
+  width: 100%;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  margin: 0 auto;
+}
+
+.bannerImage {
+  display: block;
+  margin: 0 auto;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.bannerImageAuto {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  object-fit: cover;
+}
+
+.carouselNavBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #1a3d16;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.carouselNavBtn:hover {
+  background: #ffffff;
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.carouselNavPrev {
+  left: 20px;
+}
+
+.carouselNavNext {
+  right: 20px;
+}
+
 .carouselDots {
   position: absolute;
-  bottom: 30px;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 10px;
+  gap: 8px;
   z-index: 10;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  border: 2px solid var(--primary-green);
+  border: 2px solid rgba(255, 255, 255, 0.8);
   background: transparent;
   cursor: pointer;
   padding: 0;
-  transition: background 0.3s;
+  transition: all 0.3s;
 }
 
 .activeDot {
-  background: var(--primary-green);
+  background: #10b981;
+  border-color: #10b981;
+  transform: scale(1.25);
+}
+
+@media (max-width: 768px) {
+  .carouselNavBtn {
+    width: 34px;
+    height: 34px;
+  }
+  .carouselNavPrev {
+    left: 8px;
+  }
+  .carouselNavNext {
+    right: 8px;
+  }
+  .carouselDots {
+    bottom: 14px;
+  }
 }
 
 .heroContent {
@@ -1519,78 +1627,140 @@
 
 .reviewsSection {
   padding: 80px 0;
-  background-color: #f9fbf9;
+  background-color: #faf8f5;
 }
 
-.reviewsMarqueeWrapper {
-  overflow: hidden;
-  width: 100%;
-  margin-bottom: 60px;
-  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
-}
-
-.reviewsTrack {
-  display: flex;
+.reviewsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  width: max-content;
-  animation: marqueeScroll 45s linear infinite;
+  max-width: 1200px;
+  margin: 0 auto 36px;
 }
 
-.reviewsTrack:hover {
-  animation-play-state: paused;
-}
-
-@keyframes marqueeScroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-@media (max-width: 768px) {
-  .reviewsMarqueeWrapper {
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
-  }
-  .reviewsMarqueeWrapper::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-  }
-  .reviewsTrack {
-    animation: none;
-    padding: 0 20px;
+@media (max-width: 1024px) {
+  .reviewsGrid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
+@media (max-width: 640px) {
+  .reviewsGrid {
+    grid-template-columns: 1fr;
+  }
+}
 
 .reviewCard {
   background: white;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  padding: 28px;
+  border-radius: 18px;
+  border: 1px solid rgba(45, 90, 39, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  min-width: 320px;
-  max-width: 320px;
-  flex-shrink: 0;
+  justify-content: space-between;
+  gap: 16px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.reviewCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(45, 90, 39, 0.08);
 }
 
 .reviewStars {
-  color: #f1c40f;
-  font-size: 1.2rem;
+  color: #eab308;
+  font-size: 1.15rem;
+  letter-spacing: 2px;
 }
 
 .reviewComment {
-  font-style: italic;
-  color: #444;
-  line-height: 1.6;
+  font-style: normal;
+  color: #334155;
+  line-height: 1.65;
+  font-size: 0.95rem;
+  flex: 1;
 }
 
 .reviewAuthor {
-  font-weight: bold;
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 0.92rem;
+}
+
+/* Pagination Controls */
+.paginationWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 50px;
+  flex-wrap: wrap;
+}
+
+.paginationBtn {
+  background: white;
+  border: 1px solid #cbd5e1;
   color: #2d5a27;
-  font-size: 0.9rem;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.paginationBtn:hover:not(:disabled) {
+  background: #2d5a27;
+  color: white;
+  border-color: #2d5a27;
+}
+
+.paginationBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+}
+
+.pageNumberBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pageNumberBtn:hover:not(.activePageBtn) {
+  background: #f1f5f9;
+}
+
+.activePageBtn {
+  background: #2d5a27 !important;
+  color: white !important;
+  border-color: #2d5a27 !important;
+  box-shadow: 0 4px 12px rgba(45, 90, 39, 0.25);
+}
+
+.emptyReviewsCard {
+  background: white;
+  border: 1px dashed #cbd5e1;
+  border-radius: 18px;
+  padding: 48px 24px;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto 40px;
 }
 
 .reviewFormContainer {

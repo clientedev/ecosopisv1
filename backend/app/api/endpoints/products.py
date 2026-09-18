@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Request
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.core.database import get_db
@@ -12,6 +12,7 @@ import uuid
 import qrcode
 import os
 import io
+import requests
 from sqlalchemy import text
 
 router = APIRouter()
@@ -443,3 +444,41 @@ def regenerate_product_qr(
         print(f"Error regenerating QR code: {e}")
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao regenerar QR Code: {str(e)}")
+
+@router.get("/drive-stream/{file_id}")
+def stream_drive_video(file_id: str, request: Request):
+    """
+    Proxy stream de vídeo do Google Drive direto para tags <video> HTML5.
+    Resolve problemas de CORS, cookies de sessão e headers de Range.
+    """
+    drive_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+    req_headers = {}
+    if "range" in request.headers:
+        req_headers["Range"] = request.headers["range"]
+
+    try:
+        r = requests.get(drive_url, headers=req_headers, stream=True, timeout=15)
+        
+        def iterfile():
+            try:
+                for chunk in r.iter_content(chunk_size=64 * 1024):
+                    if chunk:
+                        yield chunk
+            finally:
+                r.close()
+
+        res_headers = {
+            "Content-Type": r.headers.get("Content-Type", "video/mp4"),
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "public, max-age=3600"
+        }
+        if "Content-Length" in r.headers:
+            res_headers["Content-Length"] = r.headers["Content-Length"]
+        if "Content-Range" in r.headers:
+            res_headers["Content-Range"] = r.headers["Content-Range"]
+
+        status_code = 206 if "Content-Range" in r.headers else 200
+        return StreamingResponse(iterfile(), status_code=status_code, headers=res_headers)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Erro ao carregar vídeo do Drive: {str(e)}")
+

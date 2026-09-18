@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import styles from "./ProductStory.module.css";
 import { X, Volume2, VolumeX, ChevronLeft, ChevronRight, ShoppingBag, Pause, Play } from "lucide-react";
 import { StoryVideo } from "./ProductStoryCircles";
+import { isGoogleDriveUrl, getGoogleDriveEmbedUrl, getGoogleDriveDirectStreamUrl } from "@/utils/driveUtils";
 
 interface ProductStoryModalProps {
     storyVideos: StoryVideo[];
@@ -27,12 +28,33 @@ export default function ProductStoryModal({
     const [isMuted, setIsMuted] = useState(false);
     const [isPlaying, setIsPlaying] = useState(true);
     const [progress, setProgress] = useState(0);
+    // For Drive iframes, we simulate progress with a timer
+    const driveTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const driveProgressRef = useRef<number>(0);
 
     const videoRef = useRef<HTMLVideoElement | null>(null);
 
     const currentStory = storyVideos[currentIndex];
 
-    // Format URLs
+    // Detecta se o vídeo atual é do Google Drive
+    const isDriveVideo = currentStory && isGoogleDriveUrl(currentStory.video_url);
+
+    // Format URLs & handle Google Drive direct video stream
+    const getVideoSrc = (url?: string) => {
+        if (!url) return "";
+        if (isGoogleDriveUrl(url)) {
+            return getGoogleDriveDirectStreamUrl(url) || "";
+        }
+        if (url.startsWith("http")) return url;
+        if (url.startsWith("/api/")) return url;
+        if (url.startsWith("/static/")) return url;
+        if (url.startsWith("/images/")) return `/api${url}`;
+        if (url.startsWith("images/")) return `/api/${url}`;
+        if (url.startsWith("/uploads/")) return `/static${url}`;
+        if (url.startsWith("uploads/")) return `/static/${url}`;
+        return url;
+    };
+
     const getMediaUrl = (url?: string) => {
         if (!url) return "";
         if (url.startsWith("http")) return url;
@@ -54,6 +76,27 @@ export default function ProductStoryModal({
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [onClose]);
 
+    // Simulated progress for Drive iframes (since we can't track time inside cross-origin iframe)
+    const startDriveProgress = () => {
+        if (driveTimerRef.current) clearInterval(driveTimerRef.current);
+        driveProgressRef.current = 0;
+        setProgress(0);
+        const TOTAL_SECONDS = 60; // assumir ~60s por vídeo do Drive
+        driveTimerRef.current = setInterval(() => {
+            driveProgressRef.current += 100 / (TOTAL_SECONDS * 10);
+            const capped = Math.min(driveProgressRef.current, 100);
+            setProgress(capped);
+            if (capped >= 100) {
+                clearInterval(driveTimerRef.current!);
+                handleVideoEnd();
+            }
+        }, 100);
+    };
+
+    const stopDriveProgress = () => {
+        if (driveTimerRef.current) clearInterval(driveTimerRef.current);
+    };
+
     // Handle video end -> advance to next or close
     const handleVideoEnd = () => {
         if (currentIndex < storyVideos.length - 1) {
@@ -74,6 +117,7 @@ export default function ProductStoryModal({
 
     const handlePrev = (e?: React.MouseEvent) => {
         e?.stopPropagation();
+        stopDriveProgress();
         if (currentIndex > 0) {
             setCurrentIndex(prev => prev - 1);
             setProgress(0);
@@ -85,6 +129,7 @@ export default function ProductStoryModal({
 
     const handleNext = (e?: React.MouseEvent) => {
         e?.stopPropagation();
+        stopDriveProgress();
         if (currentIndex < storyVideos.length - 1) {
             setCurrentIndex(prev => prev + 1);
             setProgress(0);
@@ -94,6 +139,7 @@ export default function ProductStoryModal({
     };
 
     const togglePlay = () => {
+        if (isDriveVideo) return; // Não conseguimos controlar iframe cross-origin
         if (!videoRef.current) return;
         if (isPlaying) {
             videoRef.current.pause();
@@ -106,20 +152,27 @@ export default function ProductStoryModal({
 
     const toggleMute = (e: React.MouseEvent) => {
         e.stopPropagation();
+        if (isDriveVideo) return; // Não conseguimos controlar iframe cross-origin
         setIsMuted(prev => !prev);
     };
 
+    // Ao mudar de story, reset e play
     useEffect(() => {
-        // Reset and play video when currentIndex changes
+        stopDriveProgress();
+        setProgress(0);
+        setIsPlaying(true);
+
         if (videoRef.current) {
             videoRef.current.currentTime = 0;
-            setProgress(0);
-            setIsPlaying(true);
             videoRef.current.play().catch(err => console.error("Autoplay error:", err));
         }
-    }, [currentIndex]);
+
+        return () => stopDriveProgress();
+    }, [currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (!currentStory) return null;
+
+    const driveEmbedUrl = isDriveVideo ? getGoogleDriveEmbedUrl(currentStory.video_url) : null;
 
     return (
         <div className={styles.storyModalOverlay} onClick={onClose}>
@@ -164,11 +217,11 @@ export default function ProductStoryModal({
                     </div>
                 </div>
 
-                {/* Vídeo do Story */}
+                {/* Vídeo do Story com Autoplay Nativo */}
                 <div className={styles.storyVideoWrapper}>
                     <video
                         ref={videoRef}
-                        src={getMediaUrl(currentStory.video_url)}
+                        src={getVideoSrc(currentStory.video_url)}
                         className={styles.storyVideo}
                         autoPlay
                         playsInline

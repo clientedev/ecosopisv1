@@ -1,54 +1,39 @@
-/* Container do Círculo de Stories (Abaixo do Botão Comprar) */
-.storySectionContainer {
-    margin-top: 1rem;
-    margin-bottom: 1.25rem;
-    padding: 0.25rem 0;
-    background: transparent;
-    border: none;
-    box-shadow: none;
+/* Container da Seção de Stories da Home (Logo abaixo do Banner Principal) */
+.homeStorySection {
+    width: 100%;
+    padding: 1.5rem 1rem 1.25rem 1rem;
+    background: #faf8f5;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    position: relative;
+    z-index: 10;
 }
 
-.storySectionHeader {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.85rem;
-}
-
-.storySectionTitle {
-    font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--color-terracotta, #c86d51);
-    font-family: var(--font-karla, sans-serif);
-}
-
-.storyBadge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    background: linear-gradient(135deg, #e07a5f 0%, #d4a373 100%);
-    color: #ffffff;
-    font-size: 0.65rem;
-    font-weight: 800;
-    padding: 0.15rem 0.5rem;
-    border-radius: 20px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+.homeStoryContainer {
+    max-width: 1280px;
+    margin: 0 auto;
 }
 
 .storyRow {
     display: flex;
     align-items: flex-start;
-    gap: 1.25rem;
+    justify-content: center;
+    gap: 1.75rem;
     overflow-x: auto;
-    padding-bottom: 0.5rem;
-    scrollbar-width: none;
+    padding: 0.5rem 0.25rem 0.75rem 0.25rem;
+    scrollbar-width: none; /* Firefox */
 }
 
 .storyRow::-webkit-scrollbar {
-    display: none;
+    display: none; /* Chrome, Safari */
+}
+
+@media (max-width: 768px) {
+    .storyRow {
+        justify-content: flex-start;
+        gap: 1.25rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
 }
 
 .storyItem {
@@ -59,39 +44,40 @@
     background: transparent;
     border: none;
     padding: 0;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
     outline: none;
+    flex-shrink: 0;
 }
 
 .storyItem:hover {
-    transform: translateY(-3px) scale(1.05);
+    transform: translateY(-4px) scale(1.04);
 }
 
 .storyItem:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
 }
 
-/* Anel externo gradiente (estilo Instagram Stories) */
+/* Anel externo gradiente - aumentado em 40% (~129px) */
 .storyCircleRing {
-    width: 72px;
-    height: 72px;
+    width: 129px;
+    height: 129px;
     border-radius: 50%;
-    padding: 3px;
-    background: linear-gradient(135deg, #d4a373 0%, #e07a5f 50%, #cca43b 100%);
-    box-shadow: 0 4px 12px rgba(224, 122, 95, 0.25);
+    padding: 4.5px;
+    background: linear-gradient(135deg, #d4a373 0%, #2d5a27 50%, #cca43b 100%);
+    box-shadow: 0 8px 22px rgba(45, 90, 39, 0.24);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
-    animation: ringGlow 3s ease-in-out infinite alternate;
+    animation: homeRingGlow 3.5s ease-in-out infinite alternate;
 }
 
-@keyframes ringGlow {
+@keyframes homeRingGlow {
     0% {
-        box-shadow: 0 0 8px rgba(224, 122, 95, 0.3);
+        box-shadow: 0 0 10px rgba(45, 90, 39, 0.25);
     }
     100% {
-        box-shadow: 0 0 16px rgba(212, 163, 115, 0.6);
+        box-shadow: 0 0 24px rgba(204, 164, 59, 0.55);
     }
 }
 
@@ -101,7 +87,7 @@
     border-radius: 50%;
     overflow: hidden;
     background: #111111;
-    border: 2px solid #ffffff;
+    border: 3px solid #ffffff;
     position: relative;
     display: flex;
     align-items: center;
@@ -114,58 +100,21 @@
     object-fit: cover;
 }
 
-.storyPlayOverlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    transition: all 0.2s ease;
-    z-index: 2;
-}
-
-.storyPlayButtonBadge {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
-}
-
-.storyPlayBadgeIcon {
-    margin-left: 2px; /* optical alignment for play triangle */
-    color: #c86d51;
-}
-
-.storyItem:hover .storyPlayOverlay {
-    background: rgba(0, 0, 0, 0.15);
-}
-
-.storyItem:hover .storyPlayButtonBadge {
-    transform: scale(1.15);
-    background: #ffffff;
-}
-
 .storyLabel {
-    margin-top: 0.5rem;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #2b2b2b;
+    margin-top: 0.75rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #2b3a2a;
     text-align: center;
-    max-width: 76px;
-    line-height: 1.15;
-    font-family: var(--font-karla, sans-serif);
+    max-width: 134px;
+    line-height: 1.25;
+    font-family: inherit;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    letter-spacing: -0.01em;
 }
 
 /* =================================================== */
@@ -175,9 +124,10 @@
 .storyModalOverlay {
     position: fixed;
     inset: 0;
-    z-index: 99999;
-    background: rgba(0, 0, 0, 0.92);
+    z-index: 999999;
+    background: rgba(0, 0, 0, 0.94);
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -193,34 +143,34 @@
 
 .storyModalContainer {
     width: 100%;
-    max-width: 420px;
+    max-width: 440px;
     height: 100vh;
-    max-height: 840px;
+    max-height: 860px;
     background: #000000;
     position: relative;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
 }
 
 @media (min-width: 640px) {
     .storyModalContainer {
-        height: 92vh;
+        height: 90vh;
         border-radius: 24px;
         border: 1px solid rgba(255, 255, 255, 0.15);
     }
 }
 
-/* Barra de Progresso do Topo */
+/* Barra de Progresso no Topo */
 .storyProgressHeader {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     z-index: 20;
-    padding: 12px 16px;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+    padding: 14px 16px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -228,7 +178,7 @@
 
 .progressBarsRow {
     display: flex;
-    gap: 4px;
+    gap: 5px;
     width: 100%;
 }
 
@@ -247,7 +197,7 @@
     transition: width 0.1s linear;
 }
 
-/* Header com info do produto e fechar */
+/* Header com info e botão fechar */
 .storyModalHeaderInfo {
     display: flex;
     align-items: center;
@@ -255,33 +205,34 @@
     color: #ffffff;
 }
 
-.storyProductInfo {
+.storyBrandInfo {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-.storyProductThumb {
+.storyBrandThumb {
     width: 34px;
     height: 34px;
     border-radius: 50%;
     object-fit: cover;
     border: 1.5px solid #ffffff;
+    background: white;
 }
 
 .storyTitleText {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 700;
     color: #ffffff;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 
 .storyCloseBtn {
     background: rgba(255, 255, 255, 0.2);
     border: none;
     color: #ffffff;
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -312,7 +263,7 @@
     object-fit: cover;
 }
 
-/* Zonas de Toque para navegação */
+/* Zonas de Toque para avançar/voltar */
 .storyTouchZoneLeft {
     position: absolute;
     left: 0;
@@ -343,59 +294,29 @@
     cursor: pointer;
 }
 
-/* Controles Flutuantes e CTA */
-.storyFooterCTA {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 25;
-    padding: 24px 16px 20px 16px;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
+/* Controles de Áudio */
 .storyAudioBtn {
     position: absolute;
     right: 16px;
-    bottom: 80px;
+    bottom: 24px;
     z-index: 26;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     color: #ffffff;
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     backdrop-filter: blur(6px);
+    transition: transform 0.15s ease, background 0.2s;
 }
 
-.buyStoryBtn {
-    width: 100%;
-    padding: 0.85rem;
-    background: linear-gradient(135deg, #e07a5f 0%, #c86d51 100%);
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 0.95rem;
-    border: none;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(224, 122, 95, 0.4);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.buyStoryBtn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(224, 122, 95, 0.6);
+.storyAudioBtn:hover {
+    transform: scale(1.1);
+    background: rgba(0, 0, 0, 0.85);
 }
 
 /* Botões de navegação lateral para desktop */
@@ -407,8 +328,8 @@
     background: rgba(255, 255, 255, 0.2);
     border: none;
     color: white;
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     display: none;
     align-items: center;
@@ -416,21 +337,22 @@
     cursor: pointer;
     z-index: 100;
     backdrop-filter: blur(4px);
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.15s;
 }
 
 @media (min-width: 768px) {
     .navChevronLeft {
         display: flex;
-        left: -60px;
+        left: -68px;
     }
     .navChevronRight {
         display: flex;
-        right: -60px;
+        right: -68px;
     }
 }
 
 .navChevronLeft:hover,
 .navChevronRight:hover {
-    background: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.45);
+    transform: translateY(-50%) scale(1.1);
 }

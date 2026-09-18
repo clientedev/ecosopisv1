@@ -431,3 +431,29 @@ class RawMaterialResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Home Story Schemas
+class HomeStoryBase(BaseModel):
+    title: str
+    video_url: str
+    thumbnail_url: Optional[str] = None
+    order: Optional[int] = 0
+    is_active: Optional[bool] = True
+
+class HomeStoryCreate(HomeStoryBase):
+    pass
+
+class HomeStoryUpdate(BaseModel):
+    title: Optional[str] = None
+    video_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+class HomeStoryResponse(HomeStoryBase):
+    id: int
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

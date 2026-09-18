@@ -2,6 +2,7 @@
 import React from "react";
 import styles from "./ProductStory.module.css";
 import { Play, Sparkles } from "lucide-react";
+import { isGoogleDriveUrl, getGoogleDriveThumbnailUrl, getGoogleDriveDirectStreamUrl, getGoogleDriveEmbedUrl } from "@/utils/driveUtils";
 
 export interface StoryVideo {
     id?: string;
@@ -37,16 +38,44 @@ export default function ProductStoryCircles({
         return url;
     };
 
+    /**
+     * Determina o tipo e a URL da mídia para a bolinha de preview.
+     * O vídeo DEVE rodar em autoplay contínuo dentro da bolinha.
+     */
+    const getPreviewMedia = (story: StoryVideo): { type: "video" | "iframe" | "img"; src: string } => {
+        // Se for URL do Google Drive
+        if (story.video_url && isGoogleDriveUrl(story.video_url)) {
+            // Tenta stream direto do Google Drive (lh3)
+            const direct = getGoogleDriveDirectStreamUrl(story.video_url);
+            if (direct) {
+                return { type: "video", src: direct };
+            }
+            // Fallback para embed do drive se necessário
+            const embed = getGoogleDriveEmbedUrl(story.video_url, true);
+            if (embed) {
+                return { type: "iframe", src: embed };
+            }
+        }
+
+        // Vídeo comum (MP4, WebM, etc) -> toca em autoplay dentro da bolinha
+        if (story.video_url) {
+            return { type: "video", src: getMediaUrl(story.video_url) };
+        }
+
+        // Se tiver apenas thumbnail de imagem
+        if (story.thumbnail_url) {
+            return { type: "img", src: getMediaUrl(story.thumbnail_url) };
+        }
+
+        // Fallback: imagem do produto
+        return { type: "img", src: productImage };
+    };
+
     return (
         <div className={styles.storySectionContainer}>
-            <div className={styles.storySectionHeader}>
-                <Sparkles size={16} color="#c86d51" />
-                <span className={styles.storySectionTitle}>Conheça em detalhes</span>
-                <span className={styles.storyBadge}>Stories</span>
-            </div>
             <div className={styles.storyRow}>
                 {storyVideos.slice(0, 4).map((story, index) => {
-                    const thumb = story.thumbnail_url || productImage;
+                    const media = getPreviewMedia(story);
                     return (
                         <button
                             key={story.id || index}
@@ -57,29 +86,51 @@ export default function ProductStoryCircles({
                         >
                             <div className={styles.storyCircleRing}>
                                 <div className={styles.storyCircleInner}>
-                                    {story.thumbnail_url ? (
-                                        <img
-                                            src={getMediaUrl(thumb)}
-                                            alt={story.title || "Story"}
-                                            className={styles.storyMediaPreview}
-                                        />
-                                    ) : (
+                                    {media.type === "video" ? (
                                         <video
-                                            src={getMediaUrl(story.video_url)}
+                                            src={media.src}
                                             className={styles.storyMediaPreview}
+                                            autoPlay
+                                            loop
                                             muted
                                             playsInline
-                                            preload="metadata"
+                                            disablePictureInPicture
+                                            onError={(e) => {
+                                                // Se falhar o stream direto do vídeo, faz fallback para iframe ou imagem
+                                                const target = e.currentTarget;
+                                                target.style.display = "none";
+                                                const fallback = target.parentElement?.querySelector(".story-fallback-img");
+                                                if (fallback) (fallback as HTMLElement).style.display = "block";
+                                            }}
+                                        />
+                                    ) : media.type === "iframe" ? (
+                                        <iframe
+                                            src={media.src}
+                                            className={styles.storyMediaPreview}
+                                            allow="autoplay; encrypted-media"
+                                            title={story.title || "Story preview"}
+                                            style={{ border: "none", pointerEvents: "none" }}
+                                        />
+                                    ) : (
+                                        <img
+                                            src={media.src}
+                                            alt={story.title || "Story"}
+                                            className={styles.storyMediaPreview}
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).src = productImage;
+                                            }}
                                         />
                                     )}
-                                    <div className={styles.storyPlayOverlay}>
-                                        <Play className={styles.storyPlayIcon} fill="#ffffff" size={16} />
-                                    </div>
+
+                                    {/* Imagem de fallback caso o vídeo do Drive falhe */}
+                                    <img
+                                        src={productImage}
+                                        alt={story.title || "Story"}
+                                        className={`${styles.storyMediaPreview} story-fallback-img`}
+                                        style={{ display: "none" }}
+                                    />
                                 </div>
                             </div>
-                            <span className={styles.storyLabel}>
-                                {story.title || `Vídeo ${index + 1}`}
-                            </span>
                         </button>
                     );
                 })}

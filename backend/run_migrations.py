@@ -32,17 +32,22 @@ MISSING_ANNOUNCEMENT_COLUMNS = [
 ]
 
 MISSING_USERS_COLUMNS = [
-    ("profile_picture",    "VARCHAR"),
-    ("can_post_news",      "BOOLEAN DEFAULT FALSE"),
-    ("total_compras",      "INTEGER DEFAULT 0"),
-    ("pode_girar_roleta",  "BOOLEAN DEFAULT FALSE"),
-    ("tentativas_roleta",  "INTEGER DEFAULT 0"),
-    ("ultimo_premio_id",   "INTEGER"),
-    ("is_verified",        "BOOLEAN DEFAULT FALSE"),
-    ("verification_token", "VARCHAR"),
-    ("cart_json",          "TEXT"),
-    ("cart_updated_at",    "TIMESTAMP WITH TIME ZONE"),
-    ("phone",              "VARCHAR"),
+    ("profile_picture",        "VARCHAR"),
+    ("can_post_news",          "BOOLEAN DEFAULT FALSE"),
+    ("total_compras",          "INTEGER DEFAULT 0"),
+    ("pode_girar_roleta",      "BOOLEAN DEFAULT FALSE"),
+    ("tentativas_roleta",      "INTEGER DEFAULT 0"),
+    ("ultimo_premio_id",       "INTEGER"),
+    ("is_verified",            "BOOLEAN DEFAULT FALSE"),
+    ("verification_token",     "VARCHAR"),
+    ("password_reset_token",   "VARCHAR"),
+    ("password_reset_expires", "TIMESTAMP WITH TIME ZONE"),
+    ("scratch_used",           "BOOLEAN DEFAULT FALSE"),
+    ("scratch_last_used_at",   "TIMESTAMP WITH TIME ZONE"),
+    ("scratch_reward_id",      "INTEGER"),
+    ("cart_json",              "TEXT"),
+    ("cart_updated_at",        "TIMESTAMP WITH TIME ZONE"),
+    ("phone",                  "VARCHAR"),
 ]
 
 MISSING_PRODUCTS_COLUMNS = [
@@ -50,6 +55,7 @@ MISSING_PRODUCTS_COLUMNS = [
     ("is_wholesale",     "BOOLEAN DEFAULT FALSE"),
     ("mercadolivre_url", "VARCHAR"),
     ("shopee_url",       "VARCHAR"),
+    ("category",         "VARCHAR"),
     ("is_active",        "BOOLEAN DEFAULT TRUE"),
     ("order",            "INTEGER DEFAULT 0"),
     ("is_on_sale",       "BOOLEAN DEFAULT FALSE"),
@@ -80,6 +86,10 @@ MISSING_PRODUCT_DETAILS_COLUMNS = [
 
 MISSING_WORLD_CUP_MATCHES_COLUMNS = [
     ("coupon_percentage", "DOUBLE PRECISION"),
+]
+
+MISSING_REVIEWS_COLUMNS = [
+    ("images", "TEXT DEFAULT '[]'"),
 ]
 
 
@@ -128,6 +138,24 @@ def add_missing_columns():
     for col_name, col_def in MISSING_WORLD_CUP_MATCHES_COLUMNS:
         add_col("world_cup_matches", col_name, col_def)
 
+    for col_name, col_def in MISSING_REVIEWS_COLUMNS:
+        add_col("reviews", col_name, col_def)
+
+
+def ensure_extra_tables():
+    """Explicitly ensure tables exist on live PostgreSQL."""
+    with engine.connect() as conn:
+        is_sqlite = conn.dialect.name == "sqlite"
+    try:
+        with engine.begin() as conn:
+            if is_sqlite:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS home_stories (id INTEGER PRIMARY KEY AUTOINCREMENT, title VARCHAR NOT NULL, video_url VARCHAR NOT NULL, thumbnail_url VARCHAR, \"order\" INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+            else:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS home_stories (id SERIAL PRIMARY KEY, title VARCHAR NOT NULL, video_url VARCHAR NOT NULL, thumbnail_url VARCHAR, \"order\" INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT now())"))
+        logger.info("✓ home_stories table ensured.")
+    except Exception as e:
+        logger.warning(f"Could not ensure home_stories table: {e}")
+
 def run_migrations():
     success = True
     try:
@@ -139,7 +167,8 @@ def run_migrations():
         # Manually add columns that exist in models but not yet in the DB
         logger.info("Ensuring all required columns exist...")
         add_missing_columns()
-        logger.info("✓ Column migrations complete.")
+        ensure_extra_tables()
+        logger.info("✓ Column and table migrations complete.")
 
         # Run seed data
         logger.info("Starting data seeding...")

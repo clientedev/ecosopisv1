@@ -324,6 +324,7 @@ class Review(Base):
     user_name = Column(String, nullable=False)
     comment = Column(Text, nullable=False)
     rating = Column(Integer, default=5)
+    images = Column(JSON, default=list) # List of image URLs
     is_approved = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -507,3 +508,15 @@ class LiaInteraction(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User")
+
+
+class HomeStory(Base):
+    __tablename__ = "home_stories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    video_url = Column(String, nullable=False)
+    thumbnail_url = Column(String, nullable=True)
+    order = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

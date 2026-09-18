@@ -4,6 +4,7 @@ import Footer from "@/components/Footer/Footer";
 import ProductCard from "@/components/ProductCard/ProductCard";
 import NewsSection from "@/components/NewsSection/NewsSection";
 import ChatIA from "@/components/ChatIA/ChatIA";
+import HomeStoryCircles from "@/components/HomeStory/HomeStoryCircles";
 import styles from "./page.module.css";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
@@ -20,6 +21,7 @@ import {
     Send,
     X,
     ChevronRight,
+    ChevronLeft,
     Search,
     Sun,
     Moon,
@@ -253,12 +255,12 @@ export default function Home() {
     const [allProducts, setAllProducts] = useState<any[]>([]);
     const [activeGoal, setActiveGoal] = useState<string | null>(null);
     const [reviews, setReviews] = useState<any[]>([]);
+    const [reviewPage, setReviewPage] = useState(1);
+    const reviewsPerPage = 3;
+    const [homeStories, setHomeStories] = useState<any[]>([]);
     const [reviewForm, setReviewForm] = useState({ user_name: "", comment: "", rating: 5 });
     const [formStatus, setFormStatus] = useState({ type: "", text: "" });
     const [isMobile, setIsMobile] = useState(false);
-
-
-
 
     // AI Chat state
     const [chatMessages, setChatMessages] = useState<{ role: string, content: string }[]>([
@@ -280,13 +282,25 @@ export default function Home() {
     useEffect(() => {
         const fetchReviews = async () => {
             try {
-                const res = await fetch('/api/reviews/approved?limit=8');
+                const res = await fetch('/api/reviews/approved?limit=50', { cache: 'no-store' });
                 if (res.ok) {
                     const data = await res.json();
-                    setReviews(data);
+                    setReviews(Array.isArray(data) ? data : []);
                 }
             } catch (err) {
                 console.error("Error fetching reviews", err);
+            }
+        };
+
+        const fetchHomeStories = async () => {
+            try {
+                const res = await fetch('/api/carousel/stories', { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    setHomeStories(Array.isArray(data) ? data : []);
+                }
+            } catch (err) {
+                console.error("Error fetching home stories", err);
             }
         };
 
@@ -303,6 +317,7 @@ export default function Home() {
         };
 
         fetchReviews();
+        fetchHomeStories();
         logVisit();
     }, []);
 
@@ -594,63 +609,6 @@ export default function Home() {
             el.scrollIntoView({ behavior: 'smooth' });
         }
     };
-
-    const staticReviews = [
-        {
-            id: 's1',
-            user_name: 'j***a',
-            rating: 5,
-            comment: 'Amei demais!! Comprei o sabonete de açafrão sem muita expectativa e fiquei impressionada. Uso há 3 semanas e já noto a diferença nas manchas do braço. Entregou super rápido e a embalagem veio impecável. Com certeza vou comprar de novo!',
-            source: 'Shopee',
-            date: 'há 2 semanas',
-            product: 'Sabonete de Açafrão e Dolomita'
-        },
-        {
-            id: 's2',
-            user_name: 'M***i S.',
-            rating: 5,
-            comment: 'Produto excelente! Tenho foliculite há anos e nada resolvia. Comecei a usar o sabonete da Ecosopis e em menos de 1 mês já vi resultados que nunca vi com outros produtos. Minha pele ficou muito mais uniforme e sem aquelas bolinhas. Super recomendo!',
-            source: 'Shopee',
-            date: 'há 1 mês',
-            product: 'Sabonete de Açafrão e Dolomita'
-        },
-        {
-            id: 's3',
-            user_name: 'C***a R.',
-            rating: 5,
-            comment: 'Kit clareamento chegou rapidinho e veio com nota fiscal. Estou no início do tratamento mas já sinto a pele mais suave. Os produtos têm um cheiro muito agradável e a textura é ótima. Loja confiável, já indiquei para minhas amigas!',
-            source: 'Shopee',
-            date: 'há 3 semanas',
-            product: 'Kit Clareamento Potente'
-        },
-        {
-            id: 's4',
-            user_name: 'T***a M.',
-            rating: 5,
-            comment: 'O óleo de rícino é puro mesmo, sem cheiro forte, absorve bem. Estou usando nas sobrancelhas e cílios e já estão crescendo mais. Entrega super rápida, vim aqui deixar meu agradecimento. Já fiz meu segundo pedido!',
-            source: 'Shopee',
-            date: 'há 5 dias',
-            product: 'Óleo Vegetal de Rícino'
-        },
-        {
-            id: 's5',
-            user_name: 'P***a L.',
-            rating: 5,
-            comment: 'Desodorante clareador surpreendeu! Sou negra e tenho muita dificuldade com manchas na axila. Uso há 6 semanas e a diferença é visível. Não irrita, não mancha roupa, e o efeito clareador é real. Produto 10 estrelas se pudesse!',
-            source: 'Shopee',
-            date: 'há 1 mês',
-            product: 'Desodorante Clareador Sólido'
-        },
-        {
-            id: 's6',
-            user_name: 'R***a B.',
-            rating: 5,
-            comment: 'Comprei o tônico facial e fiquei apaixonada. Minha pele estava muito oleosa e com poros abertos. Depois de 2 semanas de uso, a oleosidade diminuiu bastante. A marca é séria, natural de verdade e com resultado comprovado. Voltarei sempre!',
-            source: 'Shopee',
-            date: 'há 2 semanas',
-            product: 'Tônico Facial Antioxidante'
-        },
-    ];
 
     const renderMatchCard = (match: any) => {
         const input = cupGuessInputs[match.id] || { score_a: "", score_b: "" };
@@ -1061,39 +1019,74 @@ export default function Home() {
                     const activeImageUrl = isMobile
                         ? (slide.mobile_image_url || slide.image_url || "")
                         : (slide.image_url || "");
-                    const activeHeight = isMobile ? (slide.mobile_carousel_height || '400px') : (slide.carousel_height || '700px');
+                    const isAutoHeight = slide.image_fit === 'auto' || slide.carousel_height === 'auto';
+                    const isCover = slide.image_fit === 'cover';
+                    const activeHeight = isAutoHeight
+                        ? 'auto'
+                        : (isMobile ? (slide.mobile_carousel_height || '380px') : (slide.carousel_height || '540px'));
+                    const hasOverlayText = Boolean(slide.badge || slide.title || slide.description || slide.ctaPrimary || slide.ctaSecondary);
 
                     return (
                         <div
                             key={index}
                             className={`${styles.carouselSlide} ${index === currentSlide ? styles.activeSlide : ''}`}
                             style={{
-                                display: index === currentSlide ? 'block' : 'none',
+                                display: index === currentSlide ? 'flex' : 'none',
                                 width: '100%',
-                                height: activeHeight,
+                                height: 'auto',
                                 position: 'relative',
                                 overflow: 'hidden',
-                                transition: 'opacity 0.8s ease-in-out'
+                                transition: 'opacity 0.4s ease-in-out'
                             }}
                         >
                             {activeImageUrl && (
                                 <>
-                                    <Image
-                                        src={activeImageUrl}
-                                        alt={slide.title || 'Slide'}
-                                        fill
-                                        style={{ objectFit: (slide.image_fit as any) || 'cover', objectPosition: 'center', zIndex: 0 }}
-                                        priority={index === 0}
-                                        sizes="100vw"
-                                        unoptimized={activeImageUrl.startsWith('/api/')}
-                                    />
-                                    {/* Normal overlay */}
-                                    <div style={{
-                                        position: 'absolute',
-                                        inset: 0,
-                                        background: overlay,
-                                        zIndex: 1
-                                    }} />
+                                    {/* Proportional banner image: adapts vertically without cropping or black borders */}
+                                    <div
+                                        className={styles.bannerImageContainer}
+                                        style={{
+                                            height: 'auto',
+                                            width: '100%',
+                                        }}
+                                    >
+                                        {slide.ctaPrimary?.link && !hasOverlayText ? (
+                                            <Link href={slide.ctaPrimary.link} style={{ display: 'block', width: '100%', height: 'auto' }}>
+                                                <img
+                                                    src={activeImageUrl}
+                                                    alt={slide.title || 'Banner'}
+                                                    className={styles.bannerImage}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: 'auto',
+                                                        display: 'block',
+                                                    }}
+                                                />
+                                            </Link>
+                                        ) : (
+                                            <img
+                                                src={activeImageUrl}
+                                                alt={slide.title || 'Banner'}
+                                                className={styles.bannerImage}
+                                                style={{
+                                                    width: '100%',
+                                                    height: 'auto',
+                                                    display: 'block',
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Normal overlay if requested */}
+                                    {slide.overlay_opacity > 0 && hasOverlayText && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            background: overlay,
+                                            zIndex: 2,
+                                            pointerEvents: 'none'
+                                        }} />
+                                    )}
+
                                     {/* Valentine's Day pink film */}
                                     {isValentines && (
                                         <div
@@ -1230,8 +1223,56 @@ export default function Home() {
                         </div>
                     );
                 })}
+
+                {/* Prev / Next Navigation Arrows */}
+                {deviceSlides.length > 1 && (
+                    <>
+                        <button
+                            type="button"
+                            className={`${styles.carouselNavBtn} ${styles.carouselNavPrev}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentSlide(prev => (prev - 1 + deviceSlides.length) % deviceSlides.length);
+                            }}
+                            aria-label="Slide anterior"
+                        >
+                            <ChevronLeft size={22} />
+                        </button>
+                        <button
+                            type="button"
+                            className={`${styles.carouselNavBtn} ${styles.carouselNavNext}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentSlide(prev => (prev + 1) % deviceSlides.length);
+                            }}
+                            aria-label="Próximo slide"
+                        >
+                            <ChevronRight size={22} />
+                        </button>
+                    </>
+                )}
+
+                {/* Navigation Dots */}
+                {deviceSlides.length > 1 && (
+                    <div className={styles.carouselDots}>
+                        {deviceSlides.map((_, idx) => (
+                            <button
+                                key={idx}
+                                type="button"
+                                className={`${styles.dot} ${idx === currentSlide ? styles.activeDot : ''}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCurrentSlide(idx);
+                                }}
+                                aria-label={`Ir para o slide ${idx + 1}`}
+                            />
+                        ))}
+                    </div>
+                )}
             </section>
 
+            {/* ── Stories em Destaque (Abaixo do Banner Principal) ── */}
+            <HomeStoryCircles stories={homeStories} />
 
             {/* NEW: World Cup Guesses Section (Bolão) */}
             {activeTheme === "copa_do_mundo" && (
@@ -1538,96 +1579,138 @@ export default function Home() {
                 <div className="container">
                     <h2 className={styles.sectionTitle} style={{ textAlign: 'center', marginBottom: '40px' }}>EXPERIÊNCIAS ECOSOPIS</h2>
 
-                    <div className={styles.reviewsMarqueeWrapper}>
-                        {reviews.length > 0 || staticReviews.length > 0 ? (
-                            <div className={styles.reviewsTrack}>
-                                {/* Render First Set */}
-                                {[...staticReviews, ...reviews].map((rev: any, index: number) => (
-                                    <div key={`rev-1-${rev.id || index}`} className={styles.reviewCard}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                            <div className={styles.reviewStars}>
-                                                {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
-                                            </div>
-                                            {rev.date && <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', opacity: 0.7 }}>{rev.date}</span>}
-                                        </div>
-
-                                        {rev.product && (
-                                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary-green)', background: 'rgba(74,124,89,0.08)', padding: '2px 8px', borderRadius: '20px', display: 'inline-block', marginBottom: '8px' }}>
-                                                {rev.product}
-                                            </span>
-                                        )}
-
-                                        <p className={styles.reviewComment}>&quot;{rev.comment}&quot;</p>
-
-                                        {rev.imageUrl && (
-                                            <div style={{ position: 'relative', width: '100%', height: '150px', marginTop: '10px', borderRadius: '8px', overflow: 'hidden' }}>
-                                                <Image src={rev.imageUrl} alt="Antes e Depois" fill style={{ objectFit: 'cover' }} />
-                                                <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>ANTES → DEPOIS</div>
-                                            </div>
-                                        )}
-
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--neutral-gray-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-green)' }}>
-                                                    {rev.user_name.charAt(0).toUpperCase()}
+                    {reviews && reviews.length > 0 ? (
+                        <>
+                            <div className={styles.reviewsGrid}>
+                                {reviews
+                                    .slice((reviewPage - 1) * reviewsPerPage, reviewPage * reviewsPerPage)
+                                    .map((rev: any, index: number) => (
+                                        <div key={rev.id || index} className={styles.reviewCard}>
+                                            <div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                                    <div className={styles.reviewStars}>
+                                                        {"★".repeat(rev.rating || 5)}{"☆".repeat(5 - (rev.rating || 5))}
+                                                    </div>
+                                                    <span style={{
+                                                        fontSize: '0.68rem',
+                                                        fontWeight: 700,
+                                                        color: '#166534',
+                                                        background: '#dcfce7',
+                                                        padding: '3px 8px',
+                                                        borderRadius: '20px',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px'
+                                                    }}>
+                                                        ✓ Compra Verificada
+                                                    </span>
                                                 </div>
-                                                <span className={styles.reviewAuthor}>{rev.user_name}</span>
+
+                                                {rev.product_name && rev.product_name !== 'Geral' && (
+                                                    <span style={{
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 700,
+                                                        color: 'var(--primary-green)',
+                                                        background: 'rgba(74,124,89,0.08)',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '20px',
+                                                        display: 'inline-block',
+                                                        marginBottom: '10px'
+                                                    }}>
+                                                        {rev.product_name}
+                                                    </span>
+                                                )}
+
+                                                <p className={styles.reviewComment}>&ldquo;{rev.comment}&rdquo;</p>
+
+                                                {rev.images && rev.images.length > 0 && (
+                                                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                                                        {rev.images.map((img: string, i: number) => (
+                                                            <a key={i} href={img} target="_blank" rel="noopener noreferrer" style={{ width: '54px', height: '54px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', display: 'block' }}>
+                                                                <img src={img} alt="Foto da avaliação" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
-                                            {rev.source && rev.source !== 'Shopee' && (
-                                                <span style={{ fontSize: '0.65rem', background: 'var(--neutral-gray-100)', color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid var(--neutral-gray-200)' }}>
-                                                    ✓ {rev.source}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                                {/* Render Second Set for Seamless Infinite Scroll */}
-                                {[...staticReviews, ...reviews].map((rev: any, index: number) => (
-                                    <div key={`rev-2-${rev.id || index}`} className={styles.reviewCard}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                            <div className={styles.reviewStars}>
-                                                {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
-                                            </div>
-                                            {rev.date && <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', opacity: 0.7 }}>{rev.date}</span>}
-                                        </div>
 
-                                        {rev.product && (
-                                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary-green)', background: 'rgba(74,124,89,0.08)', padding: '2px 8px', borderRadius: '20px', display: 'inline-block', marginBottom: '8px' }}>
-                                                {rev.product}
-                                            </span>
-                                        )}
-
-                                        <p className={styles.reviewComment}>&quot;{rev.comment}&quot;</p>
-
-                                        {rev.imageUrl && (
-                                            <div style={{ position: 'relative', width: '100%', height: '150px', marginTop: '10px', borderRadius: '8px', overflow: 'hidden' }}>
-                                                <Image src={rev.imageUrl} alt="Antes e Depois" fill style={{ objectFit: 'cover' }} />
-                                                <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>ANTES → DEPOIS</div>
-                                            </div>
-                                        )}
-
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--neutral-gray-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-green)' }}>
-                                                    {rev.user_name.charAt(0).toUpperCase()}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{
+                                                        width: '32px',
+                                                        height: '32px',
+                                                        borderRadius: '50%',
+                                                        background: 'linear-gradient(135deg, #d4a373 0%, #2d5a27 100%)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 800,
+                                                        color: 'white'
+                                                    }}>
+                                                        {(rev.user_name || "C").charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <span className={styles.reviewAuthor}>{rev.user_name || "Cliente Verificada"}</span>
                                                 </div>
-                                                <span className={styles.reviewAuthor}>{rev.user_name}</span>
+                                                {rev.created_at && (
+                                                    <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                                                        {new Date(rev.created_at).toLocaleDateString('pt-BR')}
+                                                    </span>
+                                                )}
                                             </div>
-                                            {rev.source && rev.source !== 'Shopee' && (
-                                                <span style={{ fontSize: '0.65rem', background: 'var(--neutral-gray-100)', color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid var(--neutral-gray-200)' }}>
-                                                    ✓ {rev.source}
-                                                </span>
-                                            )}
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
                             </div>
-                        ) : (
-                            <p style={{ textAlign: 'center', opacity: 0.7 }}>
-                                Seja a primeira a compartilhar sua jornada de autocuidado!
+
+                            {/* Controles de Paginação */}
+                            {Math.ceil(reviews.length / reviewsPerPage) > 1 && (
+                                <div className={styles.paginationWrapper}>
+                                    <button
+                                        type="button"
+                                        className={styles.paginationBtn}
+                                        disabled={reviewPage === 1}
+                                        onClick={() => setReviewPage(p => Math.max(1, p - 1))}
+                                        aria-label="Página anterior"
+                                    >
+                                        <ChevronLeft size={16} />
+                                        Anterior
+                                    </button>
+
+                                    {Array.from({ length: Math.ceil(reviews.length / reviewsPerPage) }, (_, idx) => idx + 1).map(num => (
+                                        <button
+                                            key={num}
+                                            type="button"
+                                            className={`${styles.pageNumberBtn} ${reviewPage === num ? styles.activePageBtn : ''}`}
+                                            onClick={() => setReviewPage(num)}
+                                        >
+                                            {num}
+                                        </button>
+                                    ))}
+
+                                    <button
+                                        type="button"
+                                        className={styles.paginationBtn}
+                                        disabled={reviewPage === Math.ceil(reviews.length / reviewsPerPage)}
+                                        onClick={() => setReviewPage(p => Math.min(Math.ceil(reviews.length / reviewsPerPage), p + 1))}
+                                        aria-label="Próxima página"
+                                    >
+                                        Próxima
+                                        <ChevronRight size={16} />
+                                    </button>
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <div className={styles.emptyReviewsCard}>
+                            <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🌿</div>
+                            <h3 style={{ fontSize: '1.15rem', color: '#2d5a27', marginBottom: '8px', fontWeight: 700 }}>
+                                Seja a primeira a avaliar!
+                            </h3>
+                            <p style={{ fontSize: '0.88rem', color: '#64748b', maxWidth: '420px', margin: '0 auto 16px', lineHeight: 1.5 }}>
+                                Compartilhe sua experiência real com a Ecosopis e ajude outras pessoas a descobrirem o poder da cosmética natural e consciente.
                             </p>
-                        )}
-                    </div>
+                        </div>
+                    )}
 
                     <div className={styles.reviewFormContainer}>
                         <h3>Deixe sua Avaliação</h3>

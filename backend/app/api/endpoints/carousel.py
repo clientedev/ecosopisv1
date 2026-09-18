@@ -259,3 +259,95 @@ def delete_carousel_item(
     db.delete(db_item)
     db.commit()
     return {"message": "Item deleted"}
+
+
+# ─── Home Stories (Bolinhas de Story abaixo do Banner) ───────────────────────
+
+@router.get("/stories", response_model=List[schemas.HomeStoryResponse])
+def list_active_home_stories(db: Session = Depends(get_db)):
+    """Public endpoint: list active home stories in display order."""
+    return db.query(models.HomeStory).filter(models.HomeStory.is_active == True).order_by(models.HomeStory.order.asc(), models.HomeStory.id.asc()).all()
+
+@router.get("/stories/all", response_model=List[schemas.HomeStoryResponse])
+def list_all_home_stories(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    """Admin endpoint: list all home stories (active and inactive)."""
+    return db.query(models.HomeStory).order_by(models.HomeStory.order.asc(), models.HomeStory.id.asc()).all()
+
+@router.post("/stories", response_model=schemas.HomeStoryResponse)
+def create_home_story(
+    data: schemas.HomeStoryCreate,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    """Admin endpoint: create a new home story."""
+    count = db.query(models.HomeStory).count()
+    story = models.HomeStory(
+        title=data.title.strip(),
+        video_url=data.video_url.strip(),
+        thumbnail_url=(data.thumbnail_url or "").strip() or None,
+        order=data.order if data.order is not None else count,
+        is_active=data.is_active if data.is_active is not None else True
+    )
+    db.add(story)
+    db.commit()
+    db.refresh(story)
+    return story
+
+@router.put("/stories/{story_id}", response_model=schemas.HomeStoryResponse)
+def update_home_story(
+    story_id: int,
+    data: schemas.HomeStoryUpdate,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    """Admin endpoint: update an existing home story."""
+    story = db.query(models.HomeStory).filter(models.HomeStory.id == story_id).first()
+    if not story:
+        raise HTTPException(status_code=404, detail="Story não encontrado")
+    
+    if data.title is not None:
+        story.title = data.title.strip()
+    if data.video_url is not None:
+        story.video_url = data.video_url.strip()
+    if data.thumbnail_url is not None:
+        story.thumbnail_url = data.thumbnail_url.strip() or None
+    if data.order is not None:
+        story.order = data.order
+    if data.is_active is not None:
+        story.is_active = data.is_active
+
+    db.commit()
+    db.refresh(story)
+    return story
+
+@router.delete("/stories/{story_id}")
+def delete_home_story(
+    story_id: int,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    """Admin endpoint: delete a home story."""
+    story = db.query(models.HomeStory).filter(models.HomeStory.id == story_id).first()
+    if not story:
+        raise HTTPException(status_code=404, detail="Story não encontrado")
+    db.delete(story)
+    db.commit()
+    return {"message": "Story excluído com sucesso"}
+
+@router.post("/stories/reorder")
+def reorder_home_stories(
+    orders: List[dict],
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    """Admin endpoint: reorder stories given a list of {'id': int, 'order': int}."""
+    for item in orders:
+        story_id = item.get("id")
+        new_order = item.get("order")
+        if story_id is not None and new_order is not None:
+            story = db.query(models.HomeStory).filter(models.HomeStory.id == story_id).first()
+            if story:
+                story.order = new_order
+    db.commit()
+    return {"message": "Ordem atualizada com sucesso"}
+

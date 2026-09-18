@@ -704,7 +704,7 @@ export default function NewProductModal({ onClose, onSave }: Props) {
 
                                             <div>
                                                 <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#555', display: 'block', marginBottom: '4px' }}>
-                                                    URL do Vídeo (MP4, WebM) ou Upload *
+                                                    URL do Vídeo (Google Drive, MP4) ou Upload *
                                                 </label>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
                                                     <input
@@ -715,7 +715,7 @@ export default function NewProductModal({ onClose, onSave }: Props) {
                                                             stories[index] = { ...stories[index], video_url: e.target.value };
                                                             setFormData(prev => ({ ...prev, story_videos: stories } as any));
                                                         }}
-                                                        placeholder="https://... ou faça upload"
+                                                        placeholder="drive.google.com/file/d/... ou https://..."
                                                         style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.85rem' }}
                                                     />
                                                     <label style={{

@@ -17,7 +17,9 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 
 # Default to SQLite if no DATABASE_URL is provided (useful for local dev)
 if not DATABASE_URL:
-    DATABASE_URL = "sqlite:///./sql_app.db"
+    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    db_file = os.path.join(backend_dir, "sql_app.db")
+    DATABASE_URL = f"sqlite:///{db_file}"
 
 if "sqlite" in DATABASE_URL:
     engine = create_engine(
