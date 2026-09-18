@@ -98,13 +98,13 @@
 
 .logoImage {
     object-fit: contain;
-    width: clamp(150px, 18vw, 240px);
+    width: clamp(180px, 19vw, 280px);
     height: auto;
-    max-height: 80px;
+    max-height: 96px;
     display: block;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .logoImage {
         width: 140px;
         max-height: 60px;
