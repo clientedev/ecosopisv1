@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import styles from "./HomeStory.module.css";
 import { X, Volume2, VolumeX, ChevronLeft, ChevronRight } from "lucide-react";
 import { isGoogleDriveUrl, getGoogleDriveEmbedUrl, getGoogleDriveDirectStreamUrl } from "@/utils/driveUtils";
@@ -17,11 +18,30 @@ export default function HomeStoryModal({
     initialIndex = 0,
     onClose
 }: HomeStoryModalProps) {
+    const [mounted, setMounted] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [progress, setProgress] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [streamFailed, setStreamFailed] = useState(false);
+
+    // Trava a rolagem do body enquanto o modal estiver aberto e libera ao fechar
+    useEffect(() => {
+        setMounted(true);
+        const originalOverflow = document.body.style.overflow;
+        const originalHtmlOverflow = document.documentElement.style.overflow;
+        const originalTouchAction = document.body.style.touchAction;
+
+        document.body.style.overflow = "hidden";
+        document.documentElement.style.overflow = "hidden";
+        document.body.style.touchAction = "none";
+
+        return () => {
+            document.body.style.overflow = originalOverflow;
+            document.documentElement.style.overflow = originalHtmlOverflow;
+            document.body.style.touchAction = originalTouchAction;
+        };
+    }, []);
 
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -167,7 +187,9 @@ export default function HomeStoryModal({
 
     const videoSrc = (isInstagram ? directInstagramStream : null) || directDriveStream || getMediaUrl(currentStory?.video_url);
 
-    return (
+    if (!mounted) return null;
+
+    return createPortal(
         <div className={styles.storyModalOverlay} onClick={onClose}>
             {/* Botão anterior para Desktop */}
             {currentIndex > 0 && (
@@ -385,6 +407,7 @@ export default function HomeStoryModal({
                     <ChevronRight size={28} />
                 </button>
             )}
-        </div>
+        </div>,
+        document.body
     );
 }

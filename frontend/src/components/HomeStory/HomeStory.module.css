@@ -154,16 +154,25 @@
 
 .storyModalOverlay {
     position: fixed;
-    inset: 0;
-    z-index: 999999;
-    background: rgba(0, 0, 0, 0.94);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 99999999;
+    background: rgba(0, 0, 0, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: contain;
     opacity: 0;
-    animation: fadeInModal 0.25s forwards ease-out;
+    animation: fadeInModal 0.2s forwards ease-out;
 }
 
 @keyframes fadeInModal {
@@ -175,7 +184,8 @@
 .storyModalContainer {
     width: 100%;
     max-width: 440px;
-    height: 100vh;
+    height: 100%;
+    height: 100dvh;
     max-height: 860px;
     background: #000000;
     position: relative;
@@ -183,13 +193,25 @@
     flex-direction: column;
     overflow: hidden;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+    touch-action: auto;
 }
 
 @media (min-width: 640px) {
     .storyModalContainer {
         height: 90vh;
+        max-height: 840px;
         border-radius: 24px;
         border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+}
+
+@media (max-width: 639px) {
+    .storyModalContainer {
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100dvh;
+        border-radius: 0;
+        border: none;
     }
 }
 

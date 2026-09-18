@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import styles from "./ProductStory.module.css";
 import { X, Volume2, VolumeX, ChevronLeft, ChevronRight, ShoppingBag, Pause, Play } from "lucide-react";
 import { StoryVideo } from "./ProductStoryCircles";
@@ -25,11 +26,30 @@ export default function ProductStoryModal({
     onClose,
     onBuyNow
 }: ProductStoryModalProps) {
+    const [mounted, setMounted] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [isMuted, setIsMuted] = useState(false);
     const [isPlaying, setIsPlaying] = useState(true);
     const [progress, setProgress] = useState(0);
     const [streamFailed, setStreamFailed] = useState(false);
+
+    // Trava a rolagem do body enquanto o modal estiver aberto e libera ao fechar
+    useEffect(() => {
+        setMounted(true);
+        const originalOverflow = document.body.style.overflow;
+        const originalHtmlOverflow = document.documentElement.style.overflow;
+        const originalTouchAction = document.body.style.touchAction;
+
+        document.body.style.overflow = "hidden";
+        document.documentElement.style.overflow = "hidden";
+        document.body.style.touchAction = "none";
+
+        return () => {
+            document.body.style.overflow = originalOverflow;
+            document.documentElement.style.overflow = originalHtmlOverflow;
+            document.body.style.touchAction = originalTouchAction;
+        };
+    }, []);
     // For Drive iframes, we simulate progress with a timer
     const driveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const driveProgressRef = useRef<number>(0);
@@ -223,11 +243,9 @@ export default function ProductStoryModal({
         return () => stopDriveProgress();
     }, [currentIndex, isDirectPlayable]);
 
-    if (!currentStory) return null;
+    if (!mounted || !currentStory) return null;
 
-    const driveEmbedUrl = isDriveVideo ? getGoogleDriveEmbedUrl(currentStory.video_url) : null;
-
-    return (
+    return createPortal(
         <div className={styles.storyModalOverlay} onClick={onClose}>
             <div className={styles.storyModalContainer} onClick={e => e.stopPropagation()}>
                 {/* Header com barras de progresso superiores */}
@@ -413,6 +431,7 @@ export default function ProductStoryModal({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
