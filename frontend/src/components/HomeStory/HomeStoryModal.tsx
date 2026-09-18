@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import styles from "./HomeStory.module.css";
 import { X, Volume2, VolumeX, ChevronLeft, ChevronRight } from "lucide-react";
 import { isGoogleDriveUrl, getGoogleDriveEmbedUrl, getGoogleDriveDirectStreamUrl } from "@/utils/driveUtils";
-import { isInstagramContent, getInstagramEmbedUrl, extractInstagramPermalink } from "@/utils/instagramUtils";
+import { isInstagramContent, getInstagramEmbedUrl, extractInstagramPermalink, getInstagramDirectStreamUrl } from "@/utils/instagramUtils";
 import { HomeStoryItem } from "./HomeStoryCircles";
 
 interface HomeStoryModalProps {
@@ -21,6 +21,7 @@ export default function HomeStoryModal({
     const [progress, setProgress] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
+    const [streamFailed, setStreamFailed] = useState(false);
 
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -30,11 +31,17 @@ export default function HomeStoryModal({
     const isInstagram = currentStory?.video_url ? isInstagramContent(currentStory.video_url) : false;
     const instagramEmbedUrl = isInstagram ? getInstagramEmbedUrl(currentStory.video_url) : null;
     const instagramPermalink = isInstagram ? (extractInstagramPermalink(currentStory.video_url) || "https://www.instagram.com") : null;
+    const directInstagramStream = isInstagram ? getInstagramDirectStreamUrl(currentStory.video_url) : null;
     const directDriveStream = isDrive ? getGoogleDriveDirectStreamUrl(currentStory.video_url) : null;
     const driveEmbed = isDrive ? getGoogleDriveEmbedUrl(currentStory.video_url, true) : null;
 
-    // Para iframes sem controle de tempo (Drive sem stream direto, Instagram)
-    const usesTimerProgress = (isDrive && !directDriveStream) || isInstagram;
+    // Se tiver stream direto e não falhou, toca como vídeo HTML5 nativo em autoplay sem pedir play
+    const isDirectPlayable = (!isInstagram && !isDrive) ||
+                             (isDrive && !!directDriveStream) ||
+                             (isInstagram && !streamFailed && !!directInstagramStream);
+
+    // Para iframes sem controle de tempo (Drive sem stream direto, Instagram fallback)
+    const usesTimerProgress = !isDirectPlayable;
 
     const handleNext = useCallback(() => {
         if (currentIndex < stories.length - 1) {
@@ -73,10 +80,31 @@ export default function HomeStoryModal({
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [onClose, handleNext, handlePrev]);
 
-    // Reseta progresso ao trocar de story
+    const playVideo = useCallback(async () => {
+        if (!videoRef.current) return;
+        try {
+            await videoRef.current.play();
+            setIsPaused(false);
+        } catch (err) {
+            // Se o navegador barrar o autoplay com áudio, muta e inicia de imediato sem pedir play
+            if (videoRef.current) {
+                videoRef.current.muted = true;
+                setIsMuted(true);
+                await videoRef.current.play().catch(() => {});
+                setIsPaused(false);
+            }
+        }
+    }, []);
+
+    // Reseta progresso ao trocar de story e inicia autoplay sem pedir play
     useEffect(() => {
+        setStreamFailed(false);
         setProgress(0);
-    }, [currentIndex]);
+        if (isDirectPlayable && videoRef.current) {
+            videoRef.current.currentTime = 0;
+            playVideo();
+        }
+    }, [currentIndex, isDirectPlayable, playVideo]);
 
     // Timer de progresso para quando é iframe do Google Drive (sem eventos de video element)
     useEffect(() => {
@@ -137,7 +165,7 @@ export default function HomeStoryModal({
         return url;
     };
 
-    const videoSrc = directDriveStream || getMediaUrl(currentStory?.video_url);
+    const videoSrc = (isInstagram ? directInstagramStream : null) || directDriveStream || getMediaUrl(currentStory?.video_url);
 
     return (
         <div className={styles.storyModalOverlay} onClick={onClose}>
@@ -221,7 +249,7 @@ export default function HomeStoryModal({
 
                 {/* Área do Vídeo */}
                 <div className={styles.storyVideoWrapper}>
-                    {isInstagram && instagramEmbedUrl ? (
+                    {!isDirectPlayable && isInstagram && instagramEmbedUrl ? (
                         <div className={styles.instagramEmbedBox}>
                             <iframe
                                 key={`ig-${currentIndex}`}
@@ -229,10 +257,10 @@ export default function HomeStoryModal({
                                 className={styles.instagramIframe}
                                 allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
                                 title={currentStory.title}
-                                scrolling="yes"
+                                scrolling="no"
                             />
                         </div>
-                    ) : isDrive && !directDriveStream && driveEmbed ? (
+                    ) : !isDirectPlayable && isDrive && driveEmbed ? (
                         <iframe
                             src={driveEmbed}
                             className={styles.storyVideo}
@@ -249,20 +277,22 @@ export default function HomeStoryModal({
                             playsInline
                             preload="auto"
                             muted={isMuted}
-                            onCanPlay={(e) => {
-                                e.currentTarget.play().catch(() => {});
-                            }}
+                            onCanPlay={() => playVideo()}
+                            onLoadedData={() => playVideo()}
                             onTimeUpdate={handleTimeUpdate}
                             onEnded={handleVideoEnded}
                             onError={() => {
-                                // Se falhar reprodução direta, avança suavemente
-                                setTimeout(handleNext, 3000);
+                                if (isInstagram) {
+                                    setStreamFailed(true);
+                                } else {
+                                    setTimeout(handleNext, 3000);
+                                }
                             }}
                         />
                     )}
 
-                    {/* Zonas de toque para celular e clique rápido - apenas para vídeos diretos (não cobrir iframes) */}
-                    {!isInstagram && !driveEmbed && (
+                    {/* Zonas de toque para celular e clique rápido - apenas para vídeos diretos */}
+                    {isDirectPlayable && (
                         <>
                             <div
                                 className={styles.storyTouchZoneLeft}
@@ -274,8 +304,7 @@ export default function HomeStoryModal({
                                 onClick={() => {
                                     if (videoRef.current) {
                                         if (videoRef.current.paused) {
-                                            videoRef.current.play();
-                                            setIsPaused(false);
+                                            playVideo();
                                         } else {
                                             videoRef.current.pause();
                                             setIsPaused(true);
@@ -294,8 +323,8 @@ export default function HomeStoryModal({
                         </>
                     )}
 
-                    {/* Botões de navegação lateral para Instagram no celular */}
-                    {isInstagram && (
+                    {/* Botões de navegação lateral para Instagram no celular (apenas em iframe fallback) */}
+                    {!isDirectPlayable && isInstagram && (
                         <div className={styles.instagramNavControls}>
                             {currentIndex > 0 ? (
                                 <button
@@ -328,8 +357,8 @@ export default function HomeStoryModal({
                         </div>
                     )}
 
-                    {/* Botão de Áudio (quando aplicável - não para Instagram/Drive embed) */}
-                    {!usesTimerProgress && (
+                    {/* Botão de Áudio (quando aplicável - para reprodução direta) */}
+                    {isDirectPlayable && (
                         <button
                             className={styles.storyAudioBtn}
                             onClick={() => setIsMuted(prev => !prev)}

@@ -13,6 +13,9 @@ import qrcode
 import os
 import io
 import requests
+import urllib.request
+import re
+import time
 from sqlalchemy import text
 
 router = APIRouter()
@@ -481,4 +484,76 @@ def stream_drive_video(file_id: str, request: Request):
         return StreamingResponse(iterfile(), status_code=status_code, headers=res_headers)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Erro ao carregar vídeo do Drive: {str(e)}")
+
+_ig_cache = {}
+
+@router.get("/instagram-stream/{reel_id}")
+def stream_instagram_video(reel_id: str, request: Request):
+    """
+    Proxy stream de vídeo MP4 direto do Instagram Reels para tags <video> HTML5.
+    Resolve reprodução automática sem pedir play, remove bordas/cabeçalho/rodapé do Instagram,
+    e permite streaming nativo com suporte a Range requests (HTTP 206).
+    """
+    now = time.time()
+    mp4_url = None
+    if reel_id in _ig_cache and _ig_cache[reel_id]["expires"] > now:
+        mp4_url = _ig_cache[reel_id]["url"]
+    else:
+        try:
+            embed_url = f"https://www.instagram.com/reel/{reel_id}/embed/"
+            ig_req = urllib.request.Request(
+                embed_url,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            )
+            html = urllib.request.urlopen(ig_req, timeout=8).read().decode("utf-8", errors="ignore")
+            matches = re.findall(r'https:[^\"\'<>\s]+?\.mp4[^\"\'<>\s]*', html)
+            if matches:
+                clean = matches[0].replace(r'\\/', '/').replace(r'\/', '/').replace(r'\u0026', '&').rstrip('\\').rstrip('"')
+                mp4_url = clean
+                _ig_cache[reel_id] = {"url": clean, "expires": now + 7200}
+        except Exception as e:
+            print(f"Error fetching IG embed for reel {reel_id}: {e}")
+
+    if not mp4_url:
+        raise HTTPException(status_code=404, detail="Não foi possível obter o stream de vídeo do Instagram")
+
+    req_headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "https://www.instagram.com/"
+    }
+    if "range" in request.headers:
+        req_headers["Range"] = request.headers["range"]
+
+    try:
+        r = requests.get(mp4_url, headers=req_headers, stream=True, timeout=15)
+        if r.status_code not in (200, 206):
+            if reel_id in _ig_cache:
+                del _ig_cache[reel_id]
+            raise HTTPException(status_code=r.status_code, detail="Instagram CDN retornou status de erro")
+
+        def iterfile():
+            try:
+                for chunk in r.iter_content(chunk_size=64 * 1024):
+                    if chunk:
+                        yield chunk
+            finally:
+                r.close()
+
+        res_headers = {
+            "Content-Type": r.headers.get("Content-Type", "video/mp4"),
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "public, max-age=3600"
+        }
+        if "Content-Length" in r.headers:
+            res_headers["Content-Length"] = r.headers["Content-Length"]
+        if "Content-Range" in r.headers:
+            res_headers["Content-Range"] = r.headers["Content-Range"]
+
+        status_code = 206 if "Content-Range" in r.headers else 200
+        return StreamingResponse(iterfile(), status_code=status_code, headers=res_headers)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Erro ao transmitir vídeo do Instagram: {str(e)}")
+
 

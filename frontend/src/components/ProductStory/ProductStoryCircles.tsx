@@ -2,7 +2,7 @@
 import React from "react";
 import styles from "./ProductStory.module.css";
 import { isGoogleDriveUrl, getGoogleDriveDirectStreamUrl, getGoogleDriveEmbedUrl } from "@/utils/driveUtils";
-import { isInstagramContent, getInstagramEmbedUrl } from "@/utils/instagramUtils";
+import { isInstagramContent, getInstagramEmbedUrl, getInstagramDirectStreamUrl } from "@/utils/instagramUtils";
 
 export interface StoryVideo {
     id?: string;
@@ -45,6 +45,10 @@ export default function ProductStoryCircles({
     const getPreviewMedia = (story: StoryVideo): { type: "video" | "iframe" | "img"; src: string } => {
         // Se for Instagram Reel
         if (story.video_url && isInstagramContent(story.video_url)) {
+            const direct = getInstagramDirectStreamUrl(story.video_url);
+            if (direct) {
+                return { type: "video", src: direct };
+            }
             const embed = getInstagramEmbedUrl(story.video_url);
             if (embed) {
                 return { type: "iframe", src: embed };

@@ -47,6 +47,15 @@ export function getInstagramEmbedUrl(input: string): string | null {
 }
 
 /**
+ * Retorna o endpoint de stream direto do MP4 do Reel através da API (permite autoplay nativo)
+ */
+export function getInstagramDirectStreamUrl(input: string): string | null {
+    const id = extractInstagramId(input);
+    if (!id) return null;
+    return `/api/products/instagram-stream/${id}`;
+}
+
+/**
  * Normaliza o valor salvo no campo video_url:
  * - Se for embed code do Instagram → extrai e salva só a URL embed
  * - Caso contrário → retorna o input sem modificação

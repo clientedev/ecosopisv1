@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import styles from "./HomeStory.module.css";
 import { isGoogleDriveUrl, getGoogleDriveDirectStreamUrl, getGoogleDriveEmbedUrl } from "@/utils/driveUtils";
-import { isInstagramContent, getInstagramEmbedUrl } from "@/utils/instagramUtils";
+import { isInstagramContent, getInstagramEmbedUrl, getInstagramDirectStreamUrl } from "@/utils/instagramUtils";
 import HomeStoryModal from "./HomeStoryModal";
 
 export interface HomeStoryItem {
@@ -43,8 +43,12 @@ export default function HomeStoryCircles({ stories = [] }: HomeStoryCirclesProps
      * Determina a mídia para a bolinha de story em autoplay
      */
     const getPreviewMedia = (story: HomeStoryItem): { type: "video" | "iframe" | "img"; src: string } => {
-        // Instagram Reel -> iframe embed contínuo
+        // Instagram Reel -> stream direto do vídeo MP4 nativo para autoplay sem travar
         if (story.video_url && isInstagramContent(story.video_url)) {
+            const direct = getInstagramDirectStreamUrl(story.video_url);
+            if (direct) {
+                return { type: "video", src: direct };
+            }
             const embedUrl = getInstagramEmbedUrl(story.video_url);
             if (embedUrl) {
                 return { type: "iframe", src: embedUrl };

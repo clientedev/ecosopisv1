@@ -4,7 +4,7 @@ import styles from "./ProductStory.module.css";
 import { X, Volume2, VolumeX, ChevronLeft, ChevronRight, ShoppingBag, Pause, Play } from "lucide-react";
 import { StoryVideo } from "./ProductStoryCircles";
 import { isGoogleDriveUrl, getGoogleDriveEmbedUrl, getGoogleDriveDirectStreamUrl } from "@/utils/driveUtils";
-import { isInstagramContent, getInstagramEmbedUrl, extractInstagramPermalink } from "@/utils/instagramUtils";
+import { isInstagramContent, getInstagramEmbedUrl, extractInstagramPermalink, getInstagramDirectStreamUrl } from "@/utils/instagramUtils";
 
 interface ProductStoryModalProps {
     storyVideos: StoryVideo[];
@@ -29,6 +29,7 @@ export default function ProductStoryModal({
     const [isMuted, setIsMuted] = useState(false);
     const [isPlaying, setIsPlaying] = useState(true);
     const [progress, setProgress] = useState(0);
+    const [streamFailed, setStreamFailed] = useState(false);
     // For Drive iframes, we simulate progress with a timer
     const driveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const driveProgressRef = useRef<number>(0);
@@ -43,12 +44,19 @@ export default function ProductStoryModal({
     const isInstagramVideo = currentStory && isInstagramContent(currentStory.video_url);
     const instagramEmbedUrl = isInstagramVideo ? getInstagramEmbedUrl(currentStory.video_url) : null;
     const instagramPermalink = isInstagramVideo ? (extractInstagramPermalink(currentStory.video_url) || "https://www.instagram.com") : null;
-    // Para iframes sem controle de tempo (Drive, Instagram)
-    const usesIframeProgress = isDriveVideo || isInstagramVideo;
+    const directInstagramStream = isInstagramVideo ? getInstagramDirectStreamUrl(currentStory.video_url) : null;
 
-    // Format URLs & handle Google Drive direct video stream
+    // Se tiver stream direto e não falhou, toca como vídeo HTML5 nativo em autoplay sem pedir play
+    const isDirectPlayable = !isInstagramVideo || (!streamFailed && !!directInstagramStream);
+    const usesIframeProgress = !isDirectPlayable;
+
+    // Format URLs & handle Google Drive / Instagram direct video stream
     const getVideoSrc = (url?: string) => {
         if (!url) return "";
+        if (isInstagramContent(url)) {
+            const stream = getInstagramDirectStreamUrl(url);
+            if (stream) return stream;
+        }
         if (isGoogleDriveUrl(url)) {
             return getGoogleDriveDirectStreamUrl(url) || "";
         }
@@ -165,39 +173,55 @@ export default function ProductStoryModal({
         }
     };
 
+    const playVideo = async () => {
+        if (!videoRef.current) return;
+        try {
+            await videoRef.current.play();
+            setIsPlaying(true);
+        } catch (err) {
+            // Se o navegador barrar o autoplay com áudio, muta e inicia de imediato sem pedir play
+            if (videoRef.current) {
+                videoRef.current.muted = true;
+                setIsMuted(true);
+                await videoRef.current.play().catch(() => {});
+                setIsPlaying(true);
+            }
+        }
+    };
+
     const togglePlay = () => {
-        if (isDriveVideo) return; // Não conseguimos controlar iframe cross-origin
+        if (isInstagramVideo) return;
         if (!videoRef.current) return;
         if (isPlaying) {
             videoRef.current.pause();
             setIsPlaying(false);
         } else {
-            videoRef.current.play().catch(err => console.error("Play error:", err));
-            setIsPlaying(true);
+            playVideo();
         }
     };
 
     const toggleMute = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (isDriveVideo) return; // Não conseguimos controlar iframe cross-origin
+        if (isInstagramVideo) return;
         setIsMuted(prev => !prev);
     };
 
     // Ao mudar de story, reset e play
     useEffect(() => {
+        setStreamFailed(false);
         stopDriveProgress();
         setProgress(0);
         setIsPlaying(true);
 
-        if (usesIframeProgress) {
+        if (!isDirectPlayable) {
             startDriveProgress();
         } else if (videoRef.current) {
             videoRef.current.currentTime = 0;
-            videoRef.current.play().catch(err => console.error("Autoplay error:", err));
+            playVideo();
         }
 
         return () => stopDriveProgress();
-    }, [currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [currentIndex, isDirectPlayable]);
 
     if (!currentStory) return null;
 
@@ -263,7 +287,7 @@ export default function ProductStoryModal({
 
                 {/* Vídeo do Story com Autoplay Nativo */}
                 <div className={styles.storyVideoWrapper}>
-                    {isInstagramVideo && instagramEmbedUrl ? (
+                    {!isDirectPlayable && isInstagramVideo && instagramEmbedUrl ? (
                         <div className={styles.instagramEmbedBox}>
                             <iframe
                                 key={`ig-${currentIndex}`}
@@ -271,18 +295,9 @@ export default function ProductStoryModal({
                                 className={styles.instagramIframe}
                                 allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
                                 title={currentStory.title}
-                                scrolling="yes"
+                                scrolling="no"
                             />
                         </div>
-                    ) : isDriveVideo ? (
-                        <iframe
-                            key={`drive-${currentIndex}`}
-                            src={getGoogleDriveEmbedUrl(currentStory.video_url) || ""}
-                            className={styles.storyVideo}
-                            allow="autoplay; encrypted-media; fullscreen"
-                            title={currentStory.title}
-                            style={{ border: "none" }}
-                        />
                     ) : (
                         <video
                             ref={videoRef}
@@ -292,17 +307,20 @@ export default function ProductStoryModal({
                             playsInline
                             preload="auto"
                             muted={isMuted}
-                            onCanPlay={(e) => {
-                                e.currentTarget.play().catch(() => {});
-                                setIsPlaying(true);
-                            }}
+                            onCanPlay={() => playVideo()}
+                            onLoadedData={() => playVideo()}
                             onTimeUpdate={handleTimeUpdate}
                             onEnded={handleVideoEnd}
+                            onError={() => {
+                                if (isInstagramVideo) {
+                                    setStreamFailed(true);
+                                }
+                            }}
                         />
                     )}
 
-                    {/* Zonas de Toque/Clique para Navegação (apenas vídeos diretos, sem cobrir iframes) */}
-                    {!isInstagramVideo && !isDriveVideo && (
+                    {/* Zonas de Toque/Clique para Navegação */}
+                    {isDirectPlayable && (
                         <>
                             <div className={styles.storyTouchZoneLeft} onClick={handlePrev} />
                             <div className={styles.storyTouchZoneCenter} onClick={togglePlay} />
@@ -311,7 +329,7 @@ export default function ProductStoryModal({
                     )}
 
                     {/* Botões de navegação lateral para Instagram no celular */}
-                    {isInstagramVideo && (
+                    {!isDirectPlayable && isInstagramVideo && (
                         <div className={styles.instagramNavControls}>
                             {currentIndex > 0 ? (
                                 <button
@@ -369,14 +387,16 @@ export default function ProductStoryModal({
                 )}
 
                 {/* Botão de Áudio */}
-                <button
-                    className={styles.storyAudioBtn}
-                    onClick={toggleMute}
-                    title={isMuted ? "Ativar som" : "Desativar som"}
-                    type="button"
-                >
-                    {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                </button>
+                {isDirectPlayable && (
+                    <button
+                        className={styles.storyAudioBtn}
+                        onClick={toggleMute}
+                        title={isMuted ? "Ativar som" : "Desativar som"}
+                        type="button"
+                    >
+                        {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                    </button>
+                )}
 
                 {/* Rodapé com CTA de Compra Direta */}
                 <div className={styles.storyFooterCTA}>
