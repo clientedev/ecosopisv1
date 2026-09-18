@@ -81,64 +81,6 @@
     height: 0;
 }
 
-@media (max-width: 768px) {
-    .homeStorySection {
-        padding: 0.5rem 0.8rem 0.4rem 0.8rem;
-    }
-    .storyRow {
-        justify-content: flex-start;
-        gap: 2.2rem;
-        padding: 0.25rem 0.8rem 0.35rem 0.8rem;
-        -webkit-overflow-scrolling: touch;
-    }
-    .storyItem {
-        width: 44px;
-    }
-    .storyCircleRing {
-        width: 42px;
-        height: 42px;
-        padding: 1.5px;
-        box-shadow: 0 2px 8px rgba(45, 90, 39, 0.14);
-    }
-    .storyCircleInner {
-        border-width: 1.5px;
-    }
-    .storyLabel {
-        margin-top: 0.25rem;
-        font-size: 0.54rem;
-        font-weight: 600;
-        max-width: 46px;
-        line-height: 1.15;
-    }
-    .storyInstaIcon {
-        width: 14px;
-        height: 14px;
-    }
-}
-
-@media (max-width: 480px) {
-    .storyRow {
-        gap: 2.0rem;
-        padding: 0.2rem 0.6rem 0.3rem 0.6rem;
-    }
-    .storyItem {
-        width: 38px;
-    }
-    .storyCircleRing {
-        width: 36px;
-        height: 36px;
-        padding: 1.2px;
-    }
-    .storyLabel {
-        max-width: 42px;
-        font-size: 0.50rem;
-    }
-    .storyInstaIcon {
-        width: 12px;
-        height: 12px;
-    }
-}
-
 .storyItem {
     display: flex;
     flex-direction: column;
@@ -147,20 +89,54 @@
     background: transparent;
     border: none;
     padding: 0;
-    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.25s ease,
+                filter 0.25s ease;
     outline: none;
     flex-shrink: 0;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: pan-x pan-y;
 }
 
 .storyItem:hover {
-    transform: translateY(-4px) scale(1.04);
+    transform: translateY(-4px) scale(1.05);
 }
 
-.storyItem:active {
-    transform: scale(0.96);
+/* Efeito dinâmico de destaque ao passar o dedo (Mobile Touch & Seleção) */
+.storyItemSelected {
+    transform: translateY(-6px) scale(1.18) !important;
+    z-index: 25 !important;
 }
 
-/* Anel externo gradiente - aumentado em 40% (~129px) */
+.storyItemSelected .storyCircleRing {
+    box-shadow: 0 0 0 2.5px #ffffff,
+                0 0 0 5px #2d5a27,
+                0 10px 24px rgba(45, 90, 39, 0.45) !important;
+    transform: scale(1.04);
+    filter: brightness(1.06);
+}
+
+.storyItemSelected .storyCircleInner {
+    border-color: #ffffff !important;
+}
+
+.storyItemSelected .storyLabel {
+    color: #1b4316 !important;
+    font-weight: 800 !important;
+    transform: scale(1.06);
+}
+
+/* Quando um story está selecionado, os demais ficam suavemente mais discretos */
+.storyItemDimmed {
+    opacity: 0.58;
+    transform: scale(0.94);
+    filter: grayscale(15%);
+}
+
+/* Anel externo gradiente - tamanho normal no desktop (~129px) */
 .storyCircleRing {
     width: 129px;
     height: 129px;
@@ -173,6 +149,9 @@
     justify-content: center;
     position: relative;
     animation: homeRingGlow 3.5s ease-in-out infinite alternate;
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.28s ease,
+                filter 0.28s ease;
 }
 
 @keyframes homeRingGlow {
@@ -195,6 +174,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: border-color 0.25s ease;
 }
 
 .storyMediaPreview {
@@ -223,6 +203,106 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     letter-spacing: -0.01em;
+    transition: color 0.2s ease, font-weight 0.2s ease, transform 0.2s ease;
+}
+
+/* =================================================== */
+/* VERSÃO MOBILE: COMPACTA, MAIS AFASTADA E COM ANIMAÇÃO */
+/* =================================================== */
+@media (max-width: 768px) {
+    .homeStorySection {
+        padding: 0.35rem 0.6rem 0.25rem 0.6rem;
+    }
+
+    .storyRow {
+        justify-content: flex-start;
+        gap: 2.8rem;
+        padding: 0.35rem 1.2rem 0.45rem 1.2rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .storyItem {
+        width: 48px;
+    }
+
+    .storyCircleRing {
+        width: 44px;
+        height: 44px;
+        padding: 1.5px;
+        box-shadow: 0 2px 8px rgba(45, 90, 39, 0.14);
+    }
+
+    .storyCircleInner {
+        border-width: 1.5px;
+    }
+
+    .storyLabel {
+        margin-top: 0.2rem;
+        font-size: 0.54rem;
+        font-weight: 600;
+        max-width: 52px;
+        line-height: 1.15;
+    }
+
+    .storyInstaIcon {
+        width: 14px;
+        height: 14px;
+    }
+
+    /* Toque direto no mobile */
+    .storyItem:active {
+        transform: translateY(-6px) scale(1.18) !important;
+        z-index: 25 !important;
+    }
+
+    .storyItem:active .storyCircleRing {
+        box-shadow: 0 0 0 2.5px #ffffff,
+                    0 0 0 5px #2d5a27,
+                    0 8px 20px rgba(45, 90, 39, 0.45) !important;
+        transform: scale(1.04);
+        filter: brightness(1.06);
+    }
+
+    .storyItem:active .storyLabel {
+        color: #1b4316 !important;
+        font-weight: 800 !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .homeStorySection {
+        padding: 0.25rem 0.4rem 0.15rem 0.4rem;
+    }
+
+    .storyRow {
+        gap: 2.6rem;
+        padding: 0.3rem 1rem 0.4rem 1rem;
+    }
+
+    .storyItem {
+        width: 44px;
+    }
+
+    .storyCircleRing {
+        width: 40px;
+        height: 40px;
+        padding: 1.5px;
+    }
+
+    .storyCircleInner {
+        border-width: 1.5px;
+    }
+
+    .storyLabel {
+        max-width: 48px;
+        font-size: 0.50rem;
+        line-height: 1.12;
+    }
+
+    .storyInstaIcon {
+        width: 12px;
+        height: 12px;
+    }
 }
 
 /* =================================================== */
