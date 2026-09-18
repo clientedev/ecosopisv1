@@ -354,8 +354,11 @@ export default function Home() {
     const [currentSlide, setCurrentSlide] = useState(0);
     const touchStartXRef = useRef<number | null>(null);
 
+    // Regra: mobile vê APENAS slides que tenham mobile_image_url preenchido
+    //        desktop vê APENAS slides que tenham image_url preenchido
+    //        slides com ambos aparecem em cada dispositivo usando a imagem correta
     const deviceSlides = isMobile
-        ? slides.filter(s => s.mobile_image_url || s.image_url)
+        ? slides.filter(s => s.mobile_image_url)
         : slides.filter(s => s.image_url);
 
     const getImageUrl = (url: string) => {
@@ -422,7 +425,7 @@ export default function Home() {
 
     useEffect(() => {
         const currentDeviceSlides = isMobile
-            ? slides.filter(s => s.mobile_image_url || s.image_url)
+            ? slides.filter(s => s.mobile_image_url)
             : slides.filter(s => s.image_url);
         if (currentDeviceSlides.length <= 1) return;
 
@@ -1040,8 +1043,9 @@ export default function Home() {
                         bottom: 90
                     };
 
+                    // Mobile usa sempre mobile_image_url; desktop usa sempre image_url
                     const activeImageUrl = isMobile
-                        ? (slide.mobile_image_url || slide.image_url || "")
+                        ? (slide.mobile_image_url || "")
                         : (slide.image_url || "");
                     const isAutoHeight = slide.image_fit === 'auto' || slide.carousel_height === 'auto';
                     const isCover = slide.image_fit === 'cover';
