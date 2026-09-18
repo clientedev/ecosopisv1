@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile,
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import json
+import urllib.request
+import re
+import html
 from app.api.endpoints import auth
 from app.core.database import get_db
 from app.core.upload_content_type import resolve_stored_image_content_type
@@ -50,6 +53,92 @@ def list_news(db: Session = Depends(get_db), current_user: Optional[models.User]
         results.append(news_data)
 
     return results
+
+@router.get("/instagram-info")
+def get_instagram_info(url: str):
+    if not url:
+        raise HTTPException(status_code=400, detail="URL inválida")
+
+    permalink = url
+    caption = ""
+    author_name = ""
+    username = ""
+
+    # 1. Extração direta de código embed (blockquote)
+    if "instagram-media" in url or "data-instgrm" in url:
+        m_perm = re.search(r'data-instgrm-permalink=["\']([^"\']+)["\']', url, re.I)
+        if m_perm:
+            permalink = m_perm.group(1)
+
+        m_author = re.search(r'compartilhada por\s+([^<]+)', url, re.I)
+        if m_author:
+            author_text = m_author.group(1).strip()
+            author_name = author_text
+            m_un = re.search(r'\(@?([A-Za-z0-9_.]+)\)', author_text)
+            if m_un:
+                username = f"@{m_un.group(1)}"
+
+        m_paras = re.findall(r'<p[^>]*>(.*?)</p>', url, re.DOTALL | re.I)
+        if m_paras:
+            clean_p = [re.sub(r'<[^>]+>', '', p).strip() for p in m_paras]
+            caption = "\n".join([p for p in clean_p if p and "Uma publicação" not in p and "A post shared" not in p])
+
+    m_id = re.search(r'instagram\.com/(?:reel|reels|p|tv)/([A-Za-z0-9_-]+)', permalink, re.I)
+    post_id = m_id.group(1) if m_id else ""
+    clean_url = f"https://www.instagram.com/p/{post_id}/" if post_id else permalink
+    thumbnail_url = ""
+
+    # 2. Busca dados pelo scraper crawler
+    if post_id:
+        try:
+            req = urllib.request.Request(
+                clean_url,
+                headers={'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'}
+            )
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                data = resp.read().decode('utf-8', errors='ignore')
+
+                m_title = re.search(r'<meta[^>]+(?:name|property)=["\']twitter:title["\'][^>]+content=["\'](.*?)["\']', data, re.I)
+                if m_title:
+                    raw_title = html.unescape(m_title.group(1))
+                    m_parts = re.match(r'(.*?)\s*\(?(@[A-Za-z0-9_.]+)\)?', raw_title)
+                    if m_parts:
+                        if not author_name:
+                            author_name = m_parts.group(1).strip()
+                        if not username:
+                            username = m_parts.group(2).strip()
+                    elif not author_name:
+                        author_name = raw_title.split('•')[0].strip()
+
+                m_img = re.search(r'<meta[^>]+(?:name|property)=["\'](?:twitter:image|og:image)["\'][^>]+content=["\'](.*?)["\']', data, re.I)
+                if m_img:
+                    thumbnail_url = html.unescape(m_img.group(1))
+
+                m_desc = re.search(r'<meta[^>]+(?:name|property)=["\'](?:og:description|description)["\'][^>]+content=["\'](.*?)["\']', data, re.I)
+                if m_desc and not caption:
+                    caption = html.unescape(m_desc.group(1)).strip()
+        except Exception as e:
+            print(f"Error scraping Instagram info: {e}")
+
+    display_title = ""
+    if author_name and username:
+        display_title = f"{author_name} ({username})"
+    elif author_name:
+        display_title = author_name
+    elif username:
+        display_title = username
+    else:
+        display_title = "Publicação no Instagram"
+
+    return {
+        "id": post_id,
+        "url": clean_url,
+        "author_name": author_name or (username if username else "Instagram"),
+        "username": username,
+        "title": display_title,
+        "caption": caption or "",
+        "thumbnail_url": thumbnail_url
+    }
 
 @router.get("/{news_id}", response_model=schemas.NewsResponse)
 def get_news(

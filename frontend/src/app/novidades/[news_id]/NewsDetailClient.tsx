@@ -8,6 +8,7 @@ import {
   Share2,
   Loader2,
   ArrowLeft,
+  Instagram,
 } from 'lucide-react';
 import Link from 'next/link';
 import ShareModal from '@/components/ShareModal/ShareModal';
@@ -99,6 +100,7 @@ export default function NewsDetailClient({ initialPost }: { initialPost: NewsPos
   };
 
   const mediaSrc = resolveMediaUrl(post.media_url);
+  const isIg = isInstagramContent(post.media_url) || post.media_type === 'instagram';
   const avatarSrc = resolveAvatarUrl(post.user?.profile_picture);
   const authorName = post.user?.full_name?.trim() || 'Equipe ECOSOPIS';
 
@@ -111,26 +113,49 @@ export default function NewsDetailClient({ initialPost }: { initialPost: NewsPos
           </Link>
 
           <article className={styles.postCard} style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <div className={styles.postTopBar}>
-              <div className={styles.avatar}>
-                {avatarSrc ? (
-                  <img src={avatarSrc} alt={authorName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  <span>{getInitials(authorName)}</span>
-                )}
+            {isIg ? (
+              <div className={styles.instagramPostTopBar}>
+                <div className={styles.instagramAuthorInfo}>
+                  <div className={styles.instagramAvatarBadge}>
+                    <div className={styles.instagramAvatarInner}>
+                      <Instagram size={20} />
+                    </div>
+                  </div>
+                  <div className={styles.instagramAuthorMeta}>
+                    <span className={styles.instagramAuthorHandle}>
+                      {post.title && post.title !== 'Publicação do Instagram' ? post.title : 'Instagram Oficial'}
+                    </span>
+                    <span className={styles.instagramSourceLabel}>
+                      <Instagram size={12} /> Post oficial do Instagram • {formatPostDate(post.created_at)}
+                    </span>
+                  </div>
+                </div>
+                <span className={styles.instagramTagPill}>
+                  Instagram
+                </span>
               </div>
-              <div className={styles.headerInfo}>
-                <span className={styles.authorName}>{authorName}</span>
-                <time className={styles.postDate} dateTime={post.created_at}>
-                  {formatPostDate(post.created_at)}
-                </time>
+            ) : (
+              <div className={styles.postTopBar}>
+                <div className={styles.avatar}>
+                  {avatarSrc ? (
+                    <img src={avatarSrc} alt={authorName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                  ) : (
+                    <span>{getInitials(authorName)}</span>
+                  )}
+                </div>
+                <div className={styles.headerInfo}>
+                  <span className={styles.authorName}>{authorName}</span>
+                  <time className={styles.postDate} dateTime={post.created_at}>
+                    {formatPostDate(post.created_at)}
+                  </time>
+                </div>
               </div>
-            </div>
+            )}
 
             {mediaSrc && (
-              isInstagramContent(post.media_url) || post.media_type === 'instagram' ? (
-                <div style={{ padding: '1rem 0', display: 'flex', justifyContent: 'center', width: '100%' }}>
-                  <InstagramPostEmbed url={post.media_url || mediaSrc} maxWidth="640px" />
+              isIg ? (
+                <div style={{ padding: '0.75rem 0', display: 'flex', justifyContent: 'center', width: '100%' }}>
+                  <InstagramPostEmbed url={post.media_url || mediaSrc} maxWidth="640px" showTopBadge={false} />
                 </div>
               ) : (
                 <div className={styles.mediaWrapper}>
@@ -144,7 +169,7 @@ export default function NewsDetailClient({ initialPost }: { initialPost: NewsPos
             )}
 
             <div className={styles.postContent} style={{ padding: '30px' }}>
-              <h1 className={styles.postTitle} style={{ fontSize: '2.5rem', marginBottom: '20px' }}>{post.title}</h1>
+              {!isIg && <h1 className={styles.postTitle} style={{ fontSize: '2.5rem', marginBottom: '20px' }}>{post.title}</h1>}
               <div className={styles.postFullContent} style={{ lineHeight: '1.8', fontSize: '1.1rem', color: '#444' }}>
                 <BlogContentRenderer content={post.content} />
               </div>

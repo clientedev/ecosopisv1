@@ -114,3 +114,82 @@ export function normalizeVideoUrl(input: string): string {
     return input;
 }
 
+/**
+ * Extrai instantaneamente autor, username e legenda se o usuário colar o código embed (blockquote)
+ */
+export function extractInstagramMetaFromEmbed(input: string): {
+    authorName?: string;
+    username?: string;
+    title?: string;
+    caption?: string;
+    permalink?: string;
+} | null {
+    if (!input || !isInstagramContent(input)) return null;
+
+    let authorName = "";
+    let username = "";
+    let caption = "";
+
+    const authorMatch = input.match(/compartilhada por\s+([^<]+)/i) || input.match(/A post shared by\s+([^<]+)/i);
+    if (authorMatch) {
+        const rawAuthor = authorMatch[1].trim();
+        authorName = rawAuthor;
+        const unMatch = rawAuthor.match(/\(@?([A-Za-z0-9_.]+)\)/);
+        if (unMatch) {
+            username = `@${unMatch[1]}`;
+        }
+    }
+
+    const paragraphs = input.match(/<p[^>]*>([\s\S]*?)<\/p>/gi);
+    if (paragraphs) {
+        const cleanP = paragraphs
+            .map(p => p.replace(/<[^>]+>/g, "").trim())
+            .filter(p => p && !p.includes("Uma publicação") && !p.includes("A post shared"));
+        if (cleanP.length > 0) {
+            caption = cleanP.join("\n");
+        }
+    }
+
+    const permalink = extractInstagramPermalink(input) || undefined;
+    const title = authorName ? (username ? `${authorName} (${username})` : authorName) : (username || "");
+
+    return {
+        authorName: authorName || username,
+        username,
+        title,
+        caption,
+        permalink
+    };
+}
+
+/**
+ * Consulta a API do backend para obter metadados (autor, título, legenda, thumbnail)
+ */
+export async function fetchInstagramMetadata(url: string) {
+    const local = extractInstagramMetaFromEmbed(url);
+    try {
+        const res = await fetch(`/api/news/instagram-info?url=${encodeURIComponent(url)}`);
+        if (res.ok) {
+            const data = await res.json();
+            return {
+                authorName: data.author_name || local?.authorName || "",
+                username: data.username || local?.username || "",
+                title: data.title || local?.title || "",
+                caption: data.caption || local?.caption || "",
+                thumbnailUrl: data.thumbnail_url || "",
+                cleanUrl: data.url || local?.permalink || url
+            };
+        }
+    } catch (e) {
+        console.warn("Could not fetch server-side instagram info:", e);
+    }
+    return local ? {
+        authorName: local.authorName || "",
+        username: local.username || "",
+        title: local.title || "",
+        caption: local.caption || "",
+        thumbnailUrl: "",
+        cleanUrl: local.permalink || url
+    } : null;
+}
+

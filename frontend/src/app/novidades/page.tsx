@@ -12,6 +12,8 @@ import {
   ChevronUp,
   Plus,
   Instagram,
+  Sparkles,
+  CheckCircle2,
 } from 'lucide-react';
 import Header from '@/components/Header/Header';
 import Footer from '@/components/Footer/Footer';
@@ -22,7 +24,7 @@ import NewsCommentModal, {
 import AuthPromptModal from '@/components/AuthPromptModal/AuthPromptModal';
 import InstagramPostEmbed from '@/components/InstagramEmbed/InstagramPostEmbed';
 import BlogContentRenderer from '@/components/InstagramEmbed/BlogContentRenderer';
-import { isInstagramContent } from '@/utils/instagramUtils';
+import { isInstagramContent, fetchInstagramMetadata } from '@/utils/instagramUtils';
 import type { NewsComment } from '@/types/news';
 import {
   resolveMediaUrl as modalResolveMediaUrl,
@@ -94,6 +96,45 @@ export default function NewsPage() {
   const [newPreviewUrl, setNewPreviewUrl] = useState('');
   const [creatingPost, setCreatingPost] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [cloningIg, setCloningIg] = useState(false);
+  const [clonedData, setClonedData] = useState<{ author?: string; caption?: string } | null>(null);
+
+  const handleMediaUrlChange = async (val: string) => {
+    setNewMediaUrl(val);
+    if (val.trim()) setNewPreviewUrl(val.trim());
+
+    if (isInstagramContent(val)) {
+      setNewMediaType('instagram');
+      setCloningIg(true);
+      try {
+        const meta = await fetchInstagramMetadata(val);
+        if (meta) {
+          if (meta.title) {
+            setNewTitle(meta.title);
+          }
+          if (meta.caption) {
+            setNewContent(meta.caption);
+          } else if (!newContent) {
+            setNewContent(`Confira esta publicação especial de ${meta.authorName || 'nosso perfil'} no Instagram! ✨`);
+          }
+          if (meta.cleanUrl) {
+            setNewMediaUrl(meta.cleanUrl);
+            setNewPreviewUrl(meta.cleanUrl);
+          }
+          setClonedData({
+            author: meta.authorName || meta.username,
+            caption: meta.caption
+          });
+        }
+      } catch (err) {
+        console.warn('Erro ao clonar dados do Instagram:', err);
+      } finally {
+        setCloningIg(false);
+      }
+    } else {
+      setClonedData(null);
+    }
+  };
 
   const authHeaders = useCallback((): HeadersInit => {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -284,11 +325,24 @@ export default function NewsPage() {
       <main className={styles.main}>
         <div className={styles.heroSection}>
           <div className={styles.container}>
-            <span className={styles.badge}>Dicas & atualizações</span>
+            <div className={styles.badge}>
+              <Sparkles size={14} color="#e2c290" />
+              <span>Dicas & Atualizações</span>
+            </div>
             <h1 className={styles.pageTitle}>Diário ECOSOPIS</h1>
+            <div className={styles.titleFlourish}>
+              <div className={styles.flourishLine} />
+              <div className={styles.flourishDot} />
+              <div className={styles.flourishLine} />
+            </div>
             <p className={styles.pageSubtitle}>
               Histórias, bastidores e novidades da nossa jornada com você.
             </p>
+            <div className={styles.heroChipsRow}>
+              <span className={styles.heroChip}>🌱 100% Botânico & Vegano</span>
+              <span className={styles.heroChip}>✨ Cuidados Diários</span>
+              <span className={styles.heroChip}>📸 Conectado ao Instagram</span>
+            </div>
           </div>
         </div>
 
@@ -377,21 +431,30 @@ export default function NewsPage() {
                           : "Ou URL da mídia (https://...)"
                       }
                       value={newMediaUrl}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setNewMediaUrl(val);
-                        if (isInstagramContent(val)) {
-                          setNewMediaType('instagram');
-                        }
-                        if (val.trim()) setNewPreviewUrl(val.trim());
-                      }}
+                      onChange={(e) => handleMediaUrlChange(e.target.value)}
                     />
                   </div>
+
+                  {cloningIg && (
+                    <div className={styles.cloningSpinner}>
+                      <Loader2 size={16} className={styles.spin} />
+                      <span>Clonando legenda e perfil do Instagram...</span>
+                    </div>
+                  )}
+
+                  {clonedData && (
+                    <div className={styles.clonedNoticeBox}>
+                      <CheckCircle2 size={18} />
+                      <span>
+                        Publicação clonada de <strong>{clonedData.author || 'Instagram'}</strong>! Legenda e perfil preenchidos automaticamente.
+                      </span>
+                    </div>
+                  )}
 
                   {newPreviewUrl && (
                     <div className={styles.createPreview}>
                       {newMediaType === 'instagram' || isInstagramContent(newPreviewUrl) ? (
-                        <InstagramPostEmbed url={newPreviewUrl} />
+                        <InstagramPostEmbed url={newPreviewUrl} showTopBadge={false} />
                       ) : newMediaType === 'video' ? (
                         <video src={newPreviewUrl} controls />
                       ) : (
@@ -433,6 +496,7 @@ export default function NewsPage() {
             <div className={styles.postsGrid}>
               {posts.map((post, index) => {
                 const mediaSrc = resolveMediaUrl(post.media_url);
+                const isIg = isInstagramContent(post.media_url) || post.media_type === 'instagram';
                 const expanded = expandedContent[post.id];
                 const longText = needsTruncate(post.content);
                 const bodyText =
@@ -446,35 +510,58 @@ export default function NewsPage() {
                     className={styles.postCard}
                     style={{ animationDelay: `${index * 0.08}s` }}
                   >
-                    <div className={styles.postTopBar}>
-                      <div className={styles.avatar}>
-                        {post.user?.profile_picture ? (
-                          <img 
-                            src={resolveAvatarUrl(post.user.profile_picture) ?? ''} 
-                            alt={post.user.full_name || 'Autor'} 
-                            style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <User size={18} strokeWidth={2} />
-                        )}
-                      </div>
-                      <div className={styles.headerInfo}>
-                        <span className={styles.authorName}>
-                          {post.user?.full_name?.trim() || 'Equipe ECOSOPIS'}
+                    {isIg ? (
+                      <div className={styles.instagramPostTopBar}>
+                        <div className={styles.instagramAuthorInfo}>
+                          <div className={styles.instagramAvatarBadge}>
+                            <div className={styles.instagramAvatarInner}>
+                              <Instagram size={20} />
+                            </div>
+                          </div>
+                          <div className={styles.instagramAuthorMeta}>
+                            <span className={styles.instagramAuthorHandle}>
+                              {post.title && post.title !== 'Publicação do Instagram' ? post.title : 'Instagram Oficial'}
+                            </span>
+                            <span className={styles.instagramSourceLabel}>
+                              <Instagram size={12} /> Post do Instagram • {formatPostDate(post.created_at)}
+                            </span>
+                          </div>
+                        </div>
+                        <span className={styles.instagramTagPill}>
+                          Instagram
                         </span>
-                        <time
-                          className={styles.postDate}
-                          dateTime={post.created_at}
-                        >
-                          {formatPostDate(post.created_at)}
-                        </time>
                       </div>
-                    </div>
+                    ) : (
+                      <div className={styles.postTopBar}>
+                        <div className={styles.avatar}>
+                          {post.user?.profile_picture ? (
+                            <img 
+                              src={resolveAvatarUrl(post.user.profile_picture) ?? ''} 
+                              alt={post.user.full_name || 'Autor'} 
+                              style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            <User size={18} strokeWidth={2} />
+                          )}
+                        </div>
+                        <div className={styles.headerInfo}>
+                          <span className={styles.authorName}>
+                            {post.user?.full_name?.trim() || 'Equipe ECOSOPIS'}
+                          </span>
+                          <time
+                            className={styles.postDate}
+                            dateTime={post.created_at}
+                          >
+                            {formatPostDate(post.created_at)}
+                          </time>
+                        </div>
+                      </div>
+                    )}
 
                     {mediaSrc && (
-                      isInstagramContent(post.media_url) || post.media_type === 'instagram' ? (
+                      isIg ? (
                         <div className={styles.instagramPostWrapper}>
-                          <InstagramPostEmbed url={post.media_url || mediaSrc} />
+                          <InstagramPostEmbed url={post.media_url || mediaSrc} showTopBadge={false} />
                         </div>
                       ) : (
                         <div className={styles.mediaWrapper}>
@@ -555,7 +642,7 @@ export default function NewsPage() {
                     )}
 
                     <div className={styles.postContent}>
-                      <h2 className={styles.postTitle}>{post.title}</h2>
+                      {!isIg && <h2 className={styles.postTitle}>{post.title}</h2>}
                       <div className={styles.postExcerpt}>
                         <BlogContentRenderer content={bodyText} />
                       </div>

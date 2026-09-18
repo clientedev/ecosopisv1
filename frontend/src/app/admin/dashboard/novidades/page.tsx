@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import styles from "../dashboard.module.css";
-import { Plus, Trash2, Image, Video, Calendar, Eye, Instagram } from "lucide-react";
+import { Plus, Trash2, Image, Video, Calendar, Eye, Instagram, Loader2, CheckCircle2 } from "lucide-react";
 import InstagramPostEmbed from "@/components/InstagramEmbed/InstagramPostEmbed";
-import { isInstagramContent } from "@/utils/instagramUtils";
+import { isInstagramContent, fetchInstagramMetadata } from "@/utils/instagramUtils";
 
 interface NewsPost {
     id: number;
@@ -29,7 +29,41 @@ export default function NovidadesAdmin() {
     const [previewUrl, setPreviewUrl] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [statusMessage, setStatusMessage] = useState('');
+    const [cloningIg, setCloningIg] = useState(false);
+    const [clonedData, setClonedData] = useState<{ author?: string; caption?: string } | null>(null);
     const router = useRouter();
+
+    const handleMediaUrlChange = async (val: string) => {
+        setMediaUrl(val);
+        setPreviewUrl(val);
+
+        if (isInstagramContent(val)) {
+            setMediaType('instagram');
+            setCloningIg(true);
+            try {
+                const meta = await fetchInstagramMetadata(val);
+                if (meta) {
+                    if (meta.title) setTitle(meta.title);
+                    if (meta.caption) setContent(meta.caption);
+                    else if (!content) setContent(`Confira esta publicação especial de ${meta.authorName || 'nosso perfil'} no Instagram! ✨`);
+                    if (meta.cleanUrl) {
+                        setMediaUrl(meta.cleanUrl);
+                        setPreviewUrl(meta.cleanUrl);
+                    }
+                    setClonedData({
+                        author: meta.authorName || meta.username,
+                        caption: meta.caption
+                    });
+                }
+            } catch (err) {
+                console.warn('Erro ao clonar dados do Instagram no painel admin:', err);
+            } finally {
+                setCloningIg(false);
+            }
+        } else {
+            setClonedData(null);
+        }
+    };
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -461,22 +495,29 @@ export default function NovidadesAdmin() {
                                     )}
 
                                     <div className={styles.formGroup}>
-                                        <label>{mediaType === 'instagram' ? 'Link da Publicação / Reel do Instagram' : 'Ou URL da Mídia'}</label>
+                                        <label>{mediaType === 'instagram' ? 'Link da Publicação / Reel ou Embed do Instagram' : 'Ou URL da Mídia'}</label>
                                         <input
                                             type="text"
                                             value={mediaUrl}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setMediaUrl(val);
-                                                if (isInstagramContent(val)) {
-                                                    setMediaType('instagram');
-                                                }
-                                                setPreviewUrl(val);
-                                            }}
-                                            placeholder={mediaType === 'instagram' ? "https://www.instagram.com/p/... ou /reel/..." : "https://..."}
+                                            onChange={(e) => handleMediaUrlChange(e.target.value)}
+                                            placeholder={mediaType === 'instagram' ? "Cole o link (https://www.instagram.com/p/... ou /reel/...) ou código embed" : "https://..."}
                                         />
                                     </div>
                                 </div>
+
+                                {cloningIg && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0284c7', fontSize: '0.85rem', fontWeight: 600, margin: '-0.25rem 0 1rem' }}>
+                                        <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                                        <span>Clonando legenda e perfil do Instagram...</span>
+                                    </div>
+                                )}
+
+                                {clonedData && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '0.65rem 0.9rem', color: '#166534', fontSize: '0.85rem', margin: '-0.25rem 0 1rem' }}>
+                                        <CheckCircle2 size={18} color="#16a34a" />
+                                        <span>Publicação clonada de <strong>{clonedData.author || 'Instagram'}</strong>! Legenda e título preenchidos automaticamente.</span>
+                                    </div>
+                                )}
 
                                 {(previewUrl || mediaUrl) && (
                                     <div style={{ marginBottom: '1.5rem' }}>
@@ -485,7 +526,7 @@ export default function NovidadesAdmin() {
                                         </label>
                                         {mediaType === 'instagram' || isInstagramContent(previewUrl || mediaUrl) ? (
                                             <div style={{ maxWidth: '440px', margin: '0 auto' }}>
-                                                <InstagramPostEmbed url={previewUrl || mediaUrl} maxWidth="100%" />
+                                                <InstagramPostEmbed url={previewUrl || mediaUrl} maxWidth="100%" showTopBadge={false} />
                                             </div>
                                         ) : mediaType === 'video' ? (
                                             <video
