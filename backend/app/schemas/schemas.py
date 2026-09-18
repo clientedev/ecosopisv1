@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validator
 from typing import List, Optional, Any, Dict
 from datetime import datetime
 
@@ -201,6 +201,40 @@ class ProductBase(BaseModel):
     is_on_sale: Optional[bool] = False
     sale_price: Optional[float] = None
     story_videos: Optional[List[Dict[str, Any]]] = []
+
+    @validator("images", "tags", pre=True, always=True)
+    @classmethod
+    def coerce_list_str(cls, v):
+        """Coerce TEXT columns stored as JSON string back to Python list."""
+        if v is None:
+            return []
+        if isinstance(v, str):
+            import json as _json
+            try:
+                parsed = _json.loads(v)
+                return parsed if isinstance(parsed, list) else []
+            except Exception:
+                return []
+        if isinstance(v, list):
+            return v
+        return []
+
+    @validator("story_videos", pre=True, always=True)
+    @classmethod
+    def coerce_story_videos(cls, v):
+        """Coerce TEXT columns stored as JSON string back to Python list of dicts."""
+        if v is None:
+            return []
+        if isinstance(v, str):
+            import json as _json
+            try:
+                parsed = _json.loads(v)
+                return parsed if isinstance(parsed, list) else []
+            except Exception:
+                return []
+        if isinstance(v, list):
+            return v
+        return []
 
 # Product Details Schemas
 class ProductDetailBase(BaseModel):
