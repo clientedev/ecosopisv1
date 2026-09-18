@@ -21,53 +21,11 @@ interface HomeStoryCirclesProps {
 
 export default function HomeStoryCircles({ stories = [] }: HomeStoryCirclesProps) {
     const [selectedStoryIndex, setSelectedStoryIndex] = useState<number | null>(null);
-    const [activeTouchIndex, setActiveTouchIndex] = useState<number | null>(null);
     const rowRef = useRef<HTMLDivElement>(null);
-    const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
-    const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
 
     const activeStories = stories.filter(s => s.is_active !== false);
-
-    const handleTouchStart = (index: number) => {
-        if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-        setActiveTouchIndex(index);
-    };
-
-    const handleTouchMove = (e: React.TouchEvent) => {
-        if (!e.touches || e.touches.length === 0) return;
-        const touch = e.touches[0];
-        const clientX = touch.clientX;
-        const clientY = touch.clientY;
-
-        let closestIndex: number | null = null;
-        let minDistance = 65;
-
-        itemRefs.current.forEach((el, idx) => {
-            if (!el) return;
-            const rect = el.getBoundingClientRect();
-            if (clientY >= rect.top - 30 && clientY <= rect.bottom + 30) {
-                const centerX = rect.left + rect.width / 2;
-                const dist = Math.abs(clientX - centerX);
-                if (dist < minDistance) {
-                    minDistance = dist;
-                    closestIndex = idx;
-                }
-            }
-        });
-
-        if (closestIndex !== null && closestIndex !== activeTouchIndex) {
-            setActiveTouchIndex(closestIndex);
-        }
-    };
-
-    const handleTouchEnd = () => {
-        if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-        touchTimeoutRef.current = setTimeout(() => {
-            setActiveTouchIndex(null);
-        }, 400);
-    };
 
     const checkScroll = useCallback(() => {
         if (!rowRef.current) return;
@@ -87,7 +45,6 @@ export default function HomeStoryCircles({ stories = [] }: HomeStoryCirclesProps
 
         return () => {
             clearTimeout(timer);
-            if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
             row.removeEventListener("scroll", checkScroll);
             window.removeEventListener("resize", checkScroll);
         };
@@ -169,27 +126,14 @@ export default function HomeStoryCircles({ stories = [] }: HomeStoryCirclesProps
                         </button>
                     )}
 
-                    <div
-                        ref={rowRef}
-                        className={styles.storyRow}
-                        onTouchMove={handleTouchMove}
-                        onTouchEnd={handleTouchEnd}
-                        onTouchCancel={handleTouchEnd}
-                    >
+                    <div ref={rowRef} className={styles.storyRow}>
                         {activeStories.map((story, index) => {
                             const media = getPreviewMedia(story);
-                            const isSelected = activeTouchIndex === index;
-                            const isDimmed = activeTouchIndex !== null && !isSelected;
-
                             return (
                                 <button
                                     key={story.id || index}
-                                    ref={(el) => { itemRefs.current[index] = el; }}
-                                    className={`${styles.storyItem} ${isSelected ? styles.storyItemSelected : ''} ${isDimmed ? styles.storyItemDimmed : ''}`}
+                                    className={styles.storyItem}
                                     onClick={() => setSelectedStoryIndex(index)}
-                                    onTouchStart={() => handleTouchStart(index)}
-                                    onMouseEnter={() => setActiveTouchIndex(index)}
-                                    onMouseLeave={() => setActiveTouchIndex(null)}
                                     title={`Ver story: ${story.title}`}
                                     type="button"
                                 >
