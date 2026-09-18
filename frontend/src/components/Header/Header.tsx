@@ -3,7 +3,7 @@ import Link from "next/link";
 import styles from "./Header.module.css";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart, Package, Newspaper, Zap, Info, Sparkles, Truck, Search } from "lucide-react";
+import { User, LogOut, Settings, LayoutDashboard, ChevronDown, Menu, X, ShoppingCart, Package, Newspaper, Zap, Info, Sparkles, Truck, Search, Instagram } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -40,19 +40,11 @@ export default function Header() {
         const handleScroll = () => {
             if (!ticking) {
                 window.requestAnimationFrame(() => {
-                    const scrollY = window.scrollY;
-                    setIsScrolled(prev => {
-                        // Hysteresis prevents layout thrashing & vibration when scrolling back to the top:
-                        // Only activate clean scrolled mode when scrolled down past 90px.
-                        // Only restore full header when returned to the top (<= 15px).
-                        if (!prev && scrollY > 90) {
-                            return true;
-                        } else if (prev && scrollY <= 15) {
-                            setIsSearchExpanded(false);
-                            return false;
-                        }
-                        return prev;
-                    });
+                    const scrolled = window.scrollY > 30;
+                    setIsScrolled(scrolled);
+                    if (!scrolled) {
+                        setIsSearchExpanded(false);
+                    }
                     ticking = false;
                 });
                 ticking = true;
@@ -132,8 +124,89 @@ export default function Header() {
         window.location.href = "/";
     };
 
+    const renderSearchInputGroup = (isOverlay: boolean = false) => (
+        <>
+            <div className={styles.desktopSearchInputGroup}>
+                <div className={styles.desktopSearchInputWrapper}>
+                    <Search size={18} className={styles.desktopSearchIcon} />
+                    <input
+                        type="text"
+                        placeholder="O que você está procurando hoje?"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onFocus={() => setIsSearchFocused(true)}
+                        onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                        className={styles.desktopSearchField}
+                        autoFocus={isOverlay}
+                    />
+                    {searchQuery && (
+                        <button className={styles.desktopSearchClear} onClick={() => setSearchQuery("")}>
+                            <X size={14} />
+                        </button>
+                    )}
+                </div>
+
+                {/* Desktop Live Results Dropdown */}
+                {isSearchFocused && searchQuery && (
+                    <div className={styles.desktopSearchResultsDropdown}>
+                        {searchResults.length === 0 ? (
+                            <div className={styles.desktopSearchNoResults}>
+                                Nenhum produto encontrado.
+                            </div>
+                        ) : (
+                            <div className={styles.desktopSearchResultsList}>
+                                {searchResults.map((p: any) => (
+                                    <Link
+                                        key={p.id}
+                                        href={`/produtos/${p.slug}`}
+                                        className={styles.desktopSearchProductCard}
+                                        onClick={() => {
+                                            if (isOverlay) setIsSearchExpanded(false);
+                                        }}
+                                    >
+                                        <div className={styles.desktopSearchThumbWrapper}>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img 
+                                                src={getImageUrl(p.image_url)} 
+                                                alt={p.name} 
+                                                className={styles.desktopSearchThumb}
+                                            />
+                                        </div>
+                                        <div className={styles.desktopSearchInfo}>
+                                            <span className={styles.desktopSearchName}>{p.name}</span>
+                                            {p.price && (
+                                                <span className={styles.desktopSearchPrice}>
+                                                    R$ {p.price.toFixed(2).replace(".", ",")}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Quick Search Suggestions */}
+            <div className={styles.desktopSearchSuggestions}>
+                <span className={styles.suggestionsLabel}>Sugestões:</span>
+                {["Sabonete", "Clareamento", "Rosa Mosqueta", "Kit"].map((tag) => (
+                    <button
+                        key={tag}
+                        type="button"
+                        onClick={() => setSearchQuery(tag)}
+                        className={styles.desktopSuggestionTag}
+                    >
+                        {tag}
+                    </button>
+                ))}
+            </div>
+        </>
+    );
+
     return (
-        <header className={`${styles.header} ${isScrolled ? styles.headerScrolled : ''}`}>
+        <>
             {announcement && announcement.is_active && (
                 <div
                     className={styles.announcementBar}
@@ -164,294 +237,241 @@ export default function Header() {
                     )}
                 </div>
             )}
-            <div className={`container ${styles.headerContent}`}>
-                <div className={styles.logo}>
-                    <Link href="/">
-                        <div className={styles.logoContainer}>
-                            <Image
-                                src="/logo_nova_transparent.png"
-                                alt="ECOSOPIS Logo"
-                                width={669}
-                                height={373}
-                                sizes="(max-width: 900px) 170px, (max-width: 1200px) 220px, 260px"
-                                quality={100}
-                                className={styles.logoImage}
-                                priority
-                            />
-                        </div>
-                    </Link>
-                </div>
 
-                {/* Desktop Navigation */}
-                <nav className={styles.desktopNav}>
-                    <Link href="/produtos">PRODUTOS</Link>
-                    <Link href="/atacado" className={styles.highlightNavLink}>QUERO REVENDER</Link>
-                    <Link href="/novidades">NOVIDADES</Link>
-                    <Link href="/quizz">QUIZZ</Link>
-                    <Link href="/lia" className={styles.liaLink}>
-                        <Sparkles size={16} />
-                        LIA AI
-                    </Link>
-                    <Link href="/sobre">SOBRE</Link>
-                </nav>
-
-                {/* Mobile Navigation (Side Drawer) */}
-                <div className={`${styles.mobileNav} ${isMobileMenuOpen ? styles.mobileNavOpen : ''}`}>
-                    <div className={styles.mobileMenuInner}>
-                        <div className={styles.mobileMenuHeader}>
+            <header className={`${styles.header} ${isScrolled ? styles.headerScrolled : ''}`}>
+                <div className={`container ${styles.headerContent}`}>
+                    <div className={styles.logo}>
+                        <Link href="/">
                             <div className={styles.logoContainer}>
                                 <Image
                                     src="/logo_nova_transparent.png"
                                     alt="ECOSOPIS Logo"
-                                    width={120}
-                                    height={50}
-                                    className={styles.mobileMenuLogo}
+                                    width={669}
+                                    height={373}
+                                    sizes="(max-width: 900px) 170px, (max-width: 1200px) 220px, 260px"
+                                    quality={100}
+                                    className={styles.logoImage}
+                                    priority
                                 />
                             </div>
-                            <button 
-                                className={styles.mobileMenuButton} 
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                style={{ display: 'flex' }}
-                            >
-                                <X size={28} />
-                            </button>
-                        </div>
-
-                        <div className={styles.mobileMenuContent}>
-                            <Link href="/produtos" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                <Package size={22} />
-                                PRODUTOS
-                            </Link>
-                            <Link href="/atacado" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                <Truck size={22} />
-                                QUERO REVENDER
-                            </Link>
-                            <Link href="/novidades" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                <Newspaper size={22} />
-                                NOVIDADES
-                            </Link>
-                            <Link href="/quizz" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                <Zap size={22} />
-                                QUIZZ
-                            </Link>
-                            <Link href="/lia" className={`${styles.mobileNavItem} ${styles.mobileLiaItem}`} onClick={() => setIsMobileMenuOpen(false)}>
-                                <Sparkles size={22} />
-                                LIA AI
-                            </Link>
-                            <Link href="/sobre" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                <Info size={22} />
-                                SOBRE
-                            </Link>
-                        </div>
-
-                        <div className={styles.mobileMenuFooter}>
-                            <div className={styles.mobileActions}>
-                                <Link href="/carrinho" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                    <ShoppingCart size={22} />
-                                    CARRINHO
-                                    {cartCount > 0 && <span className={styles.cartBadge} style={{ position: 'static', marginLeft: 'auto' }}>{cartCount}</span>}
-                                </Link>
-                                {user ? (
-                                    <>
-                                        <Link href="/perfil" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                            <User size={22} />
-                                            MINHA CONTA
-                                        </Link>
-                                        {isAdmin && (
-                                            <Link href="/admin/dashboard" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                                <LayoutDashboard size={22} />
-                                                PAINEL ADMIN
-                                            </Link>
-                                        )}
-                                        <button 
-                                            onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} 
-                                            className={styles.mobileLogoutBtn}
-                                        >
-                                            <LogOut size={20} />
-                                            Sair da Conta
-                                        </button>
-                                    </>
-                                ) : (
-                                    <Link href="/conta" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                        <User size={22} />
-                                        ENTRAR / CADASTRAR
-                                    </Link>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className={styles.actions} style={{ position: 'relative', zIndex: 1000 }}>
-                    {/* Botão de busca compacto quando o header estiver em modo clean */}
-                    {isScrolled && (
-                        <button
-                            type="button"
-                            onClick={() => setIsSearchExpanded(prev => !prev)}
-                            className={`${styles.scrolledSearchBtn} ${isSearchExpanded ? styles.scrolledSearchBtnActive : ''}`}
-                            title={isSearchExpanded ? "Fechar busca" : "Buscar produtos"}
-                            aria-label="Buscar produtos"
-                        >
-                            {isSearchExpanded ? <X size={18} /> : <Search size={18} />}
-                        </button>
-                    )}
-
-                    <button onClick={openCart} className={styles.actionIcon} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                        <div className={styles.cartIconWrapper}>
-                            <ShoppingCart size={22} />
-                            {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
-                            <span className={styles.cartLabel}>CARRINHO</span>
-                        </div>
-                    </button>
-
-                    {user ? (
-
-                        <div className={styles.userMenuContainer}>
-                            <button
-                                className={styles.userButton}
-                                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            >
-                                <div className={styles.avatar} style={{ overflow: 'hidden' }}>
-                                    {/* @ts-ignore */}
-                                    {user.profile_picture ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={user.profile_picture} alt={user.full_name || "User"} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    ) : (
-                                        (user.full_name || user.email || "U").charAt(0).toUpperCase()
-                                    )}
-                                </div>
-                                <span className={styles.userName}>{(user.full_name || user.email || "User").split(' ')[0]}</span>
-                                <ChevronDown size={16} className={`${styles.chevron} ${isMenuOpen ? styles.chevronOpen : ''}`} />
-                            </button>
-
-                            {isMenuOpen && (
-                                <div className={styles.dropdown}>
-                                    <div className={styles.dropdownHeader}>
-                                        <strong>{user.full_name || "Membro Ecosopis"}</strong>
-                                        <span>{user.email}</span>
-                                    </div>
-                                    <hr className={styles.divider} />
-                                    <Link href="/perfil" className={styles.dropdownItem} onClick={() => setIsMenuOpen(false)}>
-                                        <User size={18} />
-                                        Minha Conta
-                                    </Link>
-                                    {isAdmin && (
-                                        <Link href="/admin/dashboard" className={styles.dropdownItem} onClick={() => setIsMenuOpen(false)}>
-                                            <LayoutDashboard size={18} />
-                                            Painel Admin
-                                        </Link>
-                                    )}
-                                    <hr className={styles.divider} />
-                                    <button onClick={handleLogout} className={`${styles.dropdownItem} ${styles.logoutAction}`}>
-                                        <LogOut size={18} />
-                                        Sair
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <Link href="/conta" className={styles.actionIcon}>
-                            <User size={22} style={{ marginRight: 5 }} />
-                            <span style={{ fontSize: '0.8rem', fontWeight: 600, display: 'none' }} className={styles.desktopTextInfo}>ENTRAR</span>
                         </Link>
-                    )}
+                    </div>
 
-                    <button
-                        className={styles.mobileMenuButton}
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        aria-label="Toggle menu"
-                    >
-                        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                    </button>
-                </div>
-            </div>
+                    {/* Desktop Navigation */}
+                    <nav className={styles.desktopNav}>
+                        <Link href="/produtos">PRODUTOS</Link>
+                        <Link href="/atacado" className={styles.highlightNavLink}>QUERO REVENDER</Link>
+                        <Link href="/novidades">NOVIDADES</Link>
+                        <Link href="/quizz">QUIZZ</Link>
+                        <Link href="/lia" className={styles.liaLink}>
+                            <Sparkles size={16} />
+                            LIA AI
+                        </Link>
+                        <Link href="/sobre">SOBRE</Link>
+                    </nav>
 
-            {/* Desktop Search Band */}
-            <div className={`${styles.desktopSearchBand} ${isScrolled && !isSearchExpanded ? styles.desktopSearchBandHidden : ''}`}>
-                <div className={`container ${styles.desktopSearchBandContent}`}>
-                    
-                    {/* Input Group to contain input + dropdown perfectly aligned */}
-                    <div className={styles.desktopSearchInputGroup}>
-                        <div className={styles.desktopSearchInputWrapper}>
-                            <Search size={18} className={styles.desktopSearchIcon} />
-                            <input
-                                type="text"
-                                placeholder="O que você está procurando hoje?"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onFocus={() => setIsSearchFocused(true)}
-                                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                                className={styles.desktopSearchField}
-                            />
-                            {searchQuery && (
-                                <button className={styles.desktopSearchClear} onClick={() => setSearchQuery("")}>
-                                    <X size={14} />
+                    {/* Mobile Navigation (Side Drawer) */}
+                    <div className={`${styles.mobileNav} ${isMobileMenuOpen ? styles.mobileNavOpen : ''}`}>
+                        <div className={styles.mobileMenuInner}>
+                            <div className={styles.mobileMenuHeader}>
+                                <Image
+                                    src="/logo_nova_transparent.png"
+                                    alt="ECOSOPIS Logo"
+                                    width={180}
+                                    height={100}
+                                    style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
+                                />
+                                <button
+                                    className={styles.mobileMenuClose}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    aria-label="Close menu"
+                                >
+                                    <X size={24} />
                                 </button>
-                            )}
-                        </div>
-
-                        {/* Desktop Live Results Dropdown */}
-                        {isSearchFocused && searchQuery && (
-                            <div className={styles.desktopSearchResultsDropdown}>
-                                {searchResults.length === 0 ? (
-                                    <div className={styles.desktopSearchNoResults}>
-                                        Nenhum produto encontrado.
+                            </div>
+                            <div className={styles.mobileNavLinks}>
+                                <Link href="/produtos" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                    <Sparkles size={20} />
+                                    PRODUTOS
+                                </Link>
+                                <Link href="/atacado" className={`${styles.mobileNavItem} ${styles.mobileHighlightLink}`} onClick={() => setIsMobileMenuOpen(false)}>
+                                    QUERO REVENDER
+                                </Link>
+                                <Link href="/novidades" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                    NOVIDADES
+                                </Link>
+                                <Link href="/quizz" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                    QUIZZ
+                                </Link>
+                                <Link href="/lia" className={`${styles.mobileNavItem} ${styles.mobileLiaItem}`} onClick={() => setIsMobileMenuOpen(false)}>
+                                    <Sparkles size={20} />
+                                    LIA AI
+                                </Link>
+                                <Link href="/sobre" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                    SOBRE
+                                </Link>
+                                <div className={styles.mobileDivider}></div>
+                                <div className={styles.mobileSocialSection}>
+                                    <span className={styles.mobileSectionTitle}>SIGA-NOS</span>
+                                    <div className={styles.mobileSocialIcons}>
+                                        <a href="https://instagram.com/ecosopis" target="_blank" rel="noopener noreferrer" className={styles.mobileSocialIcon}>
+                                            <Instagram size={20} />
+                                        </a>
                                     </div>
-                                ) : (
-                                    <div className={styles.desktopSearchResultsList}>
-                                        {searchResults.map((p: any) => (
-                                            <Link
-                                                key={p.id}
-                                                href={`/produtos/${p.slug}`}
-                                                className={styles.desktopSearchProductCard}
-                                            >
-                                                <div className={styles.desktopSearchThumbWrapper}>
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img 
-                                                        src={getImageUrl(p.image_url)} 
-                                                        alt={p.name} 
-                                                        className={styles.desktopSearchThumb}
-                                                    />
-                                                </div>
-                                                <div className={styles.desktopSearchInfo}>
-                                                    <span className={styles.desktopSearchName}>{p.name}</span>
-                                                    {p.price && (
-                                                        <span className={styles.desktopSearchPrice}>
-                                                            R$ {p.price.toFixed(2).replace(".", ",")}
-                                                        </span>
+                                </div>
+                                <div className={styles.mobileDivider}></div>
+                                <div className={styles.mobileUserSection}>
+                                    {user ? (
+                                        <>
+                                            <div className={styles.mobileUserInfo}>
+                                                <div className={styles.avatar} style={{ overflow: 'hidden' }}>
+                                                    {/* @ts-ignore */}
+                                                    {user.profile_picture ? (
+                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                        <img src={user.profile_picture} alt={user.full_name || "User"} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        (user.full_name || user.email || "U").charAt(0).toUpperCase()
                                                     )}
                                                 </div>
+                                                <div className={styles.mobileUserDetails}>
+                                                    <strong>{user.full_name || "Membro Ecosopis"}</strong>
+                                                    <span>{user.email}</span>
+                                                </div>
+                                            </div>
+                                            <Link href="/perfil" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                                <User size={22} />
+                                                Minha Conta
                                             </Link>
-                                        ))}
+                                            {isAdmin && (
+                                                <Link href="/admin/dashboard" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                                    <LayoutDashboard size={22} />
+                                                    PAINEL ADMIN
+                                                </Link>
+                                            )}
+                                            <button 
+                                                onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} 
+                                                className={styles.mobileLogoutBtn}
+                                            >
+                                                <LogOut size={20} />
+                                                Sair da Conta
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <Link href="/conta" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                            <User size={22} />
+                                            ENTRAR / CADASTRAR
+                                        </Link>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={styles.actions} style={{ position: 'relative', zIndex: 1000 }}>
+                        {/* Botão de busca compacto quando o header estiver em modo clean */}
+                        {isScrolled && (
+                            <button
+                                type="button"
+                                onClick={() => setIsSearchExpanded(prev => !prev)}
+                                className={`${styles.scrolledSearchBtn} ${isSearchExpanded ? styles.scrolledSearchBtnActive : ''}`}
+                                title={isSearchExpanded ? "Fechar busca" : "Buscar produtos"}
+                                aria-label="Buscar produtos"
+                            >
+                                {isSearchExpanded ? <X size={18} /> : <Search size={18} />}
+                            </button>
+                        )}
+
+                        <button onClick={openCart} className={styles.actionIcon} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                            <div className={styles.cartIconWrapper}>
+                                <ShoppingCart size={22} />
+                                {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
+                                <span className={styles.cartLabel}>CARRINHO</span>
+                            </div>
+                        </button>
+
+                        {user ? (
+                            <div className={styles.userMenuContainer}>
+                                <button
+                                    className={styles.userButton}
+                                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                >
+                                    <div className={styles.avatar} style={{ overflow: 'hidden' }}>
+                                        {/* @ts-ignore */}
+                                        {user.profile_picture ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={user.profile_picture} alt={user.full_name || "User"} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            (user.full_name || user.email || "U").charAt(0).toUpperCase()
+                                        )}
+                                    </div>
+                                    <span className={styles.userName}>{(user.full_name || user.email || "User").split(' ')[0]}</span>
+                                    <ChevronDown size={16} className={`${styles.chevron} ${isMenuOpen ? styles.chevronOpen : ''}`} />
+                                </button>
+
+                                {isMenuOpen && (
+                                    <div className={styles.dropdown}>
+                                        <div className={styles.dropdownHeader}>
+                                            <strong>{user.full_name || "Membro Ecosopis"}</strong>
+                                            <span>{user.email}</span>
+                                        </div>
+                                        <hr className={styles.divider} />
+                                        <Link href="/perfil" className={styles.dropdownItem} onClick={() => setIsMenuOpen(false)}>
+                                            <User size={18} />
+                                            Minha Conta
+                                        </Link>
+                                        {isAdmin && (
+                                            <Link href="/admin/dashboard" className={styles.dropdownItem} onClick={() => setIsMenuOpen(false)}>
+                                                <LayoutDashboard size={18} />
+                                                Painel Admin
+                                            </Link>
+                                        )}
+                                        <hr className={styles.divider} />
+                                        <button onClick={handleLogout} className={`${styles.dropdownItem} ${styles.logoutAction}`}>
+                                            <LogOut size={18} />
+                                            Sair
+                                        </button>
                                     </div>
                                 )}
                             </div>
+                        ) : (
+                            <Link href="/conta" className={styles.actionIcon}>
+                                <User size={22} style={{ marginRight: 5 }} />
+                                <span style={{ fontSize: '0.8rem', fontWeight: 600, display: 'none' }} className={styles.desktopTextInfo}>ENTRAR</span>
+                            </Link>
                         )}
-                    </div>
 
-                    {/* Quick Search Suggestions */}
-                    <div className={styles.desktopSearchSuggestions}>
-                        <span className={styles.suggestionsLabel}>Sugestões:</span>
-                        {["Sabonete", "Clareamento", "Rosa Mosqueta", "Kit"].map((tag) => (
-                            <button
-                                key={tag}
-                                type="button"
-                                onClick={() => setSearchQuery(tag)}
-                                className={styles.desktopSuggestionTag}
-                            >
-                                {tag}
-                            </button>
-                        ))}
+                        <button
+                            className={styles.mobileMenuButton}
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            aria-label="Toggle menu"
+                        >
+                            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                        </button>
                     </div>
+                </div>
 
+                {/* Floating Search Overlay when user clicks search icon in scrolled header */}
+                {isScrolled && isSearchExpanded && (
+                    <div className={styles.scrolledSearchOverlay}>
+                        <div className={`container ${styles.desktopSearchBandContent}`}>
+                            {renderSearchInputGroup(true)}
+                        </div>
+                    </div>
+                )}
+            </header>
+
+            {/* Desktop Search Band (In natural page flow beneath the header) */}
+            <div className={styles.desktopSearchBand}>
+                <div className={`container ${styles.desktopSearchBandContent}`}>
+                    {renderSearchInputGroup(false)}
                 </div>
             </div>
 
-            {/* Global Cart Status Bar */}
+            {/* Global Cart Status Bar (In natural page flow) */}
             {cartCount > 0 && (
                 <div
                     data-cart-status-bar="true"
-                    className={`${styles.cartStatusBar} ${isScrolled ? styles.cartStatusBarHidden : ''}`}
+                    className={styles.cartStatusBar}
                     style={{
                         backgroundColor: isValentines ? '#fff0f3' : isAnniversary ? '#fffdf0' : '#f0fdf4',
                         borderTop: isValentines ? '1px solid #f9c0d0' : isAnniversary ? '1px solid #f5e6be' : '1px solid #dcfce7',
@@ -490,6 +510,6 @@ export default function Header() {
                     </span>
                 </div>
             )}
-        </header>
+        </>
     );
 }
