@@ -226,7 +226,7 @@
 
 @media (max-width: 768px) {
     .storyItem {
-        width: 80px;
+        width: auto;
     }
 
     .storyCircleRing {
@@ -236,15 +236,13 @@
     }
 
     .storyLabel {
-        max-width: 80px;
-        font-size: 0.72rem;
-        margin-top: 0.35rem;
+        display: none !important;
     }
 }
 
 @media (max-width: 480px) {
     .storyItem {
-        width: 74px;
+        width: auto;
     }
 
     .storyCircleRing {
@@ -254,8 +252,7 @@
     }
 
     .storyLabel {
-        max-width: 74px;
-        font-size: 0.68rem;
+        display: none !important;
     }
 }
 

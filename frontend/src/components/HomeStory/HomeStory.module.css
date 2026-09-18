@@ -92,7 +92,7 @@
         -webkit-overflow-scrolling: touch;
     }
     .storyItem {
-        width: 52px;
+        width: auto;
     }
     .storyCircleRing {
         width: 48px;
@@ -104,11 +104,7 @@
         border-width: 1.5px;
     }
     .storyLabel {
-        margin-top: 0.25rem;
-        font-size: 0.59rem;
-        font-weight: 600;
-        max-width: 52px;
-        line-height: 1.15;
+        display: none !important;
     }
     .storyInstaIcon {
         width: 16px;
@@ -122,7 +118,7 @@
         padding: 0.2rem 0.5rem 0.3rem 0.5rem;
     }
     .storyItem {
-        width: 46px;
+        width: auto;
     }
     .storyCircleRing {
         width: 42px;
@@ -130,8 +126,7 @@
         padding: 1.5px;
     }
     .storyLabel {
-        max-width: 46px;
-        font-size: 0.54rem;
+        display: none !important;
     }
 }
 

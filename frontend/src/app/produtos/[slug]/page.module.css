@@ -206,9 +206,9 @@
 .buyNowBtn {
     flex: 1.25;
     height: 52px;
-    background: linear-gradient(135deg, #1b4315 0%, #2d5a27 100%);
+    background: #111111;
     color: #ffffff;
-    border: 1px solid #1b4315;
+    border: 1px solid #111111;
     border-radius: 14px;
     font-weight: 800;
     font-size: 0.95rem;
@@ -220,15 +220,16 @@
     gap: 8px;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 4px 16px rgba(45, 90, 39, 0.3);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
     box-sizing: border-box;
     white-space: nowrap;
 }
 
 .buyNowBtn:hover {
-    background: linear-gradient(135deg, #24571c 0%, #376f30 100%);
+    background: #2a2a2a;
+    border-color: #2a2a2a;
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(45, 90, 39, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
 .buyNowBtn:active {
@@ -1784,9 +1785,9 @@
 .stickyBarBuyBtn {
     height: 48px;
     padding: 0 24px;
-    background: linear-gradient(135deg, #2d5a27 0%, #3d7a35 100%);
+    background: #111111;
     color: white;
-    border: none;
+    border: 1px solid #111111;
     border-radius: 14px;
     font-size: 0.9rem;
     font-weight: 800;
@@ -1797,14 +1798,15 @@
     align-items: center;
     gap: 8px;
     white-space: nowrap;
-    box-shadow: 0 4px 14px rgba(45, 90, 39, 0.3);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
     flex-shrink: 0;
 }
 
 .stickyBarBuyBtn:hover {
-    background: linear-gradient(135deg, #234820 0%, #2d5a27 100%);
+    background: #2a2a2a;
+    border-color: #2a2a2a;
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(45, 90, 39, 0.4);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
 .stickyBarBuyBtn:active {
