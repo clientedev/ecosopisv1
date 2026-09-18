@@ -147,7 +147,7 @@ export default function HomeStoryCircles({ stories = [] }: HomeStoryCirclesProps
                                                     loop
                                                     muted
                                                     playsInline
-                                                    preload="auto"
+                                                    preload="metadata"
                                                     disablePictureInPicture
                                                     onLoadedMetadata={(e) => {
                                                         const target = e.currentTarget;
@@ -173,6 +173,8 @@ export default function HomeStoryCircles({ stories = [] }: HomeStoryCirclesProps
                                                     src={media.src}
                                                     alt={story.title || "Story"}
                                                     className={styles.storyMediaPreview}
+                                                    loading="lazy"
+                                                    decoding="async"
                                                     onError={(e) => {
                                                         (e.target as HTMLImageElement).src = "/logo_final.png";
                                                     }}

@@ -224,7 +224,7 @@ export default function NewsSection() {
                           loop
                           muted
                           playsInline
-                          preload="auto"
+                          preload="metadata"
                           disablePictureInPicture
                           onError={() => setVideoErrors((prev) => ({ ...prev, [post.id]: true }))}
                           onLoadedMetadata={(e) => {
@@ -248,7 +248,7 @@ export default function NewsSection() {
                         )}
                       </div>
                     ) : post.media_url ? (
-                      isIg ? (
+                          isIg ? (
                         <div className={styles.instagramMediaCard}>
                           <div className={styles.instagramCardIcon}>
                             <Instagram size={28} />
@@ -260,6 +260,8 @@ export default function NewsSection() {
                           src={resolveMediaUrl(post.media_url)}
                           alt={post.title}
                           className={styles.cardImg}
+                          loading="lazy"
+                          decoding="async"
                         />
                       )
                     ) : (

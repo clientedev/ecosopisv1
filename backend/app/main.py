@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
@@ -431,6 +432,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# GZIP compression for all responses >= 1KB
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Force HTTPS Redirects - Only for production
 if os.getenv("NODE_ENV") == "production" or os.getenv("RAILWAY_ENVIRONMENT") == "production":

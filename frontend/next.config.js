@@ -5,6 +5,9 @@ const path = require('path');
 
 const nextConfig = {
   output: 'standalone',
+  compress: true,
+  poweredByHeader: false,
+  swcMinify: true,
   webpack: (config) => {
     config.resolve.alias['@'] = path.resolve(__dirname, 'src');
     return config;
@@ -24,6 +27,28 @@ const nextConfig = {
     '*.repl.co',
     '*.replit.app',
   ],
+  async headers() {
+    return [
+      {
+        source: '/:all*(svg|jpg|jpeg|png|webp|avif|ico|woff|woff2|ttf)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/image',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       {
@@ -50,6 +75,8 @@ const nextConfig = {
     ];
   },
   images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 604800,
     remotePatterns: [
       {
         protocol: 'http',

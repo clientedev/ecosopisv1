@@ -3,8 +3,10 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import ProductCard from "@/components/ProductCard/ProductCard";
 import NewsSection from "@/components/NewsSection/NewsSection";
-import ChatIA from "@/components/ChatIA/ChatIA";
 import HomeStoryCircles from "@/components/HomeStory/HomeStoryCircles";
+import dynamic from "next/dynamic";
+
+const ChatIA = dynamic(() => import("@/components/ChatIA/ChatIA"), { ssr: false });
 import styles from "./page.module.css";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";

@@ -15,17 +15,20 @@ import AnniversaryAnimation from "@/components/AnniversaryAnimation/AnniversaryA
 const raleway = Raleway({
     subsets: ["latin"],
     variable: "--font-header",
+    display: "swap",
 });
 
 const karla = Karla({
     subsets: ["latin"],
     variable: "--font-body",
+    display: "swap",
 });
 
 const cinzel = Cinzel({
     subsets: ["latin"],
     variable: "--font-logo",
-    weight: ["400", "500", "600", "700", "800", "900"],
+    weight: ["600", "700"],
+    display: "swap",
 });
 
 export const metadata: Metadata = {

@@ -150,7 +150,7 @@ export default function ProductStoryCircles({
                                                 loop
                                                 muted
                                                 playsInline
-                                                preload="auto"
+                                                preload="metadata"
                                                 disablePictureInPicture
                                                 onLoadedMetadata={(e) => {
                                                     const v = e.currentTarget;
@@ -176,6 +176,8 @@ export default function ProductStoryCircles({
                                                 src={media.src}
                                                 alt={story.title || "Story"}
                                                 className={styles.storyMediaPreview}
+                                                loading="lazy"
+                                                decoding="async"
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).src = productImage;
                                                 }}

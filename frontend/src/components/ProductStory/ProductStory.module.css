@@ -226,36 +226,36 @@
 
 @media (max-width: 768px) {
     .storyItem {
-        width: 66px;
+        width: 80px;
     }
 
     .storyCircleRing {
-        width: 64px;
-        height: 64px;
-        padding: 2.5px;
+        width: 78px;
+        height: 78px;
+        padding: 3px;
     }
 
     .storyLabel {
-        max-width: 66px;
-        font-size: 0.68rem;
+        max-width: 80px;
+        font-size: 0.72rem;
         margin-top: 0.35rem;
     }
 }
 
 @media (max-width: 480px) {
     .storyItem {
-        width: 58px;
+        width: 74px;
     }
 
     .storyCircleRing {
-        width: 56px;
-        height: 56px;
-        padding: 2px;
+        width: 72px;
+        height: 72px;
+        padding: 2.5px;
     }
 
     .storyLabel {
-        max-width: 58px;
-        font-size: 0.64rem;
+        max-width: 74px;
+        font-size: 0.68rem;
     }
 }
 
