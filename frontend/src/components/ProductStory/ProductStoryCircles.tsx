@@ -1,8 +1,8 @@
 "use client";
 import React from "react";
 import styles from "./ProductStory.module.css";
-import { Play, Sparkles } from "lucide-react";
-import { isGoogleDriveUrl, getGoogleDriveThumbnailUrl, getGoogleDriveDirectStreamUrl, getGoogleDriveEmbedUrl } from "@/utils/driveUtils";
+import { isGoogleDriveUrl, getGoogleDriveDirectStreamUrl, getGoogleDriveEmbedUrl } from "@/utils/driveUtils";
+import { isInstagramContent, getInstagramEmbedUrl } from "@/utils/instagramUtils";
 
 export interface StoryVideo {
     id?: string;
@@ -40,34 +40,39 @@ export default function ProductStoryCircles({
 
     /**
      * Determina o tipo e a URL da mídia para a bolinha de preview.
-     * O vídeo DEVE rodar em autoplay contínuo dentro da bolinha.
+     * O vídeo DEVE rodar em autoplay contínuo dentro da bolinha sem imagem estática de capa.
      */
     const getPreviewMedia = (story: StoryVideo): { type: "video" | "iframe" | "img"; src: string } => {
+        // Se for Instagram Reel
+        if (story.video_url && isInstagramContent(story.video_url)) {
+            const embed = getInstagramEmbedUrl(story.video_url);
+            if (embed) {
+                return { type: "iframe", src: embed };
+            }
+        }
+
         // Se for URL do Google Drive
         if (story.video_url && isGoogleDriveUrl(story.video_url)) {
-            // Tenta stream direto do Google Drive (lh3)
             const direct = getGoogleDriveDirectStreamUrl(story.video_url);
             if (direct) {
                 return { type: "video", src: direct };
             }
-            // Fallback para embed do drive se necessário
             const embed = getGoogleDriveEmbedUrl(story.video_url, true);
             if (embed) {
                 return { type: "iframe", src: embed };
             }
         }
 
-        // Vídeo comum (MP4, WebM, etc) -> toca em autoplay dentro da bolinha
+        // Vídeo comum (MP4, WebM, etc) -> toca em autoplay contínuo dentro da bolinha
         if (story.video_url) {
             return { type: "video", src: getMediaUrl(story.video_url) };
         }
 
-        // Se tiver apenas thumbnail de imagem
+        // Fallback apenas se não houver vídeo
         if (story.thumbnail_url) {
             return { type: "img", src: getMediaUrl(story.thumbnail_url) };
         }
 
-        // Fallback: imagem do produto
         return { type: "img", src: productImage };
     };
 
@@ -94,13 +99,17 @@ export default function ProductStoryCircles({
                                             loop
                                             muted
                                             playsInline
+                                            preload="auto"
                                             disablePictureInPicture
-                                            onError={(e) => {
-                                                // Se falhar o stream direto do vídeo, faz fallback para iframe ou imagem
-                                                const target = e.currentTarget;
-                                                target.style.display = "none";
-                                                const fallback = target.parentElement?.querySelector(".story-fallback-img");
-                                                if (fallback) (fallback as HTMLElement).style.display = "block";
+                                            onLoadedMetadata={(e) => {
+                                                const v = e.currentTarget;
+                                                v.muted = true;
+                                                v.play().catch(() => {});
+                                            }}
+                                            onCanPlay={(e) => {
+                                                const v = e.currentTarget;
+                                                v.muted = true;
+                                                v.play().catch(() => {});
                                             }}
                                         />
                                     ) : media.type === "iframe" ? (
@@ -109,7 +118,7 @@ export default function ProductStoryCircles({
                                             className={styles.storyMediaPreview}
                                             allow="autoplay; encrypted-media"
                                             title={story.title || "Story preview"}
-                                            style={{ border: "none", pointerEvents: "none" }}
+                                            style={{ border: "none", pointerEvents: "none", width: "100%", height: "100%", objectFit: "cover" }}
                                         />
                                     ) : (
                                         <img
@@ -121,14 +130,6 @@ export default function ProductStoryCircles({
                                             }}
                                         />
                                     )}
-
-                                    {/* Imagem de fallback caso o vídeo do Drive falhe */}
-                                    <img
-                                        src={productImage}
-                                        alt={story.title || "Story"}
-                                        className={`${styles.storyMediaPreview} story-fallback-img`}
-                                        style={{ display: "none" }}
-                                    />
                                 </div>
                             </div>
                         </button>

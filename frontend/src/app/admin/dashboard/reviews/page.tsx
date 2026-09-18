@@ -13,7 +13,11 @@ import {
     Star, 
     Package, 
     CheckCheck,
-    AlertCircle
+    AlertCircle,
+    Edit2,
+    Plus,
+    Upload,
+    X
 } from "lucide-react";
 import { fuzzySearch } from "@/utils/search";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
@@ -38,6 +42,27 @@ export default function AdminReviewsPage() {
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [actionMsg, setActionMsg] = useState<string>("");
     const router = useRouter();
+
+    // Estado para edição de avaliação
+    const [editingReview, setEditingReview] = useState<ReviewItem | null>(null);
+    const [editFormData, setEditFormData] = useState<{
+        user_name: string;
+        comment: string;
+        rating: number;
+        is_approved: boolean;
+        product_id: number | null;
+        images: string[];
+    }>({
+        user_name: "",
+        comment: "",
+        rating: 5,
+        is_approved: true,
+        product_id: null,
+        images: [],
+    });
+    const [newImageUrl, setNewImageUrl] = useState("");
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const [savingEdit, setSavingEdit] = useState(false);
 
     const normalizeReviews = (data: any[]): ReviewItem[] => {
         if (!Array.isArray(data)) return [];
@@ -273,6 +298,134 @@ export default function AdminReviewsPage() {
         }
     };
 
+    // Funções de Edição
+    const openEditModal = (review: ReviewItem) => {
+        setEditingReview(review);
+        setEditFormData({
+            user_name: review.user_name || "",
+            comment: review.comment || "",
+            rating: review.rating || 5,
+            is_approved: review.is_approved,
+            product_id: review.product_id != null ? Number(review.product_id) : null,
+            images: Array.isArray(review.images) ? [...review.images] : [],
+        });
+        setNewImageUrl("");
+    };
+
+    const closeEditModal = () => {
+        setEditingReview(null);
+        setNewImageUrl("");
+    };
+
+    const handleAddImageLink = () => {
+        const trimmed = newImageUrl.trim();
+        if (!trimmed) return;
+        if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://") && !trimmed.startsWith("/")) {
+            alert("Por favor, insira uma URL válida (ex: https://...)");
+            return;
+        }
+        setEditFormData(prev => ({
+            ...prev,
+            images: [...prev.images, trimmed]
+        }));
+        setNewImageUrl("");
+    };
+
+    const handleUploadImageFile = async (file: File) => {
+        setUploadingImage(true);
+        try {
+            const token = localStorage.getItem("token");
+            const fd = new FormData();
+            fd.append("file", file);
+            const res = await fetch("/api/images/upload", {
+                method: "POST",
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: fd
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.url) {
+                    setEditFormData(prev => ({
+                        ...prev,
+                        images: [...prev.images, data.url]
+                    }));
+                }
+            } else {
+                alert("Falha ao enviar imagem. Verifique o arquivo.");
+            }
+        } catch (err) {
+            console.error("Erro no upload", err);
+            alert("Erro de conexão ao enviar imagem.");
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
+    const handleRemoveImage = (index: number) => {
+        setEditFormData(prev => ({
+            ...prev,
+            images: prev.images.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingReview) return;
+        if (!editFormData.user_name.trim()) {
+            alert("O nome do cliente é obrigatório.");
+            return;
+        }
+        if (!editFormData.comment.trim()) {
+            alert("O comentário da avaliação é obrigatório.");
+            return;
+        }
+
+        setSavingEdit(true);
+        const token = localStorage.getItem("token");
+        try {
+            const res = await fetch(`/api/reviews/${editingReview.id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    user_name: editFormData.user_name,
+                    comment: editFormData.comment,
+                    rating: editFormData.rating,
+                    is_approved: editFormData.is_approved,
+                    product_id: editFormData.product_id,
+                    images: editFormData.images
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                const updated = data.review;
+                setReviews(prev => prev.map(r => r.id === editingReview.id ? {
+                    ...r,
+                    user_name: updated.user_name,
+                    comment: updated.comment,
+                    rating: updated.rating,
+                    is_approved: updated.is_approved,
+                    product_id: updated.product_id,
+                    images: Array.isArray(updated.images) ? updated.images : [],
+                    product_name: productStats.find(p => p.numericId === updated.product_id)?.name || r.product_name
+                } : r));
+                setActionMsg("✅ Avaliação atualizada com sucesso!");
+                setTimeout(() => setActionMsg(""), 3500);
+                closeEditModal();
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert(err.detail || "Erro ao salvar avaliação.");
+            }
+        } catch (err) {
+            console.error("Error updating review", err);
+            alert("Erro de conexão ao salvar avaliação.");
+        } finally {
+            setSavingEdit(false);
+        }
+    };
+
     return (
         <div className={styles.dashboard} style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
             <AdminSidebar activePath="/admin/dashboard/reviews" />
@@ -281,7 +434,7 @@ export default function AdminReviewsPage() {
                 <header className={styles.header}>
                     <div>
                         <h1>Moderação de Avaliações</h1>
-                        <p>Avaliações divididas e organizadas por produto para facilitar a aprovação.</p>
+                        <p>Avaliações divididas por produto, com edição completa e gerenciamento de fotos.</p>
                     </div>
                     <button 
                         onClick={fetchReviews} 
@@ -488,12 +641,12 @@ export default function AdminReviewsPage() {
                                             <thead>
                                                 <tr>
                                                     <th style={{ width: "95px" }}>Data</th>
-                                                    <th style={{ width: "160px" }}>Cliente</th>
-                                                    <th style={{ width: "110px" }}>Nota</th>
+                                                    <th style={{ width: "150px" }}>Cliente</th>
+                                                    <th style={{ width: "105px" }}>Nota</th>
                                                     <th>Comentário</th>
-                                                    <th style={{ width: "130px" }}>Fotos</th>
+                                                    <th style={{ width: "120px" }}>Fotos</th>
                                                     <th style={{ width: "95px" }}>Status</th>
-                                                    <th style={{ width: "130px" }}>Ações</th>
+                                                    <th style={{ width: "180px" }}>Ações</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -557,6 +710,14 @@ export default function AdminReviewsPage() {
                                                                     </button>
                                                                 )}
                                                                 <button
+                                                                    className={reviewStyles.editBtn}
+                                                                    onClick={() => openEditModal(rev)}
+                                                                    title="Editar texto, nota e fotos desta avaliação"
+                                                                >
+                                                                    <Edit2 size={13} />
+                                                                    Editar
+                                                                </button>
+                                                                <button
                                                                     className={styles.deleteBtn}
                                                                     onClick={() => handleDelete(rev.id)}
                                                                     title="Excluir permanentemente"
@@ -577,6 +738,196 @@ export default function AdminReviewsPage() {
                     )}
                 </div>
             </main>
+
+            {/* Modal de Edição de Avaliação */}
+            {editingReview && (
+                <div className={reviewStyles.modalOverlay} onClick={closeEditModal}>
+                    <div className={reviewStyles.modalContainer} onClick={(e) => e.stopPropagation()}>
+                        <header className={reviewStyles.modalHeader}>
+                            <h3>
+                                <Edit2 size={17} color="#2d5a27" />
+                                Editar Avaliação #{editingReview.id}
+                            </h3>
+                            <button
+                                type="button"
+                                className={reviewStyles.modalCloseBtn}
+                                onClick={closeEditModal}
+                                title="Fechar"
+                            >
+                                <X size={18} />
+                            </button>
+                        </header>
+
+                        <div className={reviewStyles.modalBody}>
+                            <div className={reviewStyles.formGroup}>
+                                <label>Nome do Cliente / Avaliador</label>
+                                <input
+                                    type="text"
+                                    value={editFormData.user_name}
+                                    onChange={(e) => setEditFormData(prev => ({ ...prev, user_name: e.target.value }))}
+                                    placeholder="Ex: Maria Silva"
+                                />
+                            </div>
+
+                            <div className={reviewStyles.formGroup}>
+                                <label>Nota (Estrelas)</label>
+                                <div className={reviewStyles.starPicker}>
+                                    {[1, 2, 3, 4, 5].map((starVal) => (
+                                        <button
+                                            key={starVal}
+                                            type="button"
+                                            className={`${reviewStyles.starPickerBtn} ${starVal <= editFormData.rating ? reviewStyles.starPickerActive : ""}`}
+                                            onClick={() => setEditFormData(prev => ({ ...prev, rating: starVal }))}
+                                            title={`${starVal} estrelas`}
+                                        >
+                                            ★
+                                        </button>
+                                    ))}
+                                    <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#f59e0b", marginLeft: "6px" }}>
+                                        {editFormData.rating} de 5 estrelas
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className={reviewStyles.formGroup}>
+                                <label>Comentário da Avaliação</label>
+                                <textarea
+                                    rows={4}
+                                    value={editFormData.comment}
+                                    onChange={(e) => setEditFormData(prev => ({ ...prev, comment: e.target.value }))}
+                                    placeholder="Digite o texto da avaliação..."
+                                />
+                            </div>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                                <div className={reviewStyles.formGroup}>
+                                    <label>Status de Publicação</label>
+                                    <select
+                                        value={editFormData.is_approved ? "true" : "false"}
+                                        onChange={(e) => setEditFormData(prev => ({ ...prev, is_approved: e.target.value === "true" }))}
+                                    >
+                                        <option value="true">✅ Aprovada (Visível no site)</option>
+                                        <option value="false">⏳ Pendente de moderação</option>
+                                    </select>
+                                </div>
+
+                                <div className={reviewStyles.formGroup}>
+                                    <label>Produto Vinculado</label>
+                                    <select
+                                        value={editFormData.product_id != null ? String(editFormData.product_id) : "0"}
+                                        onChange={(e) => {
+                                            const val = Number(e.target.value);
+                                            setEditFormData(prev => ({ ...prev, product_id: val === 0 ? null : val }));
+                                        }}
+                                    >
+                                        <option value="0">Geral (Sem Produto Específico)</option>
+                                        {productStats.filter(p => p.numericId !== 0).map(p => (
+                                            <option key={p.id} value={p.numericId}>
+                                                {p.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Gerenciador de Fotos da Avaliação */}
+                            <div className={reviewStyles.imagesSectionBox}>
+                                <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "#1e293b", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                                    Fotos da Avaliação ({editFormData.images.length})
+                                </label>
+
+                                {/* Inserir link da imagem */}
+                                <div className={reviewStyles.imageInputRow}>
+                                    <input
+                                        type="text"
+                                        value={newImageUrl}
+                                        onChange={(e) => setNewImageUrl(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                handleAddImageLink();
+                                            }
+                                        }}
+                                        placeholder="Cole o link da foto (https://...)"
+                                    />
+                                    <button
+                                        type="button"
+                                        className={reviewStyles.addImageBtn}
+                                        onClick={handleAddImageLink}
+                                    >
+                                        <Plus size={14} /> Inserir Link
+                                    </button>
+                                </div>
+
+                                {/* Ou upload de imagem */}
+                                <div className={reviewStyles.uploadRow}>
+                                    <label className={reviewStyles.uploadFileLabel}>
+                                        <Upload size={14} />
+                                        {uploadingImage ? "Enviando imagem..." : "Upload do Computador"}
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            style={{ display: "none" }}
+                                            disabled={uploadingImage}
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    handleUploadImageFile(e.target.files[0]);
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                    <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                                        JPG, PNG ou WebP
+                                    </span>
+                                </div>
+
+                                {/* Miniaturas das fotos atuais */}
+                                {editFormData.images.length > 0 ? (
+                                    <div className={reviewStyles.imagesThumbsGrid}>
+                                        {editFormData.images.map((imgUrl, i) => (
+                                            <div key={i} className={reviewStyles.thumbCard} title={imgUrl}>
+                                                <img src={imgUrl} alt={`Foto ${i + 1}`} />
+                                                <button
+                                                    type="button"
+                                                    className={reviewStyles.removeThumbBtn}
+                                                    onClick={() => handleRemoveImage(i)}
+                                                    title="Remover foto"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p style={{ margin: 0, fontSize: "0.78rem", color: "#94a3b8", fontStyle: "italic" }}>
+                                        Nenhuma foto anexada a esta avaliação no momento.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        <footer className={reviewStyles.modalFooter}>
+                            <button
+                                type="button"
+                                className={reviewStyles.cancelModalBtn}
+                                onClick={closeEditModal}
+                                disabled={savingEdit}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                className={reviewStyles.saveModalBtn}
+                                onClick={handleSaveEdit}
+                                disabled={savingEdit}
+                            >
+                                <CheckCircle2 size={15} />
+                                {savingEdit ? "Salvando..." : "Salvar Alterações"}
+                            </button>
+                        </footer>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

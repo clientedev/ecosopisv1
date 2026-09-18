@@ -41,9 +41,19 @@ export default function HomeStoryModal({
             setCurrentIndex(prev => prev + 1);
             setProgress(0);
         } else {
-            onClose();
+            // Em loop: se terminar todos, volta para o primeiro ou repete o vídeo único
+            if (stories.length > 1) {
+                setCurrentIndex(0);
+                setProgress(0);
+            } else {
+                setProgress(0);
+                if (videoRef.current) {
+                    videoRef.current.currentTime = 0;
+                    videoRef.current.play().catch(console.error);
+                }
+            }
         }
-    }, [currentIndex, stories.length, onClose]);
+    }, [currentIndex, stories.length]);
 
     const handlePrev = useCallback(() => {
         if (currentIndex > 0) {
@@ -237,7 +247,11 @@ export default function HomeStoryModal({
                             className={styles.storyVideo}
                             autoPlay
                             playsInline
+                            preload="auto"
                             muted={isMuted}
+                            onCanPlay={(e) => {
+                                e.currentTarget.play().catch(() => {});
+                            }}
                             onTimeUpdate={handleTimeUpdate}
                             onEnded={handleVideoEnded}
                             onError={() => {

@@ -330,3 +330,53 @@ def delete_review(review_id: int, db: Session = Depends(get_db), admin: models.U
     db.delete(review)
     db.commit()
     return {"message": "Review deleted"}
+
+class ReviewUpdate(BaseModel):
+    user_name: Optional[str] = None
+    comment: Optional[str] = None
+    rating: Optional[int] = None
+    is_approved: Optional[bool] = None
+    product_id: Optional[int] = None
+    images: Optional[list[str]] = None
+
+@router.put("/{review_id}")
+def update_review(
+    review_id: int, 
+    data: ReviewUpdate, 
+    db: Session = Depends(get_db), 
+    admin: models.User = Depends(get_current_admin)
+):
+    """Admin endpoint to update review details, rating, comment, approval status, and images."""
+    review = db.query(models.Review).filter(models.Review.id == review_id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Avaliação não encontrada")
+
+    if data.user_name is not None:
+        review.user_name = data.user_name.strip()
+    if data.comment is not None:
+        review.comment = data.comment.strip()
+    if data.rating is not None:
+        review.rating = max(1, min(5, data.rating))
+    if data.is_approved is not None:
+        review.is_approved = data.is_approved
+    if data.product_id is not None:
+        review.product_id = data.product_id if data.product_id != 0 else None
+    if data.images is not None:
+        review.images = normalize_images(data.images)
+
+    db.commit()
+    db.refresh(review)
+    return {
+        "message": "Avaliação atualizada com sucesso!",
+        "review": {
+            "id": review.id,
+            "user_name": review.user_name,
+            "comment": review.comment,
+            "rating": review.rating,
+            "images": normalize_images(review.images),
+            "is_approved": review.is_approved,
+            "product_id": review.product_id,
+            "created_at": review.created_at.isoformat() if review.created_at else None
+        }
+    }
+

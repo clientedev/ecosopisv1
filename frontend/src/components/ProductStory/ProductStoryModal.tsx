@@ -104,13 +104,23 @@ export default function ProductStoryModal({
         if (driveTimerRef.current) clearInterval(driveTimerRef.current);
     };
 
-    // Handle video end -> advance to next or close
+    // Handle video end -> advance to next or repeat from start
     const handleVideoEnd = () => {
         if (currentIndex < storyVideos.length - 1) {
             setCurrentIndex(prev => prev + 1);
             setProgress(0);
         } else {
-            onClose();
+            // Se for o último story (ou único), recomeça do primeiro em loop
+            if (storyVideos.length > 1) {
+                setCurrentIndex(0);
+                setProgress(0);
+            } else {
+                setProgress(0);
+                if (videoRef.current) {
+                    videoRef.current.currentTime = 0;
+                    videoRef.current.play().catch(err => console.error("Replay error:", err));
+                }
+            }
         }
     };
 
@@ -141,7 +151,17 @@ export default function ProductStoryModal({
             setCurrentIndex(prev => prev + 1);
             setProgress(0);
         } else {
-            onClose();
+            // Em loop: volta para o primeiro
+            if (storyVideos.length > 1) {
+                setCurrentIndex(0);
+                setProgress(0);
+            } else {
+                setProgress(0);
+                if (videoRef.current) {
+                    videoRef.current.currentTime = 0;
+                    videoRef.current.play().catch(err => console.error("Replay error:", err));
+                }
+            }
         }
     };
 
@@ -270,7 +290,12 @@ export default function ProductStoryModal({
                             className={styles.storyVideo}
                             autoPlay
                             playsInline
+                            preload="auto"
                             muted={isMuted}
+                            onCanPlay={(e) => {
+                                e.currentTarget.play().catch(() => {});
+                                setIsPlaying(true);
+                            }}
                             onTimeUpdate={handleTimeUpdate}
                             onEnded={handleVideoEnd}
                         />
