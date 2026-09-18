@@ -183,6 +183,9 @@ export default function ProductStoryCircles({
                                         )}
                                     </div>
                                 </div>
+                                {story.title ? (
+                                    <span className={styles.storyLabel}>{story.title}</span>
+                                ) : null}
                             </button>
                         );
                     })}
