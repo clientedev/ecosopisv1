@@ -6,7 +6,7 @@ import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
 import styles from "./page.module.css";
 import Image from "next/image";
-import { QrCode, Plus, Minus, ShoppingBag, Leaf, ChevronDown, Sparkles } from "lucide-react";
+import { QrCode, Plus, Minus, ShoppingBag, Leaf, ChevronDown, Sparkles, Zap } from "lucide-react";
 import { useToast } from "@/components/Toast/Toast";
 import { useCart } from "@/context/CartContext";
 import { getStaticProductData } from "@/lib/productData";
@@ -484,117 +484,6 @@ export default function ProductDetailPage() {
                                 ))}
                             </div>
                         )}
-
-                        {/* ── GAVETA DE ITENS UTILIZADOS (COMPOSIÇÃO BOTÂNICA) ── */}
-                        {ingredientsWithDetails.length > 0 && (
-                            <div className={styles.drawerSection}>
-                                <div className={styles.drawerHeaderCard}>
-                                    <div className={styles.drawerBadge}>
-                                        <Leaf size={13} />
-                                        <span>Composição Declarada & Ativa</span>
-                                    </div>
-                                    <h3 className={styles.drawerTitle}>
-                                        <span>Itens Utilizados no Produto</span>
-                                        <span className={styles.drawerCountBadge}>
-                                            {ingredientsWithDetails.length} ativos botânicos
-                                        </span>
-                                    </h3>
-                                    <p className={styles.drawerSubtitle}>
-                                        Transparência absoluta: abra cada gaveta para conhecer em detalhes a função terapêutica e a origem de cada elemento desta fórmula.
-                                    </p>
-                                    <div className={styles.drawerChips}>
-                                        <span className={styles.drawerChip}>🌱 100% Vegano</span>
-                                        <span className={styles.drawerChip}>🐰 Cruelty-Free</span>
-                                        <span className={styles.drawerChip}>🚫 Sem Parabenos</span>
-                                        <span className={styles.drawerChip}>✨ Grau Nobre</span>
-                                    </div>
-                                </div>
-
-                                <div className={styles.drawerList}>
-                                    {ingredientsWithDetails.map((item, idx) => {
-                                        const isOpen = openAccordion === idx;
-                                        const numStr = String(idx + 1).padStart(2, '0');
-                                        return (
-                                            <div
-                                                key={idx}
-                                                className={`${styles.drawerItem} ${isOpen ? styles.drawerItemOpen : ''}`}
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className={styles.drawerTrigger}
-                                                    onClick={() => setOpenAccordion(isOpen ? null : idx)}
-                                                    aria-expanded={isOpen}
-                                                >
-                                                    <div className={styles.drawerTriggerLeft}>
-                                                        <div className={styles.drawerNumBadge}>
-                                                            {numStr}
-                                                        </div>
-                                                        <div className={styles.drawerItemMeta}>
-                                                            <div className={styles.drawerItemName}>{item.name}</div>
-                                                            <div className={styles.drawerItemTag}>{item.tag}</div>
-                                                        </div>
-                                                    </div>
-                                                    <div className={styles.drawerTriggerRight}>
-                                                        <ChevronDown
-                                                            size={18}
-                                                            className={`${styles.drawerChevron} ${isOpen ? styles.drawerChevronOpen : ''}`}
-                                                        />
-                                                    </div>
-                                                </button>
-
-                                                <div className={`${styles.drawerBody} ${isOpen ? styles.drawerBodyOpen : ''}`}>
-                                                    <div className={styles.drawerBodyInner}>
-                                                        <div className={styles.drawerCardsGrid}>
-                                                            <div className={styles.drawerCard}>
-                                                                <div className={styles.drawerCardHeader}>
-                                                                    <Sparkles size={14} />
-                                                                    <span>Ação na sua pele</span>
-                                                                </div>
-                                                                <p className={styles.drawerCardText}>{item.benefit}</p>
-                                                            </div>
-                                                            <div className={styles.drawerCard}>
-                                                                <div className={styles.drawerCardHeader}>
-                                                                    <Leaf size={14} />
-                                                                    <span>Origem & Pureza</span>
-                                                                </div>
-                                                                <p className={styles.drawerCardText}>{item.origin}</p>
-                                                            </div>
-                                                        </div>
-                                                        <div className={styles.drawerFooterNotice}>
-                                                            ✓ Ingrediente biocompatível e seguro para uso diário
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Seção de Dúvidas (Chat FAQ) */}
-                        <div className={styles.chatSection}>
-                            <div className={styles.chatHeaderInline}>
-                                <span>💬 Dúvidas sobre o produto?</span>
-                            </div>
-                            <div className={styles.chatContentInline}>
-                                <div className={styles.chatMessageInline}>
-                                    Olá! 👋 Como posso te ajudar com o <strong>{product.name}</strong> hoje?
-                                </div>
-                                <div className={styles.faqListInline}>
-                                    {faqs.map((faq, i) => (
-                                        <button key={i} className={styles.faqButtonInline} onClick={() => setSelectedFaq(faq)}>
-                                            {faq.q}
-                                        </button>
-                                    ))}
-                                </div>
-                                {selectedFaq && (
-                                    <div className={styles.answerInline}>
-                                        {selectedFaq.a}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
                     </div>
 
                     <div className={styles.infoSection}>
@@ -637,49 +526,55 @@ export default function ProductDetailPage() {
                                 <span className={styles.socialProofBadge}>⭐ Mais de 20.000 clientes satisfeitos</span>
                             </div>
                         )}
-                        <p className={styles.description}>{product.description}</p>
                         <div className={styles.buyActions}>
                             {product.buy_on_site && (
-                                <>
-                                    <div className={styles.quantityAndAddContainer}>
-                                        <div className={styles.quantitySelector}>
-                                            <button 
-                                                type="button"
-                                                className={styles.quantityBtn} 
-                                                onClick={handleDecrement}
-                                                disabled={quantity <= 1}
-                                                aria-label="Diminuir quantidade"
-                                            >
-                                                <Minus size={16} />
-                                            </button>
-                                            <span className={styles.quantityValue}>{quantity}</span>
-                                            <button 
-                                                type="button"
-                                                className={styles.quantityBtn} 
-                                                onClick={handleIncrement}
-                                                aria-label="Aumentar quantidade"
-                                            >
-                                                <Plus size={16} />
-                                            </button>
-                                        </div>
-
-                                        <button className={styles.addToCartBtn} onClick={handleAddToCart}>
-                                            <ShoppingBag size={20} />
-                                            <span>ADICIONAR AO CARRINHO</span>
+                                <div className={styles.purchaseControlsGroup}>
+                                    <div className={styles.quantityWrapper}>
+                                        <button 
+                                            type="button"
+                                            className={styles.quantityBtn} 
+                                            onClick={handleDecrement}
+                                            disabled={quantity <= 1}
+                                            aria-label="Diminuir quantidade"
+                                        >
+                                            <Minus size={15} />
+                                        </button>
+                                        <span className={styles.quantityValue}>{quantity}</span>
+                                        <button 
+                                            type="button"
+                                            className={styles.quantityBtn} 
+                                            onClick={handleIncrement}
+                                            aria-label="Aumentar quantidade"
+                                        >
+                                            <Plus size={15} />
                                         </button>
                                     </div>
 
-                                    <button
-                                        ref={buyNowBtnRef}
-                                        className={styles.buyNowBtn}
-                                        onClick={handleBuyNow}
-                                        disabled={buyingNow}
-                                        id="main-buy-btn"
-                                    >
-                                        <ShoppingBag size={20} />
-                                        <span>{buyingNow ? 'Redirecionando...' : 'COMPRAR'}</span>
-                                    </button>
-                                </>
+                                    <div className={styles.actionButtonsRow}>
+                                        <button 
+                                            type="button"
+                                            className={styles.addToCartBtn} 
+                                            onClick={handleAddToCart}
+                                            title="Adicionar ao Carrinho"
+                                        >
+                                            <ShoppingBag size={18} />
+                                            <span className={styles.btnTextFull}>ADICIONAR AO CARRINHO</span>
+                                            <span className={styles.btnTextShort}>ADICIONAR</span>
+                                        </button>
+
+                                        <button
+                                            ref={buyNowBtnRef}
+                                            className={styles.buyNowBtn}
+                                            onClick={handleBuyNow}
+                                            disabled={buyingNow}
+                                            id="main-buy-btn"
+                                            type="button"
+                                        >
+                                            <Zap size={18} />
+                                            <span>{buyingNow ? 'Processando...' : 'COMPRAR AGORA'}</span>
+                                        </button>
+                                    </div>
+                                </div>
                             )}
 
                             {/* Vídeos em Formato Story */}
@@ -725,6 +620,9 @@ export default function ProductDetailPage() {
                                 </div>
                             )}
                         </div>
+
+                        <p className={styles.description}>{product.description}</p>
+
                         {/* Link para a Ficha Técnica Premium */}
                         <Link
                             href={`/produto/${product.slug}/info`}
@@ -741,6 +639,120 @@ export default function ProductDetailPage() {
                         <div className={styles.detailSection}>
                             <h3>BENEFÍCIOS</h3>
                             <p>{product.benefits}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── SEÇÃO INFERIOR DE DETALHES: COMPOSIÇÃO BOTÂNICA & FAQ ── */}
+                <div className={styles.productDetailsBottomGrid}>
+                    {/* ── GAVETA DE ITENS UTILIZADOS (COMPOSIÇÃO BOTÂNICA) ── */}
+                    {ingredientsWithDetails.length > 0 && (
+                        <div className={styles.drawerSection}>
+                            <div className={styles.drawerHeaderCard}>
+                                <div className={styles.drawerBadge}>
+                                    <Leaf size={13} />
+                                    <span>Composição Declarada & Ativa</span>
+                                </div>
+                                <h3 className={styles.drawerTitle}>
+                                    <span>Itens Utilizados no Produto</span>
+                                    <span className={styles.drawerCountBadge}>
+                                        {ingredientsWithDetails.length} ativos botânicos
+                                    </span>
+                                </h3>
+                                <p className={styles.drawerSubtitle}>
+                                    Transparência absoluta: abra cada gaveta para conhecer em detalhes a função terapêutica e a origem de cada elemento desta fórmula.
+                                </p>
+                                <div className={styles.drawerChips}>
+                                    <span className={styles.drawerChip}>🌱 100% Vegano</span>
+                                    <span className={styles.drawerChip}>🐰 Cruelty-Free</span>
+                                    <span className={styles.drawerChip}>🚫 Sem Parabenos</span>
+                                    <span className={styles.drawerChip}>✨ Grau Nobre</span>
+                                </div>
+                            </div>
+
+                            <div className={styles.drawerList}>
+                                {ingredientsWithDetails.map((item, idx) => {
+                                    const isOpen = openAccordion === idx;
+                                    const numStr = String(idx + 1).padStart(2, '0');
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className={`${styles.drawerItem} ${isOpen ? styles.drawerItemOpen : ''}`}
+                                        >
+                                            <button
+                                                type="button"
+                                                className={styles.drawerTrigger}
+                                                onClick={() => setOpenAccordion(isOpen ? null : idx)}
+                                                aria-expanded={isOpen}
+                                            >
+                                                <div className={styles.drawerTriggerLeft}>
+                                                    <div className={styles.drawerNumBadge}>
+                                                        {numStr}
+                                                    </div>
+                                                    <div className={styles.drawerItemMeta}>
+                                                        <div className={styles.drawerItemName}>{item.name}</div>
+                                                        <div className={styles.drawerItemTag}>{item.tag}</div>
+                                                    </div>
+                                                </div>
+                                                <div className={styles.drawerTriggerRight}>
+                                                    <ChevronDown
+                                                        size={18}
+                                                        className={`${styles.drawerChevron} ${isOpen ? styles.drawerChevronOpen : ''}`}
+                                                    />
+                                                </div>
+                                            </button>
+
+                                            <div className={`${styles.drawerBody} ${isOpen ? styles.drawerBodyOpen : ''}`}>
+                                                <div className={styles.drawerBodyInner}>
+                                                    <div className={styles.drawerCardsGrid}>
+                                                        <div className={styles.drawerCard}>
+                                                            <div className={styles.drawerCardHeader}>
+                                                                <Sparkles size={14} />
+                                                                <span>Ação na sua pele</span>
+                                                            </div>
+                                                            <p className={styles.drawerCardText}>{item.benefit}</p>
+                                                        </div>
+                                                        <div className={styles.drawerCard}>
+                                                            <div className={styles.drawerCardHeader}>
+                                                                <Leaf size={14} />
+                                                                <span>Origem & Pureza</span>
+                                                            </div>
+                                                            <p className={styles.drawerCardText}>{item.origin}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className={styles.drawerFooterNotice}>
+                                                        ✓ Ingrediente biocompatível e seguro para uso diário
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Seção de Dúvidas (Chat FAQ) */}
+                    <div className={styles.chatSection}>
+                        <div className={styles.chatHeaderInline}>
+                            <span>💬 Dúvidas sobre o produto?</span>
+                        </div>
+                        <div className={styles.chatContentInline}>
+                            <div className={styles.chatMessageInline}>
+                                Olá! 👋 Como posso te ajudar com o <strong>{product.name}</strong> hoje?
+                            </div>
+                            <div className={styles.faqListInline}>
+                                {faqs.map((faq, i) => (
+                                    <button key={i} className={styles.faqButtonInline} onClick={() => setSelectedFaq(faq)}>
+                                        {faq.q}
+                                    </button>
+                                ))}
+                            </div>
+                            {selectedFaq && (
+                                <div className={styles.answerInline}>
+                                    {selectedFaq.a}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

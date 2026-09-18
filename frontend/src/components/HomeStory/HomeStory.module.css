@@ -83,12 +83,12 @@
 
 @media (max-width: 768px) {
     .homeStorySection {
-        padding: 0.5rem 0.4rem 0.4rem 0.4rem;
+        padding: 0.6rem 0.6rem 0.5rem 0.6rem;
     }
     .storyRow {
         justify-content: flex-start;
-        gap: 0.6rem;
-        padding: 0.2rem 0.4rem 0.3rem 0.4rem;
+        gap: 1.6rem;
+        padding: 0.25rem 0.6rem 0.35rem 0.6rem;
         -webkit-overflow-scrolling: touch;
     }
     .storyItem {
@@ -118,7 +118,8 @@
 
 @media (max-width: 480px) {
     .storyRow {
-        gap: 0.5rem;
+        gap: 1.45rem;
+        padding: 0.2rem 0.5rem 0.3rem 0.5rem;
     }
     .storyItem {
         width: 46px;

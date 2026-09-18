@@ -83,41 +83,46 @@
 .buyActions {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    margin-top: 24px;
+    gap: 16px;
+    margin-top: 16px;
+    margin-bottom: 8px;
     width: 100%;
 }
 
-.quantityAndAddContainer {
+/* ── CONTROLES UNIFICADOS DE COMPRA ── */
+.purchaseControlsGroup {
     display: flex;
     gap: 12px;
     align-items: center;
     width: 100%;
 }
 
-.quantitySelector {
+.quantityWrapper {
     display: inline-flex;
     align-items: center;
     justify-content: space-between;
     background: #f8faf8;
-    border: 1.5px solid #e2e8e2;
-    border-radius: 16px;
+    border: 1.5px solid #dbe5da;
+    border-radius: 14px;
     padding: 4px 6px;
-    height: 56px;
-    min-width: 130px;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    height: 52px;
+    min-width: 115px;
+    width: 115px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
     transition: all 0.2s ease;
+    box-sizing: border-box;
+    flex-shrink: 0;
 }
 
-.quantitySelector:hover {
+.quantityWrapper:hover {
     border-color: #2d5a27;
     background: #ffffff;
 }
 
 .quantityBtn {
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
     border: none;
     background: #ffffff;
     color: #2d5a27;
@@ -126,14 +131,14 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
 .quantityBtn:hover:not(:disabled) {
     background: #2d5a27;
     color: #ffffff;
     transform: scale(1.05);
-    box-shadow: 0 4px 10px rgba(45, 90, 39, 0.2);
+    box-shadow: 0 3px 8px rgba(45, 90, 39, 0.2);
 }
 
 .quantityBtn:active:not(:disabled) {
@@ -149,70 +154,81 @@
 }
 
 .quantityValue {
-    font-size: 1.15rem;
+    font-size: 1.05rem;
     font-weight: 800;
     color: #1a1a1a;
-    min-width: 28px;
+    min-width: 24px;
     text-align: center;
     user-select: none;
     font-family: inherit;
 }
 
+.actionButtonsRow {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+    align-items: center;
+    width: 100%;
+}
+
 .addToCartBtn {
     flex: 1;
-    height: 56px;
+    height: 52px;
     background: #ffffff;
     color: #2d5a27;
     border: 2px solid #2d5a27;
-    border-radius: 16px;
+    border-radius: 14px;
     font-weight: 800;
-    font-size: 0.95rem;
-    letter-spacing: 0.5px;
+    font-size: 0.88rem;
+    letter-spacing: 0.4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 4px 15px rgba(45, 90, 39, 0.08);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 3px 10px rgba(45, 90, 39, 0.08);
+    box-sizing: border-box;
+    white-space: nowrap;
 }
 
 .addToCartBtn:hover {
     background: #2d5a27;
     color: #ffffff;
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(45, 90, 39, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(45, 90, 39, 0.25);
 }
 
 .addToCartBtn:active {
-    transform: translateY(-1px);
+    transform: translateY(0);
 }
 
 .buyNowBtn {
-    width: 100%;
-    height: 54px;
-    background: #111111;
+    flex: 1.25;
+    height: 52px;
+    background: linear-gradient(135deg, #1b4315 0%, #2d5a27 100%);
     color: #ffffff;
-    border: 1px solid #111111;
-    border-radius: 12px;
-    font-weight: 600;
+    border: 1px solid #1b4315;
+    border-radius: 14px;
+    font-weight: 800;
     font-size: 0.95rem;
-    letter-spacing: 1.5px;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     cursor: pointer;
-    transition: all 0.25s ease;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 16px rgba(45, 90, 39, 0.3);
+    box-sizing: border-box;
+    white-space: nowrap;
 }
 
 .buyNowBtn:hover {
-    background: #2a2a2a;
-    border-color: #2a2a2a;
+    background: linear-gradient(135deg, #24571c 0%, #376f30 100%);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 24px rgba(45, 90, 39, 0.4);
 }
 
 .buyNowBtn:active {
@@ -226,18 +242,19 @@
     transform: none;
 }
 
-@media (max-width: 500px) {
-    .quantityAndAddContainer {
-        flex-direction: column;
-        gap: 10px;
-    }
-    .quantitySelector {
-        width: 100%;
-        justify-content: space-between;
-    }
-    .addToCartBtn {
-        width: 100%;
-    }
+.btnTextShort {
+    display: none;
+}
+
+/* Fallback aliases */
+.quantityAndAddContainer {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+}
+.quantitySelector {
+    composes: quantityWrapper;
 }
 
 .chatSection {
@@ -683,7 +700,59 @@
         font-size: 2rem;
     }
     .buyActions {
+        gap: 12px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    .purchaseControlsGroup {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        width: 100%;
+    }
+    .quantityWrapper {
+        width: 110px;
+        height: 42px;
+        border-radius: 12px;
+        padding: 2px 4px;
+    }
+    .quantityBtn {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+    }
+    .quantityValue {
+        font-size: 0.98rem;
+    }
+    .actionButtonsRow {
+        display: flex;
+        flex-direction: row;
         gap: 8px;
+        width: 100%;
+    }
+    .addToCartBtn {
+        flex: 1;
+        height: 48px;
+        font-size: 0.82rem;
+        border-radius: 12px;
+        padding: 0 8px;
+        gap: 6px;
+    }
+    .buyNowBtn {
+        flex: 1.15;
+        height: 48px;
+        font-size: 0.86rem;
+        border-radius: 12px;
+        padding: 0 8px;
+        gap: 6px;
+    }
+    .productDetailsBottomGrid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        margin-top: 28px;
+        margin-bottom: 24px;
+        padding: 0 16px;
+        box-sizing: border-box;
     }
     .detailSection {
         padding: 15px;
@@ -694,6 +763,26 @@
     .shopeeBtnProduct, .mlBtnProduct {
         padding: 12px 10px;
         font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .btnTextFull {
+        display: none;
+    }
+    .btnTextShort {
+        display: inline;
+    }
+    .actionButtonsRow {
+        gap: 6px;
+    }
+    .addToCartBtn {
+        font-size: 0.78rem;
+        padding: 0 4px;
+    }
+    .buyNowBtn {
+        font-size: 0.82rem;
+        padding: 0 6px;
     }
 }
 
@@ -904,10 +993,39 @@
     }
 }
 
+/* ─── GRID INFERIOR: COMPOSIÇÃO BOTÂNICA & FAQ ───────────────────────────── */
+
+.productDetailsBottomGrid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 40px;
+    align-items: start;
+    margin-top: 50px;
+    margin-bottom: 40px;
+    width: 100%;
+}
+
+@media (max-width: 992px) {
+    .productDetailsBottomGrid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+        margin-top: 36px;
+    }
+}
+
+.productDetailsBottomGrid .drawerSection {
+    margin-top: 0;
+    padding: 0;
+}
+
+.productDetailsBottomGrid .chatSection {
+    margin-top: 0;
+}
+
 /* ─── GAVETA DE ITENS UTILIZADOS (COMPOSIÇÃO BOTÂNICA) ─────────────────────── */
 
 .drawerSection {
-    margin-top: 36px;
+    margin-top: 0;
     padding: 0 0 16px;
 }
 
