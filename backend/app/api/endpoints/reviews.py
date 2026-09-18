@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
+import json
 from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
@@ -8,6 +9,43 @@ from app.api.endpoints.auth import get_current_admin
 from pydantic import BaseModel
 
 router = APIRouter()
+
+def normalize_images(images_val) -> list[str]:
+    """
+    Normaliza o campo de imagens da avaliação para garantir SEMPRE uma lista Python de URLs (strings).
+    Trata strings JSON, listas aninhadas, strings vazias, URLs únicas e valores nulos.
+    """
+    if not images_val:
+        return []
+    if isinstance(images_val, list):
+        result: list[str] = []
+        for item in images_val:
+            if isinstance(item, str):
+                cleaned = item.strip().strip('"').strip("'")
+                if cleaned.startswith("[") and cleaned.endswith("]"):
+                    result.extend(normalize_images(cleaned))
+                elif cleaned:
+                    result.append(cleaned)
+            elif isinstance(item, list):
+                result.extend(normalize_images(item))
+        return result
+    if isinstance(images_val, str):
+        val = images_val.strip()
+        if not val or val in ("[]", "null", "None", '""'):
+            return []
+        try:
+            parsed = json.loads(val)
+            if isinstance(parsed, (list, str)):
+                return normalize_images(parsed)
+        except Exception:
+            pass
+        # Caso seja separado por vírgula
+        if "," in val and ("http://" in val or "https://" in val):
+            return [p.strip().strip('"').strip("'") for p in val.split(",") if p.strip()]
+        val_clean = val.strip('"').strip("'")
+        if val_clean.startswith("http://") or val_clean.startswith("https://") or val_clean.startswith("/"):
+            return [val_clean]
+    return []
 
 class ReviewCreate(BaseModel):
     user_name: str
@@ -45,7 +83,7 @@ def create_review(data: ReviewCreate, db: Session = Depends(get_db)):
         comment=data.comment,
         rating=data.rating,
         product_id=data.product_id,
-        images=data.images or [],
+        images=normalize_images(data.images),
         is_approved=False
     )
     db.add(review)
@@ -117,7 +155,7 @@ def clone_shopee_reviews(data: ShopeeCloneRequest, db: Session = Depends(get_db)
                     "user_name": current_author,
                     "rating": 5,
                     "comment": comment_text,
-                    "images": current_imgs[:]
+                    "images": normalize_images(current_imgs)
                 })
             current_comment_parts = []
             current_imgs = []
@@ -135,7 +173,7 @@ def clone_shopee_reviews(data: ShopeeCloneRequest, db: Session = Depends(get_db)
                 "user_name": current_author,
                 "rating": 5,
                 "comment": comment_text,
-                "images": current_imgs[:]
+                "images": normalize_images(current_imgs)
             })
 
     if not generated_reviews:
@@ -152,7 +190,7 @@ def clone_shopee_reviews(data: ShopeeCloneRequest, db: Session = Depends(get_db)
                 comment=rev_data["comment"],
                 rating=rev_data["rating"],
                 product_id=product.id,
-                images=rev_data.get("images", []),
+                images=normalize_images(rev_data.get("images", [])),
                 is_approved=True
             )
             db.add(new_rev)
@@ -187,7 +225,7 @@ def import_reviews_batch(
             comment=item.comment.strip(),
             rating=item.rating or 5,
             product_id=data.product_id,
-            images=item.images or [],
+            images=normalize_images(item.images),
             is_approved=True # já entra aprovada
         )
         db.add(rev)
@@ -203,27 +241,39 @@ def get_approved_reviews(
     db: Session = Depends(get_db)
 ):
     """Public endpoint to list all approved reviews, with optional filtering and limit."""
-    query = db.query(models.Review).filter(models.Review.is_approved == True)
+    query = db.query(models.Review).options(joinedload(models.Review.product)).filter(models.Review.is_approved == True)
     if product_id is not None:
         query = query.filter(models.Review.product_id == product_id)
     query = query.order_by(models.Review.created_at.desc())
     if limit is not None:
         query = query.limit(limit)
-    return query.all()
+    reviews = query.all()
+    return [{
+        "id": r.id,
+        "product_id": r.product_id,
+        "product_name": r.product.name if r.product else "Geral",
+        "user_name": r.user_name,
+        "comment": r.comment,
+        "rating": r.rating,
+        "images": normalize_images(r.images),
+        "is_approved": r.is_approved,
+        "created_at": r.created_at.isoformat() if r.created_at else None
+    } for r in reviews]
 
 @router.get("/pending", response_model=List[dict])
 def get_pending_reviews(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     """Admin endpoint to list pending reviews."""
-    reviews = db.query(models.Review).options(joinedload(models.Review.product)).filter(models.Review.is_approved == False).all()
+    reviews = db.query(models.Review).options(joinedload(models.Review.product)).filter(models.Review.is_approved == False).order_by(models.Review.created_at.desc()).all()
     return [{
         "id": r.id, 
         "user_name": r.user_name, 
         "comment": r.comment, 
         "rating": r.rating,
+        "images": normalize_images(r.images),
         "product_id": r.product_id,
-        "product_name": r.product.name if r.product else "Geral"
+        "product_name": r.product.name if r.product else "Geral",
+        "created_at": r.created_at.isoformat() if r.created_at else None
     } for r in reviews]
-
 
 @router.get("/admin/all", response_model=List[dict])
 def get_all_reviews(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
@@ -234,22 +284,42 @@ def get_all_reviews(db: Session = Depends(get_db), admin: models.User = Depends(
         "user_name": r.user_name, 
         "comment": r.comment, 
         "rating": r.rating,
-        "images": r.images if hasattr(r, "images") and r.images else [],
+        "images": normalize_images(r.images),
         "is_approved": r.is_approved,
         "product_id": r.product_id,
         "product_name": r.product.name if r.product else "Geral",
-        "created_at": r.created_at
+        "created_at": r.created_at.isoformat() if r.created_at else None
     } for r in reviews]
 
 @router.post("/approve/{review_id}")
 def approve_review(review_id: int, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
-    """Admin endpoint to approve a review."""
+    """Admin endpoint to approve a single review."""
     review = db.query(models.Review).filter(models.Review.id == review_id).first()
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
     review.is_approved = True
     db.commit()
     return {"message": "Review approved"}
+
+@router.post("/admin/approve-all/{product_id}")
+def approve_all_product_reviews(product_id: int, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    """Admin endpoint to approve all pending reviews for a product (or all products if product_id == 0)."""
+    query = db.query(models.Review).filter(models.Review.is_approved == False)
+    if product_id != 0:
+        query = query.filter(models.Review.product_id == product_id)
+    count = query.update({models.Review.is_approved: True}, synchronize_session="fetch")
+    db.commit()
+    return {"message": f"{count} avaliações aprovadas com sucesso!", "count": count}
+
+@router.delete("/admin/product/{product_id}")
+def delete_all_product_reviews(product_id: int, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    """Admin endpoint to delete all reviews for a specific product."""
+    if product_id == 0:
+        count = db.query(models.Review).filter(models.Review.product_id == None).delete(synchronize_session="fetch")
+    else:
+        count = db.query(models.Review).filter(models.Review.product_id == product_id).delete(synchronize_session="fetch")
+    db.commit()
+    return {"message": f"{count} avaliações excluídas com sucesso!", "count": count}
 
 @router.delete("/{review_id}")
 def delete_review(review_id: int, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):

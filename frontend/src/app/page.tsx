@@ -1140,7 +1140,7 @@ export default function Home() {
                                                         height: 'auto',
                                                         display: 'block',
                                                         userSelect: 'none',
-                                                        WebkitUserDrag: 'none' as any,
+                                                        ...({ WebkitUserDrag: 'none' } as any),
                                                     }}
                                                 />
                                             </Link>
@@ -1155,7 +1155,7 @@ export default function Home() {
                                                     height: 'auto',
                                                     display: 'block',
                                                     userSelect: 'none',
-                                                    WebkitUserDrag: 'none' as any,
+                                                    ...({ WebkitUserDrag: 'none' } as any),
                                                 }}
                                             />
                                         )}

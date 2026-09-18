@@ -114,7 +114,24 @@ export default function ProductDetailPage() {
                 const res = await fetch(`/api/reviews/approved?product_id=${productId}`, { cache: "no-store" });
                 if (!res.ok) return;
                 const filtered = await res.json();
-                setApprovedReviews(filtered || []);
+                const normalized = (Array.isArray(filtered) ? filtered : []).map((rev: any) => {
+                    let imgs: string[] = [];
+                    if (Array.isArray(rev.images)) {
+                        imgs = rev.images;
+                    } else if (typeof rev.images === "string") {
+                        try {
+                            const parsed = JSON.parse(rev.images);
+                            imgs = Array.isArray(parsed) ? parsed : (parsed ? [String(parsed)] : []);
+                        } catch {
+                            imgs = rev.images.trim() ? [rev.images.trim()] : [];
+                        }
+                    }
+                    return {
+                        ...rev,
+                        images: imgs.filter((img: any) => typeof img === "string" && img.trim().length > 0)
+                    };
+                });
+                setApprovedReviews(normalized);
             } catch (error) {
                 console.error("Error fetching approved reviews:", error);
             }
@@ -802,7 +819,7 @@ export default function ProductDetailPage() {
                                         </div>
                                     </div>
                                     <p className={styles.reviewComment}>{rev.comment}</p>
-                                    {rev.images && rev.images.length > 0 && (
+                                    {Array.isArray(rev.images) && rev.images.length > 0 && (
                                         <div className={styles.reviewPhotosGrid}>
                                             {rev.images.map((imgUrl: string, idx: number) => (
                                                 <a 
