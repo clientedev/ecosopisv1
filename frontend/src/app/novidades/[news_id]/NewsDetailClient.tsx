@@ -19,7 +19,7 @@ import AuthPromptModal from '@/components/AuthPromptModal/AuthPromptModal';
 import { resolveMediaUrl, resolveAvatarUrl, getInitials } from '@/components/NewsCommentModal/newsModalUtils';
 import InstagramPostEmbed from '@/components/InstagramEmbed/InstagramPostEmbed';
 import BlogContentRenderer from '@/components/InstagramEmbed/BlogContentRenderer';
-import { isInstagramContent } from '@/utils/instagramUtils';
+import { isInstagramContent, getInstagramDirectStreamUrl } from '@/utils/instagramUtils';
 import styles from '../page.module.css';
 
 interface NewsPost {
@@ -57,6 +57,7 @@ export default function NewsDetailClient({ initialPost }: { initialPost: NewsPos
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalReason, setAuthModalReason] = useState<'like' | 'comment'>('like');
+  const [igVideoError, setIgVideoError] = useState(false);
 
   const handleEngagementUpdate = (postId: number, patch: Partial<NewsPostPatch>) => {
     setPost((p) => ({
@@ -154,9 +155,35 @@ export default function NewsDetailClient({ initialPost }: { initialPost: NewsPos
 
             {mediaSrc && (
               isIg ? (
-                <div style={{ padding: '0.75rem 0', display: 'flex', justifyContent: 'center', width: '100%' }}>
-                  <InstagramPostEmbed url={post.media_url || mediaSrc} maxWidth="640px" showTopBadge={false} />
-                </div>
+                post.media_url && getInstagramDirectStreamUrl(post.media_url) && !igVideoError ? (
+                  <div className={styles.mediaWrapper} style={{ maxWidth: '640px', margin: '0 auto', borderRadius: '14px', overflow: 'hidden' }}>
+                    <video
+                      src={getInstagramDirectStreamUrl(post.media_url)!}
+                      controls
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className={styles.postMedia}
+                      preload="auto"
+                      onError={() => setIgVideoError(true)}
+                      onLoadedMetadata={(e) => {
+                        const target = e.currentTarget;
+                        target.muted = true;
+                        target.play().catch(() => {});
+                      }}
+                      onCanPlay={(e) => {
+                        const target = e.currentTarget;
+                        target.muted = true;
+                        target.play().catch(() => {});
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ padding: '0.75rem 0', display: 'flex', justifyContent: 'center', width: '100%' }}>
+                    <InstagramPostEmbed url={post.media_url || mediaSrc} maxWidth="640px" showTopBadge={false} />
+                  </div>
+                )
               ) : (
                 <div className={styles.mediaWrapper}>
                   {post.media_type === 'video' ? (

@@ -9,12 +9,13 @@ import {
   Share2,
   Loader2,
   Instagram,
+  Sparkles,
 } from 'lucide-react';
 import NewsCommentModal, {
   type NewsPostPatch,
 } from '@/components/NewsCommentModal/NewsCommentModal';
 import AuthPromptModal from '@/components/AuthPromptModal/AuthPromptModal';
-import { isInstagramContent } from '@/utils/instagramUtils';
+import { isInstagramContent, getInstagramDirectStreamUrl } from '@/utils/instagramUtils';
 import type { NewsComment } from '@/types/news';
 import ShareModal from '../ShareModal/ShareModal';
 import styles from './NewsSection.module.css';
@@ -48,6 +49,7 @@ function resolveMediaUrl(url?: string | null): string {
 export default function NewsSection() {
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [videoErrors, setVideoErrors] = useState<Record<number, boolean>>({});
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [sharingPost, setSharingPost] = useState<NewsPost | null>(null);
   const [commentModalPostId, setCommentModalPostId] = useState<number | null>(
@@ -191,41 +193,90 @@ export default function NewsSection() {
     <section className={styles.section}>
       <div className="container">
         <div className={styles.header}>
-          <h2 className={styles.title}>DIÁRIO ECOSOPIS</h2>
+          <div className={styles.headerLeft}>
+            <span className={styles.headerBadge}>
+              <Sparkles size={14} color="#d4a373" />
+              Dicas & Atualizações
+            </span>
+            <h2 className={styles.title}>Diário ECOSOPIS</h2>
+            <p className={styles.subtitle}>
+              Histórias, bastidores e novidades da nossa jornada com você.
+            </p>
+          </div>
           <Link href="/novidades" className={styles.viewAll}>
             Ver todas as novidades <ArrowRight size={16} />
           </Link>
         </div>
 
         <div className={styles.grid}>
-          {posts.map((post) => (
-            <article key={post.id} className={styles.card}>
-              <Link href={`/novidades/${post.id}`} className={styles.mediaLink}>
-                <div className={styles.media}>
-                  {post.media_url ? (
-                    isInstagramContent(post.media_url) || post.media_type === 'instagram' ? (
-                      <div className={styles.instagramMediaCard}>
-                        <div className={styles.instagramCardIcon}>
-                          <Instagram size={28} />
-                        </div>
-                        <span className={styles.instagramCardLabel}>Post do Instagram</span>
+          {posts.map((post) => {
+            const isIg = isInstagramContent(post.media_url) || post.media_type === 'instagram';
+            const igStreamUrl = isIg && post.media_url ? getInstagramDirectStreamUrl(post.media_url) : null;
+            const isVideo = post.media_type === 'video' || (post.media_url && /\.(mp4|webm|mov)(\?.*)?$/i.test(post.media_url));
+            const videoSrc = isIg ? igStreamUrl : (isVideo ? resolveMediaUrl(post.media_url) : null);
+            const hasVideo = Boolean(videoSrc && !videoErrors[post.id]);
+
+            return (
+              <article key={post.id} className={styles.card}>
+                <Link href={`/novidades/${post.id}`} className={styles.mediaLink}>
+                  <div className={styles.media}>
+                    {hasVideo ? (
+                      <div className={styles.videoCardWrapper}>
+                        <video
+                          src={videoSrc!}
+                          className={styles.cardVideo}
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          preload="auto"
+                          disablePictureInPicture
+                          onError={() => setVideoErrors((prev) => ({ ...prev, [post.id]: true }))}
+                          onLoadedMetadata={(e) => {
+                            const target = e.currentTarget;
+                            target.muted = true;
+                            target.play().catch(() => {});
+                          }}
+                          onCanPlay={(e) => {
+                            const target = e.currentTarget;
+                            target.muted = true;
+                            target.play().catch(() => {});
+                          }}
+                        />
+                        {isIg && (
+                          <div className={styles.instagramBadgeOverlay}>
+                            <div className={styles.instagramBadgeRing}>
+                              <Instagram size={12} />
+                            </div>
+                            <span>Instagram</span>
+                          </div>
+                        )}
                       </div>
+                    ) : post.media_url ? (
+                      isIg ? (
+                        <div className={styles.instagramMediaCard}>
+                          <div className={styles.instagramCardIcon}>
+                            <Instagram size={28} />
+                          </div>
+                          <span className={styles.instagramCardLabel}>Post do Instagram</span>
+                        </div>
+                      ) : (
+                        <img
+                          src={resolveMediaUrl(post.media_url)}
+                          alt={post.title}
+                          className={styles.cardImg}
+                        />
+                      )
                     ) : (
-                      <img
-                        src={resolveMediaUrl(post.media_url)}
-                        alt={post.title}
-                      />
-                    )
-                  ) : (
-                    <div className={styles.placeholder}>🌿</div>
-                  )}
-                  <div className={styles.dateBadge}>{getTimeAgo(post.created_at)}</div>
-                </div>
-              </Link>
-              <div className={styles.body}>
-                <Link href={`/novidades/${post.id}`} style={{ textDecoration: 'none' }}>
-                  <h3 className={styles.postTitle}>{post.title}</h3>
+                      <div className={styles.placeholder}>🌿</div>
+                    )}
+                    <div className={styles.dateBadge}>{getTimeAgo(post.created_at)}</div>
+                  </div>
                 </Link>
+                <div className={styles.body}>
+                  <Link href={`/novidades/${post.id}`} style={{ textDecoration: 'none' }}>
+                    <h3 className={styles.postTitle}>{post.title}</h3>
+                  </Link>
                 <p className={styles.excerpt}>{post.content}</p>
                 <div className={styles.footer}>
                   <div className={styles.stats}>
@@ -286,7 +337,8 @@ export default function NewsSection() {
                 </button>
               </div>
             </article>
-          ))}
+          );
+        })}
         </div>
 
         {sharingPost && (

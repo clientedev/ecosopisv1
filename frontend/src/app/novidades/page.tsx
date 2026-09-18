@@ -24,7 +24,7 @@ import NewsCommentModal, {
 import AuthPromptModal from '@/components/AuthPromptModal/AuthPromptModal';
 import InstagramPostEmbed from '@/components/InstagramEmbed/InstagramPostEmbed';
 import BlogContentRenderer from '@/components/InstagramEmbed/BlogContentRenderer';
-import { isInstagramContent, fetchInstagramMetadata } from '@/utils/instagramUtils';
+import { isInstagramContent, fetchInstagramMetadata, getInstagramDirectStreamUrl } from '@/utils/instagramUtils';
 import type { NewsComment } from '@/types/news';
 import {
   resolveMediaUrl as modalResolveMediaUrl,
@@ -98,6 +98,7 @@ export default function NewsPage() {
   const [createError, setCreateError] = useState('');
   const [cloningIg, setCloningIg] = useState(false);
   const [clonedData, setClonedData] = useState<{ author?: string; caption?: string } | null>(null);
+  const [igVideoErrors, setIgVideoErrors] = useState<Record<number, boolean>>({});
 
   const handleMediaUrlChange = async (val: string) => {
     setNewMediaUrl(val);
@@ -561,7 +562,36 @@ export default function NewsPage() {
                     {mediaSrc && (
                       isIg ? (
                         <div className={styles.instagramPostWrapper}>
-                          <InstagramPostEmbed url={post.media_url || mediaSrc} showTopBadge={false} />
+                          {post.media_url && getInstagramDirectStreamUrl(post.media_url) && !igVideoErrors[post.id] ? (
+                            <div className={styles.mediaWrapper}>
+                              <video
+                                src={getInstagramDirectStreamUrl(post.media_url)!}
+                                className={styles.postMedia}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                controls
+                                preload="auto"
+                                onError={() => setIgVideoErrors((prev) => ({ ...prev, [post.id]: true }))}
+                                onLoadedMetadata={(e) => {
+                                  const target = e.currentTarget;
+                                  target.muted = true;
+                                  target.play().catch(() => {});
+                                }}
+                                onCanPlay={(e) => {
+                                  const target = e.currentTarget;
+                                  target.muted = true;
+                                  target.play().catch(() => {});
+                                }}
+                              />
+                              <span className={styles.mediaDateBadge}>
+                                {formatPostDate(post.created_at)}
+                              </span>
+                            </div>
+                          ) : (
+                            <InstagramPostEmbed url={post.media_url || mediaSrc} showTopBadge={false} />
+                          )}
                         </div>
                       ) : (
                         <div className={styles.mediaWrapper}>

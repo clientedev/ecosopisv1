@@ -1836,45 +1836,8 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Goal Selector Section - Redesigned as a 'Diagnostic' */}
-            <section id="diagnostico" className={styles.diagnosticSection} ref={goalsRef}>
-                <div className="container">
-                    <div className={styles.diagnosticHeader}>
-                        <span className={styles.sectionBadge}>CONSULTORIA EXPRESS</span>
-                        <h2 className={styles.diagnosticTitle}>Selecione seu desafio hoje</h2>
-                        <p className={styles.diagnosticSubtitle}>Receba uma recomendação personalizada da nossa I.A. em segundos.</p>
-                    </div>
-                    
-                    <div className={styles.diagnosticGrid}>
-                        <div className={styles.diagnosticCard} onClick={() => openGoalModal('clareamento')}>
-                            <div className={styles.diagnosticIcon}><Sparkles size={40} /></div>
-                            <div className={styles.diagnosticContent}>
-                                <h3>Pele com Manchas</h3>
-                                <p>Para uniformizar a pele e clarear marcas</p>
-                                <span className={styles.diagnosticAction}>QUERO TRATAR <ChevronRight size={16} /></span>
-                            </div>
-                        </div>
-                        
-                        <div className={styles.diagnosticCard} onClick={() => openGoalModal('acne')}>
-                            <div className={styles.diagnosticIcon}><Zap size={40} /></div>
-                            <div className={styles.diagnosticContent}>
-                                <h3>Acne e Oleosidade</h3>
-                                <p>Para controlar oleosidade e reduzir espinhas</p>
-                                <span className={styles.diagnosticAction}>QUERO TRATAR <ChevronRight size={16} /></span>
-                            </div>
-                        </div>
-                        
-                        <div className={styles.diagnosticCard} onClick={() => openGoalModal('foliculite')}>
-                            <div className={styles.diagnosticIcon}><Droplets size={40} /></div>
-                            <div className={styles.diagnosticContent}>
-                                <h3>Foliculite e Pelos <span className={styles.popularMiniBadge}>Nosso mais vendido</span></h3>
-                                <p>Adeus foliculite, pele lisa e uniforme</p>
-                                <span className={styles.diagnosticAction}>QUERO TRATAR <ChevronRight size={16} /></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            {/* Diário ECOSOPIS Section (substituindo Consultoria Express) */}
+            <NewsSection />
 
             {/* NEW: Minha Rotina Ideal Section */}
             <section id="minha-rotina" className={styles.routineBuilderSection}>
@@ -2191,9 +2154,6 @@ export default function Home() {
                     <Link href="/quizz" className="btn-primary">FAZER O QUIZ AGORA</Link>
                 </div>
             </section>
-
-            {/* News Section */}
-            <NewsSection />
 
             <Footer />
         </main >
