@@ -283,11 +283,6 @@ export default function DynamicBranding() {
             transition: filter 0.4s ease;
         }
 
-        /* --- Announcement Bar --- */
-        html[data-theme="copa_do_mundo"] [class*="announcementBar"] {
-            background-color: #002776 !important;
-            color: #F7C815 !important;
-        }
 
         /* --- Cart badge --- */
         html[data-theme="copa_do_mundo"] [class*="cartBadge"] {
@@ -365,11 +360,6 @@ export default function DynamicBranding() {
             transition: filter 0.4s ease;
         }
 
-        /* --- Announcement Bar --- */
-        html[data-theme="aniversario_4_anos"] [class*="announcementBar"] {
-            background: linear-gradient(135deg, #b8860b 0%, #8b6508 100%) !important;
-            color: #ffffff !important;
-        }
 
         /* --- Cart badge --- */
         html[data-theme="aniversario_4_anos"] [class*="cartBadge"] {
@@ -503,10 +493,6 @@ export default function DynamicBranding() {
             background-color: rgba(75, 132, 17, 0.08) !important;
         }
 
-        html[data-theme="pg_produtos_v2"] [class*="announcementBar"] {
-            background-color: #2d5a27 !important;
-            color: #ffffff !important;
-        }
 
         html[data-theme="pg_produtos_v2"] [class*="cartBadge"] {
             background: #4B8411 !important;

@@ -210,10 +210,9 @@ export default function Header() {
             {announcement && announcement.is_active && (
                 <div
                     className={styles.announcementBar}
-                    data-valentines-announcement={isValentines ? "true" : undefined}
                     style={{
-                        backgroundColor: isValentines ? '#e63f6f' : announcement.bg_color,
-                        color: isValentines ? '#ffffff' : announcement.text_color,
+                        backgroundColor: announcement.bg_color,
+                        color: announcement.text_color,
                     }}
                 >
                     {announcement.is_scrolling ? (
