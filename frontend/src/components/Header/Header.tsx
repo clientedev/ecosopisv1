@@ -32,6 +32,21 @@ export default function Header() {
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [allProducts, setAllProducts] = useState<any[]>([]);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrolled = window.scrollY > 30;
+            setIsScrolled(scrolled);
+            if (!scrolled) {
+                setIsSearchExpanded(false);
+            }
+        };
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        handleScroll();
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
 
     useEffect(() => {
         const fetchAnnouncement = async () => {
@@ -103,7 +118,7 @@ export default function Header() {
     };
 
     return (
-        <header className={styles.header}>
+        <header className={`${styles.header} ${isScrolled ? styles.headerScrolled : ''}`}>
             {announcement && announcement.is_active && (
                 <div
                     className={styles.announcementBar}
@@ -253,6 +268,19 @@ export default function Header() {
                 </div>
 
                 <div className={styles.actions} style={{ position: 'relative', zIndex: 1000 }}>
+                    {/* Botão de busca compacto quando o header estiver em modo clean */}
+                    {isScrolled && (
+                        <button
+                            type="button"
+                            onClick={() => setIsSearchExpanded(prev => !prev)}
+                            className={`${styles.scrolledSearchBtn} ${isSearchExpanded ? styles.scrolledSearchBtnActive : ''}`}
+                            title={isSearchExpanded ? "Fechar busca" : "Buscar produtos"}
+                            aria-label="Buscar produtos"
+                        >
+                            {isSearchExpanded ? <X size={18} /> : <Search size={18} />}
+                        </button>
+                    )}
+
                     <button onClick={openCart} className={styles.actionIcon} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                         <div className={styles.cartIconWrapper}>
                             <ShoppingCart size={22} />
@@ -324,7 +352,7 @@ export default function Header() {
             </div>
 
             {/* Desktop Search Band */}
-            <div className={styles.desktopSearchBand}>
+            <div className={`${styles.desktopSearchBand} ${isScrolled && !isSearchExpanded ? styles.desktopSearchBandHidden : ''}`}>
                 <div className={`container ${styles.desktopSearchBandContent}`}>
                     
                     {/* Input Group to contain input + dropdown perfectly aligned */}
@@ -408,6 +436,7 @@ export default function Header() {
             {cartCount > 0 && (
                 <div
                     data-cart-status-bar="true"
+                    className={`${styles.cartStatusBar} ${isScrolled ? styles.cartStatusBarHidden : ''}`}
                     style={{
                         backgroundColor: isValentines ? '#fff0f3' : isAnniversary ? '#fffdf0' : '#f0fdf4',
                         borderTop: isValentines ? '1px solid #f9c0d0' : isAnniversary ? '1px solid #f5e6be' : '1px solid #dcfce7',

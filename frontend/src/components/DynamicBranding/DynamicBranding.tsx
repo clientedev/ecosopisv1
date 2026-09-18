@@ -540,7 +540,7 @@ export default function DynamicBranding() {
                 }
                 body {
                     background-color: var(--site-bg) !important;
-                    overflow-x: hidden !important;
+                    overflow-x: clip !important;
                     width: 100% !important;
                     position: relative !important;
                     margin: 0 !important;
