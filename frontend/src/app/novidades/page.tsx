@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
+  Instagram,
 } from 'lucide-react';
 import Header from '@/components/Header/Header';
 import Footer from '@/components/Footer/Footer';
@@ -19,6 +20,9 @@ import NewsCommentModal, {
   type NewsPostPatch,
 } from '@/components/NewsCommentModal/NewsCommentModal';
 import AuthPromptModal from '@/components/AuthPromptModal/AuthPromptModal';
+import InstagramPostEmbed from '@/components/InstagramEmbed/InstagramPostEmbed';
+import BlogContentRenderer from '@/components/InstagramEmbed/BlogContentRenderer';
+import { isInstagramContent } from '@/utils/instagramUtils';
 import type { NewsComment } from '@/types/news';
 import {
   resolveMediaUrl as modalResolveMediaUrl,
@@ -85,7 +89,7 @@ export default function NewsPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
   const [newMediaUrl, setNewMediaUrl] = useState('');
-  const [newMediaType, setNewMediaType] = useState<'image' | 'video'>('image');
+  const [newMediaType, setNewMediaType] = useState<'image' | 'video' | 'instagram'>('image');
   const [newFile, setNewFile] = useState<File | null>(null);
   const [newPreviewUrl, setNewPreviewUrl] = useState('');
   const [creatingPost, setCreatingPost] = useState(false);
@@ -318,45 +322,84 @@ export default function NewsPage() {
                     required
                   />
                   <textarea
-                    placeholder="Conteúdo da postagem..."
+                    placeholder="Conteúdo da postagem (você também pode colar links ou códigos do Instagram no texto)..."
                     value={newContent}
                     onChange={(e) => setNewContent(e.target.value)}
                     rows={5}
                     required
                   />
+
+                  <div className={styles.mediaTypeSelector}>
+                    <button
+                      type="button"
+                      className={`${styles.mediaTypeBtn} ${newMediaType === 'image' ? styles.activeMediaType : ''}`}
+                      onClick={() => setNewMediaType('image')}
+                    >
+                      Imagem
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.mediaTypeBtn} ${newMediaType === 'video' ? styles.activeMediaType : ''}`}
+                      onClick={() => setNewMediaType('video')}
+                    >
+                      Vídeo
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.mediaTypeBtn} ${styles.instagramMediaTypeBtn} ${newMediaType === 'instagram' ? styles.activeMediaTypeInstagram : ''}`}
+                      onClick={() => setNewMediaType('instagram')}
+                    >
+                      <Instagram size={14} /> Instagram
+                    </button>
+                  </div>
+
                   <div className={styles.createGrid}>
-                    <input
-                      type="file"
-                      accept="image/*,video/*"
-                      onChange={(e) => {
-                        const selected = e.target.files?.[0] || null;
-                        setNewFile(selected);
-                        if (!selected) return;
-                        const objectUrl = URL.createObjectURL(selected);
-                        setNewPreviewUrl(objectUrl);
-                        if (selected.type.startsWith('video/')) setNewMediaType('video');
-                        else setNewMediaType('image');
-                      }}
-                    />
+                    {newMediaType !== 'instagram' && (
+                      <input
+                        type="file"
+                        accept="image/*,video/*"
+                        onChange={(e) => {
+                          const selected = e.target.files?.[0] || null;
+                          setNewFile(selected);
+                          if (!selected) return;
+                          const objectUrl = URL.createObjectURL(selected);
+                          setNewPreviewUrl(objectUrl);
+                          if (selected.type.startsWith('video/')) setNewMediaType('video');
+                          else setNewMediaType('image');
+                        }}
+                      />
+                    )}
                     <input
                       type="text"
-                      placeholder="Ou URL da mídia (https://...)"
+                      placeholder={
+                        newMediaType === 'instagram'
+                          ? "Link ou código da publicação/Reel do Instagram (https://www.instagram.com/p/...)"
+                          : "Ou URL da mídia (https://...)"
+                      }
                       value={newMediaUrl}
                       onChange={(e) => {
-                        setNewMediaUrl(e.target.value);
-                        if (e.target.value.trim()) setNewPreviewUrl(e.target.value.trim());
+                        const val = e.target.value;
+                        setNewMediaUrl(val);
+                        if (isInstagramContent(val)) {
+                          setNewMediaType('instagram');
+                        }
+                        if (val.trim()) setNewPreviewUrl(val.trim());
                       }}
                     />
                   </div>
+
                   {newPreviewUrl && (
                     <div className={styles.createPreview}>
-                      {newMediaType === 'video' ? (
+                      {newMediaType === 'instagram' || isInstagramContent(newPreviewUrl) ? (
+                        <InstagramPostEmbed url={newPreviewUrl} />
+                      ) : newMediaType === 'video' ? (
                         <video src={newPreviewUrl} controls />
                       ) : (
                         <img src={newPreviewUrl} alt="Pré-visualização da postagem" />
                       )}
                     </div>
                   )}
+
                   {createError && <p className={styles.createError}>{createError}</p>}
                   <button type="submit" className={styles.publishBtn} disabled={creatingPost}>
                     {creatingPost ? 'Publicando...' : 'Publicar novidade'}
@@ -429,26 +472,32 @@ export default function NewsPage() {
                     </div>
 
                     {mediaSrc && (
-                      <div className={styles.mediaWrapper}>
-                        {post.media_type === 'video' ? (
-                          <video
-                            src={mediaSrc}
-                            controls
-                            playsInline
-                            className={styles.postMedia}
-                            preload="metadata"
-                          />
-                        ) : (
-                          <img
-                            src={mediaSrc}
-                            alt={post.title}
-                            className={styles.postMedia}
-                          />
-                        )}
-                        <span className={styles.mediaDateBadge}>
-                          {formatPostDate(post.created_at)}
-                        </span>
-                      </div>
+                      isInstagramContent(post.media_url) || post.media_type === 'instagram' ? (
+                        <div className={styles.instagramPostWrapper}>
+                          <InstagramPostEmbed url={post.media_url || mediaSrc} />
+                        </div>
+                      ) : (
+                        <div className={styles.mediaWrapper}>
+                          {post.media_type === 'video' ? (
+                            <video
+                              src={mediaSrc}
+                              controls
+                              playsInline
+                              className={styles.postMedia}
+                              preload="metadata"
+                            />
+                          ) : (
+                            <img
+                              src={mediaSrc}
+                              alt={post.title}
+                              className={styles.postMedia}
+                            />
+                          )}
+                          <span className={styles.mediaDateBadge}>
+                            {formatPostDate(post.created_at)}
+                          </span>
+                        </div>
+                      )
                     )}
 
                     <div className={styles.engagementRow}>
@@ -507,7 +556,9 @@ export default function NewsPage() {
 
                     <div className={styles.postContent}>
                       <h2 className={styles.postTitle}>{post.title}</h2>
-                      <p className={styles.postExcerpt}>{bodyText}</p>
+                      <div className={styles.postExcerpt}>
+                        <BlogContentRenderer content={bodyText} />
+                      </div>
                       {longText && (
                         <button
                           type="button"

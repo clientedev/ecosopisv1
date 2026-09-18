@@ -3,14 +3,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import styles from "../dashboard.module.css";
-import { Plus, Trash2, Image, Video, Calendar, Eye } from "lucide-react";
+import { Plus, Trash2, Image, Video, Calendar, Eye, Instagram } from "lucide-react";
+import InstagramPostEmbed from "@/components/InstagramEmbed/InstagramPostEmbed";
+import { isInstagramContent } from "@/utils/instagramUtils";
 
 interface NewsPost {
     id: number;
     title: string;
     content: string;
     media_url?: string;
-    media_type?: 'image' | 'video';
+    media_type?: 'image' | 'video' | 'instagram' | string;
     created_at: string;
     user_id: number;
 }
@@ -22,7 +24,7 @@ export default function NovidadesAdmin() {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [mediaUrl, setMediaUrl] = useState('');
-    const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+    const [mediaType, setMediaType] = useState<'image' | 'video' | 'instagram'>('image');
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -241,7 +243,21 @@ export default function NovidadesAdmin() {
                                     <tr key={post.id}>
                                         <td>
                                             {post.media_url ? (
-                                                post.media_type === 'video' ? (
+                                                isInstagramContent(post.media_url) || post.media_type === 'instagram' ? (
+                                                    <div style={{
+                                                        width: '60px',
+                                                        height: '60px',
+                                                        background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)',
+                                                        borderRadius: '0.5rem',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        color: '#ffffff',
+                                                        boxShadow: '0 2px 6px rgba(220, 39, 67, 0.3)'
+                                                    }} title="Publicação do Instagram">
+                                                        <Instagram size={24} />
+                                                    </div>
+                                                ) : post.media_type === 'video' ? (
                                                     <div style={{
                                                         width: '60px',
                                                         height: '60px',
@@ -359,44 +375,105 @@ export default function NovidadesAdmin() {
                                     />
                                 </div>
 
+                                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setMediaType('image')}
+                                        style={{
+                                            padding: '0.4rem 0.85rem',
+                                            borderRadius: '20px',
+                                            border: mediaType === 'image' ? '1.5px solid #2d5a27' : '1px solid #cbd5e1',
+                                            backgroundColor: mediaType === 'image' ? '#2d5a27' : '#f8fafc',
+                                            color: mediaType === 'image' ? '#ffffff' : '#334155',
+                                            fontWeight: 600,
+                                            fontSize: '0.8rem',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Imagem
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setMediaType('video')}
+                                        style={{
+                                            padding: '0.4rem 0.85rem',
+                                            borderRadius: '20px',
+                                            border: mediaType === 'video' ? '1.5px solid #2d5a27' : '1px solid #cbd5e1',
+                                            backgroundColor: mediaType === 'video' ? '#2d5a27' : '#f8fafc',
+                                            color: mediaType === 'video' ? '#ffffff' : '#334155',
+                                            fontWeight: 600,
+                                            fontSize: '0.8rem',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Vídeo
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setMediaType('instagram')}
+                                        style={{
+                                            padding: '0.4rem 0.85rem',
+                                            borderRadius: '20px',
+                                            border: mediaType === 'instagram' ? 'none' : '1px solid #cbd5e1',
+                                            background: mediaType === 'instagram' ? 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' : '#f8fafc',
+                                            color: mediaType === 'instagram' ? '#ffffff' : '#334155',
+                                            fontWeight: 600,
+                                            fontSize: '0.8rem',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            boxShadow: mediaType === 'instagram' ? '0 2px 8px rgba(220, 39, 67, 0.35)' : 'none'
+                                        }}
+                                    >
+                                        <Instagram size={14} /> Instagram
+                                    </button>
+                                </div>
+
                                 <div className={styles.formGrid}>
-                                    <div className={styles.formGroup}>
-                                        <label>Anexar Mídia (Imagem ou Vídeo)</label>
-                                        <input
-                                            type="file"
-                                            accept="image/*,video/*"
-                                            onChange={(e) => {
-                                                const selectedFile = e.target.files?.[0];
-                                                if (selectedFile) {
-                                                    setFile(selectedFile);
-                                                    setPreviewUrl(URL.createObjectURL(selectedFile));
-                                                    if (selectedFile.type.startsWith('video/')) {
-                                                        setMediaType('video');
-                                                    } else {
-                                                        setMediaType('image');
+                                    {mediaType !== 'instagram' && (
+                                        <div className={styles.formGroup}>
+                                            <label>Anexar Mídia (Imagem ou Vídeo)</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*,video/*"
+                                                onChange={(e) => {
+                                                    const selectedFile = e.target.files?.[0];
+                                                    if (selectedFile) {
+                                                        setFile(selectedFile);
+                                                        setPreviewUrl(URL.createObjectURL(selectedFile));
+                                                        if (selectedFile.type.startsWith('video/')) {
+                                                            setMediaType('video');
+                                                        } else {
+                                                            setMediaType('image');
+                                                        }
                                                     }
-                                                }
-                                            }}
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.75rem',
-                                                border: '1px solid #cbd5e1',
-                                                borderRadius: '0.5rem',
-                                                fontSize: '0.875rem'
-                                            }}
-                                        />
-                                    </div>
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.75rem',
+                                                    border: '1px solid #cbd5e1',
+                                                    borderRadius: '0.5rem',
+                                                    fontSize: '0.875rem'
+                                                }}
+                                            />
+                                        </div>
+                                    )}
 
                                     <div className={styles.formGroup}>
-                                        <label>Ou URL da Mídia</label>
+                                        <label>{mediaType === 'instagram' ? 'Link da Publicação / Reel do Instagram' : 'Ou URL da Mídia'}</label>
                                         <input
                                             type="text"
                                             value={mediaUrl}
                                             onChange={(e) => {
-                                                setMediaUrl(e.target.value);
-                                                setPreviewUrl(e.target.value);
+                                                const val = e.target.value;
+                                                setMediaUrl(val);
+                                                if (isInstagramContent(val)) {
+                                                    setMediaType('instagram');
+                                                }
+                                                setPreviewUrl(val);
                                             }}
-                                            placeholder="https://..."
+                                            placeholder={mediaType === 'instagram' ? "https://www.instagram.com/p/... ou /reel/..." : "https://..."}
                                         />
                                     </div>
                                 </div>
@@ -406,7 +483,11 @@ export default function NovidadesAdmin() {
                                         <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#334155', marginBottom: '0.5rem' }}>
                                             Pré-visualização
                                         </label>
-                                        {mediaType === 'video' ? (
+                                        {mediaType === 'instagram' || isInstagramContent(previewUrl || mediaUrl) ? (
+                                            <div style={{ maxWidth: '440px', margin: '0 auto' }}>
+                                                <InstagramPostEmbed url={previewUrl || mediaUrl} maxWidth="100%" />
+                                            </div>
+                                        ) : mediaType === 'video' ? (
                                             <video
                                                 src={previewUrl || mediaUrl}
                                                 controls

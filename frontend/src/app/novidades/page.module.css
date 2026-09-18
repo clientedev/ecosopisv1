@@ -134,6 +134,58 @@
   gap: 0.6rem;
 }
 
+.mediaTypeSelector {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mediaTypeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 20px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mediaTypeBtn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.activeMediaType {
+  background: #2d5a27;
+  color: #ffffff;
+  border-color: #2d5a27;
+}
+
+.instagramMediaTypeBtn:hover {
+  border-color: #dc2743;
+}
+
+.activeMediaTypeInstagram {
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(220, 39, 67, 0.3);
+}
+
+.instagramPostWrapper {
+  width: 100%;
+  background: #ffffff;
+  padding: 0.25rem 0;
+  display: flex;
+  justify-content: center;
+}
+
 .createPreview img,
 .createPreview video {
   width: 100%;

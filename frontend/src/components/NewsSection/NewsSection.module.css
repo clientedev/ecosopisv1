@@ -65,6 +65,37 @@
   object-fit: cover;
 }
 
+.instagramMediaCard {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #fdf2f8 0%, #fff7ed 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.2s ease;
+}
+
+.instagramCardIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(220, 39, 67, 0.3);
+}
+
+.instagramCardLabel {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #c13584;
+  letter-spacing: 0.02em;
+}
+
 .placeholder {
   width: 100%;
   height: 100%;

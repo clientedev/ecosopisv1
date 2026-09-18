@@ -8,11 +8,13 @@ import {
   ArrowRight,
   Share2,
   Loader2,
+  Instagram,
 } from 'lucide-react';
 import NewsCommentModal, {
   type NewsPostPatch,
 } from '@/components/NewsCommentModal/NewsCommentModal';
 import AuthPromptModal from '@/components/AuthPromptModal/AuthPromptModal';
+import { isInstagramContent } from '@/utils/instagramUtils';
 import type { NewsComment } from '@/types/news';
 import ShareModal from '../ShareModal/ShareModal';
 import styles from './NewsSection.module.css';
@@ -22,7 +24,7 @@ interface NewsPost {
   title: string;
   content: string;
   media_url?: string;
-  media_type?: 'image' | 'video';
+  media_type?: 'image' | 'video' | 'instagram' | string;
   created_at: string;
   user?: { 
     id?: number;
@@ -201,10 +203,19 @@ export default function NewsSection() {
               <Link href={`/novidades/${post.id}`} className={styles.mediaLink}>
                 <div className={styles.media}>
                   {post.media_url ? (
-                    <img
-                      src={resolveMediaUrl(post.media_url)}
-                      alt={post.title}
-                    />
+                    isInstagramContent(post.media_url) || post.media_type === 'instagram' ? (
+                      <div className={styles.instagramMediaCard}>
+                        <div className={styles.instagramCardIcon}>
+                          <Instagram size={28} />
+                        </div>
+                        <span className={styles.instagramCardLabel}>Post do Instagram</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={resolveMediaUrl(post.media_url)}
+                        alt={post.title}
+                      />
+                    )
                   ) : (
                     <div className={styles.placeholder}>🌿</div>
                   )}

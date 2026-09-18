@@ -16,6 +16,9 @@ import NewsCommentModal, {
 } from '@/components/NewsCommentModal/NewsCommentModal';
 import AuthPromptModal from '@/components/AuthPromptModal/AuthPromptModal';
 import { resolveMediaUrl, resolveAvatarUrl, getInitials } from '@/components/NewsCommentModal/newsModalUtils';
+import InstagramPostEmbed from '@/components/InstagramEmbed/InstagramPostEmbed';
+import BlogContentRenderer from '@/components/InstagramEmbed/BlogContentRenderer';
+import { isInstagramContent } from '@/utils/instagramUtils';
 import styles from '../page.module.css';
 
 interface NewsPost {
@@ -125,19 +128,25 @@ export default function NewsDetailClient({ initialPost }: { initialPost: NewsPos
             </div>
 
             {mediaSrc && (
-              <div className={styles.mediaWrapper}>
-                {post.media_type === 'video' ? (
-                  <video src={mediaSrc} controls playsInline className={styles.postMedia} />
-                ) : (
-                  <img src={mediaSrc} alt={post.title} className={styles.postMedia} />
-                )}
-              </div>
+              isInstagramContent(post.media_url) || post.media_type === 'instagram' ? (
+                <div style={{ padding: '1rem 0', display: 'flex', justifyContent: 'center', width: '100%' }}>
+                  <InstagramPostEmbed url={post.media_url || mediaSrc} maxWidth="640px" />
+                </div>
+              ) : (
+                <div className={styles.mediaWrapper}>
+                  {post.media_type === 'video' ? (
+                    <video src={mediaSrc} controls playsInline className={styles.postMedia} />
+                  ) : (
+                    <img src={mediaSrc} alt={post.title} className={styles.postMedia} />
+                  )}
+                </div>
+              )
             )}
 
             <div className={styles.postContent} style={{ padding: '30px' }}>
               <h1 className={styles.postTitle} style={{ fontSize: '2.5rem', marginBottom: '20px' }}>{post.title}</h1>
-              <div className={styles.postFullContent} style={{ whiteSpace: 'pre-line', lineHeight: '1.8', fontSize: '1.1rem', color: '#444' }}>
-                {post.content}
+              <div className={styles.postFullContent} style={{ lineHeight: '1.8', fontSize: '1.1rem', color: '#444' }}>
+                <BlogContentRenderer content={post.content} />
               </div>
             </div>
 

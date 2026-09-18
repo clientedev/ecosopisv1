@@ -209,6 +209,10 @@ async def create_news(
     final_media_url = media_url
     final_media_type = media_type
 
+    if not file and media_url:
+        if "instagram.com" in media_url or "instagram-media" in media_url or "instagr.am" in media_url:
+            final_media_type = "instagram"
+
     if file:
         try:
             filename = getattr(file, "filename", "uploaded_file") or "uploaded_file"
