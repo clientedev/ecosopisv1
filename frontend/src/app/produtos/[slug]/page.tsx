@@ -535,9 +535,6 @@ export default function ProductDetailPage() {
                                                         </div>
                                                     </div>
                                                     <div className={styles.drawerTriggerRight}>
-                                                        <span className={styles.drawerActionLabel}>
-                                                            {isOpen ? 'Fechar' : 'Ver gaveta'}
-                                                        </span>
                                                         <ChevronDown
                                                             size={18}
                                                             className={`${styles.drawerChevron} ${isOpen ? styles.drawerChevronOpen : ''}`}
