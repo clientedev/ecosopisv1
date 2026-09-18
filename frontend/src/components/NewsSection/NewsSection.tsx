@@ -9,7 +9,6 @@ import {
   Share2,
   Loader2,
   Instagram,
-  Sparkles,
 } from 'lucide-react';
 import NewsCommentModal, {
   type NewsPostPatch,
@@ -194,11 +193,7 @@ export default function NewsSection() {
       <div className="container">
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <span className={styles.headerBadge}>
-              <Sparkles size={14} color="#d4a373" />
-              Dicas & Atualizações
-            </span>
-            <h2 className={styles.title}>Diário ECOSOPIS</h2>
+            <h2 className={styles.title}>Nossos Posts</h2>
             <p className={styles.subtitle}>
               Histórias, bastidores e novidades da nossa jornada com você.
             </p>

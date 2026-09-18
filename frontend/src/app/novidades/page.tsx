@@ -12,7 +12,6 @@ import {
   ChevronUp,
   Plus,
   Instagram,
-  Sparkles,
   CheckCircle2,
 } from 'lucide-react';
 import Header from '@/components/Header/Header';
@@ -326,24 +325,10 @@ export default function NewsPage() {
       <main className={styles.main}>
         <div className={styles.heroSection}>
           <div className={styles.container}>
-            <div className={styles.badge}>
-              <Sparkles size={14} color="#e2c290" />
-              <span>Dicas & Atualizações</span>
-            </div>
-            <h1 className={styles.pageTitle}>Diário ECOSOPIS</h1>
-            <div className={styles.titleFlourish}>
-              <div className={styles.flourishLine} />
-              <div className={styles.flourishDot} />
-              <div className={styles.flourishLine} />
-            </div>
+            <h1 className={styles.pageTitle}>Nossos Posts</h1>
             <p className={styles.pageSubtitle}>
               Histórias, bastidores e novidades da nossa jornada com você.
             </p>
-            <div className={styles.heroChipsRow}>
-              <span className={styles.heroChip}>🌱 100% Botânico & Vegano</span>
-              <span className={styles.heroChip}>✨ Cuidados Diários</span>
-              <span className={styles.heroChip}>📸 Conectado ao Instagram</span>
-            </div>
           </div>
         </div>
 

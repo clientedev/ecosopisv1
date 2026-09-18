@@ -15,23 +15,12 @@
 .headerLeft {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.headerBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #2d5a27;
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  gap: 4px;
 }
 
 .title {
-  font-size: clamp(1.8rem, 3.2vw, 2.3rem);
-  font-weight: 850;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 750;
   letter-spacing: -0.02em;
   color: #1e293b;
   margin: 0;
@@ -39,7 +28,7 @@
 }
 
 .subtitle {
-  font-size: 0.96rem;
+  font-size: 0.95rem;
   color: #64748b;
   margin: 0;
 }
