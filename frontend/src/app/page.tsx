@@ -258,8 +258,6 @@ export default function Home() {
     const [reviewPage, setReviewPage] = useState(1);
     const reviewsPerPage = 3;
     const [homeStories, setHomeStories] = useState<any[]>([]);
-    const [reviewForm, setReviewForm] = useState({ user_name: "", comment: "", rating: 5 });
-    const [formStatus, setFormStatus] = useState({ type: "", text: "" });
     const [isMobile, setIsMobile] = useState(false);
 
     // AI Chat state
@@ -327,29 +325,6 @@ export default function Home() {
         logVisit();
     }, []);
 
-    const handleReviewSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setFormStatus({ type: "info", text: "Enviando..." });
-        try {
-            const res = await fetch('/api/reviews', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_name: reviewForm.user_name,
-                    comment: reviewForm.comment,
-                    rating: reviewForm.rating
-                })
-            });
-            if (res.ok) {
-                setFormStatus({ type: "success", text: "Sua avaliação foi enviada e será exibida após aprovação! ✨" });
-                setReviewForm({ user_name: "", comment: "", rating: 5 });
-            } else {
-                setFormStatus({ type: "error", text: "Erro ao enviar avaliação." });
-            }
-        } catch (err) {
-            setFormStatus({ type: "error", text: "Erro de conexão." });
-        }
-    };
     const [slides, setSlides] = useState<any[]>([]);
     const [currentSlide, setCurrentSlide] = useState(0);
     const touchStartXRef = useRef<number | null>(null);
@@ -1796,43 +1771,6 @@ export default function Home() {
                             </p>
                         </div>
                     )}
-
-                    <div className={styles.reviewFormContainer}>
-                        <h3>Deixe sua Avaliação</h3>
-                        <form onSubmit={handleReviewSubmit} className={styles.reviewForm}>
-                            <div className={styles.formRow}>
-                                <input
-                                    type="text"
-                                    placeholder="Seu Nome"
-                                    value={reviewForm.user_name}
-                                    onChange={(e) => setReviewForm({ ...reviewForm, user_name: e.target.value })}
-                                    required
-                                />
-                                <select
-                                    value={reviewForm.rating}
-                                    onChange={(e) => setReviewForm({ ...reviewForm, rating: parseInt(e.target.value) })}
-                                >
-                                    <option value="5">5 Estrelas ★★★★★</option>
-                                    <option value="4">4 Estrelas ★★★★☆</option>
-                                    <option value="3">3 Estrelas ★★★☆☆</option>
-                                    <option value="2">2 Estrelas ★★☆☆☆</option>
-                                    <option value="1">1 Estrela ★☆☆☆☆</option>
-                                </select>
-                            </div>
-                            <textarea
-                                placeholder="Conte sua experiência com nossos produtos botânicos..."
-                                value={reviewForm.comment}
-                                onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                                required
-                            />
-                            <button type="submit" className="btn-primary">ENVIAR AVALIAÇÃO</button>
-                            {formStatus.text && (
-                                <p className={`${styles.formMessage} ${styles[formStatus.type as keyof typeof styles]}`}>
-                                    {formStatus.text}
-                                </p>
-                            )}
-                        </form>
-                    </div>
                 </div>
             </section>
 
