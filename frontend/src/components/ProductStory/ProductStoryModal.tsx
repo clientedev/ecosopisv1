@@ -4,6 +4,7 @@ import styles from "./ProductStory.module.css";
 import { X, Volume2, VolumeX, ChevronLeft, ChevronRight, ShoppingBag, Pause, Play } from "lucide-react";
 import { StoryVideo } from "./ProductStoryCircles";
 import { isGoogleDriveUrl, getGoogleDriveEmbedUrl, getGoogleDriveDirectStreamUrl } from "@/utils/driveUtils";
+import { isInstagramContent, getInstagramEmbedUrl } from "@/utils/instagramUtils";
 
 interface ProductStoryModalProps {
     storyVideos: StoryVideo[];
@@ -38,6 +39,11 @@ export default function ProductStoryModal({
 
     // Detecta se o vídeo atual é do Google Drive
     const isDriveVideo = currentStory && isGoogleDriveUrl(currentStory.video_url);
+    // Detecta se é Instagram
+    const isInstagramVideo = currentStory && isInstagramContent(currentStory.video_url);
+    const instagramEmbedUrl = isInstagramVideo ? getInstagramEmbedUrl(currentStory.video_url) : null;
+    // Para iframes sem controle de tempo (Drive, Instagram)
+    const usesIframeProgress = isDriveVideo || isInstagramVideo;
 
     // Format URLs & handle Google Drive direct video stream
     const getVideoSrc = (url?: string) => {
@@ -76,12 +82,12 @@ export default function ProductStoryModal({
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [onClose]);
 
-    // Simulated progress for Drive iframes (since we can't track time inside cross-origin iframe)
+    // Simulated progress for Drive/Instagram iframes
     const startDriveProgress = () => {
         if (driveTimerRef.current) clearInterval(driveTimerRef.current);
         driveProgressRef.current = 0;
         setProgress(0);
-        const TOTAL_SECONDS = 60; // assumir ~60s por vídeo do Drive
+        const TOTAL_SECONDS = isInstagramVideo ? 30 : 60;
         driveTimerRef.current = setInterval(() => {
             driveProgressRef.current += 100 / (TOTAL_SECONDS * 10);
             const capped = Math.min(driveProgressRef.current, 100);
@@ -162,7 +168,9 @@ export default function ProductStoryModal({
         setProgress(0);
         setIsPlaying(true);
 
-        if (videoRef.current) {
+        if (usesIframeProgress) {
+            startDriveProgress();
+        } else if (videoRef.current) {
             videoRef.current.currentTime = 0;
             videoRef.current.play().catch(err => console.error("Autoplay error:", err));
         }
@@ -219,16 +227,37 @@ export default function ProductStoryModal({
 
                 {/* Vídeo do Story com Autoplay Nativo */}
                 <div className={styles.storyVideoWrapper}>
-                    <video
-                        ref={videoRef}
-                        src={getVideoSrc(currentStory.video_url)}
-                        className={styles.storyVideo}
-                        autoPlay
-                        playsInline
-                        muted={isMuted}
-                        onTimeUpdate={handleTimeUpdate}
-                        onEnded={handleVideoEnd}
-                    />
+                    {isInstagramVideo && instagramEmbedUrl ? (
+                        <iframe
+                            key={`ig-${currentIndex}`}
+                            src={instagramEmbedUrl}
+                            className={styles.storyVideo}
+                            allow="autoplay; encrypted-media; fullscreen"
+                            title={currentStory.title}
+                            style={{ border: "none", background: "#000" }}
+                            scrolling="no"
+                        />
+                    ) : isDriveVideo ? (
+                        <iframe
+                            key={`drive-${currentIndex}`}
+                            src={getGoogleDriveEmbedUrl(currentStory.video_url) || ""}
+                            className={styles.storyVideo}
+                            allow="autoplay; encrypted-media; fullscreen"
+                            title={currentStory.title}
+                            style={{ border: "none" }}
+                        />
+                    ) : (
+                        <video
+                            ref={videoRef}
+                            src={getVideoSrc(currentStory.video_url)}
+                            className={styles.storyVideo}
+                            autoPlay
+                            playsInline
+                            muted={isMuted}
+                            onTimeUpdate={handleTimeUpdate}
+                            onEnded={handleVideoEnd}
+                        />
+                    )}
 
                     {/* Zonas de Toque/Clique para Navegação */}
                     <div className={styles.storyTouchZoneLeft} onClick={handlePrev} />

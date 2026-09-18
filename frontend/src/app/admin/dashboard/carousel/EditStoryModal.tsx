@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { X, Upload, Video, Sparkles, Play } from "lucide-react";
 import { isGoogleDriveUrl, getGoogleDriveDirectStreamUrl, getGoogleDriveEmbedUrl } from "@/utils/driveUtils";
+import { normalizeVideoUrl, isInstagramContent } from "@/utils/instagramUtils";
 
 interface HomeStoryItem {
     id?: number;
@@ -21,7 +22,8 @@ interface EditStoryModalProps {
 export default function EditStoryModal({ story, onClose, onSave }: EditStoryModalProps) {
     const isEditing = Boolean(story && story.id);
     const [title, setTitle] = useState(story?.title || "");
-    const [videoUrl, setVideoUrl] = useState(story?.video_url || "");
+    // Normaliza na inicialização caso já esteja salvo como embed code
+    const [videoUrl, setVideoUrl] = useState(normalizeVideoUrl(story?.video_url || ""));
     const [thumbnailUrl, setThumbnailUrl] = useState(story?.thumbnail_url || "");
     const [isActive, setIsActive] = useState(story?.is_active ?? true);
     const [isSaving, setIsSaving] = useState(false);
@@ -139,6 +141,7 @@ export default function EditStoryModal({ story, onClose, onSave }: EditStoryModa
 
     // Helper para preview da mídia
     const isDrive = videoUrl ? isGoogleDriveUrl(videoUrl) : false;
+    const isInstagram = videoUrl ? isInstagramContent(videoUrl) : false;
     const directDrive = isDrive ? getGoogleDriveDirectStreamUrl(videoUrl) : null;
     const driveEmbed = isDrive ? getGoogleDriveEmbedUrl(videoUrl, true) : null;
 
@@ -264,7 +267,18 @@ export default function EditStoryModal({ story, onClose, onSave }: EditStoryModa
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                 }}>
-                                    {directDrive || (videoUrl && !isDrive) ? (
+                                    {isInstagram ? (
+                                        // Preview com gradiente Instagram
+                                        <div style={{
+                                            width: '100%', height: '100%',
+                                            background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                        }}>
+                                            <svg width="36" height="36" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                                            </svg>
+                                        </div>
+                                    ) : directDrive || (videoUrl && !isDrive) ? (
                                         <video
                                             src={directDrive || videoUrl}
                                             autoPlay
@@ -329,20 +343,25 @@ export default function EditStoryModal({ story, onClose, onSave }: EditStoryModa
                     {/* Vídeo (URL ou Upload) */}
                     <div>
                         <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                            Vídeo do Story (Google Drive, Link MP4 ou Upload) *
+                            Vídeo do Story (Instagram Reel, Google Drive, Link MP4 ou Upload) *
                         </label>
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                            <input
-                                type="text"
+                            <textarea
                                 value={videoUrl}
-                                onChange={(e) => setVideoUrl(e.target.value)}
-                                placeholder="Link do Google Drive ou URL de vídeo..."
+                                onChange={(e) => {
+                                    const normalized = normalizeVideoUrl(e.target.value);
+                                    setVideoUrl(normalized);
+                                }}
+                                placeholder={"Cole aqui o link do Instagram Reel, c\u00f3digo embed (<blockquote...>), link do Google Drive ou URL de v\u00eddeo MP4..."}
+                                rows={2}
                                 style={{
                                     flex: 1,
                                     padding: '10px 14px',
                                     borderRadius: '8px',
-                                    border: '1px solid #cbd5e1',
-                                    fontSize: '0.85rem'
+                                    border: isInstagram ? '2px solid #e1306c' : '1px solid #cbd5e1',
+                                    fontSize: '0.82rem',
+                                    resize: 'vertical',
+                                    fontFamily: 'monospace'
                                 }}
                             />
                             <label style={{
@@ -374,7 +393,9 @@ export default function EditStoryModal({ story, onClose, onSave }: EditStoryModa
                             </label>
                         </div>
                         <small style={{ color: '#64748b', fontSize: '0.75rem', lineHeight: '1.4', display: 'block' }}>
-                            💡 Suporta link de compartilhamento do <strong>Google Drive</strong> (o arquivo deve estar como &quot;Qualquer pessoa com o link&quot;) ou upload direto de arquivos de vídeo MP4/WebM.
+                            {isInstagram
+                                ? <span style={{ color: '#e1306c', fontWeight: 600 }}>✅ Instagram Reel detectado! A URL embed foi extraída automaticamente.</span>
+                                : <>💡 Suporta <strong>Instagram Reel</strong> (cole o link ou o código embed completo), link do <strong>Google Drive</strong> (arquivo público) ou upload direto MP4/WebM.</>}
                         </small>
                     </div>
 

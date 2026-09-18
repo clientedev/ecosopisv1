@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import styles from "./HomeStory.module.css";
 import { X, Volume2, VolumeX, ChevronLeft, ChevronRight } from "lucide-react";
 import { isGoogleDriveUrl, getGoogleDriveEmbedUrl, getGoogleDriveDirectStreamUrl } from "@/utils/driveUtils";
+import { isInstagramContent, getInstagramEmbedUrl } from "@/utils/instagramUtils";
 import { HomeStoryItem } from "./HomeStoryCircles";
 
 interface HomeStoryModalProps {
@@ -26,8 +27,13 @@ export default function HomeStoryModal({
 
     const currentStory = stories[currentIndex];
     const isDrive = currentStory?.video_url ? isGoogleDriveUrl(currentStory.video_url) : false;
+    const isInstagram = currentStory?.video_url ? isInstagramContent(currentStory.video_url) : false;
+    const instagramEmbedUrl = isInstagram ? getInstagramEmbedUrl(currentStory.video_url) : null;
     const directDriveStream = isDrive ? getGoogleDriveDirectStreamUrl(currentStory.video_url) : null;
     const driveEmbed = isDrive ? getGoogleDriveEmbedUrl(currentStory.video_url, true) : null;
+
+    // Para iframes sem controle de tempo (Drive sem stream direto, Instagram)
+    const usesTimerProgress = (isDrive && !directDriveStream) || isInstagram;
 
     const handleNext = useCallback(() => {
         if (currentIndex < stories.length - 1) {
@@ -63,14 +69,14 @@ export default function HomeStoryModal({
 
     // Timer de progresso para quando é iframe do Google Drive (sem eventos de video element)
     useEffect(() => {
-        if (!isDrive || directDriveStream) return;
+        if (!usesTimerProgress) return;
 
         if (isPaused) {
             if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
             return;
         }
 
-        const duration = 15000; // 15 segundos por story
+        const duration = isInstagram ? 30000 : 15000; // 30s para Instagram, 15s para Drive
         const interval = 100;
         const step = (interval / duration) * 100;
 
@@ -88,7 +94,7 @@ export default function HomeStoryModal({
         return () => {
             if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
         };
-    }, [currentIndex, isDrive, directDriveStream, isPaused, handleNext]);
+    }, [currentIndex, usesTimerProgress, isInstagram, isPaused, handleNext]);
 
     // Sincroniza áudio do vídeo HTML5
     useEffect(() => {
@@ -189,7 +195,17 @@ export default function HomeStoryModal({
 
                 {/* Área do Vídeo */}
                 <div className={styles.storyVideoWrapper}>
-                    {isDrive && !directDriveStream && driveEmbed ? (
+                    {isInstagram && instagramEmbedUrl ? (
+                        <iframe
+                            key={`ig-${currentIndex}`}
+                            src={instagramEmbedUrl}
+                            className={styles.storyVideo}
+                            allow="autoplay; encrypted-media; fullscreen"
+                            title={currentStory.title}
+                            style={{ border: "none", background: "#000" }}
+                            scrolling="no"
+                        />
+                    ) : isDrive && !directDriveStream && driveEmbed ? (
                         <iframe
                             src={driveEmbed}
                             className={styles.storyVideo}
@@ -243,8 +259,8 @@ export default function HomeStoryModal({
                         title="Próximo story"
                     />
 
-                    {/* Botão de Áudio (quando aplicável) */}
-                    {(!isDrive || directDriveStream) && (
+                    {/* Botão de Áudio (quando aplicável - não para Instagram/Drive embed) */}
+                    {!usesTimerProgress && (
                         <button
                             className={styles.storyAudioBtn}
                             onClick={() => setIsMuted(prev => !prev)}
