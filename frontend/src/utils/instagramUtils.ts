@@ -20,6 +20,15 @@ export function extractInstagramId(input: string): string | null {
 }
 
 /**
+ * Retorna o link direto para visualização do Reel no Instagram
+ */
+export function extractInstagramPermalink(input: string): string | null {
+    const id = extractInstagramId(input);
+    if (!id) return null;
+    return `https://www.instagram.com/reel/${id}/`;
+}
+
+/**
  * Retorna true se a string for uma URL do Instagram ou um embed code do Instagram.
  */
 export function isInstagramContent(input: string): boolean {

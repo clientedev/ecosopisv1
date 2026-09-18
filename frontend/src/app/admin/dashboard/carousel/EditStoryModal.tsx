@@ -394,8 +394,8 @@ export default function EditStoryModal({ story, onClose, onSave }: EditStoryModa
                         </div>
                         <small style={{ color: '#64748b', fontSize: '0.75rem', lineHeight: '1.4', display: 'block' }}>
                             {isInstagram
-                                ? <span style={{ color: '#e1306c', fontWeight: 600 }}>✅ Instagram Reel detectado! A URL embed foi extraída automaticamente.</span>
-                                : <>💡 Suporta <strong>Instagram Reel</strong> (cole o link ou o código embed completo), link do <strong>Google Drive</strong> (arquivo público) ou upload direto MP4/WebM.</>}
+                                ? <span style={{ color: '#e1306c', fontWeight: 600 }}>✅ Instagram Reel detectado! O player oficial será exibido. (💡 Dica: Por política do Instagram, embeds externos exigem o toque no play para reproduzir. Para vídeos com autoplay 100% contínuo e automático no site, utilize o botão Upload MP4).</span>
+                                : <>💡 Suporta <strong>Instagram Reel</strong> (link ou código embed), link do <strong>Google Drive</strong> (compartilhado público) ou <strong>Upload direto MP4/WebM</strong> (com reprodução contínua automática).</>}
                         </small>
                     </div>
 

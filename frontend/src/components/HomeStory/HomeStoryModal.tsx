@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import styles from "./HomeStory.module.css";
 import { X, Volume2, VolumeX, ChevronLeft, ChevronRight } from "lucide-react";
 import { isGoogleDriveUrl, getGoogleDriveEmbedUrl, getGoogleDriveDirectStreamUrl } from "@/utils/driveUtils";
-import { isInstagramContent, getInstagramEmbedUrl } from "@/utils/instagramUtils";
+import { isInstagramContent, getInstagramEmbedUrl, extractInstagramPermalink } from "@/utils/instagramUtils";
 import { HomeStoryItem } from "./HomeStoryCircles";
 
 interface HomeStoryModalProps {
@@ -29,6 +29,7 @@ export default function HomeStoryModal({
     const isDrive = currentStory?.video_url ? isGoogleDriveUrl(currentStory.video_url) : false;
     const isInstagram = currentStory?.video_url ? isInstagramContent(currentStory.video_url) : false;
     const instagramEmbedUrl = isInstagram ? getInstagramEmbedUrl(currentStory.video_url) : null;
+    const instagramPermalink = isInstagram ? (extractInstagramPermalink(currentStory.video_url) || "https://www.instagram.com") : null;
     const directDriveStream = isDrive ? getGoogleDriveDirectStreamUrl(currentStory.video_url) : null;
     const driveEmbed = isDrive ? getGoogleDriveEmbedUrl(currentStory.video_url, true) : null;
 
@@ -76,7 +77,7 @@ export default function HomeStoryModal({
             return;
         }
 
-        const duration = isInstagram ? 30000 : 15000; // 30s para Instagram, 15s para Drive
+        const duration = isInstagram ? 60000 : 15000; // 60s para Instagram dar tempo de assistir, 15s para Drive
         const interval = 100;
         const step = (interval / duration) * 100;
 
@@ -180,6 +181,21 @@ export default function HomeStoryModal({
                             <span className={styles.storyTitleText}>
                                 {currentStory?.title || "Ecosopis"}
                             </span>
+                            {isInstagram && instagramPermalink && (
+                                <a
+                                    href={instagramPermalink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={styles.instagramBadgeBtn}
+                                    onClick={(e) => e.stopPropagation()}
+                                    title="Ver Reel original no Instagram"
+                                >
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                                    </svg>
+                                    Ver no Insta ↗
+                                </a>
+                            )}
                         </div>
 
                         <button
@@ -196,15 +212,16 @@ export default function HomeStoryModal({
                 {/* Área do Vídeo */}
                 <div className={styles.storyVideoWrapper}>
                     {isInstagram && instagramEmbedUrl ? (
-                        <iframe
-                            key={`ig-${currentIndex}`}
-                            src={instagramEmbedUrl}
-                            className={styles.storyVideo}
-                            allow="autoplay; encrypted-media; fullscreen"
-                            title={currentStory.title}
-                            style={{ border: "none", background: "#000" }}
-                            scrolling="no"
-                        />
+                        <div className={styles.instagramEmbedBox}>
+                            <iframe
+                                key={`ig-${currentIndex}`}
+                                src={instagramEmbedUrl}
+                                className={styles.instagramIframe}
+                                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
+                                title={currentStory.title}
+                                scrolling="yes"
+                            />
+                        </div>
                     ) : isDrive && !directDriveStream && driveEmbed ? (
                         <iframe
                             src={driveEmbed}
@@ -230,34 +247,72 @@ export default function HomeStoryModal({
                         />
                     )}
 
-                    {/* Zonas de toque para celular e clique rápido */}
-                    <div
-                        className={styles.storyTouchZoneLeft}
-                        onClick={handlePrev}
-                        title="Voltar story"
-                    />
-                    <div
-                        className={styles.storyTouchZoneCenter}
-                        onClick={() => {
-                            if (videoRef.current) {
-                                if (videoRef.current.paused) {
-                                    videoRef.current.play();
-                                    setIsPaused(false);
-                                } else {
-                                    videoRef.current.pause();
-                                    setIsPaused(true);
-                                }
-                            } else {
-                                setIsPaused(prev => !prev);
-                            }
-                        }}
-                        title="Pausar / Retomar"
-                    />
-                    <div
-                        className={styles.storyTouchZoneRight}
-                        onClick={handleNext}
-                        title="Próximo story"
-                    />
+                    {/* Zonas de toque para celular e clique rápido - apenas para vídeos diretos (não cobrir iframes) */}
+                    {!isInstagram && !driveEmbed && (
+                        <>
+                            <div
+                                className={styles.storyTouchZoneLeft}
+                                onClick={handlePrev}
+                                title="Voltar story"
+                            />
+                            <div
+                                className={styles.storyTouchZoneCenter}
+                                onClick={() => {
+                                    if (videoRef.current) {
+                                        if (videoRef.current.paused) {
+                                            videoRef.current.play();
+                                            setIsPaused(false);
+                                        } else {
+                                            videoRef.current.pause();
+                                            setIsPaused(true);
+                                        }
+                                    } else {
+                                        setIsPaused(prev => !prev);
+                                    }
+                                }}
+                                title="Pausar / Retomar"
+                            />
+                            <div
+                                className={styles.storyTouchZoneRight}
+                                onClick={handleNext}
+                                title="Próximo story"
+                            />
+                        </>
+                    )}
+
+                    {/* Botões de navegação lateral para Instagram no celular */}
+                    {isInstagram && (
+                        <div className={styles.instagramNavControls}>
+                            {currentIndex > 0 ? (
+                                <button
+                                    type="button"
+                                    className={styles.instagramNavBtnLeft}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePrev();
+                                    }}
+                                    title="Story anterior"
+                                    aria-label="Story anterior"
+                                >
+                                    <ChevronLeft size={20} />
+                                </button>
+                            ) : <div />}
+                            {currentIndex < stories.length - 1 && (
+                                <button
+                                    type="button"
+                                    className={styles.instagramNavBtnRight}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleNext();
+                                    }}
+                                    title="Próximo story"
+                                    aria-label="Próximo story"
+                                >
+                                    <ChevronRight size={20} />
+                                </button>
+                            )}
+                        </div>
+                    )}
 
                     {/* Botão de Áudio (quando aplicável - não para Instagram/Drive embed) */}
                     {!usesTimerProgress && (

@@ -353,6 +353,9 @@ export default function Home() {
     const [slides, setSlides] = useState<any[]>([]);
     const [currentSlide, setCurrentSlide] = useState(0);
     const touchStartXRef = useRef<number | null>(null);
+    const mouseStartXRef = useRef<number | null>(null);
+    const isMouseDownRef = useRef<boolean>(false);
+    const hasDraggedRef = useRef<boolean>(false);
 
     // Regra: mobile vê APENAS slides que tenham mobile_image_url preenchido
     //        desktop vê APENAS slides que tenham image_url preenchido
@@ -973,18 +976,66 @@ export default function Home() {
 
             <section
                 className={styles.heroCarousel}
-                onTouchStart={(e) => { touchStartXRef.current = e.touches[0].clientX; }}
+                onMouseDown={(e) => {
+                    if (e.button !== 0) return;
+                    mouseStartXRef.current = e.clientX;
+                    isMouseDownRef.current = true;
+                    hasDraggedRef.current = false;
+                }}
+                onMouseMove={(e) => {
+                    if (!isMouseDownRef.current || mouseStartXRef.current === null) return;
+                    const delta = e.clientX - mouseStartXRef.current;
+                    if (Math.abs(delta) > 8) {
+                        hasDraggedRef.current = true;
+                    }
+                }}
+                onMouseUp={(e) => {
+                    if (!isMouseDownRef.current || mouseStartXRef.current === null) return;
+                    const delta = e.clientX - mouseStartXRef.current;
+                    isMouseDownRef.current = false;
+                    mouseStartXRef.current = null;
+                    if (Math.abs(delta) < 40) return;
+                    if (deviceSlides.length <= 1) return;
+                    if (delta < 0) {
+                        setCurrentSlide(prev => (prev + 1) % deviceSlides.length);
+                    } else {
+                        setCurrentSlide(prev => (prev - 1 + deviceSlides.length) % deviceSlides.length);
+                    }
+                }}
+                onMouseLeave={() => {
+                    isMouseDownRef.current = false;
+                    mouseStartXRef.current = null;
+                }}
+                onTouchStart={(e) => {
+                    touchStartXRef.current = e.touches[0].clientX;
+                    hasDraggedRef.current = false;
+                }}
+                onTouchMove={(e) => {
+                    if (touchStartXRef.current === null) return;
+                    const delta = e.touches[0].clientX - touchStartXRef.current;
+                    if (Math.abs(delta) > 8) {
+                        hasDraggedRef.current = true;
+                    }
+                }}
                 onTouchEnd={(e) => {
                     if (touchStartXRef.current === null) return;
                     const delta = e.changedTouches[0].clientX - touchStartXRef.current;
                     touchStartXRef.current = null;
-                    if (Math.abs(delta) < 40) return; // ignore tiny taps
+                    if (Math.abs(delta) < 40) return;
+                    if (deviceSlides.length <= 1) return;
                     if (delta < 0) {
                         // swipe left → next slide
                         setCurrentSlide(prev => (prev + 1) % deviceSlides.length);
                     } else {
                         // swipe right → prev slide
                         setCurrentSlide(prev => (prev - 1 + deviceSlides.length) % deviceSlides.length);
+                    }
+                }}
+                onClickCapture={(e) => {
+                    if (hasDraggedRef.current) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        hasDraggedRef.current = false;
                     }
                 }}
             >
@@ -1083,10 +1134,13 @@ export default function Home() {
                                                     src={activeImageUrl}
                                                     alt={slide.title || 'Banner'}
                                                     className={styles.bannerImage}
+                                                    draggable={false}
                                                     style={{
                                                         width: '100%',
                                                         height: 'auto',
                                                         display: 'block',
+                                                        userSelect: 'none',
+                                                        WebkitUserDrag: 'none' as any,
                                                     }}
                                                 />
                                             </Link>
@@ -1095,10 +1149,13 @@ export default function Home() {
                                                 src={activeImageUrl}
                                                 alt={slide.title || 'Banner'}
                                                 className={styles.bannerImage}
+                                                draggable={false}
                                                 style={{
                                                     width: '100%',
                                                     height: 'auto',
                                                     display: 'block',
+                                                    userSelect: 'none',
+                                                    WebkitUserDrag: 'none' as any,
                                                 }}
                                             />
                                         )}
@@ -1252,8 +1309,8 @@ export default function Home() {
                     );
                 })}
 
-                {/* Prev / Next Navigation Arrows */}
-                {deviceSlides.length > 1 && (
+                {/* Prev / Next Navigation Arrows (Removidas do Desktop conforme solicitado) */}
+                {deviceSlides.length > 1 && isMobile && (
                     <>
                         <button
                             type="button"
