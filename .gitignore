@@ -36,6 +36,8 @@ Thumbs.db
 
 # Build outputs
 /backend/build/
+/backend/static/ig_cache/
+/backend/static/drive_cache/
 /frontend/.next/
 /frontend/out/
 /frontend/build/

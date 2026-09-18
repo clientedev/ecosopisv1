@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Request
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import Response, StreamingResponse, FileResponse
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
+import threading
+from collections import defaultdict
 from app.core.database import get_db
 from app.core.upload_content_type import resolve_stored_image_content_type
 from app.models import models
@@ -448,112 +450,235 @@ def regenerate_product_qr(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao regenerar QR Code: {str(e)}")
 
+_stream_locks = defaultdict(threading.Lock)
+IG_CACHE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "static", "ig_cache"))
+DRIVE_CACHE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "static", "drive_cache"))
+os.makedirs(IG_CACHE_DIR, exist_ok=True)
+os.makedirs(DRIVE_CACHE_DIR, exist_ok=True)
+
 @router.get("/drive-stream/{file_id}")
 def stream_drive_video(file_id: str, request: Request):
     """
-    Proxy stream de vídeo do Google Drive direto para tags <video> HTML5.
-    Resolve problemas de CORS, cookies de sessão e headers de Range.
+    Proxy stream de vídeo do Google Drive com cache em disco permanente/revalidável.
+    O vídeo é baixado apenas UMA vez para static/drive_cache/{file_id}.mp4.
+    Requisições subsequentes são entregues diretamente pelo FileResponse nativo
+    (com suporte a HTTP 206 Range e Cache-Control de 7 dias),
+    eliminando o consumo repetido de Egress e memória do servidor Railway.
     """
-    drive_url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    req_headers = {}
-    if "range" in request.headers:
-        req_headers["Range"] = request.headers["range"]
+    clean_id = re.sub(r'[^A-Za-z0-9_-]', '', file_id)
+    if not clean_id:
+        raise HTTPException(status_code=400, detail="ID de arquivo inválido")
 
-    try:
-        r = requests.get(drive_url, headers=req_headers, stream=True, timeout=15)
-        
-        def iterfile():
+    cache_file = os.path.join(DRIVE_CACHE_DIR, f"{clean_id}.mp4")
+    temp_file = os.path.join(DRIVE_CACHE_DIR, f"{clean_id}.mp4.tmp")
+    now = time.time()
+
+    # 1. Retorna do cache em disco se existir e for válido (> 15KB e < 14 dias)
+    if os.path.exists(cache_file):
+        try:
+            if os.path.getsize(cache_file) > 15000 and (now - os.path.getmtime(cache_file)) < 14 * 86400:
+                return FileResponse(
+                    cache_file,
+                    media_type="video/mp4",
+                    headers={
+                        "Cache-Control": "public, max-age=604800, s-maxage=604800, immutable",
+                        "Accept-Ranges": "bytes",
+                    }
+                )
+        except Exception:
+            pass
+
+    # 2. Se não estiver em cache, baixa sincronizado com lock por arquivo
+    with _stream_locks[f"drive_{clean_id}"]:
+        if os.path.exists(cache_file):
             try:
-                for chunk in r.iter_content(chunk_size=64 * 1024):
-                    if chunk:
-                        yield chunk
-            finally:
-                r.close()
+                if os.path.getsize(cache_file) > 15000:
+                    return FileResponse(
+                        cache_file,
+                        media_type="video/mp4",
+                        headers={
+                            "Cache-Control": "public, max-age=604800, s-maxage=604800, immutable",
+                            "Accept-Ranges": "bytes",
+                        }
+                    )
+            except Exception:
+                pass
 
-        res_headers = {
-            "Content-Type": r.headers.get("Content-Type", "video/mp4"),
+        drive_url = f"https://drive.google.com/uc?export=download&id={clean_id}&confirm=t"
+        try:
+            with requests.get(drive_url, stream=True, timeout=25) as r:
+                if r.status_code != 200:
+                    raise HTTPException(status_code=r.status_code, detail="Falha ao baixar vídeo do Drive")
+
+                with open(temp_file, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=128 * 1024):
+                        if chunk:
+                            f.write(chunk)
+
+            if os.path.exists(temp_file) and os.path.getsize(temp_file) > 15000:
+                if os.path.exists(cache_file):
+                    try:
+                        os.remove(cache_file)
+                    except Exception:
+                        pass
+                os.replace(temp_file, cache_file)
+            else:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+                raise Exception("Arquivo do Drive baixado está truncado ou inválido")
+
+        except Exception as e:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except Exception:
+                    pass
+            # Fallback: se temos um cache antigo no disco, serve ele mesmo expirado
+            if os.path.exists(cache_file) and os.path.getsize(cache_file) > 15000:
+                return FileResponse(
+                    cache_file,
+                    media_type="video/mp4",
+                    headers={"Cache-Control": "public, max-age=3600", "Accept-Ranges": "bytes"}
+                )
+            raise HTTPException(status_code=502, detail=f"Erro ao carregar vídeo do Drive: {str(e)}")
+
+    return FileResponse(
+        cache_file,
+        media_type="video/mp4",
+        headers={
+            "Cache-Control": "public, max-age=604800, s-maxage=604800, immutable",
             "Accept-Ranges": "bytes",
-            "Cache-Control": "public, max-age=3600"
         }
-        if "Content-Length" in r.headers:
-            res_headers["Content-Length"] = r.headers["Content-Length"]
-        if "Content-Range" in r.headers:
-            res_headers["Content-Range"] = r.headers["Content-Range"]
-
-        status_code = 206 if "Content-Range" in r.headers else 200
-        return StreamingResponse(iterfile(), status_code=status_code, headers=res_headers)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Erro ao carregar vídeo do Drive: {str(e)}")
+    )
 
 _ig_cache = {}
 
 @router.get("/instagram-stream/{reel_id}")
 def stream_instagram_video(reel_id: str, request: Request):
     """
-    Proxy stream de vídeo MP4 direto do Instagram Reels para tags <video> HTML5.
-    Resolve reprodução automática sem pedir play, remove bordas/cabeçalho/rodapé do Instagram,
-    e permite streaming nativo com suporte a Range requests (HTTP 206).
+    Proxy stream de vídeo MP4 do Instagram Reels com cache permanente em disco.
+    O vídeo é baixado apenas UMA vez para static/ig_cache/{reel_id}.mp4
+    e servido nativamente via FileResponse (com suporte a HTTP 206 Range e Cache-Control de 7 dias),
+    eliminando downloads repetidos, streaming concorrente e consumo excessivo de Egress e RAM no Railway.
     """
+    clean_id = re.sub(r'[^A-Za-z0-9_-]', '', reel_id)
+    if not clean_id:
+        raise HTTPException(status_code=400, detail="ID de Reel inválido")
+
+    cache_file = os.path.join(IG_CACHE_DIR, f"{clean_id}.mp4")
+    temp_file = os.path.join(IG_CACHE_DIR, f"{clean_id}.mp4.tmp")
     now = time.time()
-    mp4_url = None
-    if reel_id in _ig_cache and _ig_cache[reel_id]["expires"] > now:
-        mp4_url = _ig_cache[reel_id]["url"]
-    else:
+
+    # 1. Retorna do cache em disco se existir e for válido (> 15KB e < 7 dias)
+    if os.path.exists(cache_file):
         try:
-            embed_url = f"https://www.instagram.com/reel/{reel_id}/embed/"
-            ig_req = urllib.request.Request(
-                embed_url,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-            )
-            html = urllib.request.urlopen(ig_req, timeout=8).read().decode("utf-8", errors="ignore")
-            matches = re.findall(r'https:[^\"\'<>\s]+?\.mp4[^\"\'<>\s]*', html)
-            if matches:
-                clean = matches[0].replace(r'\\/', '/').replace(r'\/', '/').replace(r'\u0026', '&').rstrip('\\').rstrip('"')
-                mp4_url = clean
-                _ig_cache[reel_id] = {"url": clean, "expires": now + 7200}
-        except Exception as e:
-            print(f"Error fetching IG embed for reel {reel_id}: {e}")
+            if os.path.getsize(cache_file) > 15000 and (now - os.path.getmtime(cache_file)) < 7 * 86400:
+                return FileResponse(
+                    cache_file,
+                    media_type="video/mp4",
+                    headers={
+                        "Cache-Control": "public, max-age=604800, s-maxage=604800, immutable",
+                        "Accept-Ranges": "bytes",
+                    }
+                )
+        except Exception:
+            pass
 
-    if not mp4_url:
-        raise HTTPException(status_code=404, detail="Não foi possível obter o stream de vídeo do Instagram")
-
-    req_headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Referer": "https://www.instagram.com/"
-    }
-    if "range" in request.headers:
-        req_headers["Range"] = request.headers["range"]
-
-    try:
-        r = requests.get(mp4_url, headers=req_headers, stream=True, timeout=15)
-        if r.status_code not in (200, 206):
-            if reel_id in _ig_cache:
-                del _ig_cache[reel_id]
-            raise HTTPException(status_code=r.status_code, detail="Instagram CDN retornou status de erro")
-
-        def iterfile():
+    # 2. Se não estiver em cache, baixa sincronizado com lock por Reel
+    with _stream_locks[f"ig_{clean_id}"]:
+        if os.path.exists(cache_file):
             try:
-                for chunk in r.iter_content(chunk_size=64 * 1024):
-                    if chunk:
-                        yield chunk
-            finally:
-                r.close()
+                if os.path.getsize(cache_file) > 15000:
+                    return FileResponse(
+                        cache_file,
+                        media_type="video/mp4",
+                        headers={
+                            "Cache-Control": "public, max-age=604800, s-maxage=604800, immutable",
+                            "Accept-Ranges": "bytes",
+                        }
+                    )
+            except Exception:
+                pass
 
-        res_headers = {
-            "Content-Type": r.headers.get("Content-Type", "video/mp4"),
-            "Accept-Ranges": "bytes",
-            "Cache-Control": "public, max-age=3600"
+        mp4_url = None
+        if clean_id in _ig_cache and _ig_cache[clean_id]["expires"] > now:
+            mp4_url = _ig_cache[clean_id]["url"]
+        else:
+            try:
+                embed_url = f"https://www.instagram.com/reel/{clean_id}/embed/"
+                ig_req = urllib.request.Request(
+                    embed_url,
+                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+                )
+                html = urllib.request.urlopen(ig_req, timeout=8).read().decode("utf-8", errors="ignore")
+                matches = re.findall(r'https:[^\"\'<>\s]+?\.mp4[^\"\'<>\s]*', html)
+                if matches:
+                    clean = matches[0].replace(r'\\/', '/').replace(r'\/', '/').replace(r'\u0026', '&').rstrip('\\').rstrip('"')
+                    mp4_url = clean
+                    _ig_cache[clean_id] = {"url": clean, "expires": now + 7200}
+            except Exception as e:
+                print(f"Error fetching IG embed for reel {clean_id}: {e}")
+
+        if not mp4_url:
+            # Fallback: se tiver cache anterior no disco, serve ele mesmo expirado
+            if os.path.exists(cache_file) and os.path.getsize(cache_file) > 15000:
+                return FileResponse(
+                    cache_file,
+                    media_type="video/mp4",
+                    headers={"Cache-Control": "public, max-age=86400", "Accept-Ranges": "bytes"}
+                )
+            raise HTTPException(status_code=404, detail="Não foi possível obter o stream de vídeo do Instagram")
+
+        req_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Referer": "https://www.instagram.com/"
         }
-        if "Content-Length" in r.headers:
-            res_headers["Content-Length"] = r.headers["Content-Length"]
-        if "Content-Range" in r.headers:
-            res_headers["Content-Range"] = r.headers["Content-Range"]
+        try:
+            with requests.get(mp4_url, headers=req_headers, stream=True, timeout=25) as r:
+                if r.status_code != 200:
+                    if clean_id in _ig_cache:
+                        del _ig_cache[clean_id]
+                    raise HTTPException(status_code=r.status_code, detail="Instagram CDN retornou status de erro")
 
-        status_code = 206 if "Content-Range" in r.headers else 200
-        return StreamingResponse(iterfile(), status_code=status_code, headers=res_headers)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Erro ao transmitir vídeo do Instagram: {str(e)}")
+                with open(temp_file, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=128 * 1024):
+                        if chunk:
+                            f.write(chunk)
+
+            if os.path.exists(temp_file) and os.path.getsize(temp_file) > 15000:
+                if os.path.exists(cache_file):
+                    try:
+                        os.remove(cache_file)
+                    except Exception:
+                        pass
+                os.replace(temp_file, cache_file)
+            else:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+                raise Exception("Arquivo do Instagram baixado está truncado ou inválido")
+
+        except Exception as e:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except Exception:
+                    pass
+            # Fallback: serve cache existente se houver
+            if os.path.exists(cache_file) and os.path.getsize(cache_file) > 15000:
+                return FileResponse(
+                    cache_file,
+                    media_type="video/mp4",
+                    headers={"Cache-Control": "public, max-age=3600", "Accept-Ranges": "bytes"}
+                )
+            raise HTTPException(status_code=502, detail=f"Erro ao transmitir vídeo do Instagram: {str(e)}")
+
+    return FileResponse(
+        cache_file,
+        media_type="video/mp4",
+        headers={
+            "Cache-Control": "public, max-age=604800, s-maxage=604800, immutable",
+            "Accept-Ranges": "bytes",
+        }
+    )
 
 

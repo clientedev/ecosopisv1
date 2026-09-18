@@ -422,6 +422,8 @@ async def startup_event():
 os.makedirs("static/uploads", exist_ok=True)
 os.makedirs("static/qrcodes", exist_ok=True)
 os.makedirs("static/labels", exist_ok=True)
+os.makedirs("static/ig_cache", exist_ok=True)
+os.makedirs("static/drive_cache", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # CORS
