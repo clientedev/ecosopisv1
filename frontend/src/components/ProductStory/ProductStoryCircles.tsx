@@ -1,6 +1,7 @@
 "use client";
-import React from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import styles from "./ProductStory.module.css";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { isGoogleDriveUrl, getGoogleDriveDirectStreamUrl, getGoogleDriveEmbedUrl } from "@/utils/driveUtils";
 import { isInstagramContent, getInstagramEmbedUrl, getInstagramDirectStreamUrl } from "@/utils/instagramUtils";
 
@@ -22,6 +23,39 @@ export default function ProductStoryCircles({
     onSelectStory,
     productImage = "/logo_final.png"
 }: ProductStoryCirclesProps) {
+    const rowRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
+    const checkScroll = useCallback(() => {
+        if (!rowRef.current) return;
+        const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
+        setCanScrollLeft(scrollLeft > 6);
+        setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 6);
+    }, []);
+
+    useEffect(() => {
+        checkScroll();
+        const row = rowRef.current;
+        if (!row) return;
+
+        row.addEventListener("scroll", checkScroll, { passive: true });
+        window.addEventListener("resize", checkScroll);
+        const timer = setTimeout(checkScroll, 300);
+
+        return () => {
+            clearTimeout(timer);
+            row.removeEventListener("scroll", checkScroll);
+            window.removeEventListener("resize", checkScroll);
+        };
+    }, [storyVideos, checkScroll]);
+
+    const handleScroll = (direction: "left" | "right") => {
+        if (!rowRef.current) return;
+        const offset = direction === "left" ? -260 : 260;
+        rowRef.current.scrollBy({ left: offset, behavior: "smooth" });
+    };
+
     if (!storyVideos || storyVideos.length === 0) {
         return null;
     }
@@ -82,63 +116,89 @@ export default function ProductStoryCircles({
 
     return (
         <div className={styles.storySectionContainer}>
-            <div className={styles.storyRow}>
-                {storyVideos.slice(0, 4).map((story, index) => {
-                    const media = getPreviewMedia(story);
-                    return (
-                        <button
-                            key={story.id || index}
-                            className={styles.storyItem}
-                            onClick={() => onSelectStory(index)}
-                            title={`Ver vídeo: ${story.title || `Vídeo ${index + 1}`}`}
-                            type="button"
-                        >
-                            <div className={styles.storyCircleRing}>
-                                <div className={styles.storyCircleInner}>
-                                    {media.type === "video" ? (
-                                        <video
-                                            src={media.src}
-                                            className={styles.storyMediaPreview}
-                                            autoPlay
-                                            loop
-                                            muted
-                                            playsInline
-                                            preload="auto"
-                                            disablePictureInPicture
-                                            onLoadedMetadata={(e) => {
-                                                const v = e.currentTarget;
-                                                v.muted = true;
-                                                v.play().catch(() => {});
-                                            }}
-                                            onCanPlay={(e) => {
-                                                const v = e.currentTarget;
-                                                v.muted = true;
-                                                v.play().catch(() => {});
-                                            }}
-                                        />
-                                    ) : media.type === "iframe" ? (
-                                        <iframe
-                                            src={media.src}
-                                            className={styles.storyMediaPreview}
-                                            allow="autoplay; encrypted-media"
-                                            title={story.title || "Story preview"}
-                                            style={{ border: "none", pointerEvents: "none", width: "100%", height: "100%", objectFit: "cover" }}
-                                        />
-                                    ) : (
-                                        <img
-                                            src={media.src}
-                                            alt={story.title || "Story"}
-                                            className={styles.storyMediaPreview}
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).src = productImage;
-                                            }}
-                                        />
-                                    )}
+            <div className={styles.storyRowWrapper}>
+                {canScrollLeft && (
+                    <button
+                        type="button"
+                        className={`${styles.rowNavBtn} ${styles.rowNavBtnLeft}`}
+                        onClick={() => handleScroll("left")}
+                        aria-label="Rolar stories para a esquerda"
+                        title="Anterior"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+                )}
+
+                <div ref={rowRef} className={styles.storyRow}>
+                    {storyVideos.map((story, index) => {
+                        const media = getPreviewMedia(story);
+                        return (
+                            <button
+                                key={story.id || index}
+                                className={styles.storyItem}
+                                onClick={() => onSelectStory(index)}
+                                title={`Ver vídeo: ${story.title || `Vídeo ${index + 1}`}`}
+                                type="button"
+                            >
+                                <div className={styles.storyCircleRing}>
+                                    <div className={styles.storyCircleInner}>
+                                        {media.type === "video" ? (
+                                            <video
+                                                src={media.src}
+                                                className={styles.storyMediaPreview}
+                                                autoPlay
+                                                loop
+                                                muted
+                                                playsInline
+                                                preload="auto"
+                                                disablePictureInPicture
+                                                onLoadedMetadata={(e) => {
+                                                    const v = e.currentTarget;
+                                                    v.muted = true;
+                                                    v.play().catch(() => {});
+                                                }}
+                                                onCanPlay={(e) => {
+                                                    const v = e.currentTarget;
+                                                    v.muted = true;
+                                                    v.play().catch(() => {});
+                                                }}
+                                            />
+                                        ) : media.type === "iframe" ? (
+                                            <iframe
+                                                src={media.src}
+                                                className={styles.storyMediaPreview}
+                                                allow="autoplay; encrypted-media"
+                                                title={story.title || "Story preview"}
+                                                style={{ border: "none", pointerEvents: "none", width: "100%", height: "100%", objectFit: "cover" }}
+                                            />
+                                        ) : (
+                                            <img
+                                                src={media.src}
+                                                alt={story.title || "Story"}
+                                                className={styles.storyMediaPreview}
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = productImage;
+                                                }}
+                                            />
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </button>
-                    );
-                })}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {canScrollRight && (
+                    <button
+                        type="button"
+                        className={`${styles.rowNavBtn} ${styles.rowNavBtnRight}`}
+                        onClick={() => handleScroll("right")}
+                        aria-label="Rolar stories para a direita"
+                        title="Próximo"
+                    >
+                        <ChevronRight size={18} />
+                    </button>
+                )}
             </div>
         </div>
     );

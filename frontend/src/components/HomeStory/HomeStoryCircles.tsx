@@ -1,6 +1,7 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import styles from "./HomeStory.module.css";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { isGoogleDriveUrl, getGoogleDriveDirectStreamUrl, getGoogleDriveEmbedUrl } from "@/utils/driveUtils";
 import { isInstagramContent, getInstagramEmbedUrl, getInstagramDirectStreamUrl } from "@/utils/instagramUtils";
 import HomeStoryModal from "./HomeStoryModal";
@@ -20,8 +21,40 @@ interface HomeStoryCirclesProps {
 
 export default function HomeStoryCircles({ stories = [] }: HomeStoryCirclesProps) {
     const [selectedStoryIndex, setSelectedStoryIndex] = useState<number | null>(null);
+    const rowRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
 
     const activeStories = stories.filter(s => s.is_active !== false);
+
+    const checkScroll = useCallback(() => {
+        if (!rowRef.current) return;
+        const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
+        setCanScrollLeft(scrollLeft > 6);
+        setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 6);
+    }, []);
+
+    useEffect(() => {
+        checkScroll();
+        const row = rowRef.current;
+        if (!row) return;
+
+        row.addEventListener("scroll", checkScroll, { passive: true });
+        window.addEventListener("resize", checkScroll);
+        const timer = setTimeout(checkScroll, 300);
+
+        return () => {
+            clearTimeout(timer);
+            row.removeEventListener("scroll", checkScroll);
+            window.removeEventListener("resize", checkScroll);
+        };
+    }, [activeStories, checkScroll]);
+
+    const handleScroll = (direction: "left" | "right") => {
+        if (!rowRef.current) return;
+        const offset = direction === "left" ? -300 : 300;
+        rowRef.current.scrollBy({ left: offset, behavior: "smooth" });
+    };
 
     if (!activeStories || activeStories.length === 0) {
         return null;
@@ -80,71 +113,97 @@ export default function HomeStoryCircles({ stories = [] }: HomeStoryCirclesProps
     return (
         <section className={styles.homeStorySection} aria-label="Stories em Destaque">
             <div className={styles.homeStoryContainer}>
-                <div className={styles.storyRow}>
-                    {activeStories.map((story, index) => {
-                        const media = getPreviewMedia(story);
-                        return (
-                            <button
-                                key={story.id || index}
-                                className={styles.storyItem}
-                                onClick={() => setSelectedStoryIndex(index)}
-                                title={`Ver story: ${story.title}`}
-                                type="button"
-                            >
-                                <div className={styles.storyCircleRing}>
-                                    <div className={styles.storyCircleInner}>
-                                        {media.type === "video" ? (
-                                            <video
-                                                src={media.src}
-                                                className={styles.storyMediaPreview}
-                                                autoPlay
-                                                loop
-                                                muted
-                                                playsInline
-                                                preload="auto"
-                                                disablePictureInPicture
-                                                onLoadedMetadata={(e) => {
-                                                    const target = e.currentTarget;
-                                                    target.muted = true;
-                                                    target.play().catch(() => {});
-                                                }}
-                                                onCanPlay={(e) => {
-                                                    const target = e.currentTarget;
-                                                    target.muted = true;
-                                                    target.play().catch(() => {});
-                                                }}
-                                            />
-                                        ) : media.type === "iframe" ? (
-                                            <iframe
-                                                src={media.src}
-                                                className={styles.storyMediaPreview}
-                                                allow="autoplay; encrypted-media"
-                                                title={story.title || "Story"}
-                                                style={{ border: "none", pointerEvents: "none", width: "100%", height: "100%", objectFit: "cover" }}
-                                            />
-                                        ) : (
+                <div className={styles.storyRowWrapper}>
+                    {canScrollLeft && (
+                        <button
+                            type="button"
+                            className={`${styles.rowNavBtn} ${styles.rowNavBtnLeft}`}
+                            onClick={() => handleScroll("left")}
+                            aria-label="Rolar stories para a esquerda"
+                            title="Anterior"
+                        >
+                            <ChevronLeft size={20} />
+                        </button>
+                    )}
+
+                    <div ref={rowRef} className={styles.storyRow}>
+                        {activeStories.map((story, index) => {
+                            const media = getPreviewMedia(story);
+                            return (
+                                <button
+                                    key={story.id || index}
+                                    className={styles.storyItem}
+                                    onClick={() => setSelectedStoryIndex(index)}
+                                    title={`Ver story: ${story.title}`}
+                                    type="button"
+                                >
+                                    <div className={styles.storyCircleRing}>
+                                        <div className={styles.storyCircleInner}>
+                                            {media.type === "video" ? (
+                                                <video
+                                                    src={media.src}
+                                                    className={styles.storyMediaPreview}
+                                                    autoPlay
+                                                    loop
+                                                    muted
+                                                    playsInline
+                                                    preload="auto"
+                                                    disablePictureInPicture
+                                                    onLoadedMetadata={(e) => {
+                                                        const target = e.currentTarget;
+                                                        target.muted = true;
+                                                        target.play().catch(() => {});
+                                                    }}
+                                                    onCanPlay={(e) => {
+                                                        const target = e.currentTarget;
+                                                        target.muted = true;
+                                                        target.play().catch(() => {});
+                                                    }}
+                                                />
+                                            ) : media.type === "iframe" ? (
+                                                <iframe
+                                                    src={media.src}
+                                                    className={styles.storyMediaPreview}
+                                                    allow="autoplay; encrypted-media"
+                                                    title={story.title || "Story"}
+                                                    style={{ border: "none", pointerEvents: "none", width: "100%", height: "100%", objectFit: "cover" }}
+                                                />
+                                            ) : (
+                                                <img
+                                                    src={media.src}
+                                                    alt={story.title || "Story"}
+                                                    className={styles.storyMediaPreview}
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).src = "/logo_final.png";
+                                                    }}
+                                                />
+                                            )}
+                                            {/* Fallback image */}
                                             <img
-                                                src={media.src}
-                                                alt={story.title || "Story"}
-                                                className={styles.storyMediaPreview}
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).src = "/logo_final.png";
-                                                }}
+                                                src="/logo_final.png"
+                                                alt="Ecosopis"
+                                                className={`${styles.storyMediaPreview} story-fallback-img`}
+                                                style={{ display: "none" }}
                                             />
-                                        )}
-                                        {/* Fallback image */}
-                                        <img
-                                            src="/logo_final.png"
-                                            alt="Ecosopis"
-                                            className={`${styles.storyMediaPreview} story-fallback-img`}
-                                            style={{ display: "none" }}
-                                        />
+                                        </div>
                                     </div>
-                                </div>
-                                <span className={styles.storyLabel}>{story.title}</span>
-                            </button>
-                        );
-                    })}
+                                    <span className={styles.storyLabel}>{story.title}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {canScrollRight && (
+                        <button
+                            type="button"
+                            className={`${styles.rowNavBtn} ${styles.rowNavBtnRight}`}
+                            onClick={() => handleScroll("right")}
+                            aria-label="Rolar stories para a direita"
+                            title="Próximo"
+                        >
+                            <ChevronRight size={20} />
+                        </button>
+                    )}
                 </div>
             </div>
 

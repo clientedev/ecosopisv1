@@ -13,18 +13,72 @@
     margin: 0 auto;
 }
 
+.storyRowWrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.rowNavBtn {
+    position: absolute;
+    top: 42%;
+    transform: translateY(-50%);
+    z-index: 15;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.09);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #1e293b;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rowNavBtn:hover {
+    background: #2d5a27;
+    color: #ffffff;
+    border-color: #2d5a27;
+    box-shadow: 0 6px 18px rgba(45, 90, 39, 0.35);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.rowNavBtnLeft {
+    left: -14px;
+}
+
+.rowNavBtnRight {
+    right: -14px;
+}
+
+@media (max-width: 768px) {
+    .rowNavBtn {
+        display: none !important;
+    }
+}
+
 .storyRow {
     display: flex;
     align-items: flex-start;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 1.75rem;
     overflow-x: auto;
-    padding: 0.5rem 0.25rem 0.75rem 0.25rem;
+    padding: 0.5rem 0.5rem 0.75rem 0.5rem;
     scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
 }
 
 .storyRow::-webkit-scrollbar {
     display: none; /* Chrome, Safari */
+    width: 0;
+    height: 0;
 }
 
 @media (max-width: 768px) {
