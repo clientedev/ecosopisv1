@@ -284,8 +284,14 @@ export default function Home() {
             try {
                 const res = await fetch('/api/reviews/approved?limit=50', { cache: 'no-store' });
                 if (res.ok) {
-                    const data = await res.json();
-                    setReviews(Array.isArray(data) ? data : []);
+                    const raw = await res.json();
+                    // Normaliza campo images que pode vir como string JSON do Railway (TEXT column)
+                    const data = Array.isArray(raw) ? raw.map((r: any) => ({
+                        ...r,
+                        images: Array.isArray(r.images) ? r.images
+                            : (typeof r.images === 'string' ? (() => { try { const p = JSON.parse(r.images); return Array.isArray(p) ? p : []; } catch { return []; } })() : [])
+                    })) : [];
+                    setReviews(data);
                 }
             } catch (err) {
                 console.error("Error fetching reviews", err);
@@ -1641,7 +1647,7 @@ export default function Home() {
 
                                                 <p className={styles.reviewComment}>&ldquo;{rev.comment}&rdquo;</p>
 
-                                                {rev.images && rev.images.length > 0 && (
+                                                {Array.isArray(rev.images) && rev.images.length > 0 && (
                                                     <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
                                                         {rev.images.map((img: string, i: number) => (
                                                             <a key={i} href={img} target="_blank" rel="noopener noreferrer" style={{ width: '54px', height: '54px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', display: 'block' }}>
