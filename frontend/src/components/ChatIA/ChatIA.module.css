@@ -19,6 +19,23 @@
     padding: 0;
 }
 
+/* Esconde o balão da Lia quando a barra de compra fixa estiver visível na página de produto */
+:global(body.has-sticky-buy-bar) .chatButton {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: scale(0.5) translateY(40px) !important;
+    visibility: hidden !important;
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease !important;
+}
+
+:global(body.has-sticky-buy-bar) .chatWindow {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: scale(0.9) translateY(40px) !important;
+    visibility: hidden !important;
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease !important;
+}
+
 .chatButton:hover {
     width: 210px;
     padding-right: 20px;

@@ -1617,28 +1617,211 @@
 }
 
 .stickyBarBuyBtn:disabled {
+    color: #2d5a27;
+}
+
+.relatedCardBtn {
+    margin-top: auto;
+    width: 100%;
+    padding: 10px;
+    background: #2d5a27;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+    text-align: center;
+}
+
+.relatedCardBtn:hover {
+    background: #234820;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 1024px) {
+    .relatedGrid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .relatedSection {
+        padding: 40px 0 30px;
+    }
+    .relatedSectionInner {
+        padding: 0;
+    }
+    .relatedHeader {
+        flex-direction: column;
+        gap: 6px;
+        align-items: flex-start;
+        padding: 0 16px;
+        margin-bottom: 20px;
+    }
+    .relatedTitle {
+        font-size: 1.4rem;
+    }
+    .relatedGrid {
+        display: flex;
+        overflow-x: auto;
+        gap: 14px;
+        padding: 4px 16px 16px;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .relatedGrid::-webkit-scrollbar {
+        display: none;
+    }
+    .relatedCard {
+        flex: 0 0 200px;
+        scroll-snap-align: start;
+    }
+}
+
+@media (max-width: 480px) {
+    .relatedCard {
+        flex: 0 0 170px;
+    }
+}
+
+/* ─── STICKY BUY BAR ─────────────────────────────────────────────────────────── */
+
+.stickyBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    background: #ffffff;
+    border-top: 1px solid #e8ede8;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.1);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+.stickyBarVisible {
+    transform: translateY(0);
+}
+
+.stickyBarInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.stickyBarName {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stickyBarPrice {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #2d5a27;
+    margin-top: 2px;
+}
+
+.stickyBarQty {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f8faf8;
+    border: 1.5px solid #e0eadf;
+    border-radius: 12px;
+    padding: 4px 8px;
+    height: 44px;
+    flex-shrink: 0;
+}
+
+.stickyBarQtyBtn {
+    width: 30px;
+    height: 30px;
+    background: white;
+    border: none;
+    border-radius: 8px;
+    color: #2d5a27;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+    transition: background 0.15s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.stickyBarQtyBtn:hover:not(:disabled) {
+    background: #2d5a27;
+    color: white;
+}
+
+.stickyBarQtyBtn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.stickyBarQtyValue {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    min-width: 22px;
+    text-align: center;
+    user-select: none;
+}
+
+.stickyBarBuyBtn {
+    height: 48px;
+    padding: 0 24px;
+    background: linear-gradient(135deg, #2d5a27 0%, #3d7a35 100%);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(45, 90, 39, 0.3);
+    flex-shrink: 0;
+}
+
+.stickyBarBuyBtn:hover {
+    background: linear-gradient(135deg, #234820 0%, #2d5a27 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(45, 90, 39, 0.4);
+}
+
+.stickyBarBuyBtn:active {
+    transform: translateY(0);
+}
+
+.stickyBarBuyBtn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
     transform: none;
 }
 
-@media (max-width: 500px) {
+@media (max-width: 768px) {
+    /* Desativa a subida da barra fixa de comprar no mobile conforme solicitado */
     .stickyBar {
-        padding: 10px 14px;
-        gap: 10px;
-    }
-    .stickyBarInfo {
-        display: none;
-    }
-    .stickyBarBuyBtn {
-        flex: 1;
-        justify-content: center;
-        padding: 0 16px;
-    }
-    .stickyBarBuyBtn span {
-        display: none;
-    }
-    .stickyBarBuyBtn::after {
-        content: 'COMPRAR';
+        display: none !important;
+        pointer-events: none !important;
+        visibility: hidden !important;
     }
 }

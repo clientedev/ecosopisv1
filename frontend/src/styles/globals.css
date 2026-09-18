@@ -112,3 +112,13 @@ button {
   text-transform: uppercase;
   margin-bottom: var(--spacing-sm);
 }
+
+/* Oculta balão e janela da Lia quando a barra flutuante de compra está ativa */
+body.has-sticky-buy-bar [class*="chatButton"],
+body.has-sticky-buy-bar [class*="chatWindow"] {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: scale(0.6) translateY(40px) !important;
+  visibility: hidden !important;
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease !important;
+}

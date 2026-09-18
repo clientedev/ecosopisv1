@@ -54,20 +54,47 @@ export default function ProductDetailPage() {
         }
     ];
 
-    // IntersectionObserver for sticky bar
+    // IntersectionObserver for sticky bar (desktop only - mobile disabled per user request)
     useEffect(() => {
         const btn = buyNowBtnRef.current;
         if (!btn) return;
 
+        const checkResize = () => {
+            if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+                setShowStickyBar(false);
+            }
+        };
+
         const observer = new IntersectionObserver(
             ([entry]) => {
-                setShowStickyBar(!entry.isIntersecting);
+                if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+                    setShowStickyBar(false);
+                } else {
+                    setShowStickyBar(!entry.isIntersecting);
+                }
             },
             { threshold: 0.1 }
         );
         observer.observe(btn);
-        return () => observer.disconnect();
+        window.addEventListener("resize", checkResize);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener("resize", checkResize);
+        };
     }, [product]);
+
+    // Oculta o balão flutuante da Lia quando a barra de compra fixa está ativa
+    useEffect(() => {
+        if (showStickyBar) {
+            document.body.classList.add('has-sticky-buy-bar');
+        } else {
+            document.body.classList.remove('has-sticky-buy-bar');
+        }
+        return () => {
+            document.body.classList.remove('has-sticky-buy-bar');
+        };
+    }, [showStickyBar]);
 
     useEffect(() => {
         // Normaliza campos que podem vir como string JSON do PostgreSQL/Railway

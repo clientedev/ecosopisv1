@@ -36,11 +36,26 @@ export default function Header() {
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     useEffect(() => {
+        let ticking = false;
         const handleScroll = () => {
-            const scrolled = window.scrollY > 30;
-            setIsScrolled(scrolled);
-            if (!scrolled) {
-                setIsSearchExpanded(false);
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    const scrollY = window.scrollY;
+                    setIsScrolled(prev => {
+                        // Hysteresis prevents layout thrashing & vibration when scrolling back to the top:
+                        // Only activate clean scrolled mode when scrolled down past 90px.
+                        // Only restore full header when returned to the top (<= 15px).
+                        if (!prev && scrollY > 90) {
+                            return true;
+                        } else if (prev && scrollY <= 15) {
+                            setIsSearchExpanded(false);
+                            return false;
+                        }
+                        return prev;
+                    });
+                    ticking = false;
+                });
+                ticking = true;
             }
         };
         window.addEventListener("scroll", handleScroll, { passive: true });
