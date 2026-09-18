@@ -433,14 +433,32 @@ export default function Home() {
         setCurrentSlide(0);
     }, [isMobile]);
 
+    // Normaliza campos JSON que podem vir como string do PostgreSQL/Railway
+    const normalizeProduct = (p: any) => {
+        const parseJsonArray = (v: any, fallback: any[] = []) => {
+            if (Array.isArray(v)) return v;
+            if (typeof v === 'string') {
+                try { const parsed = JSON.parse(v); return Array.isArray(parsed) ? parsed : fallback; } catch { return fallback; }
+            }
+            return fallback;
+        };
+        return {
+            ...p,
+            images: parseJsonArray(p.images),
+            tags: parseJsonArray(p.tags),
+            story_videos: parseJsonArray(p.story_videos),
+        };
+    };
+
     useEffect(() => {
         const fetchAll = async () => {
             try {
                 const res = await fetch('/api/products');
                 if (!res.ok) throw new Error("Falha ao carregar produtos");
-                const data = await res.json();
+                const raw = await res.json();
+                const data = Array.isArray(raw) ? raw.map(normalizeProduct) : [];
                 setAllProducts(data);
-                setRecentProducts(Array.isArray(data) ? data.slice(0, 4) : []);
+                setRecentProducts(data.slice(0, 4));
             } catch (error) {
                 console.error("Error fetching products:", error);
                 setRecentProducts([]);

@@ -70,11 +70,22 @@ export default function ProductDetailPage() {
     }, [product]);
 
     useEffect(() => {
+        // Normaliza campos que podem vir como string JSON do PostgreSQL/Railway
+        const normalizeProduct = (p: any) => {
+            const toArray = (v: any): any[] => {
+                if (Array.isArray(v)) return v;
+                if (typeof v === 'string') { try { const r = JSON.parse(v); return Array.isArray(r) ? r : []; } catch { return []; } }
+                return [];
+            };
+            return { ...p, images: toArray(p.images), tags: toArray(p.tags), story_videos: toArray(p.story_videos) };
+        };
+
         const fetchProduct = async () => {
             try {
                 const res = await fetch(`/api/products/${params.slug}`, { cache: "no-store" });
                 if (res.ok) {
-                    const data = await res.json();
+                    const raw = await res.json();
+                    const data = normalizeProduct(raw);
                     const staticData = getStaticProductData(data.slug);
                     if (staticData) {
                         data.ingredients = staticData.ativos;
@@ -127,10 +138,12 @@ export default function ProductDetailPage() {
     // Fetch related products
     useEffect(() => {
         const fetchRelated = async () => {
+            const toArray = (v: any): any[] => { if (Array.isArray(v)) return v; if (typeof v === 'string') { try { const r = JSON.parse(v); return Array.isArray(r) ? r : []; } catch { return []; } } return []; };
             try {
                 const res = await fetch('/api/products', { cache: "no-store" });
                 if (res.ok) {
-                    const all = await res.json();
+                    const raw = await res.json();
+                    const all = Array.isArray(raw) ? raw.map((p: any) => ({ ...p, images: toArray(p.images), tags: toArray(p.tags), story_videos: toArray(p.story_videos) })) : [];
                     const filtered = all.filter((p: any) => p.slug !== params.slug && p.is_active !== false).slice(0, 8);
                     setRelatedProducts(filtered);
                 }
@@ -166,7 +179,7 @@ export default function ProductDetailPage() {
         </div>
     );
 
-    const allImages = product.images && product.images.length > 0 ? product.images : [product.image_url];
+    const allImages = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image_url].filter(Boolean);
 
     const getImageUrl = (url: string) => {
         if (!url) return "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
