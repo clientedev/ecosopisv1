@@ -6,7 +6,7 @@ import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
 import styles from "./page.module.css";
 import Image from "next/image";
-import { QrCode, Plus, Minus, ShoppingBag, Leaf, ChevronDown, Sparkles, Zap } from "lucide-react";
+import { QrCode, Plus, Minus, ShoppingBag, Leaf, ChevronDown, Sparkles } from "lucide-react";
 import { useToast } from "@/components/Toast/Toast";
 import { useCart } from "@/context/CartContext";
 import { getStaticProductData } from "@/lib/productData";
@@ -588,19 +588,19 @@ export default function ProductDetailPage() {
                                             <span className={styles.btnTextFull}>ADICIONAR AO CARRINHO</span>
                                             <span className={styles.btnTextShort}>ADICIONAR</span>
                                         </button>
-
-                                        <button
-                                            ref={buyNowBtnRef}
-                                            className={styles.buyNowBtn}
-                                            onClick={handleBuyNow}
-                                            disabled={buyingNow}
-                                            id="main-buy-btn"
-                                            type="button"
-                                        >
-                                            <Zap size={18} />
-                                            <span>{buyingNow ? 'Processando...' : 'COMPRAR AGORA'}</span>
-                                        </button>
                                     </div>
+
+                                    <button
+                                        ref={buyNowBtnRef}
+                                        className={styles.buyNowBtn}
+                                        onClick={handleBuyNow}
+                                        disabled={buyingNow}
+                                        id="main-buy-btn"
+                                        type="button"
+                                    >
+                                        <ShoppingBag size={18} />
+                                        <span>{buyingNow ? 'Processando...' : 'COMPRAR AGORA'}</span>
+                                    </button>
                                 </div>
                             )}
 

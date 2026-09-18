@@ -92,6 +92,7 @@
 /* ── CONTROLES UNIFICADOS DE COMPRA ── */
 .purchaseControlsGroup {
     display: flex;
+    flex-wrap: wrap;
     gap: 12px;
     align-items: center;
     width: 100%;
@@ -204,7 +205,8 @@
 }
 
 .buyNowBtn {
-    flex: 1.25;
+    flex: 0 0 100%;
+    width: 100%;
     height: 52px;
     background: #111111;
     color: #ffffff;
@@ -706,8 +708,9 @@
         margin-bottom: 10px;
     }
     .purchaseControlsGroup {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
         gap: 10px;
         width: 100%;
     }
@@ -740,11 +743,12 @@
         gap: 6px;
     }
     .buyNowBtn {
-        flex: 1.15;
-        height: 48px;
-        font-size: 0.86rem;
+        flex: 0 0 100%;
+        width: 100%;
+        height: 52px;
+        font-size: 0.90rem;
         border-radius: 12px;
-        padding: 0 8px;
+        padding: 0 12px;
         gap: 6px;
     }
     .productDetailsBottomGrid {
@@ -782,8 +786,9 @@
         padding: 0 4px;
     }
     .buyNowBtn {
-        font-size: 0.82rem;
-        padding: 0 6px;
+        font-size: 0.88rem;
+        height: 50px;
+        padding: 0 10px;
     }
 }
 
