@@ -225,15 +225,37 @@
 }
 
 @media (max-width: 768px) {
+    .storyItem {
+        width: 66px;
+    }
+
     .storyCircleRing {
-        width: 82px;
-        height: 82px;
-        padding: 3px;
+        width: 64px;
+        height: 64px;
+        padding: 2.5px;
     }
 
     .storyLabel {
-        max-width: 82px;
-        font-size: 0.72rem;
+        max-width: 66px;
+        font-size: 0.68rem;
+        margin-top: 0.35rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .storyItem {
+        width: 58px;
+    }
+
+    .storyCircleRing {
+        width: 56px;
+        height: 56px;
+        padding: 2px;
+    }
+
+    .storyLabel {
+        max-width: 58px;
+        font-size: 0.64rem;
     }
 }
 
