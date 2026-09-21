@@ -362,6 +362,28 @@ def _ensure_extra_tables():
     except Exception as e:
         logger.warning(f"home_stories ensure: {e}")
 
+    # promotional_popups
+    try:
+        with engine.begin() as conn:
+            if is_sqlite:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS promotional_popups (id INTEGER PRIMARY KEY AUTOINCREMENT, is_active BOOLEAN DEFAULT 0, title VARCHAR NOT NULL DEFAULT 'Oferta Especial Ecosopis', description TEXT DEFAULT '', image_url VARCHAR, button_text VARCHAR DEFAULT 'Aproveitar Desconto', button_link VARCHAR DEFAULT '/produtos', frequency VARCHAR DEFAULT 'once_per_session', delay_seconds INTEGER DEFAULT 3, coupon_id INTEGER REFERENCES coupons(id), coupon_code VARCHAR, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+            else:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS promotional_popups (id SERIAL PRIMARY KEY, is_active BOOLEAN DEFAULT FALSE, title VARCHAR NOT NULL DEFAULT 'Oferta Especial Ecosopis', description TEXT DEFAULT '', image_url VARCHAR, button_text VARCHAR DEFAULT 'Aproveitar Desconto', button_link VARCHAR DEFAULT '/produtos', frequency VARCHAR DEFAULT 'once_per_session', delay_seconds INTEGER DEFAULT 3, coupon_id INTEGER REFERENCES coupons(id), coupon_code VARCHAR, created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now())"))
+        logger.info("✓ promotional_popups table ensured.")
+    except Exception as e:
+        logger.warning(f"promotional_popups ensure: {e}")
+
+    # campaign_dispatch_logs
+    try:
+        with engine.begin() as conn:
+            if is_sqlite:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS campaign_dispatch_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, promotion_title VARCHAR NOT NULL, coupon_code VARCHAR, recipient_count INTEGER DEFAULT 0, admin_email VARCHAR, status VARCHAR DEFAULT 'completed', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+            else:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS campaign_dispatch_logs (id SERIAL PRIMARY KEY, promotion_title VARCHAR NOT NULL, coupon_code VARCHAR, recipient_count INTEGER DEFAULT 0, admin_email VARCHAR, status VARCHAR DEFAULT 'completed', created_at TIMESTAMPTZ DEFAULT now())"))
+        logger.info("✓ campaign_dispatch_logs table ensured.")
+    except Exception as e:
+        logger.warning(f"campaign_dispatch_logs ensure: {e}")
+
     logger.info("Extra tables ensured successfully.")
 
 
@@ -494,7 +516,7 @@ from app.api.endpoints import (
     auth, products, coupons, carousel, orders, settings, reviews, 
     images, news, metrics, chat, scratchcard, admin_scratchcard, 
     shipping, addresses, cart, payment, crm, cashback, raw_materials,
-    world_cup
+    world_cup, popup
 )
 from app.routes import webhook_me
 
@@ -519,6 +541,7 @@ app.include_router(crm.router, prefix="/crm", tags=["crm"])
 app.include_router(cashback.router, tags=["cashback"])
 app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
 app.include_router(world_cup.router, prefix="/world-cup", tags=["world_cup"])
+app.include_router(popup.router, prefix="/popup", tags=["popup"])
 app.include_router(webhook_me.router)
 
 if __name__ == "__main__":

@@ -28,7 +28,8 @@ import {
     Menu,
     X,
     Palette,
-    Trophy
+    Trophy,
+    AppWindow
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -64,6 +65,7 @@ const CATEGORIES: Category[] = [
     {
         label: "Marketing",
         items: [
+            { label: "Pop-up Promocional", path: "/admin/dashboard/popup", icon: <AppWindow size={18} /> },
             { label: "Raspadinha", path: "/admin/dashboard/raspadinha", icon: <Sparkles size={18} /> },
             { label: "Bolão Copa", path: "/admin/bolao", icon: <Trophy size={18} /> },
             { label: "Cupons", path: "/admin/dashboard/cupons", icon: <Ticket size={18} /> },

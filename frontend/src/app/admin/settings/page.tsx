@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import styles from "../dashboard/dashboard.module.css";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
@@ -163,6 +164,33 @@ export default function AdminSettings() {
                                     ℹ️ O cupom gerado terá validade de <strong>30 dias</strong> e será aplicado automaticamente na conta do cliente que acertar.
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Marketing > Pop-up Promocional */}
+                        <div style={{ background: "white", padding: "1.75rem", borderRadius: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #f0f0f0" }}>
+                            <h3 style={{ fontWeight: 700, fontSize: "1.05rem", color: "#1a1a1a", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "8px" }}>
+                                📢 Marketing: Pop-up Promocional &amp; Campanhas
+                            </h3>
+                            <p style={{ fontSize: "0.85rem", color: "#888", marginBottom: "1.25rem", lineHeight: 1.5 }}>
+                                Crie pop-ups atrativos para o site, integre cupons automáticos e envie promoções por e-mail para todos os clientes cadastrados.
+                            </p>
+                            <Link
+                                href="/admin/dashboard/popup"
+                                style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    background: "#15803d",
+                                    color: "white",
+                                    padding: "0.75rem 1.4rem",
+                                    borderRadius: "10px",
+                                    fontWeight: 700,
+                                    fontSize: "0.92rem",
+                                    textDecoration: "none"
+                                }}
+                            >
+                                Gerenciar Pop-up Promocional →
+                            </Link>
                         </div>
 
                         {/* Save Button */}

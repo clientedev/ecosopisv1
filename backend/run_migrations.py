@@ -152,11 +152,15 @@ def ensure_extra_tables():
         with engine.begin() as conn:
             if is_sqlite:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS home_stories (id INTEGER PRIMARY KEY AUTOINCREMENT, title VARCHAR NOT NULL, video_url VARCHAR NOT NULL, thumbnail_url VARCHAR, \"order\" INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS promotional_popups (id INTEGER PRIMARY KEY AUTOINCREMENT, is_active BOOLEAN DEFAULT 0, title VARCHAR NOT NULL DEFAULT 'Oferta Especial Ecosopis', description TEXT DEFAULT '', image_url VARCHAR, button_text VARCHAR DEFAULT 'Aproveitar Desconto', button_link VARCHAR DEFAULT '/produtos', frequency VARCHAR DEFAULT 'once_per_session', delay_seconds INTEGER DEFAULT 3, coupon_id INTEGER REFERENCES coupons(id), coupon_code VARCHAR, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS campaign_dispatch_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, promotion_title VARCHAR NOT NULL, coupon_code VARCHAR, recipient_count INTEGER DEFAULT 0, admin_email VARCHAR, status VARCHAR DEFAULT 'completed', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
             else:
                 conn.execute(text("CREATE TABLE IF NOT EXISTS home_stories (id SERIAL PRIMARY KEY, title VARCHAR NOT NULL, video_url VARCHAR NOT NULL, thumbnail_url VARCHAR, \"order\" INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT now())"))
-        logger.info("✓ home_stories table ensured.")
+                conn.execute(text("CREATE TABLE IF NOT EXISTS promotional_popups (id SERIAL PRIMARY KEY, is_active BOOLEAN DEFAULT FALSE, title VARCHAR NOT NULL DEFAULT 'Oferta Especial Ecosopis', description TEXT DEFAULT '', image_url VARCHAR, button_text VARCHAR DEFAULT 'Aproveitar Desconto', button_link VARCHAR DEFAULT '/produtos', frequency VARCHAR DEFAULT 'once_per_session', delay_seconds INTEGER DEFAULT 3, coupon_id INTEGER REFERENCES coupons(id), coupon_code VARCHAR, created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now())"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS campaign_dispatch_logs (id SERIAL PRIMARY KEY, promotion_title VARCHAR NOT NULL, coupon_code VARCHAR, recipient_count INTEGER DEFAULT 0, admin_email VARCHAR, status VARCHAR DEFAULT 'completed', created_at TIMESTAMPTZ DEFAULT now())"))
+        logger.info("✓ home_stories, promotional_popups, campaign_dispatch_logs tables ensured.")
     except Exception as e:
-        logger.warning(f"Could not ensure home_stories table: {e}")
+        logger.warning(f"Could not ensure extra tables: {e}")
 
 def run_migrations():
     success = True

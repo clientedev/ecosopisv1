@@ -524,3 +524,35 @@ class HomeStory(Base):
     order = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PromotionalPopup(Base):
+    __tablename__ = "promotional_popups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    is_active = Column(Boolean, default=False)
+    title = Column(String, nullable=False, default="Oferta Especial Ecosopis")
+    description = Column(Text, nullable=False, default="")
+    image_url = Column(String, nullable=True)
+    button_text = Column(String, default="Aproveitar Desconto")
+    button_link = Column(String, default="/produtos")
+    frequency = Column(String, default="once_per_session") # once_per_session, once_per_day, always
+    delay_seconds = Column(Integer, default=3)
+    coupon_id = Column(Integer, ForeignKey("coupons.id"), nullable=True)
+    coupon_code = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    coupon = relationship("Coupon")
+
+
+class CampaignDispatchLog(Base):
+    __tablename__ = "campaign_dispatch_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    promotion_title = Column(String, nullable=False)
+    coupon_code = Column(String, nullable=True)
+    recipient_count = Column(Integer, default=0)
+    admin_email = Column(String, nullable=True)
+    status = Column(String, default="completed") # completed, in_progress, failed
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

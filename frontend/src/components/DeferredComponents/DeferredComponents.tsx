@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 
 const ChatIA = dynamic(() => import("@/components/ChatIA/ChatIA"), { ssr: false });
 const ScratchCardModal = dynamic(() => import("@/components/ScratchCardModal/ScratchCardModal"), { ssr: false });
+const PromotionalPopup = dynamic(() => import("@/components/PromotionalPopup/PromotionalPopup"), { ssr: false });
 
 let hasDeferredLoaded = false;
 
@@ -26,6 +27,7 @@ export default function DeferredComponents() {
         <>
             <ChatIA />
             <ScratchCardModal />
+            <PromotionalPopup />
         </>
     );
 }

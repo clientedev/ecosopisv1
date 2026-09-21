@@ -491,3 +491,78 @@ class HomeStoryResponse(HomeStoryBase):
 
     class Config:
         from_attributes = True
+
+
+# Promotional Popup & Campaign Schemas
+class PopupPublicResponse(BaseModel):
+    is_active: bool
+    title: str
+    description: str
+    image_url: Optional[str] = None
+    button_text: str = "Aproveitar Desconto"
+    button_link: str = "/produtos"
+    frequency: str = "once_per_session"
+    delay_seconds: int = 3
+    coupon_code: Optional[str] = None
+    discount_type: Optional[str] = None
+    discount_value: Optional[float] = None
+    min_purchase_value: Optional[float] = 0.0
+
+class PopupAdminResponse(BaseModel):
+    id: Optional[int] = None
+    is_active: bool = False
+    title: str = "Oferta Especial Ecosopis"
+    description: str = ""
+    image_url: Optional[str] = None
+    button_text: str = "Aproveitar Desconto"
+    button_link: str = "/produtos"
+    frequency: str = "once_per_session"
+    delay_seconds: int = 3
+    has_coupon: bool = False
+    coupon_code: Optional[str] = None
+    coupon_discount_type: Optional[str] = "percentage"
+    coupon_discount_value: Optional[float] = 10.0
+    coupon_min_purchase_value: Optional[float] = 0.0
+    coupon_valid_until: Optional[datetime] = None
+    coupon_usage_limit: Optional[int] = None
+    coupon_is_active: Optional[bool] = True
+
+class PopupAdminSaveRequest(BaseModel):
+    is_active: bool
+    title: str
+    description: str = ""
+    image_url: Optional[str] = None
+    button_text: str = "Aproveitar Desconto"
+    button_link: str = "/produtos"
+    frequency: str = "once_per_session"
+    delay_seconds: int = 3
+    has_coupon: bool = False
+    coupon_code: Optional[str] = None
+    coupon_discount_type: Optional[str] = "percentage"
+    coupon_discount_value: Optional[float] = 0.0
+    coupon_min_purchase_value: Optional[float] = 0.0
+    coupon_valid_until: Optional[datetime] = None
+    coupon_usage_limit: Optional[int] = None
+    coupon_is_active: Optional[bool] = True
+
+class CampaignEmailDispatchRequest(BaseModel):
+    email_subject: str
+    email_title: str
+    email_body: str
+    email_image_url: Optional[str] = None
+    coupon_code: Optional[str] = None
+    discount_info: Optional[str] = None
+    button_text: str = "Acessar Loja Ecosopis"
+    button_link: str = "/produtos"
+
+class CampaignDispatchLogResponse(BaseModel):
+    id: int
+    promotion_title: str
+    coupon_code: Optional[str] = None
+    recipient_count: int
+    admin_email: Optional[str] = None
+    status: str
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

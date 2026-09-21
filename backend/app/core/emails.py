@@ -377,3 +377,113 @@ def send_scratchcard_coupon_email(email: str, coupon_code: str, reward_type: str
     </div>
     """
     return send_email(email, subject, html)
+
+
+def send_promotional_campaign_email(
+    email: str,
+    subject: str,
+    title: str,
+    body: str,
+    image_url: str | None = None,
+    coupon_code: str | None = None,
+    discount_info: str | None = None,
+    button_text: str = "Acessar Loja Ecosopis",
+    button_link: str = "/produtos"
+):
+    """Envia um e-mail de campanha promocional com layout moderno e responsivo."""
+    # Resolve CTA link
+    if button_link.startswith("http://") or button_link.startswith("https://"):
+        target_link = button_link
+    else:
+        target_link = f"{FRONTEND_URL.rstrip('/')}/{button_link.lstrip('/')}"
+
+    # Resolve Image URL
+    image_block = ""
+    if image_url:
+        full_img_url = image_url if (image_url.startswith("http://") or image_url.startswith("https://")) else f"{FRONTEND_URL.rstrip('/')}/{image_url.lstrip('/')}"
+        image_block = f"""
+        <div style="width: 100%; max-height: 280px; overflow: hidden; border-radius: 8px 8px 0 0; background: #f4f6f0; text-align: center;">
+            <img src="{full_img_url}" alt="{title}" style="width: 100%; max-height: 280px; object-fit: cover; display: block;" />
+        </div>
+        """
+
+    # Resolve Coupon block
+    coupon_block = ""
+    if coupon_code:
+        discount_text = f"<p style='margin: 4px 0 0; color: #2d5a27; font-weight: 600; font-size: 0.95rem;'>{discount_info}</p>" if discount_info else ""
+        coupon_block = f"""
+        <div style="margin: 28px 0; padding: 22px 20px; background: #f5f9f2; border: 2px dashed #4B8411; border-radius: 12px; text-align: center;">
+            <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #6b7280; font-weight: 700; display: block; margin-bottom: 6px;">
+                CUPOM PROMOCIONAL EXCLUSIVO
+            </span>
+            <div style="font-family: 'Courier New', Courier, monospace; font-size: 2rem; font-weight: 800; color: #2d5a27; letter-spacing: 3px; margin: 4px 0;">
+                {coupon_code}
+            </div>
+            {discount_text}
+            <p style="margin: 12px 0 0; font-size: 0.8rem; color: #6b7280;">
+                Copie o código acima e insira no carrinho para garantir o seu benefício.
+            </p>
+        </div>
+        """
+
+    # Formatted Body (convert newlines to paragraphs)
+    body_paragraphs = "".join(
+        f"<p style='color: #4b5563; font-size: 1rem; line-height: 1.7; margin: 0 0 16px;'>{line}</p>"
+        for line in body.split("\n") if line.strip()
+    )
+
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{subject}</title>
+    </head>
+    <body style="margin: 0; padding: 30px 10px; background-color: #f7f9f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <div style="max-width: 580px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e5e7eb;">
+            
+            {image_block}
+
+            <!-- Header -->
+            <div style="padding: 26px 32px 16px; text-align: center; border-bottom: 1px solid #f3f4f6;">
+                <h1 style="color: #2d5a27; margin: 0; font-size: 1.5rem; letter-spacing: 1px; font-weight: 800;">
+                    ECOSOPIS
+                </h1>
+                <p style="color: #6b7280; margin: 4px 0 0; font-size: 0.78rem; letter-spacing: 2px; text-transform: uppercase;">
+                    Cosméticos Naturais &amp; Veganos
+                </p>
+            </div>
+
+            <!-- Content Area -->
+            <div style="padding: 32px 32px 24px;">
+                <h2 style="color: #111827; font-size: 1.4rem; font-weight: 700; margin: 0 0 18px; line-height: 1.35; text-align: center;">
+                    {title}
+                </h2>
+
+                {body_paragraphs}
+
+                {coupon_block}
+
+                <!-- CTA Button -->
+                <div style="text-align: center; margin: 30px 0 10px;">
+                    <a href="{target_link}" style="background-color: #2d5a27; color: #ffffff; padding: 14px 34px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 1rem; display: inline-block; box-shadow: 0 4px 12px rgba(45, 90, 39, 0.25);">
+                        {button_text} →
+                    </a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="background-color: #f9fafb; padding: 22px 32px; text-align: center; border-top: 1px solid #f3f4f6;">
+                <p style="color: #9ca3af; font-size: 0.78rem; margin: 0 0 6px; line-height: 1.5;">
+                    Você está recebendo este e-mail porque é um cliente cadastrado na ECOSOPIS.
+                </p>
+                <p style="color: #9ca3af; font-size: 0.78rem; margin: 0;">
+                    © {STORE_NAME} · Cosméticos Naturais e Veganos · Todos os direitos reservados.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return send_email(email, subject, html)
