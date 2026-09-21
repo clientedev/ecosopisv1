@@ -193,6 +193,33 @@ export default function AdminSettings() {
                             </Link>
                         </div>
 
+                        {/* Global Price Adjustment */}
+                        <div style={{ background: "white", padding: "1.75rem", borderRadius: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #f0f0f0" }}>
+                            <h3 style={{ fontWeight: 700, fontSize: "1.05rem", color: "#1a1a1a", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "8px" }}>
+                                ⚡ Ajuste Global de Preços &amp; Promoções
+                            </h3>
+                            <p style={{ fontSize: "0.85rem", color: "#888", marginBottom: "1.25rem", lineHeight: 1.5 }}>
+                                Aplique aumentos ou descontos em reais (R$) ou porcentagem (%) em todos os produtos ou por categoria. Valores menores que o original são automaticamente riscados em formato de promoção no site.
+                            </p>
+                            <Link
+                                href="/admin/dashboard/precos"
+                                style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    background: "#0f172a",
+                                    color: "white",
+                                    padding: "0.75rem 1.4rem",
+                                    borderRadius: "10px",
+                                    fontWeight: 700,
+                                    fontSize: "0.92rem",
+                                    textDecoration: "none"
+                                }}
+                            >
+                                Abrir Painel de Ajuste de Preços →
+                            </Link>
+                        </div>
+
                         {/* Save Button */}
                         <button
                             className="btn-primary"

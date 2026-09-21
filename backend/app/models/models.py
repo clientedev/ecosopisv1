@@ -135,6 +135,7 @@ class Product(Base):
     ingredients = Column(Text)
     benefits = Column(Text)
     price = Column(Float)
+    original_price = Column(Float, nullable=True) # Preço original cadastrado para referência de desconto
     stock = Column(Integer, default=0)
     image_url = Column(String)
     images = Column(JSON, default=list) # List of image URLs

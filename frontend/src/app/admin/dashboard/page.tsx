@@ -133,12 +133,32 @@ export default function AdminDashboard() {
             <main className={styles.mainContent}>
                 <header className={styles.header}>
                     <h1>Gerenciar Produtos</h1>
-                    <button
-                        className="btn-primary"
-                        onClick={() => setIsAddingProduct(true)}
-                    >
-                        + Novo Produto
-                    </button>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                        <Link
+                            href="/admin/dashboard/precos"
+                            style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                background: "#f0fdf4",
+                                color: "#166534",
+                                border: "1.5px solid #86efac",
+                                padding: "8px 16px",
+                                borderRadius: "8px",
+                                fontWeight: 700,
+                                fontSize: "0.9rem",
+                                textDecoration: "none"
+                            }}
+                        >
+                            ⚡ Ajuste Global de Preços
+                        </Link>
+                        <button
+                            className="btn-primary"
+                            onClick={() => setIsAddingProduct(true)}
+                        >
+                            + Novo Produto
+                        </button>
+                    </div>
                 </header>
 
                 <div className={styles.adminSearchContainer}>
@@ -198,7 +218,20 @@ export default function AdminDashboard() {
                                             }}>INATIVO</span>
                                         )}
                                     </td>
-                                    <td data-label="Preço"><span className={styles.priceTag}>{p.price ? `R$ ${p.price.toFixed(2)}` : 'R$ 0,00'}</span></td>
+                                    <td data-label="Preço">
+                                        {p.is_on_sale && p.sale_price ? (
+                                            <div>
+                                                <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: '0.82rem', marginRight: '6px' }}>
+                                                    R$ {(p.original_price ?? p.price).toFixed(2)}
+                                                </span>
+                                                <span className={styles.priceTag} style={{ color: '#16a34a', fontWeight: 700 }}>
+                                                    R$ {p.sale_price.toFixed(2)}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className={styles.priceTag}>{p.price ? `R$ ${p.price.toFixed(2)}` : 'R$ 0,00'}</span>
+                                        )}
+                                    </td>
                                     <td data-label="Estoque">
                                         <span className={`${styles.stockBadge} ${p.stock <= 5 ? styles.stockLow : styles.stockOk}`}>
                                             {p.stock ?? 0} unidades

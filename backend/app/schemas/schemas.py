@@ -187,6 +187,7 @@ class ProductBase(BaseModel):
     ingredients: Optional[str] = None
     benefits: Optional[str] = None
     price: Optional[float] = None
+    original_price: Optional[float] = None
     stock: Optional[int] = 0
     image_url: Optional[str] = None
     images: Optional[List[str]] = []
@@ -275,6 +276,7 @@ class ProductUpdate(BaseModel):
     ingredients: Optional[str] = None
     benefits: Optional[str] = None
     price: Optional[float] = None
+    original_price: Optional[float] = None
     stock: Optional[int] = None
     image_url: Optional[str] = None
     images: Optional[List[str]] = None
@@ -566,3 +568,49 @@ class CampaignDispatchLogResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Price Adjustment Tool Schemas
+class PriceAdjustmentRequest(BaseModel):
+    adjustment_type: Optional[str] = None # "increase_fixed", "decrease_fixed", "increase_percent", "decrease_percent", "reset"
+    operation: Optional[str] = None # alias for adjustment_type
+    value: float = 0.0 # R$ or %
+    category: Optional[str] = None # None or "" means all products
+
+    def get_type(self) -> str:
+        return self.adjustment_type or self.operation or "reset"
+
+class PriceAdjustmentItemPreview(BaseModel):
+    id: int
+    name: str
+    slug: Optional[str] = ""
+    category: Optional[str] = None
+    image_url: Optional[str] = None
+    original_price: float
+    current_price: float
+    current_sale_price: Optional[float] = None
+    new_price: float
+    is_lower: bool
+    discount_percent: float
+
+class PriceAdjustmentPreviewResponse(BaseModel):
+    adjustment_type: str
+    value: float
+    category: Optional[str] = None
+    total_products: int
+    affected_products: List[PriceAdjustmentItemPreview]
+    preview: Optional[List[PriceAdjustmentItemPreview]] = None
+
+class PriceAdjustmentApplyResponse(BaseModel):
+    message: str
+    affected_count: int
+    adjustment_type: str
+    value: float
+
+class PriceAdjustmentStatusResponse(BaseModel):
+    is_active: bool
+    adjustment_type: Optional[str] = "none"
+    value: Optional[float] = 0.0
+    category: Optional[str] = None
+    applied_at: Optional[str] = None
+    affected_count: Optional[int] = 0

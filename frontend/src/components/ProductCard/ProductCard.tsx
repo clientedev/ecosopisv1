@@ -14,6 +14,7 @@ interface ProductCardProps {
         slug: string;
         description: string;
         price?: number;
+        original_price?: number | null;
         image_url?: string;
         tags: string[];
         buy_on_site: boolean;
@@ -65,13 +66,24 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
     const { showToast } = useToast();
     const { addToCart } = useCart();
 
+    const originalBasePrice = product.original_price ?? product.price ?? 0;
+    const currentPrice = product.is_on_sale && product.sale_price ? product.sale_price : (product.price || 0);
+    const isOnSale = !!(
+        (product.is_on_sale && product.sale_price && product.sale_price > 0 && product.sale_price < (product.price || originalBasePrice)) ||
+        (originalBasePrice > 0 && currentPrice < originalBasePrice)
+    );
+    const displayedOriginalPrice = originalBasePrice > currentPrice ? originalBasePrice : (product.price || originalBasePrice);
+    const discountPct = isOnSale && displayedOriginalPrice > 0
+        ? Math.round((1 - currentPrice / displayedOriginalPrice) * 100)
+        : 0;
+
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
         logClick("site");
         const cartItem = {
             id: (product as any).id,
             name: product.name,
-            price: product.is_on_sale && product.sale_price ? product.sale_price : product.price,
+            price: currentPrice,
             image_url: product.image_url
         };
         addToCart(cartItem);
@@ -79,11 +91,6 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
 
     const queridinhos = ['oleo-alecrim', 'sabonete-clareador-argila-branca', 'sabonete-liquido-barbatimao', 'oe-melaleuca', 'desodorante-clareador-solido'];
     const rotina = ['sabonete-rosa-mosqueta-argila-rosa', 'tonico-facial-antioxidante', 'oleo-semente-uva'];
-
-    const isOnSale = !!(product.is_on_sale && product.sale_price && product.sale_price > 0);
-    const discountPct = isOnSale && product.price
-        ? Math.round((1 - product.sale_price! / product.price) * 100)
-        : 0;
 
     let finalBadge = badge;
     if (!finalBadge) {
@@ -93,7 +100,6 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
 
     const staticData = PRODUCT_STATIC_DATA[product.slug];
     const activeIngredients = staticData?.ativos || product.ingredients || "";
-    const currentPrice = product.is_on_sale && product.sale_price ? product.sale_price : product.price || 0;
     const wholesaleEstimatePrice = (currentPrice * 0.7).toFixed(2).replace(".", ",");
 
     const getHumanCategoryLabel = (p: any) => {
@@ -173,19 +179,19 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
 
                 <p className={styles.description}>{product.description}</p>
 
-                {product.price && (
+                {currentPrice > 0 && (
                     <div className={styles.priceBlock}>
                         {isOnSale ? (
                             <>
                                 <span className={styles.originalPrice}>
-                                    R$ {product.price.toFixed(2).replace(".", ",")}
+                                    R$ {displayedOriginalPrice.toFixed(2).replace(".", ",")}
                                 </span>
                                 <span className={styles.salePrice}>
-                                    R$ {product.sale_price!.toFixed(2).replace(".", ",")}
+                                    R$ {currentPrice.toFixed(2).replace(".", ",")}
                                 </span>
                             </>
                         ) : (
-                            <p className={styles.price}>R$ {product.price.toFixed(2).replace(".", ",")}</p>
+                            <p className={styles.price}>R$ {currentPrice.toFixed(2).replace(".", ",")}</p>
                         )}
                     </div>
                 )}

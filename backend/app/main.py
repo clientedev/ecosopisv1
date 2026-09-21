@@ -138,6 +138,7 @@ def _apply_startup_migrations():
         ("order",             "INTEGER DEFAULT 0"),
         ("is_on_sale",        "BOOLEAN DEFAULT FALSE"),
         ("sale_price",        "DOUBLE PRECISION"),
+        ("original_price",    "DOUBLE PRECISION"),
         ("story_videos",      "TEXT DEFAULT '[]'"),
     ]
     PRODUCT_DETAILS_COLS = [
@@ -181,6 +182,14 @@ def _apply_startup_migrations():
                 except Exception as e:
                     logger.warning(f"Migration: Could not ensure {table}.{col}: {e}")
                     conn.rollback()
+
+        # Initialize original_price on products
+        try:
+            conn.execute(text("UPDATE products SET original_price = price WHERE original_price IS NULL AND price IS NOT NULL"))
+            conn.commit()
+        except Exception as e:
+            logger.warning(f"Migration: Could not initialize products.original_price: {e}")
+            conn.rollback()
 
         # === Product description fixes ===
         product_desc_updates = [

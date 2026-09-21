@@ -682,3 +682,192 @@ def stream_instagram_video(reel_id: str, request: Request):
     )
 
 
+# ==========================================
+# Ferramenta de Ajuste Global de Preços
+# ==========================================
+
+def _calculate_adjusted_price(base_price: float, adjustment_type: str, value: float) -> float:
+    if adjustment_type == "increase_fixed":
+        return max(1.0, round(base_price + value, 2))
+    elif adjustment_type == "decrease_fixed":
+        return max(1.0, round(base_price - value, 2))
+    elif adjustment_type == "increase_percent":
+        return max(1.0, round(base_price * (1.0 + (value / 100.0)), 2))
+    elif adjustment_type == "decrease_percent":
+        return max(1.0, round(base_price * (1.0 - (value / 100.0)), 2))
+    elif adjustment_type == "reset":
+        return round(base_price, 2)
+    return round(base_price, 2)
+
+
+@router.post("/price-adjustment/preview", response_model=schemas.PriceAdjustmentPreviewResponse)
+def preview_price_adjustment(
+    payload: schemas.PriceAdjustmentRequest,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    adj_type = payload.get_type()
+    query = db.query(models.Product).filter(models.Product.is_active == True)
+    if payload.category and payload.category.strip() and payload.category != "all":
+        query = query.filter(models.Product.category == payload.category.strip())
+    
+    products = query.order_by(models.Product.order.asc(), models.Product.id.asc()).all()
+
+    previews = []
+    for p in products:
+        orig = p.original_price if p.original_price is not None else (p.price or 0.0)
+        curr = p.price or 0.0
+        new_p = _calculate_adjusted_price(orig, adj_type, payload.value)
+        is_lower = new_p < orig
+        discount_pct = round((1.0 - new_p / orig) * 100.0, 1) if (is_lower and orig > 0) else 0.0
+
+        previews.append(schemas.PriceAdjustmentItemPreview(
+            id=p.id,
+            name=p.name,
+            slug=p.slug or "",
+            category=p.category,
+            image_url=p.image_url,
+            original_price=round(orig, 2),
+            current_price=round(curr, 2),
+            current_sale_price=round(p.sale_price, 2) if p.sale_price is not None else None,
+            new_price=new_p,
+            is_lower=is_lower,
+            discount_percent=discount_pct
+        ))
+
+    return schemas.PriceAdjustmentPreviewResponse(
+        adjustment_type=adj_type,
+        value=payload.value,
+        category=payload.category,
+        total_products=len(previews),
+        affected_products=previews,
+        preview=previews
+    )
+
+
+@router.post("/price-adjustment/apply", response_model=schemas.PriceAdjustmentApplyResponse)
+def apply_price_adjustment(
+    payload: schemas.PriceAdjustmentRequest,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    import json
+    from datetime import datetime, timezone
+
+    adj_type = payload.get_type()
+
+    query = db.query(models.Product)
+    if payload.category and payload.category.strip() and payload.category != "all":
+        query = query.filter(models.Product.category == payload.category.strip())
+    
+    products = query.all()
+    count = 0
+
+    for p in products:
+        # Garante que o original_price está salvo com o valor base
+        if p.original_price is None:
+            p.original_price = p.price or 0.0
+        
+        orig = p.original_price
+
+        if adj_type == "reset":
+            p.price = orig
+            p.is_on_sale = False
+            p.sale_price = None
+        else:
+            new_p = _calculate_adjusted_price(orig, adj_type, payload.value)
+            if new_p < orig:
+                # Menor que o original: ativa modo promocional com preço original preservado (para riscar no card!)
+                p.price = orig
+                p.is_on_sale = True
+                p.sale_price = new_p
+            else:
+                # Maior ou igual: atualiza preço normal
+                p.price = new_p
+                p.is_on_sale = False
+                p.sale_price = None
+
+        count += 1
+
+    # Persiste o status da regra ativa em system_settings
+    setting_entry = db.query(models.SystemSetting).filter(models.SystemSetting.key == "global_price_adjustment").first()
+    if not setting_entry:
+        setting_entry = models.SystemSetting(key="global_price_adjustment")
+        db.add(setting_entry)
+
+    status_data = {
+        "is_active": adj_type != "reset",
+        "adjustment_type": adj_type,
+        "value": payload.value,
+        "category": payload.category,
+        "applied_at": datetime.now(timezone.utc).isoformat(),
+        "affected_count": count
+    }
+    setting_entry.value = json.dumps(status_data)
+
+    db.commit()
+
+    return schemas.PriceAdjustmentApplyResponse(
+        message=f"Ajuste aplicado com sucesso em {count} produtos!",
+        affected_count=count,
+        adjustment_type=adj_type,
+        value=payload.value
+    )
+
+
+@router.post("/price-adjustment/reset")
+def reset_price_adjustment(
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    import json
+
+    products = db.query(models.Product).all()
+    count = 0
+    for p in products:
+        if p.original_price is not None:
+            p.price = p.original_price
+        p.is_on_sale = False
+        p.sale_price = None
+        count += 1
+
+    setting_entry = db.query(models.SystemSetting).filter(models.SystemSetting.key == "global_price_adjustment").first()
+    if setting_entry:
+        setting_entry.value = json.dumps({"is_active": False, "adjustment_type": "none", "value": 0.0, "affected_count": 0})
+
+    db.commit()
+    return {"message": f"Preços originais restaurados com sucesso para {count} produtos!", "affected_count": count}
+
+
+@router.get("/price-adjustment/status", response_model=schemas.PriceAdjustmentStatusResponse)
+def get_price_adjustment_status(
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    import json
+
+    setting_entry = db.query(models.SystemSetting).filter(models.SystemSetting.key == "global_price_adjustment").first()
+    if not setting_entry or not setting_entry.value:
+        return schemas.PriceAdjustmentStatusResponse(
+            is_active=False,
+            adjustment_type="none",
+            value=0.0,
+            category=None,
+            applied_at=None,
+            affected_count=0
+        )
+    
+    try:
+        data = json.loads(setting_entry.value)
+        return schemas.PriceAdjustmentStatusResponse(
+            is_active=data.get("is_active", False),
+            adjustment_type=data.get("adjustment_type", "none"),
+            value=float(data.get("value", 0.0)),
+            category=data.get("category"),
+            applied_at=data.get("applied_at"),
+            affected_count=int(data.get("affected_count", 0))
+        )
+    except Exception:
+        return schemas.PriceAdjustmentStatusResponse(is_active=False)
+
+

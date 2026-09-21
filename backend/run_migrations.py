@@ -62,6 +62,7 @@ MISSING_PRODUCTS_COLUMNS = [
     ("order",            "INTEGER DEFAULT 0"),
     ("is_on_sale",       "BOOLEAN DEFAULT FALSE"),
     ("sale_price",       "DOUBLE PRECISION"),
+    ("original_price",   "DOUBLE PRECISION"),
     ("story_videos",     "JSON DEFAULT '[]'"),
 ]
 
@@ -162,6 +163,15 @@ def ensure_extra_tables():
     except Exception as e:
         logger.warning(f"Could not ensure extra tables: {e}")
 
+def initialize_original_prices():
+    """Ensure all existing products have original_price set to their current price if null."""
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("UPDATE products SET original_price = price WHERE original_price IS NULL AND price IS NOT NULL"))
+        logger.info("✓ Product original_price backfilled.")
+    except Exception as e:
+        logger.warning(f"Could not backfill original_price: {e}")
+
 def run_migrations():
     success = True
     try:
@@ -174,6 +184,7 @@ def run_migrations():
         logger.info("Ensuring all required columns exist...")
         add_missing_columns()
         ensure_extra_tables()
+        initialize_original_prices()
         logger.info("✓ Column and table migrations complete.")
 
         # Run seed data

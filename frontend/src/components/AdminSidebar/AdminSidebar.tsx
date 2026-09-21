@@ -29,7 +29,8 @@ import {
     X,
     Palette,
     Trophy,
-    AppWindow
+    AppWindow,
+    BadgePercent
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -52,6 +53,7 @@ const CATEGORIES: Category[] = [
         label: "Catálogo",
         items: [
             { label: "Produtos", path: "/admin/dashboard", icon: <Package size={18} /> },
+            { label: "Ajuste de Preços", path: "/admin/dashboard/precos", icon: <BadgePercent size={18} /> },
             { label: "Avaliações", path: "/admin/dashboard/reviews", icon: <MessageSquare size={18} /> },
             { label: "Novidades", path: "/admin/dashboard/novidades", icon: <ImageIcon size={18} /> },
         ]

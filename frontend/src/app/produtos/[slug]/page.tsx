@@ -239,17 +239,29 @@ export default function ProductDetailPage() {
         return url;
     };
 
+    const originalBasePrice = product?.original_price ?? product?.price ?? 0;
+    const currentPrice = product?.is_on_sale && product?.sale_price ? product.sale_price : (product?.price || 0);
+    const isOnSale = !!(
+        product && (
+            (product.is_on_sale && product.sale_price && product.sale_price > 0 && product.sale_price < (product.price || originalBasePrice)) ||
+            (originalBasePrice > 0 && currentPrice < originalBasePrice)
+        )
+    );
+    const displayedOriginalPrice = originalBasePrice > currentPrice ? originalBasePrice : (product?.price || originalBasePrice);
+    const discountPct = isOnSale && displayedOriginalPrice > 0
+        ? Math.round((1 - currentPrice / displayedOriginalPrice) * 100)
+        : 0;
+
     const handleAddToCart = () => {
         if (!product) {
             showToast("Erro ao carregar produto", 'error');
             return;
         }
         
-        const isOnSale = !!(product.is_on_sale && product.sale_price && product.sale_price > 0);
         const cartItem = {
             id: product.id,
             name: product.name,
-            price: isOnSale ? product.sale_price : product.price,
+            price: currentPrice,
             image_url: product.image_url
         };
         
@@ -266,11 +278,10 @@ export default function ProductDetailPage() {
         setBuyingNow(true);
         setPaymentError("");
 
-        const isOnSale = !!(product.is_on_sale && product.sale_price && product.sale_price > 0);
         const cartItem = {
             id: product.id,
             name: product.name,
-            price: isOnSale ? product.sale_price : product.price,
+            price: currentPrice,
             image_url: product.image_url
         };
 
@@ -523,15 +534,15 @@ export default function ProductDetailPage() {
                         {product.frase_decisao && (
                             <p className={styles.decisionPhrase}>{product.frase_decisao}</p>
                         )}
-                        {product.price && (
+                        {currentPrice > 0 && (
                             <div className={styles.priceContainer}>
-                                {product.is_on_sale && product.sale_price && product.sale_price > 0 ? (
+                                {isOnSale ? (
                                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
                                         <span style={{ fontSize: '1.1rem', color: '#9ca3af', textDecoration: 'line-through', fontWeight: 500 }}>
-                                            R$ {product.price.toFixed(2).replace(".", ",")}
+                                            R$ {displayedOriginalPrice.toFixed(2).replace(".", ",")}
                                         </span>
                                         <span className={styles.price} style={{ color: '#f59e0b', fontSize: '2rem', fontWeight: 800 }}>
-                                            R$ {product.sale_price.toFixed(2).replace(".", ",")}
+                                            R$ {currentPrice.toFixed(2).replace(".", ",")}
                                         </span>
                                         <span style={{
                                             background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
@@ -544,11 +555,11 @@ export default function ProductDetailPage() {
                                             textTransform: 'uppercase',
                                             letterSpacing: '0.05em'
                                         }}>
-                                            🔥 {Math.round((1 - product.sale_price / product.price) * 100)}% OFF
+                                            🔥 {discountPct}% OFF
                                         </span>
                                     </div>
                                 ) : (
-                                    <p className={styles.price}>R$ {product.price.toFixed(2).replace(".", ",")}</p>
+                                    <p className={styles.price}>R$ {currentPrice.toFixed(2).replace(".", ",")}</p>
                                 )}
                                 <span className={styles.socialProofBadge}>⭐ Mais de 20.000 clientes satisfeitos</span>
                             </div>
