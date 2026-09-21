@@ -46,7 +46,9 @@ def _apply_startup_migrations():
         ("scratch_last_used_at",     "TIMESTAMP WITH TIME ZONE"),
         ("scratch_reward_id",        "INTEGER"),
         ("profile_picture",          "VARCHAR"),
-        ("phone",                    "VARCHAR")
+        ("phone",                    "VARCHAR"),
+        ("google_id",                "VARCHAR"),
+        ("auth_provider",            "VARCHAR DEFAULT 'local'")
     ]
     ORDER_COLS = [
         ("mercadopago_preference_id", "VARCHAR"),
@@ -227,7 +229,8 @@ def _apply_startup_migrations():
             ("idx_product_clicks_product_id", "product_clicks", "product_id"),
             ("idx_cashback_transactions_user_id", "cashback_transactions", "user_id"),
             ("idx_cashback_transactions_order_id", "cashback_transactions", "order_id"),
-            ("idx_products_is_active", "products", "is_active")
+            ("idx_products_is_active", "products", "is_active"),
+            ("idx_users_google_id", "users", "google_id")
         ]
         
         for idx_name, table, column in indexes_to_create:

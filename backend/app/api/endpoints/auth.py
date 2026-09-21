@@ -1,19 +1,67 @@
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, BackgroundTasks, Form
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, BackgroundTasks, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from app.core.database import get_db
 from app.core import security, emails
 from app.core.upload_content_type import resolve_stored_image_content_type
 from app.models import models
 from app.schemas import schemas
 from jose import jwt, JWTError
+from urllib.parse import urlencode
+from datetime import datetime, timedelta, timezone
 import os
 import uuid
+import json
+import secrets
+import logging
+import httpx
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
+
+ALLOWED_ORIGINS = {
+    "https://www.ecosopis.com.br",
+    "https://ecosopis.com.br",
+    "http://localhost:5000",
+    "http://localhost:3000",
+    "http://127.0.0.1:5000",
+    "http://127.0.0.1:3000",
+}
+
+def _get_safe_origin(request: Request) -> str:
+    """Determine client origin, restricting to allowed domains."""
+    referer = request.headers.get("referer") or ""
+    origin = request.headers.get("origin") or ""
+    
+    for candidate in [origin, referer]:
+        if candidate:
+            for allowed in ALLOWED_ORIGINS:
+                if candidate.startswith(allowed):
+                    return allowed
+
+    frontend_url = os.getenv("FRONTEND_URL", "https://ecosopis.com.br").strip().rstrip("/")
+    if frontend_url in ALLOWED_ORIGINS:
+        return frontend_url
+    return "https://ecosopis.com.br"
+
+def _validate_safe_origin(candidate: Optional[str]) -> str:
+    if candidate and candidate in ALLOWED_ORIGINS:
+        return candidate
+    return "https://ecosopis.com.br"
+
+def _sanitize_redirect_path(redirect: Optional[str]) -> str:
+    if not redirect:
+        return "/conta"
+    if redirect.startswith("/") and not redirect.startswith("//") and "\\" not in redirect:
+        return redirect
+    return "/conta"
+
 
 @router.post("/register", response_model=schemas.UserResponse)
 def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -393,4 +441,281 @@ def reset_password(reset_data: schemas.ResetPassword, db: Session = Depends(get_
     user.password_reset_expires = None
     db.commit()
     return {"message": "Senha redefinida com sucesso! Você já pode fazer login."}
+
+
+# ==========================================
+# GOOGLE OAUTH 2.0 (INCREMENTAL & ISOLATED)
+# ==========================================
+
+@router.get("/google/login")
+async def google_login(
+    request: Request,
+    redirect: Optional[str] = "/conta"
+):
+    """
+    Inicia o fluxo de autorização OAuth 2.0 do Google.
+    Gera state JWT assinado com destino e nonce CSRF,
+    e redireciona para accounts.google.com.
+    """
+    client_id = (os.getenv("GOOGLE_CLIENT_ID") or "").strip()
+    if not client_id:
+        logger.warning("Tentativa de Google Login, mas GOOGLE_CLIENT_ID não está configurado.")
+        return RedirectResponse(url="/conta?error=google_not_configured", status_code=302)
+
+    redirect_uri = (os.getenv("GOOGLE_REDIRECT_URI") or "https://ecosopis.com.br/api/auth/google/callback").strip()
+    clean_redirect = _sanitize_redirect_path(redirect)
+    origin = _get_safe_origin(request)
+
+    # Estado seguro com JWT
+    state_payload = {
+        "redirect": clean_redirect,
+        "origin": origin,
+        "nonce": secrets.token_urlsafe(16),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=15)
+    }
+    state = jwt.encode(state_payload, security.SECRET_KEY, algorithm=security.ALGORITHM)
+
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "prompt": "select_account",
+        "access_type": "online"
+    }
+    google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    return RedirectResponse(url=google_auth_url, status_code=302)
+
+
+@router.get("/google/callback")
+async def google_callback(
+    request: Request,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    error_description: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Callback autorizado oficial do Google OAuth.
+    URL exata configurada no Google Cloud: https://ecosopis.com.br/api/auth/google/callback
+    """
+    target_redirect = "/conta"
+    target_origin = "https://ecosopis.com.br"
+
+    if state:
+        try:
+            state_data = jwt.decode(state, security.SECRET_KEY, algorithms=[security.ALGORITHM])
+            target_redirect = _sanitize_redirect_path(state_data.get("redirect"))
+            if state_data.get("origin"):
+                target_origin = _validate_safe_origin(state_data.get("origin"))
+        except Exception as e:
+            logger.warning(f"Google OAuth state inválido ou expirado: {e}")
+            return RedirectResponse(url="/conta?error=google_state_invalid", status_code=302)
+
+    # 1. Tratamento de cancelamento ou erro reportado pelo Google
+    if error:
+        logger.info(f"Google OAuth retornou erro: {error} ({error_description})")
+        err_code = "google_cancelled" if error in ["access_denied", "user_cancelled"] else "google_error"
+        return RedirectResponse(url=f"{target_origin}/conta?error={err_code}", status_code=302)
+
+    if not code:
+        logger.warning("Google callback invocado sem authorization code.")
+        return RedirectResponse(url=f"{target_origin}/conta?error=google_error", status_code=302)
+
+    # 2. Validação de credenciais do ambiente
+    client_id = (os.getenv("GOOGLE_CLIENT_ID") or "").strip()
+    client_secret = (os.getenv("GOOGLE_CLIENT_SECRET") or "").strip()
+    redirect_uri = (os.getenv("GOOGLE_REDIRECT_URI") or "https://ecosopis.com.br/api/auth/google/callback").strip()
+
+    if not client_id or not client_secret:
+        logger.error("Credenciais do Google não configuradas nas variáveis de ambiente.")
+        return RedirectResponse(url=f"{target_origin}/conta?error=google_not_configured", status_code=302)
+
+    # 3. Troca do code por access_token e id_token com o Google
+    token_url = "https://oauth2.googleapis.com/token"
+    token_payload = {
+        "code": code,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code"
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            token_resp = await client.post(token_url, data=token_payload)
+            if token_resp.status_code != 200:
+                logger.error(f"Troca de token Google falhou (status {token_resp.status_code}): {token_resp.text}")
+                return RedirectResponse(url=f"{target_origin}/conta?error=google_auth_failed", status_code=302)
+
+            token_data = token_resp.json()
+            google_access_token = token_data.get("access_token")
+            if not google_access_token:
+                logger.error("Google não retornou access_token.")
+                return RedirectResponse(url=f"{target_origin}/conta?error=google_auth_failed", status_code=302)
+
+            # 4. Obter e validar identidade verificada no endpoint oficial OpenID Connect do Google
+            userinfo_url = "https://openidconnect.googleapis.com/v1/userinfo"
+            userinfo_resp = await client.get(
+                userinfo_url,
+                headers={"Authorization": f"Bearer {google_access_token}"}
+            )
+            if userinfo_resp.status_code != 200:
+                logger.error(f"Falha ao obter userinfo do Google (status {userinfo_resp.status_code})")
+                return RedirectResponse(url=f"{target_origin}/conta?error=google_auth_failed", status_code=302)
+
+            userinfo = userinfo_resp.json()
+    except Exception as e:
+        logger.error(f"Exceção na comunicação com o Google: {e}")
+        return RedirectResponse(url=f"{target_origin}/conta?error=google_error", status_code=302)
+
+    # 5. Validação rigorosa dos dados recebidos
+    google_sub = userinfo.get("sub")
+    email = userinfo.get("email")
+    email_verified = userinfo.get("email_verified")
+    full_name = userinfo.get("name") or ""
+    picture = userinfo.get("picture")
+
+    if not google_sub or not email:
+        logger.error("Google userinfo não contém sub ou email válidos.")
+        return RedirectResponse(url=f"{target_origin}/conta?error=google_email_unavailable", status_code=302)
+
+    if not email_verified:
+        logger.warning(f"E-mail do Google {email} não verificado.")
+        return RedirectResponse(url=f"{target_origin}/conta?error=google_email_unverified", status_code=302)
+
+    normalized_email = email.strip().lower()
+
+    # 6. Localização ou cadastro seguro no banco de dados
+    user = None
+    # Busca por e-mail no banco
+    db_user = db.query(models.User).filter(func.lower(models.User.email) == normalized_email).first()
+
+    if db_user:
+        # Usuário existente: NENHUMA alteração de role, permissões, senha, pedidos ou histórico
+        if not db_user.google_id:
+            db_user.google_id = str(google_sub)
+        if not db_user.is_verified:
+            db_user.is_verified = True
+            db_user.verification_token = None
+        # Atualiza foto de perfil apenas se o usuário ainda não tiver uma personalizada
+        if not db_user.profile_picture and picture:
+            db_user.profile_picture = picture
+        db.commit()
+        db.refresh(db_user)
+        user = db_user
+    else:
+        # Verifica se porventura o google_id já existe associado a outra conta
+        existing_google = db.query(models.User).filter(models.User.google_id == str(google_sub)).first()
+        if existing_google:
+            user = existing_google
+        else:
+            # Novo usuário: cadastro automático seguro com permissões padrão de cliente
+            # Hash forte e imprevisível para preencher o campo NOT NULL de senha com total segurança
+            random_password = secrets.token_urlsafe(48)
+            hashed_pwd = security.get_password_hash(random_password)
+
+            user = models.User(
+                email=normalized_email,
+                hashed_password=hashed_pwd,
+                full_name=full_name or normalized_email.split("@")[0],
+                role="client",
+                is_verified=True,
+                verification_token=None,
+                google_id=str(google_sub),
+                auth_provider="google",
+                profile_picture=picture if picture else None,
+                total_compras=0,
+                can_post_news=False
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+    # 7. Criar sessão / JWT com o mesmo mecanismo padrão do sistema
+    access_token = security.create_access_token(subject=user.id)
+
+    # 8. Retornar página de transição para persistência segura no localStorage e redirecionamento
+    safe_token = json.dumps(access_token)
+    safe_target = json.dumps(target_redirect)
+    safe_origin = json.dumps(target_origin)
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrando no Ecosopis...</title>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f8fafc;
+            color: #2d5a27;
+        }}
+        .card {{
+            text-align: center;
+            padding: 32px 24px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            max-width: 380px;
+            width: 90%;
+        }}
+        .spinner {{
+            width: 44px;
+            height: 44px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #2d5a27;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }}
+        @keyframes spin {{
+            0% {{ transform: rotate(0deg); }}
+            100% {{ transform: rotate(360deg); }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="spinner"></div>
+        <h2 style="margin: 0 0 8px; font-size: 1.15rem; color: #1a3a16;">Autenticado com sucesso!</h2>
+        <p style="margin: 0; color: #64748b; font-size: 0.88rem;">Redirecionando para o Ecosopis...</p>
+    </div>
+    <script>
+        (function() {{
+            try {{
+                var token = {safe_token};
+                var target = {safe_target} || '/conta';
+                var origin = {safe_origin};
+                
+                // Armazena credenciais da sessão no navegador
+                localStorage.setItem('token', token);
+                localStorage.setItem('remember_me', 'true');
+                sessionStorage.setItem('session_active', 'true');
+                sessionStorage.removeItem('roulette_spin_shown');
+                
+                // Redireciona imediatamente
+                if (window.location.origin === origin || !origin) {{
+                    window.location.replace(target);
+                }} else {{
+                    var delimiter = target.indexOf('?') === -1 ? '?' : '&';
+                    window.location.replace(origin + target + delimiter + 'token=' + encodeURIComponent(token));
+                }}
+            }} catch(e) {{
+                window.location.replace('/conta?token=' + encodeURIComponent({safe_token}));
+            }}
+        }})();
+    </script>
+</body>
+</html>"""
+    return HTMLResponse(content=html_content, status_code=200)
+
 

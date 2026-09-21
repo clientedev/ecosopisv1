@@ -48,6 +48,8 @@ MISSING_USERS_COLUMNS = [
     ("cart_json",              "TEXT"),
     ("cart_updated_at",        "TIMESTAMP WITH TIME ZONE"),
     ("phone",                  "VARCHAR"),
+    ("google_id",              "VARCHAR"),
+    ("auth_provider",          "VARCHAR DEFAULT 'local'"),
 ]
 
 MISSING_PRODUCTS_COLUMNS = [

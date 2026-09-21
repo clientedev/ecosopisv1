@@ -48,6 +48,10 @@ class User(Base):
     role = Column(String, default="client") # admin, client
     can_post_news = Column(Boolean, default=False)  # can post to blog/news
     
+    # Google OAuth & Auth Provider
+    google_id = Column(String, unique=True, index=True, nullable=True)
+    auth_provider = Column(String, default="local")
+    
     # Email Verification
     is_verified = Column(Boolean, default=False)
     verification_token = Column(String, nullable=True)
