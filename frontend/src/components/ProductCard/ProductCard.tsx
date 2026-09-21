@@ -114,6 +114,9 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
         if (tags.includes("skin:dry")) return "Pele Seca";
         if (tags.includes("skin:normal") || tags.includes("skin:mixed")) return "Pele Normal / Mista";
         if (tags.includes("sensitivity")) return "Pele Sensível";
+        if (tags.includes("spots")) return "Clareamento de Manchas";
+        if (tags.includes("foliculite")) return "Foliculite";
+        if (tags.includes("acne")) return "Controle de Acne";
         return null;
     };
 
@@ -123,11 +126,11 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
         <div className={`${styles.card} ${isV2Theme ? styles.cardV2 : ""} ${isRecommended ? styles.recommended : ""} ${isOnSale ? styles.onSale : ""}`}>
             {isOnSale && (
                 <div className={styles.saleBadge}>
-                    🔥 {discountPct > 0 ? `${discountPct}% OFF` : "PROMOÇÃO"}
+                    {discountPct > 0 ? `${discountPct}% OFF` : "PROMOÇÃO"}
                 </div>
             )}
             {!isOnSale && finalBadge && <div className={styles.productBadge}>{finalBadge}</div>}
-            {isRecommended && <div className={styles.recommendedLabel}>RECOMENDADO</div>}
+            {isRecommended && !finalBadge && !isOnSale && <div className={styles.recommendedLabel}>RECOMENDADO</div>}
 
             <Link href={`/produtos/${product.slug}`}>
                 <div className={styles.imageWrapper}>

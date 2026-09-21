@@ -2001,19 +2001,19 @@ export default function Home() {
                     </div>
                     <div className={styles.shortcutGrid}>
                         <div className={styles.shortcutCard}>
-                            <div className={styles.shortcutBadge}>🔥 TOP 1</div>
+                            <div className={styles.shortcutBadge}>TOP 1</div>
                             <h3>O mais vendido de todos</h3>
                             <p>Sabonete de Açafrão</p>
                             <button onClick={() => openGoalModal('foliculite')} className="btn-outline">VER DETALHES</button>
                         </div>
                         <div className={styles.shortcutCard}>
-                            <div className={styles.shortcutBadge}>🎁 KIT INICIAL</div>
+                            <div className={styles.shortcutBadge}>KIT INICIAL</div>
                             <h3>Melhor kit para iniciantes</h3>
                             <p>Kit Clareamento Potente</p>
                             <button onClick={() => openGoalModal('clareamento')} className="btn-outline">ESCOLHER ESSE TRATAMENTO</button>
                         </div>
                         <div className={styles.shortcutCard}>
-                            <div className={styles.shortcutBadge}>✨ MAIS EFICAZ</div>
+                            <div className={styles.shortcutBadge}>MAIS EFICAZ</div>
                             <h3>Melhor opção para acne</h3>
                             <p>Kit Acne e Oleosidade</p>
                             <button onClick={() => openGoalModal('acne')} className="btn-outline">QUERO ESSE PRODUTO</button>
