@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
@@ -177,6 +177,20 @@ export default function CarrinhoPage() {
     const cheapestOption = shippingOptions.length > 0 
         ? [...shippingOptions].sort((a, b) => a.price - b.price)[0] 
         : null;
+
+    // Ensure free shipping option is ALWAYS listed first when earned
+    const displayedShippingOptions = useMemo(() => {
+        if (!shippingOptions || shippingOptions.length === 0) return [];
+        const isFreeShippingEarned = appliesFreeShipping || appliedCoupon?.type === "free_shipping";
+        if (isFreeShippingEarned && cheapestOption) {
+            return [...shippingOptions].sort((a, b) => {
+                if (a.id === cheapestOption.id) return -1;
+                if (b.id === cheapestOption.id) return 1;
+                return (a.price || 0) - (b.price || 0);
+            });
+        }
+        return shippingOptions;
+    }, [shippingOptions, appliesFreeShipping, appliedCoupon, cheapestOption]);
 
     const isSelectedShippingFree = (selectedShipping && cheapestOption && selectedShipping.id === cheapestOption.id && appliesFreeShipping) || (appliedCoupon?.type === "free_shipping");
     const shippingPrice = isSelectedShippingFree ? 0 : (selectedShipping ? selectedShipping.price : 0);
@@ -1048,10 +1062,11 @@ export default function CarrinhoPage() {
                                     <div className={styles.mobileShippingError}>
                                         ⚠️ {shippingError}
                                     </div>
-                                ) : shippingOptions.length > 0 ? (
+                                ) : displayedShippingOptions.length > 0 ? (
                                     <div className={styles.mobileShippingList}>
-                                        {shippingOptions.map((opt: any) => {
+                                        {displayedShippingOptions.map((opt: any) => {
                                             const isSelected = selectedShipping?.id === opt.id;
+                                            const isFree = (appliesFreeShipping || appliedCoupon?.type === "free_shipping") && cheapestOption && opt.id === cheapestOption.id;
                                             return (
                                                 <div 
                                                     key={opt.id}
@@ -1068,7 +1083,7 @@ export default function CarrinhoPage() {
                                                         <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Entrega em até {opt.delivery_time} dias úteis</span>
                                                     </div>
                                                     <span className={styles.mobileShippingPriceText}>
-                                                        {appliesFreeShipping && cheapestOption && opt.id === cheapestOption.id ? "GRÁTIS" : `R$ ${opt.price.toFixed(2)}`}
+                                                        {isFree ? "GRÁTIS" : `R$ ${opt.price.toFixed(2)}`}
                                                     </span>
                                                 </div>
                                             );
@@ -1470,36 +1485,39 @@ export default function CarrinhoPage() {
                                         <div style={{ color: "#ef4444", fontSize: "0.88rem", background: "#fef2f2", borderRadius: "10px", padding: "12px", border: "1px solid #fca5a5" }}>
                                             ⚠️ {shippingError}
                                         </div>
-                                    ) : shippingOptions.length > 0 ? (
+                                    ) : displayedShippingOptions.length > 0 ? (
                                         <div className={styles.shippingOptions}>
-                                            {shippingOptions.map((opt: any) => (
-                                                <div 
-                                                    key={opt.id}
-                                                    style={{ 
-                                                        padding: "16px", background: selectedShipping?.id === opt.id ? "#f0f7ee" : "#fff", 
-                                                        borderRadius: "12px", border: selectedShipping?.id === opt.id ? "1px solid #d4edda" : "1px solid #e2e8f0", 
-                                                        display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px", cursor: "pointer",
-                                                        transition: "all 0.2s"
-                                                    }}
-                                                    onClick={() => setSelectedShipping(opt)}
-                                                >
-                                                    <div style={{
-                                                        width: "20px", height: "20px", borderRadius: "50%",
-                                                        border: selectedShipping?.id === opt.id ? "6px solid #2d5a27" : "2px solid #cbd5e1",
-                                                        background: "#fff"
-                                                    }} />
-                                                    <Truck size={24} style={{ color: selectedShipping?.id === opt.id ? "#2d5a27" : "#64748b" }} />
-                                                    <div style={{ flex: 1 }}>
-                                                        <strong style={{ color: "#1e293b", display: "block" }}>{opt.company} - {opt.name}</strong>
-                                                        <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
-                                                            Entrega em até {opt.delivery_time} dias úteis
+                                            {displayedShippingOptions.map((opt: any) => {
+                                                const isFree = (appliesFreeShipping || appliedCoupon?.type === "free_shipping") && cheapestOption && opt.id === cheapestOption.id;
+                                                return (
+                                                    <div 
+                                                        key={opt.id}
+                                                        style={{ 
+                                                            padding: "16px", background: selectedShipping?.id === opt.id ? "#f0f7ee" : "#fff", 
+                                                            borderRadius: "12px", border: selectedShipping?.id === opt.id ? "1px solid #d4edda" : "1px solid #e2e8f0", 
+                                                            display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px", cursor: "pointer",
+                                                            transition: "all 0.2s"
+                                                        }}
+                                                        onClick={() => setSelectedShipping(opt)}
+                                                    >
+                                                        <div style={{
+                                                            width: "20px", height: "20px", borderRadius: "50%",
+                                                            border: selectedShipping?.id === opt.id ? "6px solid #2d5a27" : "2px solid #cbd5e1",
+                                                            background: "#fff"
+                                                        }} />
+                                                        <Truck size={24} style={{ color: selectedShipping?.id === opt.id ? "#2d5a27" : "#64748b" }} />
+                                                        <div style={{ flex: 1 }}>
+                                                            <strong style={{ color: "#1e293b", display: "block" }}>{opt.company} - {opt.name}</strong>
+                                                            <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
+                                                                Entrega em até {opt.delivery_time} dias úteis
+                                                            </span>
+                                                        </div>
+                                                        <span style={{ fontSize: "1.1rem", fontWeight: 700, color: selectedShipping?.id === opt.id ? "#2d5a27" : "#334155" }}>
+                                                            {isFree ? "FRETE GRÁTIS" : `R$ ${opt.price.toFixed(2)}`}
                                                         </span>
                                                     </div>
-                                                    <span style={{ fontSize: "1.1rem", fontWeight: 700, color: selectedShipping?.id === opt.id ? "#2d5a27" : "#334155" }}>
-                                                        {appliesFreeShipping && cheapestOption && opt.id === cheapestOption.id ? "FRETE GRÁTIS" : `R$ ${opt.price.toFixed(2)}`}
-                                                    </span>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     ) : cep.replace(/\D/g, "").length === 8 ? (
                                         <div style={{ color: "#ef4444", fontSize: "0.9rem" }}>
