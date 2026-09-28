@@ -159,7 +159,41 @@ def ensure_extra_tables():
                 conn.execute(text("CREATE TABLE IF NOT EXISTS home_stories (id SERIAL PRIMARY KEY, title VARCHAR NOT NULL, video_url VARCHAR NOT NULL, thumbnail_url VARCHAR, \"order\" INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT now())"))
                 conn.execute(text("CREATE TABLE IF NOT EXISTS promotional_popups (id SERIAL PRIMARY KEY, is_active BOOLEAN DEFAULT FALSE, title VARCHAR NOT NULL DEFAULT 'Oferta Especial Ecosopis', description TEXT DEFAULT '', image_url VARCHAR, button_text VARCHAR DEFAULT 'Aproveitar Desconto', button_link VARCHAR DEFAULT '/produtos', frequency VARCHAR DEFAULT 'once_per_session', delay_seconds INTEGER DEFAULT 3, coupon_id INTEGER REFERENCES coupons(id), coupon_code VARCHAR, created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now())"))
                 conn.execute(text("CREATE TABLE IF NOT EXISTS campaign_dispatch_logs (id SERIAL PRIMARY KEY, promotion_title VARCHAR NOT NULL, coupon_code VARCHAR, recipient_count INTEGER DEFAULT 0, admin_email VARCHAR, status VARCHAR DEFAULT 'completed', created_at TIMESTAMPTZ DEFAULT now())"))
-        logger.info("✓ home_stories, promotional_popups, campaign_dispatch_logs tables ensured.")
+
+            # WhatsApp Tables (SQLite and PostgreSQL compatible)
+            if is_sqlite:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS whatsapp_accounts (id VARCHAR PRIMARY KEY, name VARCHAR NOT NULL DEFAULT 'WhatsApp Principal E-commerce', phone VARCHAR, status VARCHAR NOT NULL DEFAULT 'DISCONNECTED', qr_code TEXT, last_connection TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS baileys_auth_state (id VARCHAR PRIMARY KEY, whatsapp_id VARCHAR NOT NULL REFERENCES whatsapp_accounts(id) ON DELETE CASCADE, data_id VARCHAR NOT NULL, data TEXT NOT NULL, UNIQUE (whatsapp_id, data_id))"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS whatsapp_templates (id INTEGER PRIMARY KEY AUTOINCREMENT, trigger_type VARCHAR UNIQUE NOT NULL, title VARCHAR NOT NULL, message_template TEXT NOT NULL, is_enabled BOOLEAN DEFAULT 1, delay_minutes INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS whatsapp_message_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, whatsapp_id VARCHAR, to_phone VARCHAR NOT NULL, recipient_name VARCHAR, message TEXT NOT NULL, trigger_type VARCHAR NOT NULL, status VARCHAR DEFAULT 'SENT', error TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+            else:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS whatsapp_accounts (id VARCHAR(64) PRIMARY KEY, name VARCHAR(255) NOT NULL DEFAULT 'WhatsApp Principal E-commerce', phone VARCHAR(64), status VARCHAR(32) NOT NULL DEFAULT 'DISCONNECTED', qr_code TEXT, last_connection TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now())"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS baileys_auth_state (id VARCHAR(64) PRIMARY KEY, whatsapp_id VARCHAR(64) NOT NULL REFERENCES whatsapp_accounts(id) ON DELETE CASCADE, data_id VARCHAR(255) NOT NULL, data TEXT NOT NULL, CONSTRAINT uq_baileys_key UNIQUE (whatsapp_id, data_id))"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS whatsapp_templates (id SERIAL PRIMARY KEY, trigger_type VARCHAR(64) UNIQUE NOT NULL, title VARCHAR(255) NOT NULL, message_template TEXT NOT NULL, is_enabled BOOLEAN DEFAULT TRUE, delay_minutes INTEGER DEFAULT 0, created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now())"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS whatsapp_message_logs (id SERIAL PRIMARY KEY, whatsapp_id VARCHAR(64), to_phone VARCHAR(64) NOT NULL, recipient_name VARCHAR(255), message TEXT NOT NULL, trigger_type VARCHAR(64) NOT NULL, status VARCHAR(32) DEFAULT 'SENT', error TEXT, created_at TIMESTAMPTZ DEFAULT now())"))
+
+            # Seed default WhatsApp templates if not existing
+            default_templates = [
+                ("order_paid", "Venda / Pagamento Aprovado", "Olá, {cliente}! 🌿\nSeu pagamento referente ao pedido #{pedido} foi APROVADO com sucesso! ✨\nValor total: R$ {valor}\nItens: {itens}\n\nJá estamos preparando seus cosméticos naturais com todo amor e carinho. Assim que for despachado, enviaremos seu código de rastreamento por aqui!"),
+                ("order_created_pix", "Chave PIX e Pedido Realizado", "Olá, {cliente}! 🌿\nRecebemos o seu pedido #{pedido} na ECOSOPIS! ✨\nPara confirmar sua compra, utilize a chave PIX abaixo:\n\n{pix_copia_cola}\n\nValor: R$ {valor}\nAssim que o pagamento for concluído, seu pedido entrará em separação imediatamente!"),
+                ("order_shipped", "Pedido Enviado / Código de Rastreio", "Ótimas notícias, {cliente}! 📦✨\nSeu pedido #{pedido} da ECOSOPIS acabou de ser enviado!\nCódigo de Rastreio: *{codigo_rastreio}*\n\nAcompanhe seu pacote diretamente pelo site dos Correios/Transportadora. Qualquer dúvida, estamos à disposição por aqui! 🌿"),
+                ("abandoned_cart", "Recuperação de Carrinho Abandonado", "Olá, {cliente}! 🌿 Notamos que você deixou alguns cosméticos naturais incríveis no seu carrinho na ECOSOPIS.\n\nPara te ajudar a finalizar seu autocuidado natural, liberamos um cupom especial de 10% OFF para você: *VOLTA10* ✨\n\nClique no link para retomar sua compra: {link_carrinho}"),
+                ("promotion", "Promoção Especial / Novidade", "Olá, {cliente}! 🌿\nTemos uma super novidade na ECOSOPIS! Nossos cosméticos naturais mais pedidos estão com descontos exclusivos por tempo limitado.\n\nAproveite o cupom *NATURAL15* e garanta 15% OFF em todo o catálogo: https://ecosopis.com.br/produtos ✨")
+            ]
+
+            for trigger, title, msg in default_templates:
+                if is_sqlite:
+                    conn.execute(text("INSERT OR IGNORE INTO whatsapp_templates (trigger_type, title, message_template, is_enabled) VALUES (:trig, :title, :msg, 1)"), {"trig": trigger, "title": title, "msg": msg})
+                else:
+                    conn.execute(text("INSERT INTO whatsapp_templates (trigger_type, title, message_template, is_enabled) VALUES (:trig, :title, :msg, TRUE) ON CONFLICT (trigger_type) DO NOTHING"), {"trig": trigger, "title": title, "msg": msg})
+
+            # Ensure default main account
+            if is_sqlite:
+                conn.execute(text("INSERT OR IGNORE INTO whatsapp_accounts (id, name, status) VALUES ('default', 'WhatsApp Principal E-commerce', 'DISCONNECTED')"))
+            else:
+                conn.execute(text("INSERT INTO whatsapp_accounts (id, name, status) VALUES ('default', 'WhatsApp Principal E-commerce', 'DISCONNECTED') ON CONFLICT (id) DO NOTHING"))
+
+        logger.info("✓ home_stories, promotional_popups, campaign_dispatch_logs, whatsapp tables ensured.")
     except Exception as e:
         logger.warning(f"Could not ensure extra tables: {e}")
 

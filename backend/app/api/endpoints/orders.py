@@ -156,6 +156,35 @@ def update_order_status(
     except Exception as e:
         print(f"Error sending status update email: {e}")
 
+    # Send WhatsApp Notification
+    try:
+        phone = order.customer_phone or (order.user.phone if order.user else None)
+        if phone:
+            from app.services.whatsapp import trigger_whatsapp_event
+            client_name = order.customer_name or order.buyer_name or (order.user.name if order.user else "Cliente")
+            
+            # Format item names
+            item_names = []
+            if order.items and isinstance(order.items, list):
+                for it in order.items:
+                    item_names.append(it.get("product_name") or it.get("name") or "Cosmético Natural")
+            items_str = ", ".join(item_names) if item_names else "Cosméticos Ecosopis"
+
+            context = {
+                "cliente": client_name,
+                "pedido": order.id,
+                "valor": f"{order.total:.2f}".replace(".", ","),
+                "itens": items_str,
+                "codigo_rastreio": order.codigo_rastreio or "Em breve"
+            }
+
+            if new_status == "paid":
+                trigger_whatsapp_event("order_paid", phone, context, db, recipient_name=client_name)
+            elif new_status == "shipped":
+                trigger_whatsapp_event("order_shipped", phone, context, db, recipient_name=client_name)
+    except Exception as wa_err:
+        print(f"Error triggering WhatsApp notification: {wa_err}")
+
     return _order_to_response(order, db)
 
 

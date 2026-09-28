@@ -67,6 +67,7 @@ const CATEGORIES: Category[] = [
     {
         label: "Marketing",
         items: [
+            { label: "WhatsApp & Disparos", path: "/admin/dashboard/whatsapp", icon: <MessageSquare size={18} /> },
             { label: "Pop-up Promocional", path: "/admin/dashboard/popup", icon: <AppWindow size={18} /> },
             { label: "Raspadinha", path: "/admin/dashboard/raspadinha", icon: <Sparkles size={18} /> },
             { label: "Bolão Copa", path: "/admin/bolao", icon: <Trophy size={18} /> },

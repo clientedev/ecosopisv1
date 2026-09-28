@@ -557,3 +557,54 @@ class CampaignDispatchLog(Base):
     admin_email = Column(String, nullable=True)
     status = Column(String, default="completed") # completed, in_progress, failed
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ─── WhatsApp & Baileys System ───────────────────────────────────────────────
+
+class WhatsAppAccount(Base):
+    __tablename__ = "whatsapp_accounts"
+
+    id = Column(String(64), primary_key=True, index=True)
+    name = Column(String(255), nullable=False, default="WhatsApp Principal E-commerce")
+    phone = Column(String(64), nullable=True)
+    status = Column(String(32), nullable=False, default="DISCONNECTED") # DISCONNECTED, CONNECTING, QR_CODE, CONNECTED
+    qr_code = Column(Text, nullable=True)
+    last_connection = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class BaileysAuthState(Base):
+    __tablename__ = "baileys_auth_state"
+
+    id = Column(String(64), primary_key=True, index=True)
+    whatsapp_id = Column(String(64), ForeignKey("whatsapp_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
+    data_id = Column(String(255), nullable=False, index=True)
+    data = Column(Text, nullable=False)
+
+
+class WhatsAppTemplate(Base):
+    __tablename__ = "whatsapp_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    trigger_type = Column(String(64), unique=True, nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    message_template = Column(Text, nullable=False)
+    is_enabled = Column(Boolean, default=True)
+    delay_minutes = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class WhatsAppMessageLog(Base):
+    __tablename__ = "whatsapp_message_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    whatsapp_id = Column(String(64), nullable=True)
+    to_phone = Column(String(64), nullable=False, index=True)
+    recipient_name = Column(String(255), nullable=True)
+    message = Column(Text, nullable=False)
+    trigger_type = Column(String(64), nullable=False, index=True) # order_paid, order_created_pix, order_shipped, abandoned_cart, promotion, manual
+    status = Column(String(32), default="SENT") # SENT, FAILED, PENDING
+    error = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

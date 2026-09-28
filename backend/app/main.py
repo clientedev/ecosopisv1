@@ -525,7 +525,7 @@ from app.api.endpoints import (
     auth, products, coupons, carousel, orders, settings, reviews, 
     images, news, metrics, chat, scratchcard, admin_scratchcard, 
     shipping, addresses, cart, payment, crm, cashback, raw_materials,
-    world_cup, popup
+    world_cup, popup, whatsapp
 )
 from app.routes import webhook_me
 
@@ -551,6 +551,7 @@ app.include_router(cashback.router, tags=["cashback"])
 app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
 app.include_router(world_cup.router, prefix="/world-cup", tags=["world_cup"])
 app.include_router(popup.router, prefix="/popup", tags=["popup"])
+app.include_router(whatsapp.router, prefix="/whatsapp", tags=["whatsapp"])
 app.include_router(webhook_me.router)
 
 if __name__ == "__main__":
