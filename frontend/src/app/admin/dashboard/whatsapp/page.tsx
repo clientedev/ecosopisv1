@@ -16,24 +16,23 @@ import {
   RefreshCw,
   PowerOff,
   ShoppingBag,
-  CreditCard,
   Truck,
   ShoppingCart,
   Sparkles,
   Phone,
-  Copy,
   Clock,
-  CheckCheck,
   Users,
   Search,
-  Filter,
   CheckSquare,
-  Square,
-  PackageOpen,
-  Eye,
   X,
-  Package,
-  ArrowRight
+  Gift,
+  Heart,
+  Smile,
+  Star,
+  Award,
+  ArrowRight,
+  ExternalLink,
+  Smartphone
 } from 'lucide-react';
 
 interface WhatsAppStatus {
@@ -47,6 +46,7 @@ interface TemplateItem {
   id: number;
   trigger_type: string;
   title: string;
+  category?: string;
   message_template: string;
   is_enabled: boolean;
   delay_minutes: number;
@@ -99,18 +99,49 @@ interface AbandonedCartItem {
 }
 
 const TRIGGER_ICONS: Record<string, React.ReactNode> = {
-  order_paid: <ShoppingBag size={18} color="#16a34a" />,
-  order_shipped: <Truck size={18} color="#d97706" />,
-  abandoned_cart: <ShoppingCart size={18} color="#ea580c" />,
-  promotion: <Sparkles size={18} color="#9333ea" />,
+  order_paid: <ShoppingBag size={20} color="#16a34a" />,
+  order_shipped: <Truck size={20} color="#0284c7" />,
+  order_delivered: <CheckCircle size={20} color="#10b981" />,
+  abandoned_cart: <ShoppingCart size={20} color="#ea580c" />,
+  welcome_new_user: <Sparkles size={20} color="#8b5cf6" />,
+  post_purchase_care: <Heart size={20} color="#ec4899" />,
+  repurchase_reminder: <RefreshCw size={20} color="#0d9488" />,
+  cashback_expiring: <Award size={20} color="#f59e0b" />,
+  birthday_special: <Gift size={20} color="#e11d48" />,
+  promotion: <Zap size={20} color="#eab308" />,
 };
 
 const AVAILABLE_TAGS: Record<string, string[]> = {
   order_paid: ['{cliente}', '{pedido}', '{valor}', '{itens}'],
   order_shipped: ['{cliente}', '{pedido}', '{codigo_rastreio}'],
-  abandoned_cart: ['{cliente}', '{link_carrinho}', '{desconto}'],
+  order_delivered: ['{cliente}', '{pedido}', '{link_avaliacao}'],
+  abandoned_cart: ['{cliente}', '{itens}', '{desconto}', '{link_carrinho}'],
+  welcome_new_user: ['{cliente}', '{cupom}', '{link}'],
+  post_purchase_care: ['{cliente}', '{itens}'],
+  repurchase_reminder: ['{cliente}', '{cupom}', '{link}'],
+  cashback_expiring: ['{cliente}', '{valor}', '{link}'],
+  birthday_special: ['{cliente}', '{cupom}', '{link}'],
   promotion: ['{cliente}', '{cupom}', '{link}'],
 };
+
+const QUICK_PRESETS = [
+  {
+    label: '🛍️ Pedido Pago',
+    text: 'Olá {cliente}! Seu pagamento do pedido #{pedido} de R$ {valor} foi confirmado! Em breve enviaremos os detalhes de rastreio. 🌿✨'
+  },
+  {
+    label: '📦 Rastreio',
+    text: 'Boas notícias, {cliente}! Seu pacote da ECOSOPIS já foi despachado: rastreio {codigo_rastreio} 🚚📦'
+  },
+  {
+    label: '🛒 Carrinho',
+    text: 'Olá {cliente}! Você deixou cosméticos naturais no carrinho. Finalize agora com 10% OFF usando o cupom VOLTA10: https://ecosopis.com.br/carrinho 💚'
+  },
+  {
+    label: '🌱 Boas-Vindas',
+    text: 'Seja bem-vindo(a) à ECOSOPIS, {cliente}! Use o cupom BEMVINDO10 e ganhe 10% OFF no seu 1º pedido de cosméticos veganos: https://ecosopis.com.br'
+  }
+];
 
 export default function AdminWhatsAppPage() {
   const router = useRouter();
@@ -121,15 +152,18 @@ export default function AdminWhatsAppPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [qrCountdown, setQrCountdown] = useState<number>(60);
 
-  // Formulário de teste rápido
+  // Formulário de teste rápido com Live Simulator
   const [testPhone, setTestPhone] = useState('');
-  const [testMessage, setTestMessage] = useState('Olá! Esta é uma mensagem de teste enviada pela ECOSOPIS via WhatsApp.');
+  const [testMessage, setTestMessage] = useState('Olá {cliente}! Esta é uma mensagem de teste enviada pela ECOSOPIS via WhatsApp oficial.');
   const [sendingTest, setSendingTest] = useState(false);
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Templates & Logs
+  // Templates
   const [templates, setTemplates] = useState<TemplateItem[]>([]);
   const [savingTemplate, setSavingTemplate] = useState<string | null>(null);
+  const [templateCategoryFilter, setTemplateCategoryFilter] = useState<string>('Todas');
+
+  // Logs
   const [logs, setLogs] = useState<MessageLogItem[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
@@ -163,7 +197,6 @@ export default function AdminWhatsAppPage() {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  // 1. Carrega status inicial e conecta SSE
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -176,7 +209,6 @@ export default function AdminWhatsAppPage() {
     fetchLogs();
     fetchAbandonedCarts();
 
-    // Conecta Server-Sent Events (SSE)
     let eventSource: EventSource | null = null;
     try {
       eventSource = new EventSource('/api/whatsapp/events');
@@ -213,7 +245,6 @@ export default function AdminWhatsAppPage() {
     };
   }, []);
 
-  // Timer regressivo para o QR Code
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
     if (statusData.status === 'QR_CODE' && qrCountdown > 0) {
@@ -232,7 +263,6 @@ export default function AdminWhatsAppPage() {
     };
   }, [statusData.status, qrCountdown]);
 
-  // Polling resiliente de fallback a cada 2.5s caso o SSE seja bloqueado
   useEffect(() => {
     let pollTimer: NodeJS.Timeout | null = null;
     if (statusData.status === 'CONNECTING' || statusData.status === 'QR_CODE') {
@@ -245,7 +275,6 @@ export default function AdminWhatsAppPage() {
     };
   }, [statusData.status]);
 
-  // Carrega dados de acordo com a aba ativa
   useEffect(() => {
     if (activeTab === 'users' && usersList.length === 0) {
       fetchUsersList();
@@ -349,7 +378,6 @@ export default function AdminWhatsAppPage() {
     }
   };
 
-  // Conexão manual / Forçar novo QR Code
   const handleConnect = async (force: boolean = false) => {
     setConnecting(true);
     setAlert(null);
@@ -382,7 +410,6 @@ export default function AdminWhatsAppPage() {
     }
   };
 
-  // Desconexão
   const handleDisconnect = async () => {
     if (!confirm('Deseja realmente desconectar a sessão do WhatsApp?')) return;
     setDisconnecting(true);
@@ -403,7 +430,6 @@ export default function AdminWhatsAppPage() {
     }
   };
 
-  // Envio de teste individual
   const handleSendTest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!testPhone.trim() || !testMessage.trim()) {
@@ -413,6 +439,13 @@ export default function AdminWhatsAppPage() {
     setSendingTest(true);
     setAlert(null);
     try {
+      const formattedMsg = testMessage
+        .replace(/\{cliente\}/g, 'Cliente Teste')
+        .replace(/\{pedido\}/g, '1042')
+        .replace(/\{valor\}/g, '129,90')
+        .replace(/\{codigo_rastreio\}/g, 'BR987654321ECO')
+        .replace(/\{link\}/g, 'https://ecosopis.com.br');
+
       const res = await fetch('/api/whatsapp/send', {
         method: 'POST',
         headers: {
@@ -421,7 +454,7 @@ export default function AdminWhatsAppPage() {
         },
         body: JSON.stringify({
           phone: testPhone,
-          message: testMessage,
+          message: formattedMsg,
           trigger_type: 'manual_test',
           recipient_name: 'Teste Manual'
         })
@@ -440,7 +473,6 @@ export default function AdminWhatsAppPage() {
     }
   };
 
-  // Salvar template
   const handleSaveTemplate = async (template: TemplateItem) => {
     setSavingTemplate(template.trigger_type);
     try {
@@ -465,6 +497,17 @@ export default function AdminWhatsAppPage() {
     }
   };
 
+  // ── CATEGORIAS DE AUTOMAÇÃO ──
+  const templateCategories = useMemo(() => {
+    const cats = Array.from(new Set(templates.map(t => t.category || 'Vendas')));
+    return ['Todas', ...cats];
+  }, [templates]);
+
+  const filteredTemplates = useMemo(() => {
+    if (templateCategoryFilter === 'Todas') return templates;
+    return templates.filter(t => (t.category || 'Vendas') === templateCategoryFilter);
+  }, [templates, templateCategoryFilter]);
+
   // ── FILTROS E SELEÇÃO DE USUÁRIOS ──
   const filteredUsers = useMemo(() => {
     return usersList.filter(user => {
@@ -474,7 +517,6 @@ export default function AdminWhatsAppPage() {
         (user.phone && user.phone.includes(userSearch));
 
       if (!matchesSearch) return false;
-
       if (userFilter === 'has_phone') return user.has_phone;
       if (userFilter === 'buyers') return user.total_orders > 0;
       return true;
@@ -497,7 +539,6 @@ export default function AdminWhatsAppPage() {
     }
   };
 
-  // Disparo em massa para usuários selecionados
   const handleSendBulkUsers = async () => {
     if (selectedUserIds.length === 0) return;
     const recipients = usersList
@@ -585,7 +626,6 @@ export default function AdminWhatsAppPage() {
     }
   };
 
-  // Abre modal para enviar mensagem de recuperação (individual ou em massa)
   const openCartModal = (targetCart?: AbandonedCartItem) => {
     if (targetCart) {
       setSingleCartTarget(targetCart);
@@ -602,7 +642,6 @@ export default function AdminWhatsAppPage() {
     setCartModalOpen(true);
   };
 
-  // Envio de recuperação de carrinho
   const handleSendCartRecovery = async () => {
     let targets: AbandonedCartItem[] = [];
 
@@ -668,6 +707,23 @@ export default function AdminWhatsAppPage() {
     }
   };
 
+  // Helper para preview simulado em tempo real
+  const renderSimulatedBubble = (templateText: string) => {
+    const preview = templateText
+      .replace(/\{cliente\}/g, 'Mariana Silva')
+      .replace(/\{pedido\}/g, '1084')
+      .replace(/\{valor\}/g, '159,90')
+      .replace(/\{codigo_rastreio\}/g, 'BR123456789ECO')
+      .replace(/\{itens\}/g, '1x Sabonete Açafrão & Dolomita, 1x Sérum Facial')
+      .replace(/\{desconto\}/g, 'VOLTA10')
+      .replace(/\{link_carrinho\}/g, 'https://ecosopis.com.br/carrinho')
+      .replace(/\{link_avaliacao\}/g, 'https://ecosopis.com.br/conta/avaliacoes')
+      .replace(/\{cupom\}/g, 'BEMVINDO10')
+      .replace(/\{link\}/g, 'https://ecosopis.com.br');
+
+    return preview;
+  };
+
   return (
     <div className={styles.whatsappContainer}>
       <AdminSidebar activePath="/admin/dashboard/whatsapp" />
@@ -678,10 +734,10 @@ export default function AdminWhatsAppPage() {
           <div className={styles.titleArea}>
             <h1>
               <MessageSquare size={28} color="#25d366" />
-              WhatsApp & Disparos da Loja
+              WhatsApp & Central de Disparos
             </h1>
             <p>
-              Painel profissional Baileys Multi-Device com disparo segmentado por usuários e recuperação de carrinhos abandonados.
+              Motor oficial Baileys Multi-Device com automações de alta conversão, simulador live e recuperação de vendas.
             </p>
           </div>
 
@@ -695,13 +751,13 @@ export default function AdminWhatsAppPage() {
             {statusData.status === 'QR_CODE' && (
               <span className={`${styles.statusBadge} ${styles.badgeConnecting}`}>
                 <span className={`${styles.pulseDot} ${styles.pulseConnecting}`}></span>
-                Aguardando Leitura do QR Code ({qrCountdown}s)
+                Aguardando QR Code ({qrCountdown}s)
               </span>
             )}
             {statusData.status === 'CONNECTING' && (
               <span className={`${styles.statusBadge} ${styles.badgeConnecting}`}>
                 <span className={`${styles.pulseDot} ${styles.pulseConnecting}`}></span>
-                Iniciando Conexão...
+                Conectando...
               </span>
             )}
             {statusData.status === 'DISCONNECTED' && (
@@ -728,14 +784,21 @@ export default function AdminWhatsAppPage() {
             className={`${styles.tabButton} ${activeTab === 'connection' ? styles.tabButtonActive : ''}`}
           >
             <QrCode size={18} />
-            Conexão & Teste
+            Conexão & Simulador
+          </button>
+          <button
+            onClick={() => setActiveTab('templates')}
+            className={`${styles.tabButton} ${activeTab === 'templates' ? styles.tabButtonActive : ''}`}
+          >
+            <Zap size={18} />
+            Automações ({templates.length})
           </button>
           <button
             onClick={() => setActiveTab('users')}
             className={`${styles.tabButton} ${activeTab === 'users' ? styles.tabButtonActive : ''}`}
           >
             <Users size={18} />
-            Envio para Usuários
+            Disparo para Usuários
             {usersList.length > 0 && <span className={styles.tabBadge}>{usersList.length}</span>}
           </button>
           <button
@@ -747,13 +810,6 @@ export default function AdminWhatsAppPage() {
             {abandonedCarts.length > 0 && <span className={styles.tabBadge}>{abandonedCarts.length}</span>}
           </button>
           <button
-            onClick={() => setActiveTab('templates')}
-            className={`${styles.tabButton} ${activeTab === 'templates' ? styles.tabButtonActive : ''}`}
-          >
-            <Zap size={18} />
-            Automações ({templates.length})
-          </button>
-          <button
             onClick={() => setActiveTab('logs')}
             className={`${styles.tabButton} ${activeTab === 'logs' ? styles.tabButtonActive : ''}`}
           >
@@ -762,7 +818,7 @@ export default function AdminWhatsAppPage() {
           </button>
         </div>
 
-        {/* ─── ABA 1: CONEXÃO E TESTE ─── */}
+        {/* ─── ABA 1: CONEXÃO E SIMULADOR LIVE ─── */}
         {activeTab === 'connection' && (
           <div className={styles.connectionGrid}>
             {/* Card Conexão */}
@@ -772,34 +828,39 @@ export default function AdminWhatsAppPage() {
                 Conexão WhatsApp Multi-Device
               </h2>
               <p className={styles.cardSubtitle}>
-                Escaneie o QR Code com o aplicativo WhatsApp no seu celular para autorizar os envios da loja.
+                Pareie o número do WhatsApp da loja para ativar os disparos automáticos e o robô de atendimento.
               </p>
 
               {statusData.status === 'CONNECTED' ? (
                 <div>
                   <div className={styles.connectedBox}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <CheckCircle size={24} color="#16a34a" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ background: '#22c55e', padding: 8, borderRadius: 12, color: 'white' }}>
+                        <CheckCircle size={24} />
+                      </div>
                       <div>
-                        <div style={{ fontSize: 13, color: '#166534', fontWeight: 600 }}>WhatsApp Conectado e Ativo</div>
-                        <div style={{ fontSize: 18, color: '#14532d', fontWeight: 800 }}>+{statusData.phone}</div>
+                        <div style={{ fontSize: 13, color: '#166534', fontWeight: 700 }}>WhatsApp Conectado e Operacional</div>
+                        <div style={{ fontSize: 20, color: '#14532d', fontWeight: 900, letterSpacing: '0.5px' }}>
+                          +{statusData.phone}
+                        </div>
                       </div>
                     </div>
                     {statusData.lastConnection && (
-                      <div style={{ fontSize: 12, color: '#15803d', marginTop: 8 }}>
-                        Conectado desde: {new Date(statusData.lastConnection).toLocaleString('pt-BR')}
+                      <div style={{ fontSize: 12, color: '#15803d', marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Clock size={13} />
+                        Conectado em: {new Date(statusData.lastConnection).toLocaleString('pt-BR')}
                       </div>
                     )}
                   </div>
 
-                  <div style={{ marginTop: 20 }}>
+                  <div style={{ display: 'flex', gap: 10 }}>
                     <button
                       onClick={handleDisconnect}
                       disabled={disconnecting}
                       className={`${styles.btn} ${styles.btnDanger}`}
                     >
                       <PowerOff size={16} />
-                      {disconnecting ? 'Desconectando...' : 'Desconectar WhatsApp'}
+                      {disconnecting ? 'Desconectando...' : 'Desconectar Sessão'}
                     </button>
                   </div>
                 </div>
@@ -810,30 +871,31 @@ export default function AdminWhatsAppPage() {
                   </div>
                   <div className={styles.qrCountdown}>
                     <Clock size={16} />
-                    <span>Atualiza em {qrCountdown}s</span>
+                    <span>Atualiza automaticamente em {qrCountdown}s</span>
                   </div>
                   <p className={styles.qrInstructions}>
-                    1. Abra o WhatsApp no seu celular.<br />
-                    2. Toque em <strong>Aparelhos conectados</strong> e depois em <strong>Conectar um aparelho</strong>.<br />
-                    3. Aponte a câmera para a tela para escanear este código.
+                    1. Abra o WhatsApp no smartphone.<br />
+                    2. Toque nos <strong>três pontinhos</strong> ou <strong>Configurações</strong> &gt; <strong>Aparelhos conectados</strong>.<br />
+                    3. Clique em <strong>Conectar um aparelho</strong> e aponte a câmera para o QR Code acima.
                   </p>
                   <button
                     onClick={() => handleConnect(true)}
                     disabled={connecting}
                     className={`${styles.btn} ${styles.btnSecondary}`}
-                    style={{ marginTop: 12 }}
+                    style={{ marginTop: 14 }}
                   >
                     <RefreshCw size={16} className={connecting ? styles.spinner : ''} />
-                    Recarregar QR Code Agora
+                    Recarregar QR Code Manualmente
                   </button>
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '30px 20px' }}>
+                <div style={{ textAlign: 'center', padding: '36px 20px' }}>
                   <div style={{ marginBottom: 16 }}>
-                    <MessageSquare size={48} color="#94a3b8" style={{ margin: '0 auto' }} />
+                    <MessageSquare size={52} color="#94a3b8" style={{ margin: '0 auto' }} />
                   </div>
-                  <p style={{ color: '#64748b', fontSize: 14, marginBottom: 20 }}>
-                    Nenhuma sessão ativa no momento. Clique no botão abaixo para gerar o QR Code de pareamento.
+                  <h3 style={{ margin: '0 0 6px 0', color: '#0f172a', fontWeight: 800 }}>Nenhuma conexão ativa</h3>
+                  <p style={{ color: '#64748b', fontSize: 13.5, marginBottom: 20 }}>
+                    Clique abaixo para gerar o código QR e conectar seu WhatsApp à loja em segundos.
                   </p>
                   <button
                     onClick={() => handleConnect(false)}
@@ -847,56 +909,105 @@ export default function AdminWhatsAppPage() {
               )}
             </div>
 
-            {/* Card Teste Rápido */}
+            {/* Card Simulador Live com Preview Real de Celular */}
             <div className={styles.card}>
               <h2 className={styles.cardTitle}>
-                <Send size={20} color="#128c7e" />
-                Envio de Teste Imediato
+                <Smartphone size={20} color="#128c7e" />
+                Simulador & Teste em Tempo Real
               </h2>
               <p className={styles.cardSubtitle}>
-                Envie uma mensagem instantânea para conferir se o seu número conectado está respondendo e entregando.
+                Veja exatamente como o texto aparece na tela do smartphone do cliente antes de enviar.
               </p>
 
-              <form onSubmit={handleSendTest}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Número do Destinatário (com DDD):</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: 11999998888 ou 5511999998888"
-                    value={testPhone}
-                    onChange={(e) => setTestPhone(e.target.value)}
-                    className={styles.input}
-                    required
-                  />
-                  <small style={{ color: '#64748b', fontSize: 11, marginTop: 4, display: 'block' }}>
-                    O sistema adiciona o DDI +55 do Brasil automaticamente caso não seja informado.
-                  </small>
+              {/* Botões de Presets Rápidos */}
+              <div className={styles.presetBar}>
+                {QUICK_PRESETS.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setTestMessage(preset.text)}
+                    className={styles.presetChip}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              <form onSubmit={handleSendTest} className={styles.simulatorWrapper}>
+                <div>
+                  <label className={styles.statLabel} style={{ marginBottom: 6, display: 'block' }}>
+                    Telefone de Teste:
+                  </label>
+                  <div className={styles.phoneInputGroup}>
+                    <div className={styles.countryPrefix}>
+                      <span>🇧🇷</span> +55
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="11999998888"
+                      value={testPhone}
+                      onChange={(e) => setTestPhone(e.target.value)}
+                      className={styles.phoneInput}
+                      required
+                    />
+                  </div>
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Mensagem:</label>
-                  <textarea
-                    rows={4}
-                    value={testMessage}
-                    onChange={(e) => setTestMessage(e.target.value)}
-                    className={styles.textarea}
-                    required
-                  />
+                <div>
+                  <label className={styles.statLabel} style={{ marginBottom: 6, display: 'block' }}>
+                    Texto da Mensagem:
+                  </label>
+                  <div className={styles.textareaWrapper}>
+                    <textarea
+                      rows={4}
+                      value={testMessage}
+                      onChange={(e) => setTestMessage(e.target.value)}
+                      className={styles.textareaInput}
+                      placeholder="Digite a mensagem..."
+                      required
+                    />
+                    <div className={styles.textareaMeta}>
+                      <span>Use *negrito* para destacar palavras</span>
+                      <span>{testMessage.length} caracteres</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mockup do Smartphone em Tempo Real */}
+                <div className={styles.phoneDeviceMockup}>
+                  <div className={styles.phoneHeader}>
+                    <div className={styles.phoneAvatar}>E</div>
+                    <div className={styles.phoneContactInfo}>
+                      <h5>ECOSOPIS Cosméticos</h5>
+                      <span>online</span>
+                    </div>
+                  </div>
+                  <div className={styles.chatBody}>
+                    <div className={styles.whatsappBubble}>
+                      <div className={styles.bubbleText}>
+                        {renderSimulatedBubble(testMessage)}
+                      </div>
+                      <div className={styles.bubbleTime}>
+                        <span>15:30</span>
+                        <span style={{ color: '#53bdeb' }}>✓✓</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={sendingTest || statusData.status !== 'CONNECTED'}
                   className={`${styles.btn} ${styles.btnPrimary}`}
-                  style={{ width: '100%', justifyContent: 'center' }}
+                  style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}
                 >
                   <Send size={16} />
-                  {sendingTest ? 'Enviando Mensagem...' : 'Enviar Teste no WhatsApp'}
+                  {sendingTest ? 'Enviando Mensagem...' : 'Enviar no WhatsApp Agora'}
                 </button>
 
                 {statusData.status !== 'CONNECTED' && (
-                  <p style={{ color: '#dc2626', fontSize: 12, marginTop: 10, textAlign: 'center' }}>
-                    ⚠️ Conecte o WhatsApp pelo QR Code acima antes de realizar envios.
+                  <p style={{ color: '#dc2626', fontSize: 12, margin: '6px 0 0 0', textAlign: 'center', fontWeight: 600 }}>
+                    ⚠️ Conecte o WhatsApp pelo QR Code ao lado para realizar envios reais.
                   </p>
                 )}
               </form>
@@ -904,10 +1015,142 @@ export default function AdminWhatsAppPage() {
           </div>
         )}
 
-        {/* ─── ABA 2: ENVIO PARA USUÁRIOS (SELEÇÃO E DISPARO) ─── */}
+        {/* ─── ABA 2: AUTOMAÇÕES REFINADAS COM PREVIEW ─── */}
+        {activeTab === 'templates' && (
+          <div className={styles.templatesContainer}>
+            {/* Filtros de Categoria */}
+            <div className={styles.categoryFilterRow}>
+              {templateCategories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setTemplateCategoryFilter(cat)}
+                  className={`${styles.pillButton} ${templateCategoryFilter === cat ? styles.pillButtonActive : ''}`}
+                >
+                  {cat} {cat === 'Todas' ? `(${templates.length})` : ''}
+                </button>
+              ))}
+            </div>
+
+            {filteredTemplates.map(tmpl => {
+              const tags = AVAILABLE_TAGS[tmpl.trigger_type] || ['{cliente}', '{link}'];
+              const isSaving = savingTemplate === tmpl.trigger_type;
+              const icon = TRIGGER_ICONS[tmpl.trigger_type] || <MessageSquare size={20} color="#25d366" />;
+
+              return (
+                <div key={tmpl.id} className={styles.templateCard}>
+                  {/* Cabeçalho do Card */}
+                  <div className={styles.templateHeader}>
+                    <div className={styles.templateTitleArea}>
+                      <div className={styles.templateIconCircle} style={{ background: '#f1f5f9' }}>
+                        {icon}
+                      </div>
+                      <div>
+                        <h3>{tmpl.title}</h3>
+                        <span className={styles.templateCategoryTag}>
+                          {tmpl.category || 'Vendas'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <span style={{ fontSize: 12, color: tmpl.is_enabled ? '#166534' : '#64748b', fontWeight: 700 }}>
+                        {tmpl.is_enabled ? '● Ativo' : '○ Desativado'}
+                      </span>
+                      <label className={styles.switchWrapper} title="Ativar ou desativar esta automação">
+                        <input
+                          type="checkbox"
+                          checked={tmpl.is_enabled}
+                          onChange={(e) => {
+                            const updated = { ...tmpl, is_enabled: e.target.checked };
+                            setTemplates(prev => prev.map(t => t.id === tmpl.id ? updated : t));
+                          }}
+                        />
+                        <span className={styles.switchSlider}></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Corpo Split: Editor à Esquerda & Preview Live à Direita */}
+                  <div className={styles.templateBodySplit}>
+                    <div className={styles.templateEditorSide}>
+                      <label className={styles.statLabel}>Texto da Mensagem:</label>
+                      <div className={styles.textareaWrapper}>
+                        <textarea
+                          rows={6}
+                          value={tmpl.message_template}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setTemplates(prev => prev.map(t => t.id === tmpl.id ? { ...t, message_template: val } : t));
+                          }}
+                          className={styles.textareaInput}
+                        />
+                      </div>
+
+                      {/* Tag Chips */}
+                      <div className={styles.tagChips}>
+                        <span style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>Inserir tag:</span>
+                        {tags.map(tag => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => {
+                              const newText = tmpl.message_template + ' ' + tag;
+                              setTemplates(prev => prev.map(t => t.id === tmpl.id ? { ...t, message_template: newText } : t));
+                            }}
+                            className={styles.tagChip}
+                          >
+                            + {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Live Preview do WhatsApp para o Cliente */}
+                    <div className={styles.templatePreviewSide}>
+                      <div className={styles.previewBoxTitle}>
+                        <Eye size={14} /> Prévia na tela do cliente:
+                      </div>
+                      <div className={styles.liveBubblePreview}>
+                        <div style={{ whiteSpace: 'pre-wrap' }}>
+                          {renderSimulatedBubble(tmpl.message_template)}
+                        </div>
+                        <div className={styles.liveBubbleTime}>
+                          <span>15:30</span>
+                          <span style={{ color: '#53bdeb' }}>✓✓</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rodapé com Delay e Botão Salvar */}
+                  <div className={styles.templateFooter}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Clock size={15} color="#64748b" />
+                      <span style={{ fontSize: 13, color: '#475569', fontWeight: 600 }}>
+                        {tmpl.delay_minutes === 0 ? 'Envio Imediato ao disparar' : `Delay configurado: ${tmpl.delay_minutes} minutos`}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() => handleSaveTemplate(tmpl)}
+                      className={`${styles.btn} ${styles.btnPrimary}`}
+                      style={{ padding: '8px 18px', fontSize: 13 }}
+                    >
+                      <CheckCircle size={15} />
+                      {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ─── ABA 3: DISPARO PARA USUÁRIOS ─── */}
         {activeTab === 'users' && (
           <div>
-            {/* Barra de Filtro e Busca */}
             <div className={styles.filterBar}>
               <div className={styles.searchBox}>
                 <Search size={16} color="#94a3b8" />
@@ -943,14 +1186,13 @@ export default function AdminWhatsAppPage() {
                   onClick={fetchUsersList}
                   disabled={loadingUsers}
                   className={styles.pillButton}
-                  title="Atualizar lista de clientes"
+                  title="Atualizar lista"
                 >
                   <RefreshCw size={14} className={loadingUsers ? styles.spinner : ''} />
                 </button>
               </div>
             </div>
 
-            {/* Barra Flutuante de Seleção em Massa */}
             {selectedUserIds.length > 0 && (
               <div className={styles.bulkActionBar}>
                 <div className={styles.bulkActionInfo}>
@@ -976,7 +1218,6 @@ export default function AdminWhatsAppPage() {
               </div>
             )}
 
-            {/* Tabela de Usuários */}
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
                 <thead>
@@ -989,7 +1230,6 @@ export default function AdminWhatsAppPage() {
                           filteredUsers.filter(u => u.has_phone).every(u => selectedUserIds.includes(u.id))
                         }
                         onChange={toggleSelectAllFilteredUsers}
-                        title="Selecionar todos com WhatsApp"
                         style={{ cursor: 'pointer' }}
                       />
                     </th>
@@ -1029,7 +1269,7 @@ export default function AdminWhatsAppPage() {
                             />
                           </td>
                           <td>
-                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{user.name}</div>
+                            <div style={{ fontWeight: 700, color: '#0f172a' }}>{user.name}</div>
                             {user.role === 'admin' && (
                               <span style={{ fontSize: 10, background: '#e0e7ff', color: '#3730a3', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
                                 ADMIN
@@ -1050,7 +1290,7 @@ export default function AdminWhatsAppPage() {
                           </td>
                           <td style={{ color: '#475569' }}>{user.email}</td>
                           <td>
-                            <span style={{ fontWeight: 600, color: user.total_orders > 0 ? '#16a34a' : '#64748b' }}>
+                            <span style={{ fontWeight: 700, color: user.total_orders > 0 ? '#16a34a' : '#64748b' }}>
                               {user.total_orders} pedido(s)
                             </span>
                           </td>
@@ -1062,7 +1302,7 @@ export default function AdminWhatsAppPage() {
                               }}
                               disabled={!user.has_phone || statusData.status !== 'CONNECTED'}
                               className={styles.btnSecondary}
-                              style={{ padding: '6px 12px', fontSize: 12 }}
+                              style={{ padding: '6px 14px', fontSize: 12 }}
                             >
                               <Send size={12} />
                               Enviar
@@ -1078,10 +1318,9 @@ export default function AdminWhatsAppPage() {
           </div>
         )}
 
-        {/* ─── ABA 3: CARRINHOS ABANDONADOS ─── */}
+        {/* ─── ABA 4: CARRINHOS ABANDONADOS ─── */}
         {activeTab === 'abandoned_carts' && (
           <div>
-            {/* Cards de Métricas */}
             <div className={styles.statsGrid}>
               <div className={styles.statCard}>
                 <div className={styles.statIconWrapper} style={{ background: '#fef3c7', color: '#d97706' }}>
@@ -1114,7 +1353,6 @@ export default function AdminWhatsAppPage() {
               </div>
             </div>
 
-            {/* Barra de Busca e Seleção */}
             <div className={styles.filterBar}>
               <div className={styles.searchBox}>
                 <Search size={16} color="#94a3b8" />
@@ -1146,7 +1384,6 @@ export default function AdminWhatsAppPage() {
               </div>
             </div>
 
-            {/* Barra Flutuante de Disparo em Massa para Carrinhos */}
             {selectedCartUserIds.length > 0 && (
               <div className={styles.bulkActionBar}>
                 <div className={styles.bulkActionInfo}>
@@ -1172,7 +1409,6 @@ export default function AdminWhatsAppPage() {
               </div>
             )}
 
-            {/* Grid de Carrinhos Abandonados com Produtos Detalhados */}
             {loadingCarts ? (
               <div style={{ textAlign: 'center', padding: '40px', background: 'white', borderRadius: 16 }}>
                 <RefreshCw size={32} className={styles.spinner} style={{ margin: '0 auto 12px auto', color: '#128c7e' }} />
@@ -1181,9 +1417,9 @@ export default function AdminWhatsAppPage() {
             ) : filteredCarts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '50px 20px', background: 'white', borderRadius: 16, border: '1px solid #e2e8f0' }}>
                 <CheckCircle size={48} color="#16a34a" style={{ margin: '0 auto 12px auto' }} />
-                <h3 style={{ margin: '0 0 6px 0', color: '#0f172a' }}>Nenhum carrinho abandonado no momento!</h3>
+                <h3 style={{ margin: '0 0 6px 0', color: '#0f172a' }}>Nenhum carrinho abandonado ativo!</h3>
                 <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
-                  Todos os carrinhos iniciados foram finalizados ou ainda estão vazios.
+                  Todos os pedidos foram concluídos ou não há carrinhos com itens salvos.
                 </p>
               </div>
             ) : (
@@ -1196,7 +1432,6 @@ export default function AdminWhatsAppPage() {
                       className={styles.cartCard}
                       style={{ border: isSelected ? '2px solid #22c55e' : '1px solid #e2e8f0' }}
                     >
-                      {/* Header do Card */}
                       <div className={styles.cartCardHeader}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                           <input
@@ -1211,7 +1446,7 @@ export default function AdminWhatsAppPage() {
                             <div className={styles.cartUserMeta}>
                               <span>{cart.email}</span>
                               {cart.has_phone ? (
-                                <span style={{ color: '#166534', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ color: '#166534', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                   <Phone size={11} /> {cart.phone}
                                 </span>
                               ) : (
@@ -1227,7 +1462,6 @@ export default function AdminWhatsAppPage() {
                         </span>
                       </div>
 
-                      {/* Lista de Itens no Carrinho (O que tem no carrinho) */}
                       <div className={styles.cartItemsList}>
                         {cart.items.map((item, idx) => (
                           <div key={idx} className={styles.cartItemRow}>
@@ -1252,7 +1486,6 @@ export default function AdminWhatsAppPage() {
                         ))}
                       </div>
 
-                      {/* Rodapé do Card com Total e Ação de WhatsApp */}
                       <div className={styles.cartFooter}>
                         <div className={styles.cartTotalAmount}>
                           <span className={styles.cartTotalLabel}>Total ({cart.items_count} itens)</span>
@@ -1265,7 +1498,7 @@ export default function AdminWhatsAppPage() {
                           onClick={() => openCartModal(cart)}
                           disabled={!cart.has_phone || statusData.status !== 'CONNECTED'}
                           className={styles.btnPrimaryGreen}
-                          style={{ fontSize: 12, padding: '7px 14px' }}
+                          style={{ fontSize: 12, padding: '8px 16px' }}
                         >
                           <Send size={13} />
                           Recuperar WhatsApp
@@ -1276,88 +1509,6 @@ export default function AdminWhatsAppPage() {
                 })}
               </div>
             )}
-          </div>
-        )}
-
-        {/* ─── ABA 4: AUTOMAÇÕES POR AÇÃO ─── */}
-        {activeTab === 'templates' && (
-          <div className={styles.templatesContainer}>
-            <div style={{ marginBottom: 20 }}>
-              <p style={{ color: '#475569', fontSize: 14, margin: 0 }}>
-                Personalize os textos automáticos disparados para os clientes através do WhatsApp conectado.
-              </p>
-            </div>
-
-            {templates.map(tmpl => {
-              const tags = AVAILABLE_TAGS[tmpl.trigger_type] || [];
-              const isSaving = savingTemplate === tmpl.trigger_type;
-
-              return (
-                <div key={tmpl.id} className={styles.templateCard}>
-                  <div className={styles.templateHeader}>
-                    <div className={styles.templateTitleArea}>
-                      {TRIGGER_ICONS[tmpl.trigger_type] || <MessageSquare size={18} color="#25d366" />}
-                      <h3>{tmpl.title}</h3>
-                    </div>
-                    <label className={styles.switchWrapper}>
-                      <input
-                        type="checkbox"
-                        checked={tmpl.is_enabled}
-                        onChange={(e) => {
-                          const updated = { ...tmpl, is_enabled: e.target.checked };
-                          setTemplates(prev => prev.map(t => t.id === tmpl.id ? updated : t));
-                        }}
-                      />
-                      <span className={styles.switchSlider}></span>
-                    </label>
-                  </div>
-
-                  <div className={styles.templateBody}>
-                    <label className={styles.label}>Mensagem:</label>
-                    <textarea
-                      rows={5}
-                      value={tmpl.message_template}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setTemplates(prev => prev.map(t => t.id === tmpl.id ? { ...t, message_template: val } : t));
-                      }}
-                      className={styles.textarea}
-                    />
-
-                    {tags.length > 0 && (
-                      <div className={styles.tagChips}>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>Tags disponíveis:</span>
-                        {tags.map(tag => (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => {
-                              const newText = tmpl.message_template + ' ' + tag;
-                              setTemplates(prev => prev.map(t => t.id === tmpl.id ? { ...t, message_template: newText } : t));
-                            }}
-                            className={styles.tagChip}
-                          >
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className={styles.templateFooter}>
-                    <button
-                      type="button"
-                      disabled={isSaving}
-                      onClick={() => handleSaveTemplate(tmpl)}
-                      className={`${styles.btn} ${styles.btnPrimary}`}
-                    >
-                      <CheckCircle size={16} />
-                      {isSaving ? 'Salvando...' : 'Salvar Alterações'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         )}
 
@@ -1409,10 +1560,10 @@ export default function AdminWhatsAppPage() {
                         <td style={{ whiteSpace: 'nowrap', fontSize: 12, color: '#64748b' }}>
                           {new Date(log.created_at).toLocaleString('pt-BR')}
                         </td>
-                        <td style={{ fontWeight: 600 }}>{log.recipient_name || 'Cliente'}</td>
+                        <td style={{ fontWeight: 700 }}>{log.recipient_name || 'Cliente'}</td>
                         <td style={{ fontFamily: 'monospace' }}>{log.to_phone}</td>
                         <td>
-                          <span style={{ fontSize: 11, background: '#f1f5f9', padding: '2px 8px', borderRadius: 4 }}>
+                          <span style={{ fontSize: 11, background: '#f1f5f9', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
                             {log.trigger_type}
                           </span>
                         </td>
@@ -1450,21 +1601,23 @@ export default function AdminWhatsAppPage() {
               </div>
 
               <div className={styles.modalBody}>
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: 12, borderRadius: 10, fontSize: 13, color: '#166534' }}>
-                  <strong>{selectedUserIds.length} cliente(s)</strong> selecionado(s) para receber este disparo.
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: 12, borderRadius: 12, fontSize: 13, color: '#166534', fontWeight: 600 }}>
+                  ✓ <strong>{selectedUserIds.length} cliente(s) selecionado(s)</strong> para receber este disparo.
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Mensagem:</label>
-                  <textarea
-                    rows={5}
-                    value={userMessageText}
-                    onChange={(e) => setUserMessageText(e.target.value)}
-                    className={styles.textarea}
-                  />
+                <div>
+                  <label className={styles.statLabel} style={{ marginBottom: 6, display: 'block' }}>Mensagem:</label>
+                  <div className={styles.textareaWrapper}>
+                    <textarea
+                      rows={5}
+                      value={userMessageText}
+                      onChange={(e) => setUserMessageText(e.target.value)}
+                      className={styles.textareaInput}
+                    />
+                  </div>
 
                   <div className={styles.tagChips} style={{ marginTop: 8 }}>
-                    <span style={{ fontSize: 12, color: '#64748b' }}>Inserir variável:</span>
+                    <span style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>Inserir tag:</span>
                     {['{cliente}', '{cupom}', '{link}'].map(tag => (
                       <button
                         key={tag}
@@ -1472,14 +1625,30 @@ export default function AdminWhatsAppPage() {
                         onClick={() => setUserMessageText(prev => prev + ' ' + tag)}
                         className={styles.tagChip}
                       >
-                        {tag}
+                        + {tag}
                       </button>
                     ))}
                   </div>
                 </div>
 
+                {/* Live Preview da Mensagem */}
+                <div style={{ marginTop: 4 }}>
+                  <div className={styles.previewBoxTitle}>
+                    <Eye size={14} /> Prévia da Mensagem:
+                  </div>
+                  <div className={styles.liveBubblePreview}>
+                    <div style={{ whiteSpace: 'pre-wrap' }}>
+                      {renderSimulatedBubble(userMessageText)}
+                    </div>
+                    <div className={styles.liveBubbleTime}>
+                      <span>15:30</span>
+                      <span style={{ color: '#53bdeb' }}>✓✓</span>
+                    </div>
+                  </div>
+                </div>
+
                 {bulkUsersProgress && (
-                  <div style={{ background: '#f8fafc', padding: 14, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                  <div style={{ background: '#f8fafc', padding: 14, borderRadius: 12, border: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
                       <span>Progresso do Envio:</span>
                       <strong>{bulkUsersProgress.sent + bulkUsersProgress.failed} de {bulkUsersProgress.total}</strong>
@@ -1537,8 +1706,8 @@ export default function AdminWhatsAppPage() {
 
               <div className={styles.modalBody}>
                 {singleCartTarget && (
-                  <div style={{ background: '#f8fafc', padding: 14, borderRadius: 12, border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', marginBottom: 6 }}>
+                  <div style={{ background: '#f8fafc', padding: 14, borderRadius: 14, border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontWeight: 800, fontSize: 13, color: '#0f172a', marginBottom: 8 }}>
                       Itens no carrinho do cliente:
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1549,24 +1718,28 @@ export default function AdminWhatsAppPage() {
                         </div>
                       ))}
                     </div>
-                    <div style={{ borderTop: '1px dashed #cbd5e1', marginTop: 8, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontWeight: 800, color: '#166534', fontSize: 13 }}>
+                    <div style={{ borderTop: '1px dashed #cbd5e1', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 800, color: '#166534', fontSize: 14 }}>
                       <span>Total:</span>
                       <span>R$ {singleCartTarget.total_value.toFixed(2).replace('.', ',')}</span>
                     </div>
                   </div>
                 )}
 
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Mensagem que o cliente receberá no WhatsApp:</label>
-                  <textarea
-                    rows={6}
-                    value={cartMessageText}
-                    onChange={(e) => setCartMessageText(e.target.value)}
-                    className={styles.textarea}
-                  />
+                <div>
+                  <label className={styles.statLabel} style={{ marginBottom: 6, display: 'block' }}>
+                    Mensagem que o cliente receberá no WhatsApp:
+                  </label>
+                  <div className={styles.textareaWrapper}>
+                    <textarea
+                      rows={5}
+                      value={cartMessageText}
+                      onChange={(e) => setCartMessageText(e.target.value)}
+                      className={styles.textareaInput}
+                    />
+                  </div>
 
                   <div className={styles.tagChips} style={{ marginTop: 8 }}>
-                    <span style={{ fontSize: 12, color: '#64748b' }}>Tags automáticas:</span>
+                    <span style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>Inserir tag:</span>
                     {['{cliente}', '{itens}', '{total}', '{link}', '{cupom}'].map(tag => (
                       <button
                         key={tag}
@@ -1574,14 +1747,14 @@ export default function AdminWhatsAppPage() {
                         onClick={() => setCartMessageText(prev => prev + ' ' + tag)}
                         className={styles.tagChip}
                       >
-                        {tag}
+                        + {tag}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {bulkCartsProgress && (
-                  <div style={{ background: '#f8fafc', padding: 14, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                  <div style={{ background: '#f8fafc', padding: 14, borderRadius: 12, border: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
                       <span>Enviando mensagens de recuperação:</span>
                       <strong>{bulkCartsProgress.sent + bulkCartsProgress.failed} de {bulkCartsProgress.total}</strong>

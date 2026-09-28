@@ -1,35 +1,37 @@
 .whatsappContainer {
   display: flex;
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: #f1f5f9;
   font-family: inherit;
 }
 
 .contentWrapper {
   flex: 1;
   padding: 32px;
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
   overflow-y: auto;
 }
 
+/* ─── HEADER ─── */
 .headerSection {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 16px;
 }
 
 .titleArea h1 {
   font-size: 26px;
-  font-weight: 700;
+  font-weight: 800;
   color: #0f172a;
   margin: 0 0 6px 0;
   display: flex;
   align-items: center;
   gap: 12px;
+  letter-spacing: -0.5px;
 }
 
 .titleArea p {
@@ -42,33 +44,34 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 8px 18px;
   border-radius: 9999px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .badgeConnected {
   background-color: #dcfce7;
   color: #15803d;
-  border: 1px solid #bbf7d0;
+  border: 1px solid #86efac;
 }
 
 .badgeConnecting {
   background-color: #fef9c3;
   color: #854d0e;
-  border: 1px solid #fef08a;
+  border: 1px solid #fde047;
 }
 
 .badgeDisconnected {
   background-color: #f1f5f9;
   color: #475569;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
 }
 
 .pulseDot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   display: inline-block;
 }
@@ -95,7 +98,7 @@
   }
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 7px rgba(34, 197, 94, 0);
   }
   100% {
     transform: scale(0.95);
@@ -103,63 +106,81 @@
   }
 }
 
-/* Tabs */
+/* ─── TABS ─── */
 .tabsContainer {
   display: flex;
   gap: 8px;
+  margin-bottom: 24px;
   border-bottom: 2px solid #e2e8f0;
-  margin-bottom: 28px;
+  padding-bottom: 2px;
+  overflow-x: auto;
 }
 
 .tabButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  background: none;
+  background: transparent;
   border: none;
+  border-bottom: 3px solid transparent;
+  padding: 12px 18px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: #64748b;
   cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: -2px;
 }
 
 .tabButton:hover {
   color: #0f172a;
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .tabButtonActive {
-  color: #128c7e;
-  border-bottom-color: #128c7e;
+  color: #047857;
+  border-bottom-color: #10b981;
+  background: white;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
 }
 
-/* Grid Layouts */
+.tabBadge {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* ─── GRID DE CONEXÃO E TESTE ─── */
 .connectionGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1024px) {
   .connectionGrid {
     grid-template-columns: 1fr;
   }
 }
 
 .card {
-  background: #ffffff;
-  border-radius: 16px;
+  background: white;
   border: 1px solid #e2e8f0;
-  padding: 24px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
 }
 
 .cardTitle {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
   color: #0f172a;
   margin: 0 0 6px 0;
   display: flex;
@@ -168,437 +189,525 @@
 }
 
 .cardSubtitle {
-  font-size: 13px;
   color: #64748b;
+  font-size: 13px;
   margin: 0 0 20px 0;
+  line-height: 1.5;
 }
 
-/* QR Code Box */
-.qrBoxWrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: #f8fafc;
-  border: 2px dashed #cbd5e1;
-  border-radius: 16px;
-  text-align: center;
-}
-
-.qrImageFrame {
-  background: white;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  margin-bottom: 16px;
-}
-
-.qrImageFrame img {
-  display: block;
-  width: 220px;
-  height: 220px;
-}
-
-.qrTimer {
-  font-size: 12px;
-  color: #64748b;
-  font-weight: 500;
-  margin-top: 8px;
-}
-
-.instructionsList {
-  text-align: left;
-  margin: 20px 0 0 0;
-  padding-left: 20px;
-  color: #334155;
-  font-size: 13px;
-  line-height: 1.8;
-}
-
-/* Connected State */
+/* Conectado Box */
 .connectedBox {
-  background: #f0fdf4;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
   border: 1px solid #bbf7d0;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 20px;
   margin-bottom: 20px;
 }
 
-.connectedPhone {
-  font-size: 20px;
-  font-weight: 700;
-  color: #166534;
-  margin: 4px 0 0 0;
-}
-
-.connectedMeta {
-  font-size: 12px;
-  color: #15803d;
-  margin-top: 6px;
-}
-
-/* Buttons */
-.btnPrimary {
-  background: #25d366;
-  color: #ffffff;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
+/* QR Code Display */
+.qrCodeWrapper {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(37, 211, 102, 0.2);
+  text-align: center;
+  padding: 10px 0;
 }
 
-.btnPrimary:hover {
-  background: #20ba5a;
-  transform: translateY(-1px);
+.qrCodeContainer {
+  background: white;
+  padding: 14px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 2px solid #e2e8f0;
+  margin-bottom: 14px;
+  display: inline-block;
 }
 
-.btnPrimary:disabled {
-  background: #94a3b8;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.btnDanger {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
-  padding: 10px 18px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-}
-
-.btnDanger:hover {
-  background: #fca5a5;
-  color: #7f1d1d;
-}
-
-.btnSecondary {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-  padding: 10px 18px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-}
-
-.btnSecondary:hover {
-  background: #e2e8f0;
-}
-
-/* Forms */
-.formGroup {
-  margin-bottom: 16px;
-}
-
-.formLabel {
+.qrImage {
+  width: 260px;
+  height: 260px;
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #334155;
-  margin-bottom: 6px;
 }
 
-.formInput {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #0f172a;
-  transition: border-color 0.2s ease;
-  box-sizing: border-box;
-}
-
-.formInput:focus {
-  outline: none;
-  border-color: #128c7e;
-  box-shadow: 0 0 0 3px rgba(18, 140, 126, 0.15);
-}
-
-.formTextarea {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #0f172a;
-  min-height: 110px;
-  resize: vertical;
-  box-sizing: border-box;
-  font-family: inherit;
-}
-
-.formTextarea:focus {
-  outline: none;
-  border-color: #128c7e;
-  box-shadow: 0 0 0 3px rgba(18, 140, 126, 0.15);
-}
-
-/* WhatsApp Message Simulator */
-.previewBubbleWrapper {
-  background: #efeae2;
-  background-image: radial-gradient(#d1d7db 1px, transparent 1px);
-  background-size: 16px 16px;
-  padding: 20px;
-  border-radius: 12px;
-  margin-top: 14px;
-}
-
-.whatsappBubble {
-  background: #d9fdd3;
-  color: #111b21;
-  padding: 10px 14px;
-  border-radius: 10px 10px 2px 10px;
-  max-width: 90%;
-  margin-left: auto;
-  font-size: 13px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  position: relative;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
-}
-
-.bubbleMeta {
-  display: flex;
-  justify-content: flex-end;
+.qrCountdown {
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: #667781;
-  margin-top: 4px;
-}
-
-/* Tags Pill */
-.tagsContainer {
-  display: flex;
-  flex-wrap: wrap;
   gap: 6px;
+  background: #fef9c3;
+  color: #854d0e;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
   margin-bottom: 12px;
 }
 
-.tagPill {
+.qrInstructions {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+/* ─── SIMULADOR WHATSAPP E PREVIEW REALÍSTICO ─── */
+.simulatorWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.presetBar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.presetChip {
   background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  color: #2563eb;
-  padding: 4px 10px;
-  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  color: #334155;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.tagPill:hover {
-  background: #e0e7ff;
-  border-color: #818cf8;
+.presetChip:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
-/* Template Cards List */
-.templatesGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
+.phoneInputGroup {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
 }
 
-.templateCard {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+.phoneInputGroup:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  background: white;
+}
+
+.countryPrefix {
+  background: #e2e8f0;
+  color: #334155;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-right: 1px solid #cbd5e1;
+}
+
+.phoneInput {
+  border: none;
+  background: transparent;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  outline: none;
+  flex: 1;
+}
+
+.textareaWrapper {
+  position: relative;
+  border: 1.5px solid #cbd5e1;
   border-radius: 14px;
-  padding: 22px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  background: #f8fafc;
+  transition: all 0.2s ease;
+  overflow: hidden;
 }
 
-.templateHeader {
+.textareaWrapper:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  background: white;
+}
+
+.textareaInput {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 14px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #0f172a;
+  outline: none;
+  resize: vertical;
+  min-height: 110px;
+  font-family: inherit;
+}
+
+.textareaMeta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
+  padding: 8px 14px;
+  background: rgba(241, 245, 249, 0.7);
+  border-top: 1px solid #e2e8f0;
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Mockup de Celular WhatsApp Live */
+.phoneDeviceMockup {
+  background: #0b141a;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.3);
+  border: 4px solid #1f2937;
+  margin-top: 12px;
+}
+
+.phoneHeader {
+  background: #1f2c34;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
   gap: 10px;
+  color: white;
+}
+
+.phoneAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #25d366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  color: #064e3b;
+}
+
+.phoneContactInfo h5 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #e9edef;
+}
+
+.phoneContactInfo span {
+  font-size: 11px;
+  color: #8696a0;
+}
+
+.chatBody {
+  background-color: #0b141a;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 16px 16px;
+  padding: 18px 14px;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.whatsappBubble {
+  background: #005c4b;
+  color: #e9edef;
+  border-radius: 12px 0 12px 12px;
+  padding: 10px 14px;
+  max-width: 90%;
+  align-self: flex-end;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.bubbleText {
+  white-space: pre-wrap;
+}
+
+.bubbleTime {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 4px;
+}
+
+/* ─── BOTÕES PRINCIPAIS ─── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.btnPrimary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btnSecondary {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+
+.btnSecondary:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.btnDanger {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+}
+
+.btnDanger:hover {
+  background: #fecaca;
+}
+
+/* ─── CARDS DE AUTOMAÇÃO REFINADOS ─── */
+.templatesContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.categoryFilterRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.templateCard {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.templateCard:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+}
+
+.templateHeader {
+  padding: 18px 24px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .templateTitleArea {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-.templateTitle {
+.templateIconCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.templateCategoryTag {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.templateTitleArea h3 {
+  margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
   color: #0f172a;
 }
 
-.toggleSwitch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
+/* Split Editor + Live Preview */
+.templateBodySplit {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  padding: 24px;
 }
 
-.toggleSwitch input {
+@media (max-width: 900px) {
+  .templateBodySplit {
+    grid-template-columns: 1fr;
+  }
+}
+
+.templateEditorSide {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.templatePreviewSide {
+  display: flex;
+  flex-direction: column;
+}
+
+.previewBoxTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.liveBubblePreview {
+  background: #e7fed9;
+  border: 1px solid #c7f2b4;
+  border-radius: 14px 14px 2px 14px;
+  padding: 14px 16px;
+  color: #111b21;
+  font-size: 13.5px;
+  line-height: 1.6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+}
+
+.liveBubbleTime {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #667781;
+  margin-top: 6px;
+}
+
+/* Tag Chips */
+.tagChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.tagChip {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tagChip:hover {
+  background: #bae6fd;
+  transform: translateY(-1px);
+}
+
+.templateFooter {
+  padding: 14px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* iOS Toggle Switch */
+.switchWrapper {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+}
+
+.switchWrapper input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.slider {
+.switchSlider {
   position: absolute;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: #cbd5e1;
-  transition: .3s;
-  border-radius: 24px;
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 30px;
 }
 
-.slider:before {
+.switchSlider:before {
   position: absolute;
   content: "";
-  height: 18px;
-  width: 18px;
+  height: 20px;
+  width: 20px;
   left: 3px;
   bottom: 3px;
   background-color: white;
-  transition: .3s;
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.toggleSwitch input:checked + .slider {
-  background-color: #25d366;
+.switchWrapper input:checked + .switchSlider {
+  background-color: #10b981;
 }
 
-.toggleSwitch input:checked + .slider:before {
-  transform: translateX(20px);
+.switchWrapper input:checked + .switchSlider:before {
+  transform: translateX(22px);
 }
 
-/* Table */
-.tableWrapper {
-  overflow-x: auto;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: white;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 13px;
-}
-
-.table th {
-  background: #f8fafc;
-  color: #475569;
-  font-weight: 600;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.table td {
-  padding: 14px 16px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #1e293b;
-}
-
-.table tr:last-child td {
-  border-bottom: none;
-}
-
-.badgeSent {
-  background: #dcfce7;
-  color: #166534;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.badgeFailed {
-  background: #fee2e2;
-  color: #991b1b;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-/* Alert Notification */
-.alertSuccess {
-  background: #dcfce7;
-  border: 1px solid #bbf7d0;
-  color: #15803d;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.alertError {
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  color: #b91c1c;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.spinner {
-  animation: spin 1.5s linear infinite;
-}
-
-/* ─── NOVAS ABAS: USUÁRIOS & CARRINHOS ABANDONADOS ─── */
-
-.tabBadge {
-  background: rgba(37, 211, 102, 0.15);
-  color: #128c7e;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 999px;
-  margin-left: 4px;
-}
-
+/* ─── TABELAS E CARRINHOS ─── */
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -609,18 +718,18 @@
 .statCard {
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 20px;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
 .statIconWrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -634,7 +743,7 @@
 
 .statLabel {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -642,7 +751,7 @@
 
 .statValue {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 800;
   color: #0f172a;
   margin-top: 2px;
 }
@@ -656,7 +765,7 @@
   margin-bottom: 16px;
   background: white;
   padding: 14px 18px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid #e2e8f0;
 }
 
@@ -665,12 +774,17 @@
   align-items: center;
   gap: 8px;
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
   padding: 8px 14px;
   min-width: 260px;
   flex: 1;
   max-width: 420px;
+}
+
+.searchBox:focus-within {
+  border-color: #10b981;
+  background: white;
 }
 
 .searchInput {
@@ -693,17 +807,17 @@
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   color: #475569;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 20px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .pillButtonActive {
-  background: #128c7e;
-  border-color: #128c7e;
+  background: #10b981;
+  border-color: #10b981;
   color: white;
 }
 
@@ -711,20 +825,19 @@
   background: #e2e8f0;
 }
 
-/* Floating Action Bar for Bulk Selection */
 .bulkActionBar {
   position: sticky;
   top: 16px;
   z-index: 30;
   background: #0f172a;
   color: white;
-  border-radius: 14px;
-  padding: 14px 20px;
+  border-radius: 16px;
+  padding: 14px 22px;
   margin-bottom: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.35);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.4);
   animation: slideDown 0.2s ease;
   flex-wrap: wrap;
   gap: 12px;
@@ -746,7 +859,7 @@
   align-items: center;
   gap: 12px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .bulkActionButtons {
@@ -758,16 +871,17 @@
 .btnPrimaryGreen {
   background: #25d366;
   color: #064e3b;
-  font-weight: 700;
+  font-weight: 800;
   border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
+  padding: 9px 18px;
+  border-radius: 10px;
   font-size: 13px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
 }
 
 .btnPrimaryGreen:hover {
@@ -786,9 +900,9 @@
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -796,15 +910,14 @@
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* User Card and Checkbox */
 .phoneBadge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
+  gap: 5px;
+  padding: 3px 9px;
   border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 700;
 }
 
 .hasPhoneBadge {
@@ -817,7 +930,58 @@
   color: #64748b;
 }
 
-/* Carrinhos Abandonados Grid */
+.tableWrapper {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.badgeSent {
+  background: #dcfce7;
+  color: #166534;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.badgeFailed {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* Grid de Carrinhos Abandonados */
 .abandonedCartsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
@@ -827,18 +991,17 @@
 .cartCard {
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
   transition: all 0.2s ease;
-  position: relative;
 }
 
 .cartCard:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
 }
 
 .cartCardHeader {
@@ -853,7 +1016,7 @@
 .cartUserInfo h4 {
   margin: 0 0 4px 0;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 800;
   color: #0f172a;
 }
 
@@ -869,15 +1032,14 @@
   background: #fef3c7;
   color: #92400e;
   font-size: 11px;
-  font-weight: 700;
-  padding: 3px 8px;
+  font-weight: 800;
+  padding: 3px 9px;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
-/* Itens do Carrinho */
 .cartItemsList {
   display: flex;
   flex-direction: column;
@@ -892,16 +1054,16 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px;
+  padding: 8px 10px;
   background: #f8fafc;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid #f1f5f9;
 }
 
 .cartItemThumb {
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   object-fit: cover;
   background: #e2e8f0;
   flex-shrink: 0;
@@ -914,7 +1076,7 @@
 
 .cartItemName {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: #1e293b;
   white-space: nowrap;
   overflow: hidden;
@@ -931,7 +1093,7 @@
 }
 
 .cartItemPrice {
-  font-weight: 700;
+  font-weight: 800;
   color: #0f172a;
 }
 
@@ -951,22 +1113,22 @@
 
 .cartTotalLabel {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: #64748b;
   text-transform: uppercase;
 }
 
 .cartTotalValue {
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 19px;
+  font-weight: 900;
   color: #166534;
 }
 
-/* Modal de Envio Personalizado */
+/* Modais */
 .modalBackdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(4px);
   z-index: 100;
   display: flex;
@@ -977,12 +1139,12 @@
 
 .modalContent {
   background: white;
-  border-radius: 20px;
+  border-radius: 24px;
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
   animation: modalScale 0.2s ease;
 }
 
@@ -998,7 +1160,7 @@
 }
 
 .modalHeader {
-  padding: 20px 24px;
+  padding: 20px 26px;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   justify-content: space-between;
@@ -1008,11 +1170,11 @@
 .modalHeader h3 {
   margin: 0;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
   color: #0f172a;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .modalCloseBtn {
@@ -1020,8 +1182,8 @@
   border: none;
   color: #64748b;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 6px;
+  padding: 6px;
+  border-radius: 8px;
 }
 
 .modalCloseBtn:hover {
@@ -1030,35 +1192,56 @@
 }
 
 .modalBody {
-  padding: 24px;
+  padding: 26px;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
 .modalFooter {
-  padding: 16px 24px;
+  padding: 18px 26px;
   border-top: 1px solid #e2e8f0;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
   background: #f8fafc;
-  border-radius: 0 0 20px 20px;
+  border-radius: 0 0 24px 24px;
 }
 
-.tagChip {
-  background: #e0f2fe;
-  color: #0369a1;
-  border: 1px solid #bae6fd;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s;
+/* Alertas */
+.alertSuccess {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #15803d;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
 }
 
-.tagChip:hover {
-  background: #bae6fd;
+.alertError {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
 }
 
+.spinner {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
