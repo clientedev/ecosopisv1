@@ -55,7 +55,6 @@ interface MessageLogItem {
 
 const TRIGGER_ICONS: Record<string, React.ReactNode> = {
   order_paid: <ShoppingBag size={18} color="#16a34a" />,
-  order_created_pix: <CreditCard size={18} color="#2563eb" />,
   order_shipped: <Truck size={18} color="#d97706" />,
   abandoned_cart: <ShoppingCart size={18} color="#ea580c" />,
   promotion: <Sparkles size={18} color="#9333ea" />,
@@ -63,7 +62,6 @@ const TRIGGER_ICONS: Record<string, React.ReactNode> = {
 
 const AVAILABLE_TAGS: Record<string, string[]> = {
   order_paid: ['{cliente}', '{pedido}', '{valor}', '{itens}'],
-  order_created_pix: ['{cliente}', '{pedido}', '{valor}', '{pix_copia_cola}'],
   order_shipped: ['{cliente}', '{pedido}', '{codigo_rastreio}'],
   abandoned_cart: ['{cliente}', '{link_carrinho}', '{desconto}'],
   promotion: ['{cliente}', '{cupom}', '{link}'],

@@ -20,14 +20,6 @@ const DEFAULT_TEMPLATES: WhatsAppTemplateItem[] = [
     delay_minutes: 0
   },
   {
-    id: 2,
-    trigger_type: 'order_created_pix',
-    title: 'Pedido Gerado (Chave PIX)',
-    message_template: 'Olá {cliente}! Seu pedido #{pedido} foi registrado com sucesso. Copie a chave PIX abaixo para pagar com rapidez e garantir seus produtos naturais:\n\n{pix_copia_cola}',
-    is_enabled: true,
-    delay_minutes: 0
-  },
-  {
     id: 3,
     trigger_type: 'order_shipped',
     title: 'Pedido Despachado (Rastreio)',
@@ -62,9 +54,13 @@ export async function getWhatsAppTemplates(): Promise<WhatsAppTemplateItem[]> {
   try {
     const pool = getDbPool();
     if (pool) {
+      // Remove permanentemente o template de Chave PIX se existir no banco
+      pool.query(`DELETE FROM whatsapp_templates WHERE trigger_type = 'order_created_pix'`).catch(() => {});
+      
       const res = await pool.query(
         `SELECT id, trigger_type, title, message_template, is_enabled, delay_minutes 
          FROM whatsapp_templates 
+         WHERE trigger_type != 'order_created_pix'
          ORDER BY id ASC`
       );
       if (res.rows && res.rows.length > 0) {
@@ -74,7 +70,7 @@ export async function getWhatsAppTemplates(): Promise<WhatsAppTemplateItem[]> {
   } catch (e) {
     console.warn('PostgreSQL indisponível para templates, usando padrão em memória:', (e as any).message);
   }
-  return inMemoryTemplates;
+  return inMemoryTemplates.filter(t => t.trigger_type !== 'order_created_pix');
 }
 
 /**
