@@ -2,13 +2,28 @@ import makeWASocket, {
   DisconnectReason,
   WAMessageKey,
   proto,
-  WABrowserDescription
+  WABrowserDescription,
+  makeCacheableSignalKeyStore,
+  fetchLatestBaileysVersion
 } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
-import pino from 'pino';
 import { EventEmitter } from 'events';
 import { getPostgresAuthState } from './authAdapter';
 import { getDbPool } from './db';
+
+// Logger silencioso estilo wa-central que não bloqueia o event loop
+function makeLogger() {
+  return {
+    level: 'silent' as const,
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: (msg: string) => console.warn(`[Baileys] ${msg}`),
+    trace: () => {},
+    fatal: () => {},
+    child: () => makeLogger(),
+  };
+}
 
 // EventEmitter global para Server-Sent Events (SSE)
 class WhatsAppEvents extends EventEmitter {}
@@ -49,8 +64,8 @@ if (!globalThis.__whatsapp_state__) {
 
 const state = globalThis.__whatsapp_state__;
 
-// Logger Pino com nível reduzido para produção
-const logger = pino({ level: process.env.NODE_ENV === 'production' ? 'warn' : 'info' });
+// Logger silencioso estilo wa-central
+const logger = makeLogger();
 
 /**
  * Sanitiza o número do telefone brasileiro e internacional
@@ -156,16 +171,26 @@ export async function connectWhatsApp(
 
   try {
     const { state: authState, saveCreds, clearState } = await getPostgresAuthState(whatsappId);
+    
+    let version: [number, number, number] | undefined = undefined;
+    try {
+      const v = await fetchLatestBaileysVersion();
+      version = v.version;
+    } catch (e) {}
 
-    // Configuração anti-travamento rigorosa conforme diretrizes
-    const browser: WABrowserDescription = ['Admin E-commerce', 'Chrome', '1.0.0'];
+    const browser: WABrowserDescription = ['ECOSOPIS Admin', 'Chrome', '1.0.0'];
 
     const sock = makeWASocket({
-      auth: authState,
-      logger,
+      version,
+      auth: {
+        creds: authState.creds,
+        keys: makeCacheableSignalKeyStore(authState.keys, makeLogger()),
+      },
+      logger: makeLogger(),
       printQRInTerminal: false,
       browser,
       syncFullHistory: false, // CRÍTICO: Não sincroniza histórico antigo, evitando travamento
+      shouldIgnoreJid: (jid: string) => !jid || jid.includes('@newsletter') || jid === 'status@broadcast' || false,
       connectTimeoutMs: 60000,
       keepAliveIntervalMs: 25000,
       defaultQueryTimeoutMs: 60000,
@@ -276,32 +301,13 @@ export async function connectWhatsApp(
       }
     });
 
-    // Aguarda até 8 segundos pelo primeiro QR code ser emitido para responder imediatamente na requisição HTTP
-    await new Promise<void>((resolve) => {
+    // Aguarda até o QR code estar emitido (verificando a cada 300ms até 12s, padrão wa-central)
+    for (let i = 0; i < 40; i++) {
       if (state.qrCodeDataUrl || state.status === 'CONNECTED') {
-        return resolve();
+        break;
       }
-      const onQr = () => {
-        cleanup();
-        resolve();
-      };
-      const onStat = (s: any) => {
-        if (s.status === 'CONNECTED' || s.status === 'QR_CODE') {
-          cleanup();
-          resolve();
-        }
-      };
-      const cleanup = () => {
-        state.events.off('qr', onQr);
-        state.events.off('status', onStat);
-      };
-      state.events.once('qr', onQr);
-      state.events.once('status', onStat);
-      setTimeout(() => {
-        cleanup();
-        resolve();
-      }, 8000);
-    });
+      await new Promise(r => setTimeout(r, 300));
+    }
 
     state.isInitializing = false;
     return { status: state.status, qrCode: state.qrCodeDataUrl };

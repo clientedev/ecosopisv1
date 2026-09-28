@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminSidebar from '@/components/AdminSidebar/AdminSidebar';
 import styles from './whatsapp.module.css';
 import {
@@ -69,6 +70,7 @@ const AVAILABLE_TAGS: Record<string, string[]> = {
 };
 
 export default function AdminWhatsAppPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'connection' | 'templates' | 'logs'>('connection');
   const [statusData, setStatusData] = useState<WhatsAppStatus>({ status: 'DISCONNECTED' });
   const [loading, setLoading] = useState(true);
@@ -90,8 +92,19 @@ export default function AdminWhatsAppPage() {
   const [logs, setLogs] = useState<MessageLogItem[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
+  const getAuthHeaders = (): Record<string, string> => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   // 1. Carrega status inicial e conecta SSE
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/admin');
+      return;
+    }
+
     fetchStatus();
     fetchTemplates();
     fetchLogs();
@@ -156,7 +169,14 @@ export default function AdminWhatsAppPage() {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch('/api/whatsapp/status');
+      const res = await fetch('/api/whatsapp/status', {
+        headers: getAuthHeaders()
+      });
+      if (res.status === 401) {
+        localStorage.removeItem('token');
+        router.push('/admin');
+        return;
+      }
       if (res.ok) {
         const json = await res.json();
         setStatusData(json);
@@ -170,7 +190,14 @@ export default function AdminWhatsAppPage() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch('/api/whatsapp/templates');
+      const res = await fetch('/api/whatsapp/templates', {
+        headers: getAuthHeaders()
+      });
+      if (res.status === 401) {
+        localStorage.removeItem('token');
+        router.push('/admin');
+        return;
+      }
       if (res.ok) {
         const json = await res.json();
         setTemplates(json.templates || []);
@@ -183,7 +210,14 @@ export default function AdminWhatsAppPage() {
   const fetchLogs = async () => {
     setLoadingLogs(true);
     try {
-      const res = await fetch('/api/whatsapp/messages?limit=50');
+      const res = await fetch('/api/whatsapp/messages?limit=50', {
+        headers: getAuthHeaders()
+      });
+      if (res.status === 401) {
+        localStorage.removeItem('token');
+        router.push('/admin');
+        return;
+      }
       if (res.ok) {
         const json = await res.json();
         setLogs(json.messages || []);
@@ -201,9 +235,17 @@ export default function AdminWhatsAppPage() {
     try {
       const res = await fetch('/api/whatsapp/connect', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
         body: JSON.stringify({ force })
       });
+      if (res.status === 401) {
+        localStorage.removeItem('token');
+        router.push('/admin');
+        return;
+      }
       const json = await res.json();
       setStatusData(prev => ({ ...prev, ...json }));
       if (json.status === 'QR_CODE' && json.qrCode) {
