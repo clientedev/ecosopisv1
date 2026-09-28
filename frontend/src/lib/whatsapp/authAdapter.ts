@@ -37,28 +37,32 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
 }> {
   const pool = getDbPool();
 
-  // Inicialização instantânea em memória para que o Baileys emita o QR Code em menos de 1s
-  let creds: AuthenticationCreds = memoryStore.creds || initAuthCreds();
-  memoryStore.creds = creds;
+  let creds: AuthenticationCreds | null = memoryStore.creds;
 
-  // Se houver pool, tenta ler credenciais em segundo plano se ainda não estiverem em memória
-  if (pool && !memoryStore.creds) {
+  // Se ainda não estiver em memória, tenta recuperar credenciais salvas do banco
+  if (!creds && pool) {
     try {
       const credsRes = await Promise.race([
         pool.query(
           `SELECT data FROM baileys_auth_state WHERE whatsapp_id = $1 AND data_id = 'creds'`,
           [whatsappId]
         ),
-        new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 500))
+        new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 1000))
       ]);
       if (credsRes && (credsRes as any).rows?.length > 0 && (credsRes as any).rows[0].data) {
         creds = JSON.parse((credsRes as any).rows[0].data, BufferJSON.reviver);
-        memoryStore.creds = creds;
       }
     } catch (e) {}
   }
 
+  // Se não houver credenciais salvas válidas, gera credenciais limpas para novo QR Code
+  if (!creds) {
+    creds = initAuthCreds();
+  }
+  memoryStore.creds = creds;
+
   const saveCreds = async () => {
+    if (!creds) return;
     memoryStore.creds = creds;
     if (pool) {
       try {
@@ -79,11 +83,13 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
     memoryStore.creds = null;
     memoryStore.keys = {};
     if (pool) {
-      pool.query(`DELETE FROM baileys_auth_state WHERE whatsapp_id = $1`, [whatsappId]).catch(() => {});
-      pool.query(
-        `UPDATE whatsapp_accounts SET status = 'DISCONNECTED', phone = NULL, qr_code = NULL, last_connection = NULL WHERE id = $1`,
-        [whatsappId]
-      ).catch(() => {});
+      try {
+        await pool.query(`DELETE FROM baileys_auth_state WHERE whatsapp_id = $1`, [whatsappId]);
+        await pool.query(
+          `UPDATE whatsapp_accounts SET status = 'DISCONNECTED', phone = NULL, qr_code = NULL, last_connection = NULL WHERE id = $1`,
+          [whatsappId]
+        );
+      } catch (e) {}
     }
   };
 

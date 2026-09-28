@@ -170,11 +170,21 @@ export async function connectWhatsApp(
   ).catch(() => {});
 
   try {
-    const { state: authState, saveCreds, clearState } = await getPostgresAuthState(whatsappId);
+    let auth = await getPostgresAuthState(whatsappId);
+    if (force) {
+      await auth.clearState();
+      auth = await getPostgresAuthState(whatsappId);
+    }
+    const { state: authState, saveCreds } = auth;
     
     let version: [number, number, number] | undefined = undefined;
     try {
-      const v = await fetchLatestBaileysVersion();
+      const v = await Promise.race([
+        fetchLatestBaileysVersion(),
+        new Promise<{ version: [number, number, number] }>((_, reject) =>
+          setTimeout(() => reject(new Error('timeout')), 2000)
+        )
+      ]);
       version = v.version;
     } catch (e) {}
 
