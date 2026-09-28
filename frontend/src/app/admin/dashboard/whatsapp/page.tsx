@@ -513,14 +513,25 @@ export default function AdminWhatsAppPage() {
                   <p style={{ fontSize: 13, color: '#64748b', maxWidth: 360, margin: '0 0 20px 0' }}>
                     Estabelecendo conexão segura com os servidores do WhatsApp. O QR Code aparecerá em instantes.
                   </p>
-                  <button
-                    onClick={() => handleConnect(true)}
-                    disabled={connecting}
-                    className={styles.btnSecondary}
-                  >
-                    <RefreshCw size={14} className={connecting ? styles.spinner : ''} />
-                    {connecting ? 'Iniciando...' : 'Forçar Novo QR Code'}
-                  </button>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      onClick={() => handleConnect(true)}
+                      disabled={connecting}
+                      className={styles.btnSecondary}
+                    >
+                      <RefreshCw size={14} className={connecting ? styles.spinner : ''} />
+                      {connecting ? 'Iniciando...' : 'Forçar Novo QR Code'}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setStatusData(prev => ({ ...prev, status: 'DISCONNECTED', qrCode: null }));
+                        await handleDisconnect();
+                      }}
+                      className={styles.btnDanger}
+                    >
+                      Cancelar e Redefinir
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className={styles.qrBoxWrapper}>

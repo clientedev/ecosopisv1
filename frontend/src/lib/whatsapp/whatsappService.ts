@@ -8,8 +8,14 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
 import { EventEmitter } from 'events';
+import dns from 'dns';
 import { getPostgresAuthState } from './authAdapter';
 import { getDbPool } from './db';
+
+// Força resolução IPv4 prioritária no Node.js para evitar timeout em conexões de WebSocket no Docker/Railway
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch (e) {}
 
 // Logger silencioso estilo wa-central que não bloqueia o event loop
 function makeLogger() {
@@ -18,9 +24,15 @@ function makeLogger() {
     debug: () => {},
     info: () => {},
     warn: () => {},
-    error: (msg: string) => console.warn(`[Baileys] ${msg}`),
+    error: (msg: any, ...args: any[]) => {
+      const err = msg?.err || msg?.error || msg;
+      console.warn('[Baileys Error]:', err?.message || err, ...args);
+    },
     trace: () => {},
-    fatal: () => {},
+    fatal: (msg: any, ...args: any[]) => {
+      const err = msg?.err || msg?.error || msg;
+      console.error('[Baileys Fatal]:', err?.message || err, ...args);
+    },
     child: () => makeLogger(),
   };
 }
@@ -110,10 +122,17 @@ export async function getWhatsAppStatus(whatsappId: string = 'default') {
 
     if (res && res.rows && res.rows.length > 0) {
       const dbRow = res.rows[0];
+      let currentStatus = state.status;
+      if (!state.socket && !state.isInitializing && currentStatus !== 'CONNECTED' && currentStatus !== 'QR_CODE') {
+        currentStatus = 'DISCONNECTED';
+        if (dbRow.status === 'CONNECTING') {
+          safeDbQuery(`UPDATE whatsapp_accounts SET status = 'DISCONNECTED', qr_code = NULL WHERE id = $1`, [whatsappId]).catch(() => {});
+        }
+      }
       return {
-        status: state.status !== 'DISCONNECTED' ? state.status : (dbRow.status || 'DISCONNECTED'),
+        status: currentStatus,
         phone: state.phone || dbRow.phone,
-        qrCode: state.qrCodeDataUrl || dbRow.qr_code,
+        qrCode: state.qrCodeDataUrl || (currentStatus === 'QR_CODE' ? dbRow.qr_code : null),
         lastConnection: state.lastConnection || dbRow.last_connection,
       };
     }
@@ -121,8 +140,13 @@ export async function getWhatsAppStatus(whatsappId: string = 'default') {
     console.error('Erro ao consultar status no banco:', err);
   }
 
+  let fallbackStatus = state.status;
+  if (!state.socket && !state.isInitializing && fallbackStatus !== 'CONNECTED' && fallbackStatus !== 'QR_CODE') {
+    fallbackStatus = 'DISCONNECTED';
+  }
+
   return {
-    status: state.status,
+    status: fallbackStatus,
     phone: state.phone,
     qrCode: state.qrCodeDataUrl,
     lastConnection: state.lastConnection,
@@ -279,22 +303,30 @@ export async function connectWhatsApp(
 
       // Conexão fechada / desconectada
       if (connection === 'close') {
-        const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
+        const err = lastDisconnect?.error as any;
+        const statusCode = err?.output?.statusCode;
         const isLoggedOut = statusCode === DisconnectReason.loggedOut;
 
-        console.log(`WhatsApp desconectado. Código: ${statusCode}, Logout: ${isLoggedOut}`);
+        console.log(`WhatsApp desconectado. Código: ${statusCode}, Motivo: ${err?.message || 'Conexão encerrada'}`);
 
-        if (isLoggedOut) {
-          // Desconexão intencional ou sessão revogada no celular
+        // Se foi logout explícito OU se a sessão nunca chegou a conectar (estava gerando QR code),
+        // NÃO agenda reconexão infinita em loop!
+        if (isLoggedOut || !state.phone) {
           state.status = 'DISCONNECTED';
           state.socket = null;
-          state.phone = null;
           state.qrCodeDataUrl = null;
           state.isInitializing = false;
-          await clearState();
+          if (state.reconnectTimer) {
+            clearTimeout(state.reconnectTimer);
+            state.reconnectTimer = null;
+          }
+          await safeDbQuery(
+            `UPDATE whatsapp_accounts SET status = 'DISCONNECTED', qr_code = NULL WHERE id = $1`,
+            [whatsappId]
+          );
           state.events.emit('status', { status: 'DISCONNECTED' });
         } else {
-          // Desconexão temporária: reconexão automática com backoff exponencial (5s, 10s, 20s, 30s)
+          // Desconexão temporária de sessão que JÁ ESTAVA previamente conectada
           state.status = 'CONNECTING';
           state.events.emit('status', { status: 'CONNECTING' });
 
@@ -311,8 +343,8 @@ export async function connectWhatsApp(
       }
     });
 
-    // Aguarda até o QR code estar emitido (verificando a cada 300ms até 12s, padrão wa-central)
-    for (let i = 0; i < 40; i++) {
+    // Aguarda até o QR code estar emitido (verificando a cada 300ms até 15s, padrão wa-central)
+    for (let i = 0; i < 50; i++) {
       if (state.qrCodeDataUrl || state.status === 'CONNECTED') {
         break;
       }
@@ -320,6 +352,14 @@ export async function connectWhatsApp(
     }
 
     state.isInitializing = false;
+
+    if (!state.qrCodeDataUrl && state.status !== 'CONNECTED') {
+      state.status = 'DISCONNECTED';
+      await safeDbQuery(`UPDATE whatsapp_accounts SET status = 'DISCONNECTED', qr_code = NULL WHERE id = $1`, [whatsappId]);
+      state.events.emit('status', { status: 'DISCONNECTED' });
+      return { status: 'DISCONNECTED', qrCode: null };
+    }
+
     return { status: state.status, qrCode: state.qrCodeDataUrl };
 
   } catch (err: any) {
