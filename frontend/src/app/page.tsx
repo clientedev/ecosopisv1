@@ -1801,7 +1801,7 @@ export default function Home() {
                     {!routineSteps.am.length && !routineLoading ? (
                         <div className={styles.routinePlaceholder}>
                             <div className={styles.liaLargeAvatar}>
-                                <Image src="/static/attached_assets/generated_images/lia_avatar.webp" alt="Lia" fill />
+                                <Image src="/static/attached_assets/generated_images/lia_avatar.webp" alt="Lia" fill unoptimized />
                             </div>
                             <h3>Vamos montar sua rotina ideal?</h3>
                             <p>Escolha um objetivo abaixo para a Lia criar seu cronograma personalizado em segundos.</p>
@@ -2042,7 +2042,7 @@ export default function Home() {
                                 <div className={styles.modalLiaSide}>
                                     <div className={styles.liaHeaderLarge}>
                                         <div className={styles.liaLargeAvatar}>
-                                            <Image src="/static/attached_assets/generated_images/lia_avatar.webp" alt="Lia" fill />
+                                            <Image src="/static/attached_assets/generated_images/lia_avatar.webp" alt="Lia" fill unoptimized />
                                         </div>
                                         <div className={styles.liaHeaderText}>
                                             <h3>Consultoria com a Lia</h3>
@@ -2159,7 +2159,7 @@ export default function Home() {
                         <div className={styles.aiChatContainer}>
                             <div className={styles.chatHeader}>
                                 <div className={styles.aiAvatar}>
-                                    <Image src="/static/attached_assets/generated_images/lia_avatar.webp" alt="Lia" fill />
+                                    <Image src="/static/attached_assets/generated_images/lia_avatar.webp" alt="Lia" fill unoptimized />
                                 </div>
                                 <div>
                                     <h4>Tire sua dúvida com a Lia</h4>
