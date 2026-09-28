@@ -197,6 +197,16 @@ def run_migrations():
             # If seeding fails, we still want to continue to start the app
             # unless it's a fatal connection error
 
+        # Redistribute 7-day metrics with exact requested totals
+        logger.info("Starting 7-day metrics redistribution...")
+        try:
+            from app.core.metrics_manager import redistribute_exact_metrics
+            with SessionLocal() as db_session:
+                redistribute_exact_metrics(db_session)
+            logger.info("✓ 7-day metrics redistributed successfully across last 7 days.")
+        except Exception as metrics_err:
+            logger.error(f"✗ Metrics redistribution warning: {metrics_err}")
+
         logger.info("\n✓ All migrations completed successfully!")
 
     except Exception as e:

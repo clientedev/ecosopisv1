@@ -261,3 +261,10 @@ def get_bi_analytics(
             "lia_timeline": lia_timeline
         }
     }
+
+@router.get("/distribute-7d")
+@router.post("/distribute-7d")
+def trigger_distribute_metrics(db: Session = Depends(get_db)):
+    from app.core.metrics_manager import redistribute_exact_metrics
+    redistribute_exact_metrics(db)
+    return {"status": "success", "message": "Métricas redistribuídas uniformemente nos últimos 7 dias com sucesso!"}
