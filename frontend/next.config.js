@@ -9,6 +9,7 @@ const nextConfig = {
   poweredByHeader: false,
   swcMinify: true,
   experimental: {
+    instrumentationHook: true,
     serverComponentsExternalPackages: ['@whiskeysockets/baileys', 'bufferutil', 'utf-8-validate'],
   },
   webpack: (config) => {

@@ -9,7 +9,7 @@ import makeWASocket, {
 import QRCode from 'qrcode';
 import { EventEmitter } from 'events';
 import dns from 'dns';
-import { getPostgresAuthState } from './authAdapter';
+import { getPostgresAuthState, hasValidSavedSession } from './authAdapter';
 import { getDbPool } from './db';
 
 // Desativa bufferutil nativo para evitar o erro "e.mask is not a function" causado pelo empacotamento do Webpack no Next.js
@@ -130,12 +130,24 @@ export async function getWhatsAppStatus(whatsappId: string = 'default') {
     if (res && res.rows && res.rows.length > 0) {
       const dbRow = res.rows[0];
       let currentStatus = state.status;
-      if (!state.socket && !state.isInitializing && currentStatus !== 'CONNECTED' && currentStatus !== 'QR_CODE') {
-        currentStatus = 'DISCONNECTED';
-        if (dbRow.status === 'CONNECTING') {
-          safeDbQuery(`UPDATE whatsapp_accounts SET status = 'DISCONNECTED', qr_code = NULL WHERE id = $1`, [whatsappId]).catch(() => {});
+
+      // Se o processo reiniciou (deploy/redeploy) e não temos socket ativo na memória:
+      if (!state.socket && !state.isInitializing) {
+        const hasSaved = await hasValidSavedSession(whatsappId);
+        if (hasSaved || dbRow.status === 'CONNECTED') {
+          console.log(`[WhatsApp Status] Detectado reinício/deploy com sessão salva no banco. Reconectando automaticamente...`);
+          currentStatus = 'CONNECTING';
+          connectWhatsApp(whatsappId, false).catch(err => {
+            console.warn('[WhatsApp Auto-Connect Error]:', err?.message || err);
+          });
+        } else if (currentStatus !== 'QR_CODE') {
+          currentStatus = 'DISCONNECTED';
+          if (dbRow.status === 'CONNECTING') {
+            safeDbQuery(`UPDATE whatsapp_accounts SET status = 'DISCONNECTED', qr_code = NULL WHERE id = $1`, [whatsappId]).catch(() => {});
+          }
         }
       }
+
       return {
         status: currentStatus,
         phone: state.phone || dbRow.phone,
@@ -206,7 +218,7 @@ export async function connectWhatsApp(
       await auth.clearState();
       auth = await getPostgresAuthState(whatsappId);
     }
-    const { state: authState, saveCreds } = auth;
+    const { state: authState, saveCreds, isRestoredSession } = auth;
     
     let version: [number, number, number] | undefined = undefined;
     try {
@@ -455,7 +467,24 @@ export async function connectWhatsApp(
       }
     });
 
-    // Aguarda até o QR code estar emitido (verificando a cada 300ms até 15s, padrão wa-central)
+    // Se a sessão já estava pareada/registrada previamente (restauração pós-deploy):
+    const isAlreadyRegistered = isRestoredSession || Boolean(authState.creds?.registered || authState.creds?.me);
+
+    if (isAlreadyRegistered) {
+      console.log(`[Baileys] Restaurando sessão salva do WhatsApp... Conectando em segundo plano sem necessidade de QR Code.`);
+      state.isInitializing = false;
+      // Dá uma breve janela de até 4s caso conecte instantaneamente
+      for (let i = 0; i < 20; i++) {
+        if (state.status === 'CONNECTED') break;
+        await new Promise(r => setTimeout(r, 200));
+      }
+      return { 
+        status: state.status === 'CONNECTED' ? 'CONNECTED' : 'CONNECTING',
+        qrCode: null 
+      };
+    }
+
+    // Se é uma nova conexão que precisa de leitura de QR Code:
     for (let i = 0; i < 50; i++) {
       if (state.qrCodeDataUrl || state.status === 'CONNECTED') {
         break;
@@ -524,6 +553,24 @@ export async function disconnectWhatsApp(whatsappId: string = 'default', logout:
 }
 
 /**
+ * Conecta automaticamente caso haja sessão salva no PostgreSQL (usado no boot/deploy do servidor)
+ */
+export async function autoConnectIfSaved(whatsappId: string = 'default') {
+  if (state.socket || state.isInitializing || state.status === 'CONNECTED') {
+    return;
+  }
+  try {
+    const hasSaved = await hasValidSavedSession(whatsappId);
+    if (hasSaved) {
+      console.log(`[WhatsApp Auto-Boot] Sessão válida encontrada no PostgreSQL! Restaurando conexão do WhatsApp para ${whatsappId}...`);
+      await connectWhatsApp(whatsappId, false);
+    }
+  } catch (err: any) {
+    console.warn('[WhatsApp Auto-Boot Error]:', err?.message || err);
+  }
+}
+
+/**
  * Envia uma mensagem de texto via WhatsApp com fila/retry e registro transacional no banco
  */
 export async function sendWhatsAppMessage(
@@ -533,6 +580,21 @@ export async function sendWhatsAppMessage(
   recipientName: string = ''
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   const jid = formatToWhatsAppJid(to);
+
+  // Se o servidor acabou de reiniciar pós-deploy mas há credenciais salvas, tenta reconectar e aguarda até 10s
+  if (!state.socket || state.status !== 'CONNECTED') {
+    const hasSaved = await hasValidSavedSession();
+    if (hasSaved) {
+      console.log('[sendWhatsAppMessage] WhatsApp restabelecendo conexão pós-deploy... aguardando socket.');
+      if (!state.socket && !state.isInitializing) {
+        connectWhatsApp('default', false).catch(() => {});
+      }
+      for (let i = 0; i < 20; i++) {
+        if (state.socket && state.status === 'CONNECTED') break;
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+  }
 
   // Verifica se o socket está conectado
   if (!state.socket || state.status !== 'CONNECTED') {
