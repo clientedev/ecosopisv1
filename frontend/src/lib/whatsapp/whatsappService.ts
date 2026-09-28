@@ -324,13 +324,63 @@ export async function connectWhatsApp(
       if (connection === 'close') {
         const err = lastDisconnect?.error as any;
         const statusCode = err?.output?.statusCode;
-        const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+        const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
+        const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
 
         console.log(`WhatsApp desconectado. Código: ${statusCode}, Motivo: ${err?.message || 'Conexão encerrada'}`);
 
-        // Se foi logout explícito OU se a sessão nunca chegou a conectar (estava gerando QR code),
-        // NÃO agenda reconexão infinita em loop!
-        if (isLoggedOut || !state.phone) {
+        // 1. QR Code escaneado com sucesso: Baileys envia 515 (restartRequired) para reiniciar o stream
+        if (isRestartRequired) {
+          console.log(`[Baileys] Código 515 (restartRequired) recebido com sucesso! Reconectando para consolidar pareamento...`);
+          state.status = 'CONNECTING';
+          state.socket = null;
+          state.qrCodeDataUrl = null;
+          state.isInitializing = false;
+          state.events.emit('status', { status: 'CONNECTING' });
+
+          if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
+          state.reconnectTimer = setTimeout(() => {
+            connectWhatsApp(whatsappId).catch(console.error);
+          }, 800);
+          return;
+        }
+
+        // 2. Logout explícito (401)
+        if (isLoggedOut) {
+          console.log(`[Baileys] Sessão desconectada por logout.`);
+          state.status = 'DISCONNECTED';
+          state.socket = null;
+          state.phone = null;
+          state.qrCodeDataUrl = null;
+          state.isInitializing = false;
+          if (state.reconnectTimer) {
+            clearTimeout(state.reconnectTimer);
+            state.reconnectTimer = null;
+          }
+          await safeDbQuery(
+            `UPDATE whatsapp_accounts SET status = 'DISCONNECTED', qr_code = NULL WHERE id = $1`,
+            [whatsappId]
+          );
+          state.events.emit('status', { status: 'DISCONNECTED' });
+          return;
+        }
+
+        // 3. Desconexão temporária de sessão que já possui credenciais salvas
+        if (state.phone || authState.creds?.me) {
+          state.status = 'CONNECTING';
+          state.events.emit('status', { status: 'CONNECTING' });
+
+          const attempts = Math.min(state.reconnectAttempts + 1, 6);
+          state.reconnectAttempts = attempts;
+          const delay = Math.min(3000 * Math.pow(1.5, attempts - 1), 30000);
+
+          console.log(`Agendando reconexão automática em ${Math.round(delay / 1000)}s (Tentativa ${attempts})...`);
+          if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
+          state.reconnectTimer = setTimeout(() => {
+            connectWhatsApp(whatsappId).catch(console.error);
+          }, delay);
+        } else {
+          // Sessão sem credenciais (ex: QR expirou antes de ser lido)
           state.status = 'DISCONNECTED';
           state.socket = null;
           state.qrCodeDataUrl = null;
@@ -344,20 +394,6 @@ export async function connectWhatsApp(
             [whatsappId]
           );
           state.events.emit('status', { status: 'DISCONNECTED' });
-        } else {
-          // Desconexão temporária de sessão que JÁ ESTAVA previamente conectada
-          state.status = 'CONNECTING';
-          state.events.emit('status', { status: 'CONNECTING' });
-
-          const attempts = Math.min(state.reconnectAttempts + 1, 6);
-          state.reconnectAttempts = attempts;
-          const delay = Math.min(5000 * Math.pow(1.5, attempts - 1), 30000);
-
-          console.log(`Agendando reconexão automática em ${Math.round(delay / 1000)}s (Tentativa ${attempts})...`);
-          if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
-          state.reconnectTimer = setTimeout(() => {
-            connectWhatsApp(whatsappId).catch(console.error);
-          }, delay);
         }
       }
     });

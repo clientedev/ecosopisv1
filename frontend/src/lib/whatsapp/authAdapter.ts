@@ -68,13 +68,13 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
       try {
         const serialized = JSON.stringify(creds, BufferJSON.replacer);
         const keyId = crypto.randomUUID();
-        pool.query(
+        await pool.query(
           `INSERT INTO baileys_auth_state (id, whatsapp_id, data_id, data) 
            VALUES ($1, $2, 'creds', $3)
            ON CONFLICT (whatsapp_id, data_id) 
            DO UPDATE SET data = EXCLUDED.data`,
           [keyId, whatsappId, serialized]
-        ).catch(() => {});
+        );
       } catch (err) {}
     }
   };
