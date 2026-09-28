@@ -8,6 +8,9 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   swcMinify: true,
+  experimental: {
+    serverComponentsExternalPackages: ['@whiskeysockets/baileys', 'bufferutil', 'utf-8-validate'],
+  },
   webpack: (config) => {
     config.resolve.alias['@'] = path.resolve(__dirname, 'src');
     return config;

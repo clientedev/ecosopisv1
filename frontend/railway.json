@@ -4,7 +4,7 @@
         "builder": "NIXPACKS"
     },
     "deploy": {
-        "startCommand": "HOSTNAME=0.0.0.0 node .next/standalone/server.js",
+        "startCommand": "WS_NO_BUFFER_UTIL=1 WS_NO_UTF_8_VALIDATE=1 HOSTNAME=0.0.0.0 node .next/standalone/server.js",
         "restartPolicyType": "ON_FAILURE",
         "restartPolicyMaxRetries": 10
     }

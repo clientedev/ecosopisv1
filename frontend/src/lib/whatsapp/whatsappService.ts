@@ -12,6 +12,10 @@ import dns from 'dns';
 import { getPostgresAuthState } from './authAdapter';
 import { getDbPool } from './db';
 
+// Desativa bufferutil nativo para evitar o erro "e.mask is not a function" causado pelo empacotamento do Webpack no Next.js
+process.env.WS_NO_BUFFER_UTIL = '1';
+process.env.WS_NO_UTF_8_VALIDATE = '1';
+
 // Força resolução IPv4 prioritária no Node.js para evitar timeout em conexões de WebSocket no Docker/Railway
 try {
   dns.setDefaultResultOrder('ipv4first');
