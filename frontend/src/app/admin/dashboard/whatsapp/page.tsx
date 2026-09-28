@@ -32,7 +32,8 @@ import {
   Award,
   ArrowRight,
   ExternalLink,
-  Smartphone
+  Smartphone,
+  Eye
 } from 'lucide-react';
 
 interface WhatsAppStatus {
