@@ -12,8 +12,11 @@ DATABASE_URL = (
     or os.getenv("DATABASE_PUBLIC_URL")
     or os.getenv("DATABASE_URL")
 )
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+if DATABASE_URL:
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 # Default to SQLite if no DATABASE_URL is provided (useful for local dev)
 if not DATABASE_URL:
