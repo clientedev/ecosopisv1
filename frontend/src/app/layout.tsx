@@ -43,6 +43,7 @@ export const viewport = {
 };
 
 import CartDrawer from "@/components/CartDrawer/CartDrawer";
+import WhatsAppPromptModal from "@/components/WhatsAppPromptModal/WhatsAppPromptModal";
 
 export default function RootLayout({
     children,
@@ -62,6 +63,7 @@ export default function RootLayout({
                                 <AnniversaryAnimation />
                                 {children}
                                 <CartDrawer />
+                                <WhatsAppPromptModal />
                                 <DeferredComponents />
                                 <MobileBottomNav />
                             </ThemeProvider>

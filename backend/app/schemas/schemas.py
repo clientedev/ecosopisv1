@@ -38,6 +38,8 @@ class UserResponse(UserBase):
     scratch_reward_id: Optional[int] = None
     profile_picture: Optional[str] = None
     phone: Optional[str] = None
+    auth_provider: Optional[str] = "local"
+    google_id: Optional[str] = None
     cart_json: Optional[str] = None
     cart_updated_at: Optional[datetime] = None
     created_at: Optional[datetime] = None

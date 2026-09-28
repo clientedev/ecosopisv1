@@ -7,7 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import styles from "./perfil.module.css";
 import { 
     User, Package, MapPin, LogOut, FileText, 
-    CheckCircle, Truck, Clock, XCircle, Map, Filter, Pencil, Save, X, Camera, Lock, Coins
+    CheckCircle, Truck, Clock, XCircle, Map, Filter, Pencil, Save, X, Camera, Lock, Coins,
+    Phone, Smartphone
 } from "lucide-react";
 
 export default function UserProfile() {
@@ -23,6 +24,7 @@ export default function UserProfile() {
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState("");
     const [editPhoto, setEditPhoto] = useState("");
+    const [editPhone, setEditPhone] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
@@ -161,13 +163,19 @@ export default function UserProfile() {
                 },
                 body: JSON.stringify({
                     full_name: editName,
-                    profile_picture: editPhoto
+                    profile_picture: editPhoto,
+                    phone: editPhone
                 })
             });
 
             if (res.ok) {
                 const updatedUser = await res.json();
-                setProfile({ ...profile, full_name: updatedUser.full_name, profile_picture: updatedUser.profile_picture });
+                setProfile({ 
+                    ...profile, 
+                    full_name: updatedUser.full_name, 
+                    profile_picture: updatedUser.profile_picture,
+                    phone: updatedUser.phone 
+                });
                 setIsEditing(false);
                 refreshProfile(); // update AuthContext state
             } else {
@@ -241,6 +249,7 @@ export default function UserProfile() {
                     setProfile(data);
                     setEditName(data.full_name || "");
                     setEditPhoto(data.profile_picture || "");
+                    setEditPhone(data.phone || "");
                 } else {
                     if (res.status === 401 || res.status === 403) {
                          logout();
@@ -434,6 +443,46 @@ export default function UserProfile() {
                                                 onChange={(e) => setEditName(e.target.value)} 
                                             />
                                         </div>
+                                        <div className={styles.formGroup}>
+                                            <label>WhatsApp / Celular (Notificações de Pedidos)</label>
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                <span style={{ 
+                                                    padding: '10px 14px', 
+                                                    background: '#f1f5f9', 
+                                                    borderRadius: '8px', 
+                                                    fontWeight: 700, 
+                                                    fontSize: '0.9rem', 
+                                                    color: '#334155',
+                                                    border: '1px solid #e2e8f0',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px'
+                                                }}>
+                                                    🇧🇷 +55
+                                                </span>
+                                                <input 
+                                                    type="tel" 
+                                                    className={styles.inputField} 
+                                                    value={editPhone} 
+                                                    placeholder="(11) 99999-9999"
+                                                    onChange={(e) => {
+                                                        let v = e.target.value.replace(/\D/g, "");
+                                                        if (v.length > 11) v = v.slice(0, 11);
+                                                        if (v.length > 6) {
+                                                            v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+                                                        } else if (v.length > 2) {
+                                                            v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
+                                                        } else if (v.length > 0) {
+                                                            v = `(${v}`;
+                                                        }
+                                                        setEditPhone(v);
+                                                    }} 
+                                                />
+                                            </div>
+                                            <span style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                                                Usado para receber atualizações do pedido e código de rastreamento no seu WhatsApp.
+                                            </span>
+                                        </div>
                                         <div className={styles.formActions}>
                                             <button 
                                                 className={styles.cancelBtn} 
@@ -441,6 +490,7 @@ export default function UserProfile() {
                                                     setIsEditing(false);
                                                     setEditName(profile.full_name || "");
                                                     setEditPhoto(profile.profile_picture || "");
+                                                    setEditPhone(profile.phone || "");
                                                 }}
                                             >
                                                 <X size={18} /> Cancelar
@@ -478,6 +528,36 @@ export default function UserProfile() {
                                         <div className={styles.dataCard}>
                                             <div className={styles.dataLabel}>Email</div>
                                             <div className={styles.dataValue}>{profile.email}</div>
+                                        </div>
+                                        <div className={styles.dataCard}>
+                                            <div className={styles.dataLabel} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <span>WhatsApp / Celular</span>
+                                                {profile.phone ? (
+                                                    <span style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>Ativo</span>
+                                                ) : (
+                                                    <span style={{ fontSize: '0.75rem', background: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>Pendente</span>
+                                                )}
+                                            </div>
+                                            <div className={styles.dataValue} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <span>{profile.phone || <span style={{ color: '#ea580c', fontSize: '0.9rem' }}>Não cadastrado</span>}</span>
+                                                {!profile.phone && !isEditing && (
+                                                    <button 
+                                                        onClick={() => {
+                                                            setIsEditing(true);
+                                                            setEditName(profile.full_name || "");
+                                                            setEditPhoto(profile.profile_picture || "");
+                                                            setEditPhone("");
+                                                        }}
+                                                        style={{ 
+                                                            background: '#22c55e', color: 'white', border: 'none', 
+                                                            borderRadius: '6px', padding: '4px 10px', fontSize: '0.78rem', 
+                                                            fontWeight: 700, cursor: 'pointer' 
+                                                        }}
+                                                    >
+                                                        + Cadastrar
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className={styles.dataCard}>
                                             <div className={styles.dataLabel}>Membro Desde</div>

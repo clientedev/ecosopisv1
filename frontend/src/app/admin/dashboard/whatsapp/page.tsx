@@ -454,9 +454,12 @@ export default function AdminWhatsAppPage() {
           ...getAuthHeaders()
         },
         body: JSON.stringify({
-          phone: testPhone,
-          message: formattedMsg,
+          to: testPhone.trim(),
+          phone: testPhone.trim(),
+          message: formattedMsg.trim(),
+          triggerType: 'manual_test',
           trigger_type: 'manual_test',
+          recipientName: 'Teste Manual',
           recipient_name: 'Teste Manual'
         })
       });

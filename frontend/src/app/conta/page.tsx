@@ -37,9 +37,46 @@ export default function ContaPage() {
     const [activeCoupon, setActiveCoupon] = useState<ActiveCoupon | null>(null);
     const [authError, setAuthError] = useState<string | null>(null);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+    const [isEditingPhone, setIsEditingPhone] = useState(false);
+    const [newPhone, setNewPhone] = useState("");
+    const [savingPhone, setSavingPhone] = useState(false);
+    const [phoneSaveSuccess, setPhoneSaveSuccess] = useState(false);
 
     const { login, logout, token, user, refreshProfile } = useAuth();
     const router = useRouter();
+
+    const handleSavePhone = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const cleanDigits = newPhone.replace(/\D/g, "");
+        if (cleanDigits.length < 10) {
+            alert("Informe o DDD e o número completo com pelo menos 10 dígitos.");
+            return;
+        }
+        setSavingPhone(true);
+        try {
+            const authToken = localStorage.getItem("token");
+            const res = await fetch("/api/auth/me/profile", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ phone: newPhone.trim() })
+            });
+            if (res.ok) {
+                await refreshProfile();
+                setIsEditingPhone(false);
+                setPhoneSaveSuccess(true);
+                setTimeout(() => setPhoneSaveSuccess(false), 4000);
+            } else {
+                alert("Erro ao salvar número de WhatsApp.");
+            }
+        } catch {
+            alert("Erro de conexão ao salvar WhatsApp.");
+        } finally {
+            setSavingPhone(false);
+        }
+    };
 
     // Check for Google OAuth callback token or errors in URL
     useEffect(() => {
@@ -251,22 +288,120 @@ export default function ContaPage() {
                                     }}>
                                         {(user.full_name || user.email || "U")[0].toUpperCase()}
                                     </div>
-                                    <div>
+                                    <div style={{ flex: 1 }}>
                                         <h2 style={{ margin: 0, fontSize: "1.15rem", color: "#1a3a16" }}>
                                             {user.full_name || "Usuário"}
                                         </h2>
-                                        <p style={{ margin: "2px 0 0", fontSize: "0.85rem", color: "#64748b" }}>
+                                        <p style={{ margin: "2px 0 4px", fontSize: "0.85rem", color: "#64748b" }}>
                                             {user.email}
                                         </p>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: '0.82rem', color: user.phone ? '#15803d' : '#ea580c', fontWeight: 600 }}>
+                                                📱 {user.phone ? `WhatsApp: ${user.phone}` : 'WhatsApp: Não cadastrado'}
+                                            </span>
+                                            {!isEditingPhone && (
+                                                <button
+                                                    onClick={() => {
+                                                        setNewPhone(user.phone || "");
+                                                        setIsEditingPhone(true);
+                                                    }}
+                                                    style={{
+                                                        background: 'none', border: 'none', color: '#16a34a',
+                                                        fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                                                        textDecoration: 'underline', padding: 0
+                                                    }}
+                                                >
+                                                    {user.phone ? 'Alterar' : '+ Cadastrar'}
+                                                </button>
+                                            )}
+                                        </div>
+                                        {phoneSaveSuccess && (
+                                            <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, display: 'block', marginTop: '2px' }}>
+                                                ✓ WhatsApp salvo com sucesso!
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
-                                <button onClick={handleLogout} style={{
-                                    width: "100%", padding: "10px", backgroundColor: "#ef4444",
-                                    color: "white", border: "none", borderRadius: "8px",
-                                    cursor: "pointer", fontWeight: 700, fontSize: "0.9rem"
-                                }}>
-                                    SAIR DA CONTA
-                                </button>
+
+                                {isEditingPhone && (
+                                    <form onSubmit={handleSavePhone} style={{
+                                        background: 'white', padding: '16px', borderRadius: '12px',
+                                        marginBottom: '16px', border: '1px solid #bbf7d0'
+                                    }}>
+                                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#166534', marginBottom: '6px' }}>
+                                            Atualizar número de WhatsApp:
+                                        </label>
+                                        <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                                            <span style={{ padding: '8px 12px', background: '#f1f5f9', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
+                                                🇧🇷 +55
+                                            </span>
+                                            <input
+                                                type="tel"
+                                                value={newPhone}
+                                                placeholder="(11) 99999-9999"
+                                                onChange={(e) => {
+                                                    let v = e.target.value.replace(/\D/g, "");
+                                                    if (v.length > 11) v = v.slice(0, 11);
+                                                    if (v.length > 6) {
+                                                        v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+                                                    } else if (v.length > 2) {
+                                                        v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
+                                                    } else if (v.length > 0) {
+                                                        v = `(${v}`;
+                                                    }
+                                                    setNewPhone(v);
+                                                }}
+                                                style={{
+                                                    flex: 1, padding: '8px 12px', borderRadius: '8px',
+                                                    border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none'
+                                                }}
+                                                required
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button
+                                                type="submit"
+                                                disabled={savingPhone}
+                                                style={{
+                                                    background: '#16a34a', color: 'white', border: 'none',
+                                                    borderRadius: '8px', padding: '8px 14px', fontSize: '0.85rem',
+                                                    fontWeight: 700, cursor: 'pointer'
+                                                }}
+                                            >
+                                                {savingPhone ? 'Salvando...' : 'Salvar WhatsApp'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditingPhone(false)}
+                                                style={{
+                                                    background: '#f1f5f9', color: '#64748b', border: 'none',
+                                                    borderRadius: '8px', padding: '8px 14px', fontSize: '0.85rem',
+                                                    fontWeight: 600, cursor: 'pointer'
+                                                }}
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                <div style={{ display: "flex", gap: "10px" }}>
+                                    <Link href="/perfil" style={{
+                                        flex: 1, padding: "10px", backgroundColor: "#2d5a27",
+                                        color: "white", borderRadius: "8px", textDecoration: "none",
+                                        textAlign: "center", fontWeight: 700, fontSize: "0.85rem",
+                                        display: "flex", alignItems: "center", justifyContent: "center"
+                                    }}>
+                                        MEU PERFIL COMPLETO
+                                    </Link>
+                                    <button onClick={handleLogout} style={{
+                                        padding: "10px 18px", backgroundColor: "#ef4444",
+                                        color: "white", border: "none", borderRadius: "8px",
+                                        cursor: "pointer", fontWeight: 700, fontSize: "0.85rem"
+                                    }}>
+                                        SAIR
+                                    </button>
+                                </div>
                             </div>
 
                             {/* ── Order History ── */}

@@ -638,6 +638,13 @@ async def google_callback(
     access_token = security.create_access_token(subject=user.id)
 
     # 8. Retornar página de transição para persistência segura no localStorage e redirecionamento
+    has_phone = bool(user.phone and user.phone.strip())
+    needs_phone_js = "true" if not has_phone else "false"
+    
+    if not has_phone:
+        target_sep = "&" if "?" in target_redirect else "?"
+        target_redirect = f"{target_redirect}{target_sep}prompt_whatsapp=1"
+
     safe_token = json.dumps(access_token)
     safe_target = json.dumps(target_redirect)
     safe_origin = json.dumps(target_origin)
@@ -695,12 +702,16 @@ async def google_callback(
                 var token = {safe_token};
                 var target = {safe_target} || '/conta';
                 var origin = {safe_origin};
+                var needsPhone = {needs_phone_js};
                 
                 // Armazena credenciais da sessão no navegador
                 localStorage.setItem('token', token);
                 localStorage.setItem('remember_me', 'true');
                 sessionStorage.setItem('session_active', 'true');
                 sessionStorage.removeItem('roulette_spin_shown');
+                if (needsPhone) {{
+                    localStorage.setItem('prompt_whatsapp', 'true');
+                }}
                 
                 // Redireciona imediatamente
                 if (window.location.origin === origin || !origin) {{

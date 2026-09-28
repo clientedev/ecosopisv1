@@ -6,11 +6,14 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { to, message, triggerType, recipientName } = body;
+    const to = (body.to || body.phone || body.to_phone || body.recipient_phone || body.numero || '').toString().trim();
+    const message = (body.message || body.texto || body.conteudo || '').toString().trim();
+    const triggerType = body.triggerType || body.trigger_type || 'manual';
+    const recipientName = body.recipientName || body.recipient_name || body.name || body.nome || '';
 
     if (!to || !message) {
       return NextResponse.json(
-        { error: 'Parâmetros obrigatórios: "to" (telefone) e "message" (conteúdo da mensagem).' },
+        { error: 'Parâmetros obrigatórios: informe o telefone de destino e o conteúdo da mensagem.' },
         { status: 400 }
       );
     }
@@ -18,8 +21,8 @@ export async function POST(req: Request) {
     const result = await sendWhatsAppMessage(
       to,
       message,
-      triggerType || 'manual',
-      recipientName || ''
+      triggerType,
+      recipientName
     );
 
     if (!result.success) {

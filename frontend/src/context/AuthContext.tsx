@@ -7,6 +7,8 @@ interface User {
   email: string;
   full_name: string;
   phone?: string;
+  auth_provider?: string;
+  google_id?: string;
   role: string;
   can_post_news?: boolean;
   scratch_used?: boolean;
