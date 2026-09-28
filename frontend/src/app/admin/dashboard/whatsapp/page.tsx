@@ -195,14 +195,18 @@ export default function AdminWhatsAppPage() {
     }
   };
 
-  const handleConnect = async () => {
+  const handleConnect = async (force: boolean = false) => {
     setConnecting(true);
     setAlert(null);
     try {
-      const res = await fetch('/api/whatsapp/connect', { method: 'POST' });
+      const res = await fetch('/api/whatsapp/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force })
+      });
       const json = await res.json();
       setStatusData(prev => ({ ...prev, ...json }));
-      if (json.status === 'QR_CODE') {
+      if (json.status === 'QR_CODE' && json.qrCode) {
         setQrCountdown(60);
       }
     } catch (err: any) {
@@ -441,12 +445,12 @@ export default function AdminWhatsAppPage() {
 
                   <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
                     <button
-                      onClick={handleConnect}
+                      onClick={() => handleConnect(true)}
                       disabled={connecting}
                       className={styles.btnSecondary}
                     >
-                      <RefreshCw size={14} />
-                      Gerar Novo QR Code
+                      <RefreshCw size={14} className={connecting ? styles.spinner : ''} />
+                      {connecting ? 'Gerando...' : 'Gerar Novo QR Code'}
                     </button>
                     <button
                       onClick={handleDisconnect}
@@ -455,6 +459,26 @@ export default function AdminWhatsAppPage() {
                       Cancelar
                     </button>
                   </div>
+                </div>
+              ) : (connecting || (statusData.status === 'CONNECTING' && !statusData.qrCode)) ? (
+                <div className={styles.qrBoxWrapper}>
+                  <div style={{ marginBottom: 16 }}>
+                    <RefreshCw size={44} color="#128c7e" className={styles.spinner} />
+                  </div>
+                  <h3 style={{ fontSize: 16, margin: '0 0 8px 0', color: '#1e293b' }}>
+                    Gerando QR Code...
+                  </h3>
+                  <p style={{ fontSize: 13, color: '#64748b', maxWidth: 360, margin: '0 0 20px 0' }}>
+                    Estabelecendo conexão segura com os servidores do WhatsApp. O QR Code aparecerá em instantes.
+                  </p>
+                  <button
+                    onClick={() => handleConnect(true)}
+                    disabled={connecting}
+                    className={styles.btnSecondary}
+                  >
+                    <RefreshCw size={14} className={connecting ? styles.spinner : ''} />
+                    {connecting ? 'Iniciando...' : 'Forçar Novo QR Code'}
+                  </button>
                 </div>
               ) : (
                 <div className={styles.qrBoxWrapper}>
@@ -469,7 +493,7 @@ export default function AdminWhatsAppPage() {
                   </p>
 
                   <button
-                    onClick={handleConnect}
+                    onClick={() => handleConnect(true)}
                     disabled={connecting}
                     className={styles.btnPrimary}
                   >

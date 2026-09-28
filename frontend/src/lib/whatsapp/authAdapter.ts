@@ -35,12 +35,12 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
   saveCreds: () => Promise<void>;
   clearState: () => Promise<void>;
 }> {
-  const pool = getDbPool();
   const dbConnected = await checkDbConnection();
+  const pool = dbConnected ? getDbPool() : null;
 
   let creds: AuthenticationCreds;
 
-  if (dbConnected && pool) {
+  if (pool) {
     try {
       // 1. Garante que a conta existe no banco
       await pool.query(

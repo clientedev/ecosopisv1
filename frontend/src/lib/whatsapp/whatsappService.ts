@@ -117,17 +117,35 @@ export async function getWhatsAppStatus(whatsappId: string = 'default') {
 /**
  * Inicializa a conexão com o WhatsApp usando Baileys Multi-Device
  */
-export async function connectWhatsApp(whatsappId: string = 'default'): Promise<{ status: string; qrCode?: string | null }> {
-  if (state.socket && state.status === 'CONNECTED') {
+export async function connectWhatsApp(
+  whatsappId: string = 'default',
+  force: boolean = false
+): Promise<{ status: string; qrCode?: string | null }> {
+  if (!force && state.socket && state.status === 'CONNECTED') {
     return { status: 'CONNECTED', qrCode: null };
   }
 
-  if (state.isInitializing) {
+  // Se já temos um QR Code ativo gerado e não foi pedido force, devolve imediatamente
+  if (!force && state.status === 'QR_CODE' && state.qrCodeDataUrl) {
+    return { status: 'QR_CODE', qrCode: state.qrCodeDataUrl };
+  }
+
+  if (!force && state.isInitializing) {
     return { status: state.status, qrCode: state.qrCodeDataUrl };
+  }
+
+  // Limpa socket anterior se houver para evitar conflitos de conexão
+  if (state.socket) {
+    try {
+      state.socket.ev.removeAllListeners();
+      state.socket.end(undefined);
+    } catch (e) {}
+    state.socket = null;
   }
 
   state.isInitializing = true;
   state.status = 'CONNECTING';
+  state.qrCodeDataUrl = null;
   state.events.emit('status', { status: 'CONNECTING' });
 
   // Atualiza status no banco de forma segura sem travar
@@ -173,8 +191,15 @@ export async function connectWhatsApp(whatsappId: string = 'default'): Promise<{
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
+      console.log('[Baileys connection.update]:', {
+        connection,
+        hasQr: !!qr,
+        statusCode: (lastDisconnect?.error as any)?.output?.statusCode
+      });
+
       // Evento de emissão do QR Code
       if (qr) {
+        console.log('[Baileys] String QR recebida com sucesso! Convertendo para DataURL...');
         try {
           const qrDataUrl = await QRCode.toDataURL(qr, {
             errorCorrectionLevel: 'M',
@@ -183,6 +208,7 @@ export async function connectWhatsApp(whatsappId: string = 'default'): Promise<{
           });
           state.status = 'QR_CODE';
           state.qrCodeDataUrl = qrDataUrl;
+          state.isInitializing = false;
 
           await safeDbQuery(
             `UPDATE whatsapp_accounts SET status = 'QR_CODE', qr_code = $1 WHERE id = $2`,
@@ -201,6 +227,7 @@ export async function connectWhatsApp(whatsappId: string = 'default'): Promise<{
         state.status = 'CONNECTED';
         state.qrCodeDataUrl = null;
         state.reconnectAttempts = 0;
+        state.isInitializing = false;
         const phone = sock.user?.id ? sock.user.id.split(':')[0] : 'Conectado';
         state.phone = phone;
         state.lastConnection = new Date();
@@ -233,6 +260,7 @@ export async function connectWhatsApp(whatsappId: string = 'default'): Promise<{
           state.socket = null;
           state.phone = null;
           state.qrCodeDataUrl = null;
+          state.isInitializing = false;
           await clearState();
           state.events.emit('status', { status: 'DISCONNECTED' });
         } else {
@@ -253,30 +281,31 @@ export async function connectWhatsApp(whatsappId: string = 'default'): Promise<{
       }
     });
 
-    // Aguarda até 3 segundos pelo primeiro QR code ser emitido para responder imediatamente na requisição HTTP
+    // Aguarda até 8 segundos pelo primeiro QR code ser emitido para responder imediatamente na requisição HTTP
     await new Promise<void>((resolve) => {
       if (state.qrCodeDataUrl || state.status === 'CONNECTED') {
         return resolve();
       }
       const onQr = () => {
-        state.events.off('qr', onQr);
-        state.events.off('status', onStat);
+        cleanup();
         resolve();
       };
       const onStat = (s: any) => {
         if (s.status === 'CONNECTED' || s.status === 'QR_CODE') {
-          state.events.off('qr', onQr);
-          state.events.off('status', onStat);
+          cleanup();
           resolve();
         }
+      };
+      const cleanup = () => {
+        state.events.off('qr', onQr);
+        state.events.off('status', onStat);
       };
       state.events.once('qr', onQr);
       state.events.once('status', onStat);
       setTimeout(() => {
-        state.events.off('qr', onQr);
-        state.events.off('status', onStat);
+        cleanup();
         resolve();
-      }, 3000);
+      }, 8000);
     });
 
     state.isInitializing = false;
