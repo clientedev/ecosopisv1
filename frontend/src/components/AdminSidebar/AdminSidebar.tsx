@@ -70,7 +70,6 @@ const CATEGORIES: Category[] = [
             { label: "WhatsApp & Disparos", path: "/admin/dashboard/whatsapp", icon: <MessageSquare size={18} /> },
             { label: "Pop-up Promocional", path: "/admin/dashboard/popup", icon: <AppWindow size={18} /> },
             { label: "Raspadinha", path: "/admin/dashboard/raspadinha", icon: <Sparkles size={18} /> },
-            { label: "Bolão Copa", path: "/admin/bolao", icon: <Trophy size={18} /> },
             { label: "Cupons", path: "/admin/dashboard/cupons", icon: <Ticket size={18} /> },
             { label: "Banner Principal", path: "/admin/dashboard/carousel", icon: <ImageIcon size={18} /> },
             { label: "Faixa de Aviso", path: "/admin/dashboard/announcement", icon: <Megaphone size={18} /> },

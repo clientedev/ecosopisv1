@@ -101,11 +101,29 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
           const data: { [key: string]: any } = {};
           if (ids.length === 0) return data;
 
-          // Consulta instantânea em memória (< 0.1ms)
           for (const id of ids) {
             const memKey = `${type}-${id}`;
-            if (memoryStore.keys[memKey] !== undefined) {
-              data[id] = memoryStore.keys[memKey];
+            let val = memoryStore.keys[memKey];
+
+            // Se não estiver em memória, tenta recuperar do banco
+            if (val === undefined && pool) {
+              try {
+                const res = await pool.query(
+                  `SELECT data FROM baileys_auth_state WHERE whatsapp_id = $1 AND data_id = $2`,
+                  [whatsappId, memKey]
+                );
+                if (res?.rows?.length > 0 && res.rows[0].data) {
+                  val = JSON.parse(res.rows[0].data, BufferJSON.reviver);
+                  memoryStore.keys[memKey] = val;
+                }
+              } catch (e) {}
+            }
+
+            if (val !== undefined && val !== null) {
+              if (type === 'app-state-sync-key' && val) {
+                val = proto.Message.AppStateSyncKeyData.fromObject(val);
+              }
+              data[id] = val;
             }
           }
           return data;

@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-export type ThemeId = "default" | "valentines_day" | "copa_do_mundo" | "aniversario_4_anos" | "pg_produtos_v2";
+export type ThemeId = "default" | "valentines_day" | "aniversario_4_anos" | "pg_produtos_v2";
 
 interface ThemeContextValue {
     activeTheme: ThemeId;
@@ -22,8 +22,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
                 const res = await fetch("/api/settings");
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.active_theme && data.active_theme !== "default") {
+                    if (data.active_theme && data.active_theme !== "default" && data.active_theme !== "copa_do_mundo") {
                         setActiveThemeState(data.active_theme as ThemeId);
+                    } else if (data.active_theme === "copa_do_mundo") {
+                        setActiveThemeState("default");
                     }
                 }
             } catch (err) {

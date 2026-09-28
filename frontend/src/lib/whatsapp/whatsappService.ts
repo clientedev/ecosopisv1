@@ -83,6 +83,9 @@ const state = globalThis.__whatsapp_state__;
 // Logger silencioso estilo wa-central
 const logger = makeLogger();
 
+// Armazenamento em memória para controle de frequência de auto-resposta (anti-flood)
+const autoReplyCooldown = new Map<string, number>();
+
 /**
  * Sanitiza o número do telefone brasileiro e internacional
  */
@@ -227,6 +230,7 @@ export async function connectWhatsApp(
       logger: makeLogger(),
       printQRInTerminal: false,
       browser,
+      markOnlineOnConnect: false, // CRÍTICO: Evita colisão de presença inicial no celular
       syncFullHistory: false, // CRÍTICO: Não sincroniza histórico antigo, evitando travamento
       shouldIgnoreJid: (jid: string) => !jid || jid.includes('@newsletter') || jid === 'status@broadcast' || false,
       connectTimeoutMs: 60000,
@@ -237,6 +241,17 @@ export async function connectWhatsApp(
         return undefined;
       }
     });
+
+    // Intercepta e responde stanzas w:sync:app:state imediatamente para evitar
+    // que o WhatsApp do celular fique travado na tela "Conectando..."
+    const originalQuery = sock.query.bind(sock);
+    sock.query = async (node: any, timeoutMs?: number) => {
+      if (node?.attrs?.xmlns === 'w:sync:app:state') {
+        return { tag: 'iq', attrs: { type: 'result', id: node?.attrs?.id }, content: [] };
+      }
+      return originalQuery(node, timeoutMs);
+    };
+    (sock as any).resyncAppState = async () => {};
 
     state.socket = sock;
 
@@ -343,6 +358,63 @@ export async function connectWhatsApp(
           state.reconnectTimer = setTimeout(() => {
             connectWhatsApp(whatsappId).catch(console.error);
           }, delay);
+        }
+      }
+    });
+
+    // 3. Resposta automática oficial Ecosopis para mensagens recebidas
+    const autoReplyText = "Esse numero não recebe mensagens procure os canais de comunicação oficial ecosopis";
+
+    sock.ev.on('messages.upsert', async ({ messages, type }) => {
+      if (type !== 'notify' && type !== 'append') return;
+
+      for (const msg of messages) {
+        try {
+          // Ignora mensagens enviadas por nós mesmos
+          if (!msg || msg.key?.fromMe) continue;
+
+          const remoteJid = msg.key?.remoteJid;
+          if (!remoteJid) continue;
+
+          // Ignora status de broadcast, newsletters ou grupos
+          if (
+            remoteJid === 'status@broadcast' ||
+            remoteJid.includes('@broadcast') ||
+            remoteJid.includes('@newsletter') ||
+            remoteJid.endsWith('@g.us')
+          ) {
+            continue;
+          }
+
+          // Ignora mensagens antigas recebidas em sincronizações (mais velhas que 2 minutos)
+          const msgTimestamp = typeof msg.messageTimestamp === 'number'
+            ? msg.messageTimestamp
+            : Number(msg.messageTimestamp || 0);
+          if (msgTimestamp && (Date.now() / 1000 - msgTimestamp) > 120) {
+            continue;
+          }
+
+          // Anti-flood: evita responder mais de 1 vez a cada 5 minutos ao mesmo contato
+          const now = Date.now();
+          const lastReply = autoReplyCooldown.get(remoteJid);
+          if (lastReply && (now - lastReply) < 5 * 60 * 1000) {
+            continue;
+          }
+
+          // Limpa histórico de cooldown antigo se a lista crescer muito
+          if (autoReplyCooldown.size > 500) {
+            const oneHourAgo = now - 60 * 60 * 1000;
+            for (const [jid, time] of autoReplyCooldown.entries()) {
+              if (time < oneHourAgo) autoReplyCooldown.delete(jid);
+            }
+          }
+
+          autoReplyCooldown.set(remoteJid, now);
+
+          console.log(`[WhatsApp Auto-Reply] Respondendo automaticamente para ${remoteJid}...`);
+          await sock.sendMessage(remoteJid, { text: autoReplyText });
+        } catch (err: any) {
+          console.error('[WhatsApp Auto-Reply Error]:', err?.message || err);
         }
       }
     });
