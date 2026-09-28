@@ -401,7 +401,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                                 onChange={e => setFormData({ ...formData, carousel_height: e.target.value })}
                                                 placeholder="Ex: 520px, auto ou 70vh"
                                             />
-                                            <p className={styles.helpText}>"auto" adapta proporcionalmente</p>
+                                            <p className={styles.helpText}>&quot;auto&quot; adapta proporcionalmente</p>
                                         </div>
                                         <div className={styles.formGroup}>
                                             <label>Altura Mobile</label>
@@ -411,7 +411,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                                 onChange={e => setFormData({ ...formData, mobile_carousel_height: e.target.value })}
                                                 placeholder="Ex: 380px, auto ou 50vh"
                                             />
-                                            <p className={styles.helpText}>"auto" adapta proporcionalmente</p>
+                                            <p className={styles.helpText}>&quot;auto&quot; adapta proporcionalmente</p>
                                         </div>
                                     </div>
 

@@ -70,17 +70,30 @@ export function formatToWhatsAppJid(phone: string): string {
 }
 
 /**
+ * Query segura ao PostgreSQL: nunca trava o fluxo se o banco estiver fora ou lento
+ */
+async function safeDbQuery(sql: string, params: any[] = []): Promise<any> {
+  try {
+    const pool = getDbPool();
+    if (!pool) return null;
+    return await pool.query(sql, params);
+  } catch (err: any) {
+    console.warn('[WhatsApp DB safeQuery warning]:', err.message);
+    return null;
+  }
+}
+
+/**
  * Retorna o status atual da conexão
  */
 export async function getWhatsAppStatus(whatsappId: string = 'default') {
-  const pool = getDbPool();
   try {
-    const res = await pool.query(
+    const res = await safeDbQuery(
       `SELECT status, phone, qr_code, last_connection FROM whatsapp_accounts WHERE id = $1`,
       [whatsappId]
     );
 
-    if (res.rows.length > 0) {
+    if (res && res.rows && res.rows.length > 0) {
       const dbRow = res.rows[0];
       return {
         status: state.status !== 'DISCONNECTED' ? state.status : (dbRow.status || 'DISCONNECTED'),
@@ -117,11 +130,16 @@ export async function connectWhatsApp(whatsappId: string = 'default'): Promise<{
   state.status = 'CONNECTING';
   state.events.emit('status', { status: 'CONNECTING' });
 
-  const pool = getDbPool();
-  await pool.query(
-    `UPDATE whatsapp_accounts SET status = 'CONNECTING' WHERE id = $1`,
-    [whatsappId]
-  );
+  // Atualiza status no banco de forma segura sem travar
+  try {
+    const pool = getDbPool();
+    if (pool) {
+      await pool.query(
+        `UPDATE whatsapp_accounts SET status = 'CONNECTING' WHERE id = $1`,
+        [whatsappId]
+      );
+    }
+  } catch (e) {}
 
   try {
     const { state: authState, saveCreds, clearState } = await getPostgresAuthState(whatsappId);
@@ -140,7 +158,6 @@ export async function connectWhatsApp(whatsappId: string = 'default'): Promise<{
       defaultQueryTimeoutMs: 60000,
       generateHighQualityLinkPreview: true,
       getMessage: async (key: WAMessageKey): Promise<proto.IMessage | undefined> => {
-        // Callback para retries de criptografia ponta-a-ponta (E2EE) sem loop
         return undefined;
       }
     });
@@ -167,7 +184,7 @@ export async function connectWhatsApp(whatsappId: string = 'default'): Promise<{
           state.status = 'QR_CODE';
           state.qrCodeDataUrl = qrDataUrl;
 
-          await pool.query(
+          await safeDbQuery(
             `UPDATE whatsapp_accounts SET status = 'QR_CODE', qr_code = $1 WHERE id = $2`,
             [qrDataUrl, whatsappId]
           );
@@ -188,7 +205,7 @@ export async function connectWhatsApp(whatsappId: string = 'default'): Promise<{
         state.phone = phone;
         state.lastConnection = new Date();
 
-        await pool.query(
+        await safeDbQuery(
           `UPDATE whatsapp_accounts 
            SET status = 'CONNECTED', phone = $1, qr_code = NULL, last_connection = NOW() 
            WHERE id = $2`,
@@ -236,6 +253,32 @@ export async function connectWhatsApp(whatsappId: string = 'default'): Promise<{
       }
     });
 
+    // Aguarda até 3 segundos pelo primeiro QR code ser emitido para responder imediatamente na requisição HTTP
+    await new Promise<void>((resolve) => {
+      if (state.qrCodeDataUrl || state.status === 'CONNECTED') {
+        return resolve();
+      }
+      const onQr = () => {
+        state.events.off('qr', onQr);
+        state.events.off('status', onStat);
+        resolve();
+      };
+      const onStat = (s: any) => {
+        if (s.status === 'CONNECTED' || s.status === 'QR_CODE') {
+          state.events.off('qr', onQr);
+          state.events.off('status', onStat);
+          resolve();
+        }
+      };
+      state.events.once('qr', onQr);
+      state.events.once('status', onStat);
+      setTimeout(() => {
+        state.events.off('qr', onQr);
+        state.events.off('status', onStat);
+        resolve();
+      }, 3000);
+    });
+
     state.isInitializing = false;
     return { status: state.status, qrCode: state.qrCodeDataUrl };
 
@@ -274,12 +317,11 @@ export async function disconnectWhatsApp(whatsappId: string = 'default', logout:
   state.phone = null;
   state.qrCodeDataUrl = null;
 
-  const pool = getDbPool();
   if (logout) {
     const { clearState } = await getPostgresAuthState(whatsappId);
     await clearState();
   } else {
-    await pool.query(
+    await safeDbQuery(
       `UPDATE whatsapp_accounts SET status = 'DISCONNECTED', qr_code = NULL WHERE id = $1`,
       [whatsappId]
     );
@@ -298,13 +340,12 @@ export async function sendWhatsAppMessage(
   triggerType: string = 'manual',
   recipientName: string = ''
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const pool = getDbPool();
   const jid = formatToWhatsAppJid(to);
 
   // Verifica se o socket está conectado
   if (!state.socket || state.status !== 'CONNECTED') {
     const errorMsg = 'WhatsApp não está conectado. Conecte pelo painel admin antes de enviar mensagens.';
-    await pool.query(
+    await safeDbQuery(
       `INSERT INTO whatsapp_message_logs (whatsapp_id, to_phone, recipient_name, message, trigger_type, status, error)
        VALUES ('default', $1, $2, $3, $4, 'FAILED', $5)`,
       [to, recipientName, message, triggerType, errorMsg]
@@ -317,7 +358,7 @@ export async function sendWhatsAppMessage(
     const result = await state.socket.sendMessage(jid, { text: message });
 
     // Salva o log de sucesso no banco de dados
-    await pool.query(
+    await safeDbQuery(
       `INSERT INTO whatsapp_message_logs (whatsapp_id, to_phone, recipient_name, message, trigger_type, status)
        VALUES ('default', $1, $2, $3, $4, 'SENT')`,
       [to, recipientName, message, triggerType]
@@ -338,7 +379,7 @@ export async function sendWhatsAppMessage(
 
   } catch (err: any) {
     console.error(`Erro ao disparar mensagem para ${to}:`, err);
-    await pool.query(
+    await safeDbQuery(
       `INSERT INTO whatsapp_message_logs (whatsapp_id, to_phone, recipient_name, message, trigger_type, status, error)
        VALUES ('default', $1, $2, $3, $4, 'FAILED', $5)`,
       [to, recipientName, message, triggerType, err.message || 'Falha no envio']

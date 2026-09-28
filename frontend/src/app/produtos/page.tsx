@@ -305,7 +305,7 @@ export default function ProductsPage() {
                             )}
                             {searchTerm && (
                                 <span className={styles.activeChip}>
-                                    "{searchTerm}"
+                                    &quot;{searchTerm}&quot;
                                     <X size={12} onClick={() => setSearchTerm("")} />
                                 </span>
                             )}

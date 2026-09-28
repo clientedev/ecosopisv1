@@ -141,6 +141,19 @@ export default function AdminWhatsAppPage() {
     return () => clearInterval(timer);
   }, [statusData.status, qrCountdown]);
 
+  // Polling resiliente de fallback a cada 2.5s caso o SSE seja bloqueado por proxy ou firewall
+  useEffect(() => {
+    let pollTimer: NodeJS.Timeout | null = null;
+    if (statusData.status === 'CONNECTING' || statusData.status === 'QR_CODE') {
+      pollTimer = setInterval(() => {
+        fetchStatus();
+      }, 2500);
+    }
+    return () => {
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, [statusData.status]);
+
   const fetchStatus = async () => {
     try {
       const res = await fetch('/api/whatsapp/status');
