@@ -148,16 +148,11 @@ export async function connectWhatsApp(
   state.qrCodeDataUrl = null;
   state.events.emit('status', { status: 'CONNECTING' });
 
-  // Atualiza status no banco de forma segura sem travar
-  try {
-    const pool = getDbPool();
-    if (pool) {
-      await pool.query(
-        `UPDATE whatsapp_accounts SET status = 'CONNECTING' WHERE id = $1`,
-        [whatsappId]
-      );
-    }
-  } catch (e) {}
+  // Atualiza status no banco de forma assíncrona em segundo plano sem travar
+  safeDbQuery(
+    `UPDATE whatsapp_accounts SET status = 'CONNECTING' WHERE id = $1`,
+    [whatsappId]
+  ).catch(() => {});
 
   try {
     const { state: authState, saveCreds, clearState } = await getPostgresAuthState(whatsappId);
