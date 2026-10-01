@@ -80,6 +80,7 @@ export default function AdminPedidosPage() {
     const [addressForm, setAddressForm] = useState<any>({});
     const [savingAddress, setSavingAddress] = useState(false);
     const [downloadingPdf, setDownloadingPdf] = useState<number | null>(null);
+    const [syncingME, setSyncingME] = useState<number | "all" | null>(null);
 
     const getToken = () => typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
     const authHeaders = () => ({
@@ -99,6 +100,48 @@ export default function AdminPedidosPage() {
         }
         return res;
     };
+
+    const handleSyncME = async (orderId?: number) => {
+        setSyncingME(orderId || "all");
+        setNotification(null);
+        try {
+            const url = orderId ? `/api/shipping/sync/${orderId}` : `/api/shipping/sync-all`;
+            const res = await authFetch(url, { method: "POST" });
+            if (res.status === 401) return;
+            const data = await res.json();
+            if (res.ok) {
+                await fetchOrders();
+                if (orderId) {
+                    setNotification({
+                        type: "success",
+                        title: "Sincronizado com Melhor Envio!",
+                        message: `Pedido #${orderId} atualizado: Status: ${data.status} · Rastreio: ${data.tracking_code || "Ainda não disponível"}`
+                    });
+                } else {
+                    setNotification({
+                        type: "success",
+                        title: "Pedidos sincronizados!",
+                        message: `Foram sincronizados ${data.synced || 0} pedidos com a API do Melhor Envio.`
+                    });
+                }
+            } else {
+                setNotification({
+                    type: "warning",
+                    title: "Aviso de sincronização",
+                    message: data.detail || data.motivo || "Não foi possível sincronizar no momento."
+                });
+            }
+        } catch (e) {
+            setNotification({
+                type: "error",
+                title: "Erro de conexão",
+                message: "Falha na comunicação ao sincronizar com Melhor Envio."
+            });
+        } finally {
+            setSyncingME(null);
+        }
+    };
+
 
     useEffect(() => {
         fetchOrders();
@@ -439,9 +482,24 @@ export default function AdminPedidosPage() {
                             <p>Gerencie vendas e gere etiquetas via Melhor Envio.</p>
                         </div>
                     </div>
-                    <button onClick={fetchOrders} className={pedidoStyles.btnAction + " " + pedidoStyles.btnSecondary}>
-                        <RefreshCw size={14} /> Atualizar
-                    </button>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        <button 
+                            onClick={() => handleSyncME()} 
+                            disabled={syncingME === "all"} 
+                            className={pedidoStyles.btnAction + " " + pedidoStyles.btnPrimary}
+                            style={{ background: "#2563eb", borderColor: "#2563eb", color: "#ffffff" }}
+                            title="Sincroniza todos os pedidos com a API do Melhor Envio"
+                        >
+                            {syncingME === "all" ? (
+                                <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Sincronizando ME...</>
+                            ) : (
+                                <><Truck size={14} /> Sincronizar Melhor Envio</>
+                            )}
+                        </button>
+                        <button onClick={fetchOrders} className={pedidoStyles.btnAction + " " + pedidoStyles.btnSecondary}>
+                            <RefreshCw size={14} /> Atualizar
+                        </button>
+                    </div>
                 </header>
 
                 <section className={pedidoStyles.statsGrid}>
@@ -798,6 +856,23 @@ export default function AdminPedidosPage() {
                                                         <MapPin size={14} /> Rastrear Envio
                                                     </a>
                                                 )}
+
+                                                {/* Sincronizar com ME */}
+                                                {shipmentId && (
+                                                    <button
+                                                        onClick={() => handleSyncME(order.id)}
+                                                        disabled={syncingME === order.id}
+                                                        className={`${pedidoStyles.btnAction} ${pedidoStyles.btnSecondary}`}
+                                                        title="Consultar status e rastreio no Melhor Envio"
+                                                    >
+                                                        {syncingME === order.id ? (
+                                                            <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Sincronizando...</>
+                                                        ) : (
+                                                            <><RefreshCw size={14} /> Sincronizar ME</>
+                                                        )}
+                                                    </button>
+                                                )}
+
 
                                                 {/* Transições de Status */}
                                                 {transitions.map(ns => {

@@ -123,8 +123,9 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
     2. Update buyer info.
     3. Update user metrics (total purchases, roulette).
     4. Process Cashback.
-    5. GENERATE SHIPPING LABEL (Melhor Envio).
-    6. Send Confirmation Emails.
+    5. GENERATE SHIPPING LABEL / Cart Entry (Melhor Envio).
+    6. Send Confirmation Emails (Customer + contato@ecosopis.com.br).
+    7. Send WhatsApp Notification to Julia (11951559212) & Customer.
     """
     try:
         db.refresh(order)
@@ -203,24 +204,62 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
         if not items_data and order.order_items:
             items_data = [{"name": item.product.name, "quantity": item.quantity, "price": item.price} for item in order.order_items]
         
-        emails.send_order_confirmation_email(
-            email=order.buyer_email or order.customer_email,
-            order_id=order.id,
-            items=items_data,
-            total=order.total
-        )
+        # 1. E-mail de confirmação para o comprador
+        buyer_dest_email = order.buyer_email or order.customer_email or (user.email if user else None)
+        if buyer_dest_email:
+            emails.send_order_confirmation_email(
+                email=buyer_dest_email,
+                order_id=order.id,
+                items=items_data,
+                total=order.total
+            )
         
-        admin_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "admin_order_notification_email").first()
-        admin_email = admin_setting.value if admin_setting else "contato@ecosopis.com.br"
+        # 2. E-mail de notificação para contato@ecosopis.com.br (Garantido sempre)
         emails.send_admin_notification_email(
-            admin_email=admin_email,
+            admin_email="contato@ecosopis.com.br",
             order_id=order.id,
             total=order.total,
-            customer_name=order.buyer_name or order.customer_name,
+            customer_name=order.buyer_name or order.customer_name or "Cliente",
             order=order
         )
+
+        # Se houver outro admin_email configurado no banco, notifica também
+        admin_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "admin_order_notification_email").first()
+        if admin_setting and admin_setting.value and admin_setting.value.lower() != "contato@ecosopis.com.br":
+            emails.send_admin_notification_email(
+                admin_email=admin_setting.value,
+                order_id=order.id,
+                total=order.total,
+                customer_name=order.buyer_name or order.customer_name or "Cliente",
+                order=order
+            )
     except Exception as e:
         logger.error(f"Error sending confirmation emails for order {order.id}: {e}")
+
+    # ── WHATSAPP NOTIFICATIONS (JÚLIA 11951559212 + CLIENTE) ────────────────
+    try:
+        from app.services.whatsapp import notify_julia_new_order, trigger_whatsapp_event
+        # 1. Notifica Júlia imediatamente no WhatsApp (11951559212)
+        notify_julia_new_order(order, db)
+
+        # 2. Notifica o cliente se houver telefone cadastrado
+        customer_phone = order.customer_phone or (user.phone if user else None)
+        if customer_phone:
+            client_name = order.customer_name or order.buyer_name or (user.full_name if user else "Cliente")
+            items_names = [it.get("name") or it.get("product_name") for it in (order.items or []) if it]
+            items_str = ", ".join(filter(None, items_names)) or "Cosméticos ECOSOPIS"
+            
+            context = {
+                "cliente": client_name,
+                "pedido": order.id,
+                "valor": f"{order.total:.2f}".replace(".", ","),
+                "itens": items_str,
+                "codigo_rastreio": order.codigo_rastreio or "Em breve"
+            }
+            trigger_whatsapp_event("order_paid", customer_phone, context, db, recipient_name=client_name)
+    except Exception as wa_err:
+        logger.error(f"Error triggering WhatsApp notifications for order {order.id}: {wa_err}")
+
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -331,11 +370,22 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     return {"status": "ok"}
 
 
+@router.get("/webhook/mercadopago")
+@router.get("/api/payment/webhook/mercadopago")
+@router.get("/payment/webhook/mercadopago")
+async def mercadopago_webhook_health():
+    """Healthcheck e validação de URL de notificação do Mercado Pago."""
+    return {"status": "online", "service": "Mercado Pago Webhook ECOSOPIS"}
+
+
 @router.post("/webhook/mercadopago")
+@router.post("/api/payment/webhook/mercadopago")
+@router.post("/payment/webhook/mercadopago")
 async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Receives notification from Mercado Pago (topic: merchant_order or payment).
     Handles JSON payloads (Webhooks v2), Form URL Encoded payloads (IPN), and Query Parameters.
+    Automatically finalizes order as 'paid', triggers emails and WhatsApp alerts.
     """
     data = {}
     try:
@@ -388,20 +438,30 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
             payment_info = get_mp_payment_status(str(resource_id))
             if payment_info.get("status") in ["approved", "authorized"]:
                 pedido_id = payment_info.get("external_reference")
+                order = None
                 if pedido_id:
                     try:
                         order_id_int = int(pedido_id)
                         order = db.query(models.Order).filter(models.Order.id == order_id_int).first()
-                        if order:
-                            finalize_order_on_payment(
-                                order=order,
-                                db=db,
-                                payment_id=str(resource_id),
-                                buyer_email=payment_info.get("payer", {}).get("email")
-                            )
-                            logger.info(f"MP Payment {resource_id} successfully processed for order {pedido_id}")
                     except ValueError:
                         logger.error(f"Invalid external_reference (not an int): {pedido_id}")
+                
+                # Fallback: se não achou por external_reference, busca por payment_id ou preference_id
+                if not order and resource_id:
+                    order = db.query(models.Order).filter(models.Order.mercadopago_payment_id == str(resource_id)).first()
+                if not order and payment_info.get("preference_id"):
+                    order = db.query(models.Order).filter(models.Order.mercadopago_preference_id == str(payment_info["preference_id"])).first()
+
+                if order:
+                    finalize_order_on_payment(
+                        order=order,
+                        db=db,
+                        payment_id=str(resource_id),
+                        buyer_email=payment_info.get("payer", {}).get("email")
+                    )
+                    logger.info(f"MP Payment {resource_id} successfully processed for order {order.id}")
+                else:
+                    logger.warning(f"Order not found for MP Payment {resource_id} (ext_ref: {pedido_id})")
         except Exception as e:
             logger.error(f"Error processing MP payment {resource_id}: {e}", exc_info=True)
             
@@ -424,22 +484,29 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                 
                 if has_approved_payment:
                     pedido_id = order_info.get("external_reference")
+                    order = None
                     if pedido_id:
                         try:
                             order_id_int = int(pedido_id)
                             order = db.query(models.Order).filter(models.Order.id == order_id_int).first()
-                            if order:
-                                payer_info = order_info.get("payer", {})
-                                buyer_email = payer_info.get("email")
-                                finalize_order_on_payment(
-                                    order=order,
-                                    db=db,
-                                    payment_id=approved_payment_id,
-                                    buyer_email=buyer_email
-                                )
-                                logger.info(f"MP Merchant Order {resource_id} successfully processed for order {pedido_id}")
                         except ValueError:
                             logger.error(f"Invalid external_reference in merchant_order (not an int): {pedido_id}")
+                    
+                    if not order and approved_payment_id:
+                        order = db.query(models.Order).filter(models.Order.mercadopago_payment_id == approved_payment_id).first()
+                    if not order and order_info.get("preference_id"):
+                        order = db.query(models.Order).filter(models.Order.mercadopago_preference_id == str(order_info["preference_id"])).first()
+
+                    if order:
+                        payer_info = order_info.get("payer", {})
+                        buyer_email = payer_info.get("email")
+                        finalize_order_on_payment(
+                            order=order,
+                            db=db,
+                            payment_id=approved_payment_id,
+                            buyer_email=buyer_email
+                        )
+                        logger.info(f"MP Merchant Order {resource_id} successfully processed for order {order.id}")
         except Exception as e:
             logger.error(f"Error processing MP merchant_order {resource_id}: {e}", exc_info=True)
 
@@ -476,7 +543,7 @@ async def get_payment_status(
         except Exception as e:
             logger.warning(f"Error checking explicit payment_id {payment_id} for order {order_id}: {e}")
 
-    # Proactive sync if still pending
+    # Proactive payment sync if still pending
     if order.status == "pending":
         from app.repositories.order_repository import OrderRepository
         from app.services.order_service import OrderService
@@ -490,6 +557,16 @@ async def get_payment_status(
             service.sync_mp_order_status(order.id)
             db.commit()
             db.refresh(order)
+
+    # Proactive shipping sync with Melhor Envio if paid or shipped
+    if order.status in ("paid", "shipped", "processando_envio", "erro_envio") and getattr(order, "shipment_id", None):
+        try:
+            from app.services.melhorenvio_service import sync_melhor_envio_status
+            sync_melhor_envio_status(order, db)
+            db.refresh(order)
+        except Exception as me_err:
+            logger.debug(f"Proactive ME sync on payment status skipped: {me_err}")
+
 
     payment_details = {}
     if order.status == "pending":

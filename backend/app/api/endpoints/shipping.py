@@ -351,3 +351,53 @@ async def download_label(
     if not os.path.exists(label_path):
         raise HTTPException(status_code=404, detail="Arquivo não encontrado.")
     return FileResponse(label_path, media_type="application/pdf", filename=f"etiqueta-pedido-{order_id}.pdf")
+
+
+@router.post("/sync/{order_id}", summary="Sincronizar status e rastreio de um pedido com o Melhor Envio")
+async def sync_shipping_status(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Consulta a API do Melhor Envio para o pedido especificado e atualiza status, rastreio e etiqueta.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+    from app.services.melhorenvio_service import sync_melhor_envio_status
+    result = sync_melhor_envio_status(order, db)
+    return result
+
+
+@router.post("/sync-all", summary="Sincronizar todos os pedidos ativos com o Melhor Envio")
+async def sync_all_active_shipping(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Sincroniza todos os pedidos com status 'paid', 'processando_envio' ou 'shipped' que possuem shipment_id.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    from app.services.melhorenvio_service import sync_melhor_envio_status
+    orders = db.query(models.Order).filter(
+        models.Order.status.in_(["paid", "processando_envio", "shipped", "erro_envio"]),
+        models.Order.shipment_id.isnot(None)
+    ).all()
+
+    results = []
+    for o in orders:
+        try:
+            res = sync_melhor_envio_status(o, db)
+            results.append(res)
+        except Exception as e:
+            logger.error(f"Erro ao sincronizar pedido #{o.id}: {e}")
+            results.append({"pedido_id": o.id, "erro": str(e)})
+
+    return {"total": len(orders), "synced": len(results), "details": results}
+

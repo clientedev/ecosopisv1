@@ -135,16 +135,14 @@ def update_order_status(
     try:
         user_email = order.customer_email or (order.user.email if order.user else None)
         if user_email:
-            emails.send_order_update_email(user_email, order.id, new_status)
+            emails.send_order_update_email(user_email, order.id, new_status, getattr(order, "codigo_rastreio", None))
             # If order just got paid, send confirmation email with PDF invoice attached
             if new_status == "paid":
                 try:
                     order_dict = _order_to_response(order, db)
                     pdf_bytes = pdf_service.generate_shipping_label_pdf(order_dict)
-                    # Prepare items list for email (need name, quantity, price)
                     items_for_email = []
                     for item in order_dict.get("items", []):
-                        # Assume item dict has keys name/quantity/price
                         items_for_email.append({
                             "name": item.get("product_name") or item.get("name") or "Item",
                             "quantity": item.get("quantity", 1),
@@ -158,10 +156,10 @@ def update_order_status(
 
     # Send WhatsApp Notification
     try:
+        from app.services.whatsapp import notify_customer_order_shipped, notify_customer_order_delivered, trigger_whatsapp_event
         phone = order.customer_phone or (order.user.phone if order.user else None)
         if phone:
-            from app.services.whatsapp import trigger_whatsapp_event
-            client_name = order.customer_name or order.buyer_name or (order.user.name if order.user else "Cliente")
+            client_name = order.customer_name or order.buyer_name or (order.user.full_name if order.user else "Cliente")
             
             # Format item names
             item_names = []
@@ -181,7 +179,9 @@ def update_order_status(
             if new_status == "paid":
                 trigger_whatsapp_event("order_paid", phone, context, db, recipient_name=client_name)
             elif new_status == "shipped":
-                trigger_whatsapp_event("order_shipped", phone, context, db, recipient_name=client_name)
+                notify_customer_order_shipped(order, db, getattr(order, "codigo_rastreio", None))
+            elif new_status == "delivered":
+                notify_customer_order_delivered(order, db)
     except Exception as wa_err:
         print(f"Error triggering WhatsApp notification: {wa_err}")
 
@@ -271,7 +271,7 @@ def get_order(
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
     
-    # Proactive sync
+    # Proactive payment sync
     if order.status == "pending":
         repo = OrderRepository(db)
         service = OrderService(repo)
@@ -283,6 +283,15 @@ def get_order(
             service.sync_mp_order_status(order.id)
             db.commit()
             db.refresh(order)
+
+    # Proactive shipping sync with Melhor Envio if paid or shipped
+    if order.status in ("paid", "shipped", "processando_envio", "erro_envio") and getattr(order, "shipment_id", None):
+        try:
+            from app.services.melhorenvio_service import sync_melhor_envio_status
+            sync_melhor_envio_status(order, db)
+            db.refresh(order)
+        except Exception as me_err:
+            pass
 
     return _order_to_response(order, db)
 

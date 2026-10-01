@@ -546,6 +546,7 @@ app.include_router(shipping.router, prefix="/shipping", tags=["shipping"])
 app.include_router(addresses.router, prefix="/addresses", tags=["addresses"])
 app.include_router(cart.router, prefix="/cart", tags=["cart"])
 app.include_router(payment.router, prefix="/payment", tags=["payment"])
+app.include_router(payment.router, prefix="/api/payment", tags=["payment_api"])
 app.include_router(crm.router, prefix="/crm", tags=["crm"])
 app.include_router(cashback.router, tags=["cashback"])
 app.include_router(raw_materials.router, prefix="/raw-materials", tags=["raw-materials"])
@@ -553,6 +554,8 @@ app.include_router(world_cup.router, prefix="/world-cup", tags=["world_cup"])
 app.include_router(popup.router, prefix="/popup", tags=["popup"])
 app.include_router(whatsapp.router, prefix="/whatsapp", tags=["whatsapp"])
 app.include_router(webhook_me.router)
+app.include_router(webhook_me.router, prefix="/api")
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -76,24 +76,73 @@ def send_order_confirmation_with_pdf(email: str, order_id: int, items: List[Dict
     }]
     return send_email(email, subject, html, attachments)
 
-def send_order_update_email(email: str, order_id: int, status: str):
+def send_order_update_email(email: str, order_id: int, status: str, tracking_code: str | None = None):
     status_map = {
         "paid": "Pagamento Confirmado! ✅",
+        "processando_envio": "Preparando seu Envio 📦",
         "shipped": "Seu pedido está a caminho! 🚚",
-        "delivered": "Pedido Entregue! 🏠",
+        "delivered": "Pedido Entregue! 🏠✨",
         "cancelled": "Pedido Cancelado"
     }
     status_text = status_map.get(status, status)
     subject = f"📦 Atualização no Pedido #{order_id} - {status_text}"
     
-    html = f"""
-    <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-        <h2 style="color: #4B8411;">Temos novidades sobre o seu pedido!</h2>
-        <p>O status do seu pedido <strong>#{order_id}</strong> foi atualizado para:</p>
-        <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; text-align: center; font-size: 1.2rem; font-weight: bold; color: #333;">
-            {status_text}
+    tracking_block = ""
+    if status == "shipped" and tracking_code:
+        tracking_url = f"https://melhorrastreio.com.br/rastreio/{tracking_code}"
+        tracking_block = f"""
+        <div style="margin: 24px 0; padding: 20px; background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 12px; text-align: center;">
+            <p style="margin: 0 0 6px; font-size: 0.8rem; font-weight: bold; color: #1e40af; text-transform: uppercase; letter-spacing: 1px;">
+                Código de Rastreamento (Melhor Envio)
+            </p>
+            <div style="font-family: monospace; font-size: 1.4rem; font-weight: bold; color: #1e3a8a; letter-spacing: 2px; margin-bottom: 14px;">
+                {tracking_code}
+            </div>
+            <a href="{tracking_url}" style="background-color: #2563eb; color: #ffffff; padding: 10px 22px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 0.88rem; display: inline-block;">
+                📍 Rastrear minha Encomenda
+            </a>
         </div>
-        <p style="margin-top: 20px;">Para mais detalhes, acesse sua conta no nosso site.</p>
+        """
+    elif status == "delivered":
+        tracking_block = """
+        <div style="margin: 24px 0; padding: 18px; background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 12px; text-align: center;">
+            <p style="margin: 0; font-size: 0.95rem; color: #15803d; font-weight: 600;">
+                Seu pacote foi entregue no seu endereço. Esperamos que você ame a sua experiência com a ECOSOPIS! 🌿
+            </p>
+        </div>
+        """
+
+    order_url = f"{FRONTEND_URL}/pedido/{order_id}"
+
+    html = f"""
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+        <div style="background-color: #2d5a27; color: white; padding: 24px; text-align: center;">
+            <h1 style="margin: 0; font-size: 1.4rem; font-weight: bold;">ECOSOPIS</h1>
+            <p style="margin: 4px 0 0; opacity: 0.9; font-size: 0.85rem;">Cosméticos Naturais e Veganos</p>
+        </div>
+        <div style="padding: 28px; background-color: #ffffff;">
+            <h2 style="color: #2d5a27; font-size: 1.2rem; margin-top: 0;">Temos novidades sobre o seu pedido!</h2>
+            <p style="color: #475569; font-size: 0.95rem; line-height: 1.6;">
+                O status do seu pedido <strong>#{order_id}</strong> foi atualizado para:
+            </p>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 10px; text-align: center; font-size: 1.15rem; font-weight: bold; color: #1e293b; margin: 16px 0;">
+                {status_text}
+            </div>
+
+            {tracking_block}
+
+            <div style="text-align: center; margin: 28px 0 10px;">
+                <a href="{order_url}" style="background-color: #2d5a27; color: white; padding: 12px 26px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 0.9rem; display: inline-block;">
+                    Ver Detalhes do Pedido
+                </a>
+            </div>
+            <p style="color: #94a3b8; font-size: 0.8rem; text-align: center; margin-top: 20px;">
+                Se você tiver qualquer dúvida, responda diretamente a este e-mail ou fale com a gente no WhatsApp.
+            </p>
+        </div>
+        <div style="background-color: #f8fafc; padding: 14px; text-align: center; font-size: 0.75rem; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+            Equipe ECOSOPIS • contato@ecosopis.com.br
+        </div>
     </div>
     """
     return send_email(email, subject, html)

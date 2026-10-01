@@ -436,9 +436,13 @@ def obter_tracking(shipment_id: str, tracking_from_cart: str = "") -> str:
 
 def obter_detalhes_envio(shipment_id: str) -> dict:
     """
-    GET /api/v2/me/shipment/tracking
     Retorna os detalhes do envio, incluindo status e rastreamento.
+    Consulta primeiro /api/v2/me/shipment/tracking e, se necessário, /api/v2/me/orders/{id}.
     """
+    if not shipment_id:
+        return {}
+
+    # 1. Tenta /api/v2/me/shipment/tracking
     try:
         resp = _request_with_retry(
             "GET", "/api/v2/me/shipment/tracking",
@@ -448,12 +452,130 @@ def obter_detalhes_envio(shipment_id: str) -> dict:
             data = resp.json()
             if isinstance(data, dict):
                 item = data.get(str(shipment_id)) or next(iter(data.values()), {})
-                return item
+                if item and isinstance(item, dict):
+                    return item
             elif isinstance(data, list) and data:
                 return data[0]
     except Exception as exc:
-        logger.warning(f"[ME] Erro ao obter detalhes do envio {shipment_id}: {exc}")
+        logger.warning(f"[ME] Erro ao obter detalhes via tracking para {shipment_id}: {exc}")
+
+    # 2. Fallback: GET /api/v2/me/orders/{shipment_id}
+    try:
+        resp_order = _request_with_retry("GET", f"/api/v2/me/orders/{shipment_id}")
+        if resp_order.status_code == 200:
+            data = resp_order.json()
+            if isinstance(data, dict):
+                return data
+    except Exception as exc:
+        logger.warning(f"[ME] Erro ao consultar /api/v2/me/orders/{shipment_id}: {exc}")
+
     return {}
+
+
+def sync_melhor_envio_status(order, db) -> dict:
+    """
+    Sincroniza o status do pedido com o Melhor Envio de forma automática:
+    - Se a etiqueta foi comprada/liberada no Melhor Envio: muda status para 'shipped' (Enviado).
+    - Se o Melhor Envio disponibilizou código de rastreio: salva e notifica o cliente por e-mail e WhatsApp.
+    - Se a etiqueta foi entregue: muda status para 'delivered' (Entregue) e notifica o cliente.
+    """
+    from app.core import emails
+    from app.services.whatsapp import notify_customer_order_shipped, notify_customer_order_delivered
+
+    shipment_id = getattr(order, "shipment_id", None)
+    if not shipment_id:
+        return {"pedido_id": order.id, "status": order.status, "atualizado": False, "motivo": "sem shipment_id"}
+
+    detalhes = obter_detalhes_envio(shipment_id)
+    if not detalhes:
+        return {"pedido_id": order.id, "status": order.status, "atualizado": False, "motivo": "falha ao consultar ME"}
+
+    me_status = str(detalhes.get("status") or "").lower().strip()
+    tracking_code = (
+        detalhes.get("tracking")
+        or detalhes.get("tracking_code")
+        or detalhes.get("code")
+        or ""
+    )
+
+    logger.info(f"[ME Sync] Pedido #{order.id} | Status Interno: {order.status} | Status ME: '{me_status}' | Tracking ME: '{tracking_code}'")
+
+    status_modificado = False
+    novo_tracking_salvo = False
+
+    # Status que indicam que a etiqueta foi comprada/liberada ou postada
+    shipped_me_statuses = {"released", "generated", "posted", "received", "in_transit", "attending"}
+
+    # 1. Se a etiqueta foi comprada no ME e o pedido ainda está como pago/processando:
+    if me_status in shipped_me_statuses:
+        if order.status in ("paid", "processando_envio", "erro_envio", "ERRO_ENVIO", "pending"):
+            order.status = "shipped"
+            status_modificado = True
+            logger.info(f"[ME Sync] ✅ Pedido #{order.id} atualizado para 'shipped' pois etiqueta foi comprada no ME (Status ME: {me_status})")
+
+    # 2. Se o pedido foi entregue:
+    elif me_status == "delivered":
+        if order.status != "delivered":
+            order.status = "delivered"
+            status_modificado = True
+            logger.info(f"[ME Sync] 🏠 Pedido #{order.id} atualizado para 'delivered' (Entregue)")
+
+    # 3. Atualizar código de rastreio se disponível
+    if not tracking_code:
+        # Tenta obter via função específica de tracking se ainda não temos no pedido
+        if not getattr(order, "codigo_rastreio", None) and me_status in (shipped_me_statuses | {"delivered"}):
+            tracking_code = obter_tracking(shipment_id)
+
+    if tracking_code and tracking_code != getattr(order, "codigo_rastreio", None):
+        order.codigo_rastreio = str(tracking_code).strip()
+        novo_tracking_salvo = True
+        logger.info(f"[ME Sync] 🔍 Pedido #{order.id} recebeu código de rastreio: {order.codigo_rastreio}")
+
+    # 4. Tentar garantir URL de impressão da etiqueta se ainda não houver
+    if not getattr(order, "etiqueta_url", None) and me_status in (shipped_me_statuses | {"delivered"}):
+        try:
+            etiqueta_url = imprimir_etiqueta(shipment_id)
+            if etiqueta_url:
+                order.etiqueta_url = etiqueta_url
+                order.correios_label_url = etiqueta_url
+                logger.info(f"[ME Sync] 📄 Etiqueta URL salva para pedido #{order.id}: {etiqueta_url}")
+        except Exception as p_err:
+            logger.debug(f"[ME Sync] Não foi possível obter URL da etiqueta para #{order.id}: {p_err}")
+
+    # Se houve qualquer alteração, persiste no banco
+    if status_modificado or novo_tracking_salvo:
+        db.commit()
+        db.refresh(order)
+
+        customer_email = getattr(order, "customer_email", None) or getattr(order, "buyer_email", None) or (order.user.email if order.user else None)
+
+        # Dispara notificações para o cliente
+        if order.status == "shipped" and (status_modificado or novo_tracking_salvo):
+            try:
+                if customer_email:
+                    emails.send_order_update_email(customer_email, order.id, "shipped", order.codigo_rastreio)
+                notify_customer_order_shipped(order, db, order.codigo_rastreio)
+            except Exception as notif_err:
+                logger.error(f"[ME Sync] Erro ao notificar cliente sobre envio do pedido #{order.id}: {notif_err}")
+
+        elif order.status == "delivered" and status_modificado:
+            try:
+                if customer_email:
+                    emails.send_order_update_email(customer_email, order.id, "delivered")
+                notify_customer_order_delivered(order, db)
+            except Exception as notif_err:
+                logger.error(f"[ME Sync] Erro ao notificar cliente sobre entrega do pedido #{order.id}: {notif_err}")
+
+    return {
+        "pedido_id": order.id,
+        "status": order.status,
+        "me_status": me_status,
+        "tracking_code": getattr(order, "codigo_rastreio", None),
+        "etiqueta_url": getattr(order, "etiqueta_url", None),
+        "status_modificado": status_modificado,
+        "novo_tracking": novo_tracking_salvo,
+    }
+
 
 
 def processar_envio(pedido, db) -> dict:
