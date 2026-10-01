@@ -4,7 +4,7 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
 import Link from "next/link";
-import { Trash2, ShoppingBag, ShieldCheck, Truck, CreditCard, ChevronRight, ChevronLeft, Loader2, Info, ShoppingCart, Coins, Lock, Plus, Minus, Check } from "lucide-react";
+import { Trash2, ShoppingBag, ShieldCheck, Truck, CreditCard, ChevronRight, ChevronLeft, Loader2, Info, ShoppingCart, Coins, Lock, Plus, Minus, Check, MapPin } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/components/Toast/Toast";
 import CheckoutTransparente from "@/components/CheckoutTransparente/CheckoutTransparente";
@@ -46,7 +46,7 @@ import { useAuth } from "@/context/AuthContext";
 export default function CarrinhoPage() {
     const { cart, updateQuantity, removeFromCart, cartTotal: subtotal, isWholesaleUnlocked, clearCart } = useCart();
     const { user, token, refreshProfile } = useAuth();
-    const [step, setStep] = useState<"cart" | "checkout">("cart");
+    const [step, setStep] = useState<"cart" | "address" | "payment">("cart");
     const [loading, setLoading] = useState(false);
     const { showToast } = useToast();
 
@@ -68,7 +68,7 @@ export default function CarrinhoPage() {
 
     // Mobile States
     const [isMobile, setIsMobile] = useState(false);
-    const [mobileStep, setMobileStep] = useState<"cart" | "profile" | "shipping" | "payment">("cart");
+    const [mobileStep, setMobileStep] = useState<"cart" | "address" | "payment">("cart");
 
     useEffect(() => {
         const handleResize = () => {
@@ -79,8 +79,9 @@ export default function CarrinhoPage() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const changeMobileStep = (nextStep: "cart" | "profile" | "shipping" | "payment") => {
+    const changeMobileStep = (nextStep: "cart" | "address" | "payment") => {
         setMobileStep(nextStep);
+        setStep(nextStep);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
@@ -270,7 +271,7 @@ export default function CarrinhoPage() {
 
     // Fetch Cashback balance and config
     useEffect(() => {
-        if (token && (step === "checkout" || (isMobile && mobileStep === "payment"))) {
+        if (token && (step === "address" || step === "payment" || (isMobile && (mobileStep === "address" || mobileStep === "payment")))) {
             const fetchCashback = async () => {
                 try {
                     const [balRes, cfgRes] = await Promise.all([
@@ -309,7 +310,7 @@ export default function CarrinhoPage() {
 
     useEffect(() => {
         const cleanCep = cep.replace(/\D/g, "");
-        if (cleanCep.length === 8 && cart.length > 0 && (step === "checkout" || (isMobile && (mobileStep === "shipping" || mobileStep === "payment")))) {
+        if (cleanCep.length === 8 && cart.length > 0) {
             const calculateShipping = async () => {
                 setLoadingShipping(true);
                 setShippingError(null);
@@ -677,8 +678,8 @@ export default function CarrinhoPage() {
         window.location.href = `/pagamento?status=approved&order_id=${orderId}`;
     };
 
-    const handleProfileSubmit = () => {
-        if (!customerName.trim()) {
+    const handleAddressStepSubmit = () => {
+        if (!customerName.trim() && !(user?.full_name?.trim())) {
             showToast("Por favor, preencha seu nome completo.", "error");
             return;
         }
@@ -686,28 +687,32 @@ export default function CarrinhoPage() {
             showToast("Por favor, insira um WhatsApp válido com DDD.", "error");
             return;
         }
-        if (!customerCpf.trim() || customerCpf.replace(/\D/g, "").length !== 11) {
-            showToast("Por favor, insira um CPF válido.", "error");
+        const cleanCpf = customerCpf.replace(/\D/g, "");
+        if (!cleanCpf || cleanCpf.length !== 11) {
+            showToast("Por favor, informe um CPF válido com 11 dígitos.", "error");
             return;
         }
-        changeMobileStep("shipping");
-    };
-
-    const handleShippingSubmit = () => {
         const cleanCep = cep.replace(/\D/g, "");
         if (cleanCep.length !== 8) {
-            showToast("Por favor, informe um CEP válido.", "error");
+            showToast("Por favor, digite um CEP válido com 8 dígitos.", "error");
             return;
         }
         if (!address.street || !address.number || !address.neighborhood || !address.city || !address.state) {
-            showToast("Por favor, preencha todos os campos do endereço.", "error");
+            showToast("Por favor, preencha todos os campos obrigatórios do endereço.", "error");
+            return;
+        }
+        const stateVal = address.state.trim().toUpperCase();
+        if (!stateVal || stateVal.length !== 2) {
+            showToast("Por favor, selecione o Estado (UF) de entrega.", "error");
             return;
         }
         if (!selectedShipping) {
-            showToast("Por favor, selecione uma opção de frete.", "error");
+            showToast("Por favor, selecione uma opção de frete para continuar.", "error");
             return;
         }
-        changeMobileStep("payment");
+        setStep("payment");
+        setMobileStep("payment");
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     if (isMobile) {
@@ -740,14 +745,16 @@ export default function CarrinhoPage() {
         }
 
         const progressPercent = 
-            mobileStep === "cart" ? 25 :
-            mobileStep === "profile" ? 50 :
-            mobileStep === "shipping" ? 75 : 100;
+            mobileStep === "cart" ? 33 :
+            mobileStep === "address" ? 66 : 100;
 
         const stepTitle = 
             mobileStep === "cart" ? "Revisar Sacola" :
-            mobileStep === "profile" ? "Identificação" :
-            mobileStep === "shipping" ? "Entrega e Frete" : "Pagamento Seguro";
+            mobileStep === "address" ? "Identificação e Entrega" : "Pagamento Seguro";
+
+        const stepSubtitle = 
+            mobileStep === "cart" ? "Passo 1 de 3" :
+            mobileStep === "address" ? "Passo 2 de 3" : "Passo 3 de 3";
 
         return (
             <main className={styles.mobileCheckoutWrapper}>
@@ -758,12 +765,10 @@ export default function CarrinhoPage() {
                         onClick={() => {
                             if (mobileStep === "cart") {
                                 window.location.href = "/produtos";
-                            } else if (mobileStep === "profile") {
+                            } else if (mobileStep === "address") {
                                 changeMobileStep("cart");
-                            } else if (mobileStep === "shipping") {
-                                changeMobileStep("profile");
                             } else if (mobileStep === "payment") {
-                                changeMobileStep("shipping");
+                                changeMobileStep("address");
                             }
                         }}
                     >
@@ -772,7 +777,7 @@ export default function CarrinhoPage() {
                     </button>
                     <div className={styles.mobileHeaderTitle}>
                         <h3>{stepTitle}</h3>
-                        <span className={styles.mobileHeaderSubtitle}>Passo {mobileStep === "cart" ? 1 : mobileStep === "profile" ? 2 : mobileStep === "shipping" ? 3 : 4} de 4</span>
+                        <span className={styles.mobileHeaderSubtitle}>{stepSubtitle}</span>
                     </div>
                     <div className={styles.mobileHeaderSecure}>
                         <ShieldCheck size={20} color="#2d5a27" />
@@ -907,23 +912,19 @@ export default function CarrinhoPage() {
                                     className="btn-primary" 
                                     style={{ flex: 1, height: '48px', fontSize: '0.95rem' }}
                                     onClick={() => {
-                                        if (!token) {
-                                            window.location.href = "/conta";
-                                        } else {
-                                            changeMobileStep("profile");
-                                        }
+                                        changeMobileStep("address");
                                     }}
                                 >
-                                    Identificar-se ➔
+                                    Continuar para Entrega ➔
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    {mobileStep === "profile" && (
+                    {mobileStep === "address" && (
                         <div className={styles.mobileProfileStep}>
                             <div className={styles.mobileFormSection}>
-                                <h3 className={styles.mobileSectionTitle}>Quem está comprando?</h3>
+                                <h3 className={styles.mobileSectionTitle}>1. Quem está comprando?</h3>
                                 <p className={styles.mobileSectionSubtitle}>Preencha seus dados para prosseguir com o pedido de forma segura.</p>
                                 
                                 <div className={styles.mobileInputGroup}>
@@ -962,22 +963,8 @@ export default function CarrinhoPage() {
                                 </div>
                             </div>
 
-                            <div className={styles.mobileStickyFooter}>
-                                <button 
-                                    className="btn-primary" 
-                                    style={{ width: '100%', height: '48px', fontSize: '0.95rem' }}
-                                    onClick={handleProfileSubmit}
-                                >
-                                    Continuar para Entrega ➔
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {mobileStep === "shipping" && (
-                        <div className={styles.mobileShippingStep}>
-                            <div className={styles.mobileFormSection}>
-                                <h3 className={styles.mobileSectionTitle}>Onde devemos entregar?</h3>
+                            <div className={styles.mobileFormSection} style={{ marginTop: '16px' }}>
+                                <h3 className={styles.mobileSectionTitle}>2. Onde devemos entregar?</h3>
                                 
                                 {user && user.addresses && user.addresses.length > 0 && !showAddressForm ? (
                                     <div className={styles.mobileSavedAddresses}>
@@ -1190,7 +1177,7 @@ export default function CarrinhoPage() {
                                 <button 
                                     className="btn-primary" 
                                     style={{ width: '100%', height: '48px', fontSize: '0.95rem' }}
-                                    onClick={handleShippingSubmit}
+                                    onClick={handleAddressStepSubmit}
                                 >
                                     Ir para o Pagamento ➔
                                 </button>
@@ -1218,6 +1205,15 @@ export default function CarrinhoPage() {
                                     <div className={styles.mobileSummaryItemRow}>
                                         <span>Transportadora:</span>
                                         <strong>{selectedShipping?.company} ({selectedShipping?.name})</strong>
+                                    </div>
+                                    <div style={{ marginTop: '8px', textAlign: 'right' }}>
+                                        <button 
+                                            type="button"
+                                            onClick={() => changeMobileStep("address")}
+                                            style={{ background: 'none', border: 'none', color: '#15803d', fontSize: '0.8rem', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}
+                                        >
+                                            ← Alterar endereço ou frete
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -1422,18 +1418,37 @@ export default function CarrinhoPage() {
             <Header />
             <div className={styles.carrinhoContainer}>
                 <div className={styles.stepsHeader}>
-                    <div className={`${styles.stepIndicator} ${step === "cart" ? styles.stepActive : ""}`}>
-                        <span className={styles.stepNum}>1</span> Carrinho
-                    </div>
-                    <ChevronRight size={16} />
-                    <div className={`${styles.stepIndicator} ${step === "checkout" ? styles.stepActive : ""}`}>
-                        <span className={styles.stepNum}>2</span> Finalização
+                    <button 
+                        type="button"
+                        className={`${styles.stepIndicator} ${step === "cart" ? styles.stepActive : styles.stepDone}`}
+                        onClick={() => { setStep("cart"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                        style={{ background: "none", border: "none", cursor: "pointer", font: "inherit" }}
+                    >
+                        <span className={styles.stepNum}>{step !== "cart" ? "✓" : "1"}</span> Carrinho
+                    </button>
+                    <ChevronRight size={16} color="#94a3b8" />
+                    <button 
+                        type="button"
+                        className={`${styles.stepIndicator} ${step === "address" ? styles.stepActive : (step === "payment" ? styles.stepDone : "")}`}
+                        onClick={() => {
+                            if (step === "payment") {
+                                setStep("address");
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                            }
+                        }}
+                        style={{ background: "none", border: "none", cursor: step === "payment" ? "pointer" : "default", font: "inherit" }}
+                    >
+                        <span className={styles.stepNum}>{step === "payment" ? "✓" : "2"}</span> Endereço & Entrega
+                    </button>
+                    <ChevronRight size={16} color="#94a3b8" />
+                    <div className={`${styles.stepIndicator} ${step === "payment" ? styles.stepActive : ""}`}>
+                        <span className={styles.stepNum}>3</span> Pagamento
                     </div>
                 </div>
 
                 <div className={styles.cartGrid}>
                     <div className={styles.leftColumn}>
-                        {step === "cart" ? (
+                        {step === "cart" && (
                             <div className={styles.itemsList}>
                                 {cart.map(item => (
                                     <div key={item.id} className={styles.cartItem}>
@@ -1445,6 +1460,7 @@ export default function CarrinhoPage() {
                                                     className={styles.itemImage}
                                                 />
                                             </div>
+                                            <div>
                                                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                                     <h4>{item.name}</h4>
                                                     {item.isWholesale && <span className={styles.wholesaleBadgeSmall}>ATACADO</span>}
@@ -1459,6 +1475,7 @@ export default function CarrinhoPage() {
                                                         <p>R$ {item.price.toFixed(2)}</p>
                                                     )}
                                                 </div>
+                                            </div>
                                         </div>
                                         <div className={styles.itemActions}>
                                             <div className={styles.quantityControl}>
@@ -1478,8 +1495,18 @@ export default function CarrinhoPage() {
                                     </Link>
                                 </div>
                             </div>
-                        ) : (
+                        )}
+
+                        {step === "address" && (
                             <div className={styles.checkoutForm}>
+                                <button
+                                    type="button"
+                                    className={styles.backStepHeaderBtn}
+                                    onClick={() => { setStep("cart"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                                >
+                                    <ChevronLeft size={18} /> Voltar ao Carrinho
+                                </button>
+
                                 <div className={styles.detailSection}>
                                     <h3>👤 SEUS DADOS</h3>
                                     <div className={styles.inputGroup}>
@@ -1572,7 +1599,7 @@ export default function CarrinhoPage() {
                                 </div>
 
                                 <div className={styles.detailSection}>
-                                    <h3>🚚 FRETE</h3>
+                                    <h3>🚚 OPÇÃO DE ENVIO</h3>
                                     {loadingShipping ? (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b' }}>
                                             <Loader2 size={18} className="spin" /> Calculando frete...
@@ -1596,7 +1623,7 @@ export default function CarrinhoPage() {
                                                 const isFree = (appliesFreeShipping || appliedCoupon?.type === "free_shipping") && cheapestOption && opt.id === cheapestOption.id;
                                                 return (
                                                     <div 
-                                                        key={opt.id}
+                                                        key={opt.id} 
                                                         style={{ 
                                                             padding: "16px", background: selectedShipping?.id === opt.id ? "#f0f7ee" : "#fff", 
                                                             borderRadius: "12px", border: selectedShipping?.id === opt.id ? "1px solid #d4edda" : "1px solid #e2e8f0", 
@@ -1630,13 +1657,52 @@ export default function CarrinhoPage() {
                                         </div>
                                     ) : (
                                         <div style={{ color: "#64748b", fontSize: "0.9rem" }}>
-                                            Insira o CEP de entrega para calcular o frete.
+                                            Insira o CEP de entrega acima para calcular o frete.
                                         </div>
                                     )}
                                 </div>
+                            </div>
+                        )}
 
-                                {transparentEnabled && (
-                                    <div style={{ marginTop: "24px" }}>
+                        {step === "payment" && (
+                            <div className={styles.checkoutForm}>
+                                <button
+                                    type="button"
+                                    className={styles.backStepHeaderBtn}
+                                    onClick={() => { setStep("address"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                                >
+                                    <ChevronLeft size={18} /> Voltar para Endereço & Frete
+                                </button>
+
+                                <div className={styles.confirmedDeliveryCard}>
+                                    <div className={styles.confirmedDeliveryHeader}>
+                                        <div className={styles.confirmedDeliveryTitle}>
+                                            <MapPin size={18} color="#166534" />
+                                            <span>Dados de Entrega Confirmados</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className={styles.confirmedDeliveryEditBtn}
+                                            onClick={() => { setStep("address"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                                        >
+                                            Editar
+                                        </button>
+                                    </div>
+                                    <div className={styles.confirmedDeliveryBody}>
+                                        <p style={{ margin: "0 0 4px", fontSize: "0.92rem", color: "#1e293b", fontWeight: 600 }}>
+                                            {customerName || user?.full_name} • {formatPhone(customerPhone)} • CPF: {customerCpf}
+                                        </p>
+                                        <p style={{ margin: "0 0 4px", fontSize: "0.88rem", color: "#475569" }}>
+                                            {address.street}, {address.number}{address.complement ? ` - ${address.complement}` : ""} • {address.neighborhood}, {address.city} - {address.state} • CEP {cep}
+                                        </p>
+                                        <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "#166534", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+                                            <Truck size={15} /> Frete: {selectedShipping ? `${selectedShipping.company} - ${selectedShipping.name}` : "Melhor Envio"} ({appliesFreeShipping ? "GRÁTIS" : `R$ ${shippingPrice.toFixed(2)}`})
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {transparentEnabled ? (
+                                    <div style={{ marginTop: "10px" }}>
                                         <CheckoutTransparente
                                             orderData={orderDataForPayment}
                                             userEmail={user?.email || ""}
@@ -1646,6 +1712,28 @@ export default function CarrinhoPage() {
                                             validateCustomerData={validateCustomerData}
                                         />
                                     </div>
+                                ) : (
+                                    <div className={styles.detailSection}>
+                                        <h3>MÉTODO DE PAGAMENTO</h3>
+                                        <div 
+                                            className={`${styles.compactPaymentOption} ${styles.compactSelected}`}
+                                            style={{ padding: "16px", borderRadius: "12px", border: "1px solid #d4edda", background: "#f0f7ee", display: "flex", alignItems: "center", gap: "12px" }}
+                                        >
+                                            <div style={{ width: 24, height: 24, background: '#009ee3', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 900 }}>MP</div>
+                                            <div style={{ flex: 1 }}>
+                                                <strong>Mercado Pago</strong>
+                                                <p style={{ margin: 0, fontSize: "0.8rem", color: "#64748b" }}>Pague com PIX ou Cartão em ambiente seguro</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            className={`btn-primary ${styles.desktopCheckoutBtn}`}
+                                            style={{ width: "100%", marginTop: "24px", height: "56px", fontSize: "1.1rem" }}
+                                            onClick={handleCheckout}
+                                            disabled={loading}
+                                        >
+                                            {loading ? "PROCESSANDO..." : "FINALIZAR E PAGAR AGORA"}
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -1654,6 +1742,35 @@ export default function CarrinhoPage() {
                     <div className={styles.rightColumn}>
                         <div className={styles.summaryCard}>
                             <h3>RESUMO DO PEDIDO</h3>
+
+                            {step === "payment" && (
+                                <div style={{ marginBottom: "20px" }}>
+                                    <h4 style={{ fontSize: "0.85rem", color: "#64748b", margin: "0 0 12px 0", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                        Itens no Pedido ({cart.reduce((a, b) => a + b.quantity, 0)})
+                                    </h4>
+                                    <div className={styles.miniItemsList}>
+                                        {cart.map(item => {
+                                            const isItemDiscounted = item.isWholesale && isWholesaleEligible;
+                                            const itemPrice = isItemDiscounted ? item.price * 0.7 : item.price;
+                                            return (
+                                                <div key={item.id} className={styles.miniItemRow}>
+                                                    <img 
+                                                        src={item.image_url || "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png"} 
+                                                        alt={item.name} 
+                                                        className={styles.miniItemImg} 
+                                                    />
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <p className={styles.miniItemTitle}>{item.name}</p>
+                                                        <span className={styles.miniItemQty}>{item.quantity}x R$ {itemPrice.toFixed(2)}</span>
+                                                    </div>
+                                                    <span className={styles.miniItemPrice}>R$ {(itemPrice * item.quantity).toFixed(2)}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className={styles.summaryDivider}></div>
+                                </div>
+                            )}
 
                             {step === "cart" && (
                                 <div style={{ marginBottom: "20px" }}>
@@ -1688,88 +1805,92 @@ export default function CarrinhoPage() {
                                 </div>
                             )}
                             
-                            <div className={styles.promoCode}>
-                                <input 
-                                    type="text" 
-                                    placeholder="Cupom de desconto" 
-                                    className={styles.couponInput}
-                                    value={couponCode}
-                                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                                />
-                                <button onClick={handleApplyCoupon}>Aplicar</button>
-                            </div>
-                            {couponError && <p style={{ color: "#e11d48", fontSize: "0.75rem", marginTop: "5px" }}>{couponError}</p>}
-                            {appliedCoupon && (
-                                <div className={styles.appliedCoupon}>
-                                    <span>Cupom: {appliedCoupon.code}</span>
-                                    <button onClick={() => setAppliedCoupon(null)}>Remover</button>
-                                </div>
-                            )}
-                            
-                            {availableRouletteCoupon && availableRouletteCoupon.hasDiscount && (!appliedCoupon || !appliedCoupon.code?.startsWith("ROLETA")) && (
-                                <div style={{ marginTop: '12px', padding: '12px', background: '#f0fdf4', border: '1px dashed #22c55e', borderRadius: '8px' }}>
-                                    <p style={{ fontSize: '0.85rem', color: '#166534', margin: '0 0 8px 0' }}>
-                                        <strong>🎁 Prêmio da Roleta Disponível:</strong><br/>{availableRouletteCoupon.name}
-                                    </p>
-                                    {availableRouletteCoupon.code ? (
-                                        <button 
-                                            onClick={() => {
-                                                if (isWholesaleEligible) {
-                                                    alert("O cupom da roleta não pode ser usado em pedidos de atacado.");
-                                                    return;
-                                                }
-                                                setAppliedCoupon({
-                                                    code: availableRouletteCoupon.code,
-                                                    type: availableRouletteCoupon.type,
-                                                    value: availableRouletteCoupon.value,
-                                                    name: availableRouletteCoupon.name
-                                                });
-                                            }}
-                                            style={{ width: '100%', background: '#22c55e', color: 'white', border: 'none', padding: '8px', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}
-                                            onMouseOver={(e) => e.currentTarget.style.background = '#16a34a'}
-                                            onMouseOut={(e) => e.currentTarget.style.background = '#22c55e'}
-                                        >
-                                            USAR MEU CUPOM AGORA
-                                        </button>
-                                    ) : (
-                                        <p style={{ fontSize: '0.8rem', color: '#dc2626', margin: 0, fontWeight: 600 }}>
-                                            ⚠️ Clique em &quot;Resgatar Prêmio&quot; na roleta para gerar seu código de cupom.
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-
-                            {availableCashback > 0 && (
-                                <div className={styles.cashbackApplyBox}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                            <Coins size={18} color="#059669" />
-                                            <div>
-                                                <strong style={{ fontSize: "0.85rem" }}>Usar R$ {availableCashback.toFixed(2)}</strong>
-                                                <p style={{ margin: 0, fontSize: "0.7rem", color: "#64748b" }}>Saldo de Cashback disponível</p>
-                                            </div>
-                                        </div>
-                                        <label className={styles.switch}>
-                                            <input 
-                                                type="checkbox" 
-                                                checked={useCashback} 
-                                                onChange={(e) => {
-                                                    if (appliedCoupon && cashbackConfig && !cashbackConfig.allow_with_coupons) {
-                                                        alert("O sistema não permite usar cupom e cashback no mesmo pedido.");
-                                                        return;
-                                                    }
-                                                    setUseCashback(e.target.checked);
-                                                }}
-                                            />
-                                            <span className={styles.slider}></span>
-                                        </label>
+                            {step !== "payment" && (
+                                <>
+                                    <div className={styles.promoCode}>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Cupom de desconto" 
+                                            className={styles.couponInput}
+                                            value={couponCode}
+                                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                        />
+                                        <button onClick={handleApplyCoupon}>Aplicar</button>
                                     </div>
-                                    {useCashback && cashbackConfig && subtotal < cashbackConfig.min_purchase_to_use && (
-                                        <p style={{ color: "#e11d48", fontSize: "0.7rem", marginTop: "8px" }}>
-                                            ⚠️ Mínimo de R$ {cashbackConfig.min_purchase_to_use.toFixed(2)} em produtos necessário.
-                                        </p>
+                                    {couponError && <p style={{ color: "#e11d48", fontSize: "0.75rem", marginTop: "5px" }}>{couponError}</p>}
+                                    {appliedCoupon && (
+                                        <div className={styles.appliedCoupon}>
+                                            <span>Cupom: {appliedCoupon.code}</span>
+                                            <button onClick={() => setAppliedCoupon(null)}>Remover</button>
+                                        </div>
                                     )}
-                                </div>
+                                    
+                                    {availableRouletteCoupon && availableRouletteCoupon.hasDiscount && (!appliedCoupon || !appliedCoupon.code?.startsWith("ROLETA")) && (
+                                        <div style={{ marginTop: '12px', padding: '12px', background: '#f0fdf4', border: '1px dashed #22c55e', borderRadius: '8px' }}>
+                                            <p style={{ fontSize: '0.85rem', color: '#166534', margin: '0 0 8px 0' }}>
+                                                <strong>🎁 Prêmio da Roleta Disponível:</strong><br/>{availableRouletteCoupon.name}
+                                            </p>
+                                            {availableRouletteCoupon.code ? (
+                                                <button 
+                                                    onClick={() => {
+                                                        if (isWholesaleEligible) {
+                                                            alert("O cupom da roleta não pode ser usado em pedidos de atacado.");
+                                                            return;
+                                                        }
+                                                        setAppliedCoupon({
+                                                            code: availableRouletteCoupon.code,
+                                                            type: availableRouletteCoupon.type,
+                                                            value: availableRouletteCoupon.value,
+                                                            name: availableRouletteCoupon.name
+                                                        });
+                                                    }}
+                                                    style={{ width: '100%', background: '#22c55e', color: 'white', border: 'none', padding: '8px', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}
+                                                    onMouseOver={(e) => e.currentTarget.style.background = '#16a34a'}
+                                                    onMouseOut={(e) => e.currentTarget.style.background = '#22c55e'}
+                                                >
+                                                    USAR MEU CUPOM AGORA
+                                                </button>
+                                            ) : (
+                                                <p style={{ fontSize: '0.8rem', color: '#dc2626', margin: 0, fontWeight: 600 }}>
+                                                    ⚠️ Clique em &quot;Resgatar Prêmio&quot; na roleta para gerar seu código de cupom.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {availableCashback > 0 && (
+                                        <div className={styles.cashbackApplyBox}>
+                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                    <Coins size={18} color="#059669" />
+                                                    <div>
+                                                        <strong style={{ fontSize: "0.85rem" }}>Usar R$ {availableCashback.toFixed(2)}</strong>
+                                                        <p style={{ margin: 0, fontSize: "0.7rem", color: "#64748b" }}>Saldo de Cashback disponível</p>
+                                                    </div>
+                                                </div>
+                                                <label className={styles.switch}>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={useCashback} 
+                                                        onChange={(e) => {
+                                                            if (appliedCoupon && cashbackConfig && !cashbackConfig.allow_with_coupons) {
+                                                                alert("O sistema não permite usar cupom e cashback no mesmo pedido.");
+                                                                return;
+                                                            }
+                                                            setUseCashback(e.target.checked);
+                                                        }}
+                                                    />
+                                                    <span className={styles.slider}></span>
+                                                </label>
+                                            </div>
+                                            {useCashback && cashbackConfig && subtotal < cashbackConfig.min_purchase_to_use && (
+                                                <p style={{ color: "#e11d48", fontSize: "0.7rem", marginTop: "8px" }}>
+                                                    ⚠️ Mínimo de R$ {cashbackConfig.min_purchase_to_use.toFixed(2)} em produtos necessário.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
                             )}
 
                             <div className={styles.summaryDivider}></div>
@@ -1807,43 +1928,30 @@ export default function CarrinhoPage() {
                                 </div>
                             )}
 
-                            {step === "checkout" && !transparentEnabled && (
-                                <div className={styles.paymentSectionInSummary}>
-                                    <h4 style={{ fontSize: "0.9rem", color: "#64748b", margin: "20px 0 12px", fontWeight: 700 }}>MÉTODO DE PAGAMENTO</h4>
-                                    <div className={styles.compactPaymentSelector}>
-                                        {/* Stripe option hidden per user request */}
-                                        <div 
-                                            className={`${styles.compactPaymentOption} ${paymentMethod === 'mercadopago' ? styles.compactSelected : ''}`}
-                                            onClick={() => setPaymentMethod('mercadopago')}
-                                        >
-                                            <div style={{ width: 20, height: 20, background: '#009ee3', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, color: 'white', fontSize: 10, fontWeight: 900 }}>MP</div>
-                                            <span>Mercado Pago</span>
-                                            <div className={styles.compactRadio}></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
                             {step === "cart" ? (
-                                <button className={`btn-primary ${styles.desktopCheckoutBtn}`} style={{ width: "100%", marginTop: "24px", height: "56px" }} onClick={() => {
-                                    if (!token) {
-                                        window.location.href = "/conta";
-                                    } else {
-                                        setStep("checkout");
-                                    }
-                                }}>
-                                    CONTINUAR <ChevronRight size={18} />
+                                <button 
+                                    className={`btn-primary ${styles.desktopCheckoutBtn}`} 
+                                    style={{ width: "100%", marginTop: "24px", height: "56px" }} 
+                                    onClick={() => {
+                                        if (!token) {
+                                            window.location.href = "/conta";
+                                        } else {
+                                            setStep("address");
+                                            window.scrollTo({ top: 0, behavior: "smooth" });
+                                        }
+                                    }}
+                                >
+                                    CONTINUAR PARA ENTREGA <ChevronRight size={18} />
                                 </button>
-                            ) : !transparentEnabled ? (
+                            ) : step === "address" ? (
                                 <button
                                     className={`btn-primary ${styles.desktopCheckoutBtn}`}
-                                    style={{ width: "100%", marginTop: "24px", height: "64px", fontSize: "1.1rem" }}
-                                    onClick={handleCheckout}
-                                    disabled={loading}
+                                    style={{ width: "100%", marginTop: "24px", height: "56px", fontSize: "1.05rem" }}
+                                    onClick={handleAddressStepSubmit}
                                 >
-                                    {loading ? "PROCESSANDO..." : "FINALIZAR COMPRA"}
+                                    CONTINUAR PARA PAGAMENTO <ChevronRight size={18} />
                                 </button>
-                            ) : (
+                            ) : transparentEnabled ? (
                                 <div style={{
                                     marginTop: "20px",
                                     padding: "16px",
@@ -1859,7 +1967,7 @@ export default function CarrinhoPage() {
                                         Selecione PIX ou Cartão ao lado para concluir sua compra com segurança total.
                                     </p>
                                 </div>
-                            )}
+                            ) : null}
 
                             <div className={styles.securityBadge}>
                                 <ShieldCheck size={24} color="#2d5a27" />
@@ -1884,21 +1992,20 @@ export default function CarrinhoPage() {
                         if (!token) {
                             window.location.href = "/conta";
                         } else {
-                            setStep("checkout");
+                            setStep("address");
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                         }
                     }}>
                         CONTINUAR
                     </button>
-                ) : (
+                ) : step === "address" ? (
                     <button
                         className="btn-primary"
-                        onClick={handleCheckout}
-                        disabled={loading}
+                        onClick={handleAddressStepSubmit}
                     >
-                        {loading ? "PROCESSANDO..." : "FINALIZAR COMPRA"}
+                        IR PARA PAGAMENTO
                     </button>
-                )}
+                ) : null}
             </div>
 
             <Footer />

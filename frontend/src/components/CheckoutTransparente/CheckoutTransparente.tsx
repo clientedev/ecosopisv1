@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import Script from "next/script";
-import { QrCode, CreditCard, Copy, Check, Loader2, ShieldCheck, AlertCircle, Lock } from "lucide-react";
+import { QrCode, CreditCard, Copy, Check, Loader2, ShieldCheck, AlertCircle, Lock, Info } from "lucide-react";
 import styles from "./CheckoutTransparente.module.css";
 
 interface CheckoutTransparenteProps {
@@ -55,6 +55,7 @@ export default function CheckoutTransparente({
     // Card Brick states
     const [brickMounted, setBrickMounted] = useState(false);
     const [brickLoading, setBrickLoading] = useState(false);
+    const [cardBin, setCardBin] = useState("");
     const brickControllerRef = useRef<any>(null);
 
     // Error & info states
@@ -131,7 +132,11 @@ export default function CheckoutTransparente({
                             }
                         },
                         paymentMethods: {
+                            minInstallments: 1,
                             maxInstallments: 12,
+                            types: {
+                                excluded: ['debit_card']
+                            }
                         }
                     },
                     callbacks: {
@@ -139,6 +144,11 @@ export default function CheckoutTransparente({
                             if (!isCancelled) {
                                 setBrickLoading(false);
                                 setBrickMounted(true);
+                            }
+                        },
+                        onBinChange: (bin: string) => {
+                            if (!isCancelled) {
+                                setCardBin(bin || "");
                             }
                         },
                         onSubmit: (cardFormData: any) => {
@@ -538,6 +548,64 @@ export default function CheckoutTransparente({
                     ══════════════════════════════════════════════════════════════ */}
                 {selectedTab === "card" && (
                     <div className={styles.tabContent}>
+                        <div className={styles.installmentsPreviewCard}>
+                            <div className={styles.installmentsPreviewHeader}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <CreditCard size={18} color="#166534" />
+                                    <strong>Parcelamento Disponível</strong>
+                                </div>
+                                <span className={styles.installmentsPreviewMax}>
+                                    Até 12x de R$ {(orderData.total / 12).toFixed(2)}
+                                </span>
+                            </div>
+
+                            <div className={styles.installmentsChipsGrid}>
+                                <div className={styles.installmentChip}>
+                                    <span className={styles.chipInstallment}>1x de</span>
+                                    <strong className={styles.chipValue}>R$ {orderData.total.toFixed(2)}</strong>
+                                    <small className={styles.chipTag}>à vista</small>
+                                </div>
+                                <div className={styles.installmentChip}>
+                                    <span className={styles.chipInstallment}>2x de</span>
+                                    <strong className={styles.chipValue}>R$ {(orderData.total / 2).toFixed(2)}</strong>
+                                    <small className={styles.chipTag}>sem juros</small>
+                                </div>
+                                <div className={styles.installmentChip}>
+                                    <span className={styles.chipInstallment}>3x de</span>
+                                    <strong className={styles.chipValue}>R$ {(orderData.total / 3).toFixed(2)}</strong>
+                                    <small className={styles.chipTag}>sem juros</small>
+                                </div>
+                                <div className={styles.installmentChip}>
+                                    <span className={styles.chipInstallment}>6x de</span>
+                                    <strong className={styles.chipValue}>R$ {(orderData.total / 6).toFixed(2)}</strong>
+                                    <small className={styles.chipTag}>no cartão</small>
+                                </div>
+                                <div className={styles.installmentChip}>
+                                    <span className={styles.chipInstallment}>12x de</span>
+                                    <strong className={styles.chipValue}>R$ {(orderData.total / 12).toFixed(2)}</strong>
+                                    <small className={styles.chipTag}>até 12x</small>
+                                </div>
+                            </div>
+
+                            <div className={styles.installmentsStatusBox}>
+                                {cardBin.length >= 6 ? (
+                                    <div className={styles.binReadyNotice}>
+                                        <Check size={16} color="#16a34a" />
+                                        <span>
+                                            <strong>Cartão identificado!</strong> O seletor oficial de parcelas do Mercado Pago está ativo abaixo. Selecione suas parcelas e confirme.
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className={styles.binWaitingNotice}>
+                                        <Info size={16} color="#0284c7" />
+                                        <span>
+                                            Digite os 16 números do seu cartão no formulário abaixo para o Mercado Pago calcular e exibir as opções exatas da sua bandeira.
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         {brickLoading && (
                             <div className={styles.brickLoadingBox}>
                                 <Loader2 size={24} className="spin" color="#2d5a27" />
