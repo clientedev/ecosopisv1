@@ -1187,7 +1187,32 @@ export default function CarrinhoPage() {
                                 ) : (
                                     <p style={{ fontSize: '0.85rem', color: '#64748b', textAlign: 'center' }}>Digite seu CEP acima para ver as opções de frete.</p>
                                 )}
+
+                                {/* Botão de destaque abaixo das ações de endereço e frete */}
+                                <div style={{ marginTop: '20px' }}>
+                                    <button 
+                                        type="button"
+                                        className="btn-primary" 
+                                        style={{
+                                            width: '100%',
+                                            height: '54px',
+                                            fontSize: '1.02rem',
+                                            fontWeight: 800,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            borderRadius: '12px',
+                                            boxShadow: '0 4px 14px rgba(45, 90, 39, 0.25)'
+                                        }}
+                                        onClick={handleAddressStepSubmit}
+                                    >
+                                        <span>CONTINUAR PARA PAGAMENTO</span>
+                                        <ChevronRight size={18} />
+                                    </button>
+                                </div>
                             </div>
+
 
                             <div className={styles.mobileStickyFooter}>
                                 <button 
@@ -1505,12 +1530,39 @@ export default function CarrinhoPage() {
                                         </div>
                                     </div>
                                 ))}
-                                <div style={{ marginTop: "30px", textAlign: "right" }}>
+                                <div style={{ marginTop: "24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
                                     <Link href="/produtos" style={{ color: "#2d5a27", fontSize: "0.95rem", fontWeight: 700, textDecoration: "underline" }}>
                                         ← Adicionar mais itens
                                     </Link>
+                                    <button
+                                        type="button"
+                                        className="btn-primary"
+                                        style={{
+                                            height: "50px",
+                                            padding: "0 28px",
+                                            fontSize: "1rem",
+                                            fontWeight: 800,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "8px",
+                                            borderRadius: "10px",
+                                            boxShadow: "0 4px 12px rgba(45, 90, 39, 0.2)"
+                                        }}
+                                        onClick={() => {
+                                            if (!token) {
+                                                window.location.href = `/conta?redirect=${encodeURIComponent('/carrinho?step=address')}`;
+                                            } else {
+                                                setStep("address");
+                                                window.scrollTo({ top: 0, behavior: "smooth" });
+                                            }
+                                        }}
+                                    >
+                                        <span>AVANÇAR PARA ENTREGA</span>
+                                        <ChevronRight size={18} />
+                                    </button>
                                 </div>
                             </div>
+
                         )}
 
                         {step === "address" && (
@@ -1676,6 +1728,47 @@ export default function CarrinhoPage() {
                                             Insira o CEP de entrega acima para calcular o frete.
                                         </div>
                                     )}
+                                </div>
+
+                                {/* Botão de Destaque Abaixo das Ações - Avançar para Pagamento */}
+                                <div style={{
+                                    marginTop: '24px',
+                                    padding: '20px 24px',
+                                    background: '#ffffff',
+                                    borderRadius: '14px',
+                                    border: '2px solid #2d5a27',
+                                    boxShadow: '0 4px 20px rgba(45, 90, 39, 0.1)',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    gap: '16px',
+                                    flexWrap: 'wrap'
+                                }}>
+                                    <div>
+                                        <strong style={{ fontSize: '1.05rem', color: '#1e293b', display: 'block' }}>Tudo pronto para finalizar?</strong>
+                                        <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Revise o frete e avance para a página final de pagamento.</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="btn-primary"
+                                        style={{
+                                            minWidth: '270px',
+                                            height: '54px',
+                                            fontSize: '1.05rem',
+                                            fontWeight: 800,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '10px',
+                                            borderRadius: '10px',
+                                            boxShadow: '0 4px 16px rgba(45, 90, 39, 0.25)',
+                                            cursor: 'pointer'
+                                        }}
+                                        onClick={handleAddressStepSubmit}
+                                    >
+                                        <span>CONTINUAR PARA PAGAMENTO</span>
+                                        <ChevronRight size={20} />
+                                    </button>
                                 </div>
                             </div>
                         )}

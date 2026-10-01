@@ -352,16 +352,27 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 26px;
-    border-radius: 5px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    height: 32px;
+    padding: 3px 8px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
 }
 
 .brandLogoItem:hover {
     transform: translateY(-1px);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+    border-color: #cbd5e1;
+}
+
+.brandImg {
+    height: 20px;
+    width: auto;
+    max-width: 44px;
+    object-fit: contain;
+    display: block;
 }
 
 
@@ -641,7 +652,7 @@
 
 @media (max-width: 600px) {
     .container {
-        padding: 16px;
+        padding: 14px;
     }
     .tabsHeader {
         flex-direction: column;
@@ -650,4 +661,34 @@
     .tabBtn {
         justify-content: space-between;
     }
+    .cardHeaderBanner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .cardBrandBadges {
+        width: 100%;
+        gap: 6px;
+    }
+    .brandLogoItem {
+        height: 28px;
+        padding: 2px 6px;
+    }
+    .brandImg {
+        height: 16px;
+        max-width: 36px;
+    }
+    .installmentRowItem {
+        padding: 8px 10px;
+    }
+    .installmentNumber {
+        font-size: 0.8rem;
+    }
+    .installmentAmount {
+        font-size: 0.88rem;
+    }
+    .installmentTotalText {
+        font-size: 0.74rem;
+    }
 }
+

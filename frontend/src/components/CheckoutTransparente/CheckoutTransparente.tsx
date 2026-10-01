@@ -35,52 +35,15 @@ interface RealInstallment {
     has_interest: boolean;
 }
 
-// ── BANDEIRAS DE CARTÃO REAIS (SVG OFICIAIS) ──────────────────────────────────
-const VisaLogo = () => (
-    <svg width="42" height="26" viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="48" height="30" rx="4" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1"/>
-        <path d="M19.2 21H16.6L18.3 9H20.9L19.2 21Z" fill="#1434CB"/>
-        <path d="M27.8 9.3C27.2 9.1 26.3 9 25.2 9C22.4 9 20.4 10.5 20.4 12.6C20.4 14.2 21.8 15 22.9 15.5C24 16.1 24.4 16.4 24.4 17C24.4 17.8 23.4 18.2 22.5 18.2C21.4 18.2 20.8 18 19.8 17.5L19.4 17.3L19 19.9C19.7 20.2 21 20.5 22.3 20.5C25.3 20.5 27.2 19 27.2 16.8C27.2 15.5 26.4 14.4 24.6 13.5C23.6 13 23 12.6 23 12C23 11.5 23.6 11 24.7 11C25.6 11 26.3 11.2 26.9 11.5L27.2 11.6L27.8 9.3Z" fill="#1434CB"/>
-        <path d="M32.4 17C32.6 16.4 33.4 14.2 33.4 14.2C33.4 14.2 33.6 13.7 33.7 13.2L33.9 14.1C33.9 14.1 34.4 16.5 34.6 17H32.4ZM36.3 21H38.8L36.7 9H34.4C33.8 9 33.4 9.3 33.1 9.9L28.2 21H31L31.6 19.2H35L35.3 21H36.3Z" fill="#1434CB"/>
-        <path d="M14.5 9H11.8L8 18.1L7.6 16C7.1 14.2 5.6 12.3 3.9 11.4L6.5 21H9.3L14.5 9Z" fill="#1434CB"/>
-        <path d="M5.7 9H0.1L0 9.3C4.6 10.5 7.6 13.4 8.8 16.7L7.9 11.9C7.7 10 6.9 9.1 6 9Z" fill="#F8A01A"/>
-    </svg>
-);
+// ── BANDEIRAS OFICIAIS MERCADO PAGO ──────────────────────────────────────────
+const CARD_BRANDS = [
+    { id: "visa", name: "Visa", icon: "/images/cards/visa.png" },
+    { id: "master", name: "Mastercard", icon: "/images/cards/mastercard.png" },
+    { id: "elo", name: "Elo", icon: "/images/cards/elo.png" },
+    { id: "amex", name: "American Express", icon: "/images/cards/amex.png" },
+    { id: "hipercard", name: "Hipercard", icon: "/images/cards/hipercard.png" },
+];
 
-const MastercardLogo = () => (
-    <svg width="42" height="26" viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="48" height="30" rx="4" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1"/>
-        <circle cx="18.5" cy="15" r="9" fill="#EB001B"/>
-        <circle cx="29.5" cy="15" r="9" fill="#F79E1B"/>
-        <path d="M24 8.4C22.3 10.2 21.2 12.5 21.2 15C21.2 17.5 22.3 19.8 24 21.6C25.7 19.8 26.8 17.5 26.8 15C26.8 12.5 25.7 10.2 24 8.4Z" fill="#FF5F00"/>
-    </svg>
-);
-
-const EloLogo = () => (
-    <svg width="42" height="26" viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="48" height="30" rx="4" fill="#0f172a"/>
-        <circle cx="16" cy="11.5" r="4" fill="#EF4123"/>
-        <circle cx="24" cy="17" r="4" fill="#FABA16"/>
-        <circle cx="32" cy="11.5" r="4" fill="#00A4E8"/>
-        <text x="24" y="25" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">elo</text>
-    </svg>
-);
-
-const HipercardLogo = () => (
-    <svg width="42" height="26" viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="48" height="30" rx="4" fill="#B31317"/>
-        <rect x="3" y="3" width="42" height="24" rx="2" fill="#8C0D11" />
-        <text x="24" y="19" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="900" fontStyle="italic" fontFamily="system-ui, -apple-system, sans-serif" letterSpacing="-0.5">HIPER</text>
-    </svg>
-);
-
-const AmexLogo = () => (
-    <svg width="42" height="26" viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="48" height="30" rx="4" fill="#006FCF"/>
-        <rect x="2" y="2" width="44" height="26" rx="2" fill="#005BA6" stroke="#FFFFFF" strokeWidth="0.8"/>
-        <text x="24" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="900" fontFamily="system-ui, -apple-system, sans-serif" letterSpacing="0.8">AMEX</text>
-    </svg>
-);
 
 
 export default function CheckoutTransparente({
@@ -673,15 +636,37 @@ export default function CheckoutTransparente({
                                 </div>
                             </div>
                             <div className={styles.cardBrandBadges}>
-                                <span className={styles.brandLogoItem} title="Visa"><VisaLogo /></span>
-                                <span className={styles.brandLogoItem} title="Mastercard"><MastercardLogo /></span>
-                                <span className={styles.brandLogoItem} title="Elo"><EloLogo /></span>
-                                <span className={styles.brandLogoItem} title="Hipercard"><HipercardLogo /></span>
-                                <span className={styles.brandLogoItem} title="American Express"><AmexLogo /></span>
+                                {CARD_BRANDS.map((brand) => (
+                                    <span key={brand.id} className={styles.brandLogoItem} title={brand.name}>
+                                        <img src={brand.icon} alt={brand.name} className={styles.brandImg} />
+                                    </span>
+                                ))}
                             </div>
                         </div>
 
-                        {/* Tabela de Parcelamento 100% REAL do Mercado Pago */}
+                        {/* Formulário Oficial do Brick (ONDE PREENCHE OS DADOS DO CARTÃO - PRIMEIRO) */}
+                        <div className={styles.brickWrapper}>
+                            <div className={styles.brickWrapperHeader}>
+                                <Lock size={15} color="#166534" />
+                                <span>Preencha os dados do seu cartão de crédito</span>
+                            </div>
+
+                            {brickLoading && (
+                                <div className={styles.brickLoadingBox}>
+                                    <Loader2 size={24} className="spin" color="#2d5a27" />
+                                    <span>Carregando formulário seguro do Mercado Pago...</span>
+                                </div>
+                            )}
+
+                            <div id="cardPaymentBrick_container" className={styles.brickContainer} />
+
+                            <div className={styles.brickSecurityFooter}>
+                                <ShieldCheck size={16} color="#16a34a" />
+                                <span>Seus dados são transmitidos com criptografia SSL de 256 bits. O Ecosopis não armazena os dados do seu cartão.</span>
+                            </div>
+                        </div>
+
+                        {/* Tabela de Parcelamento 100% REAL do Mercado Pago (ABAIXO DA ONDE PREENCHE) */}
                         <div className={styles.installmentsTableCard}>
                             <div className={styles.installmentsTableHeader}>
                                 <div>
@@ -750,47 +735,25 @@ export default function CheckoutTransparente({
                                 </button>
                             )}
 
-
                             <div className={styles.installmentsNoticeBox}>
                                 {cardBin.length >= 6 ? (
                                     <div className={styles.binDetectedBadge}>
                                         <Check size={16} color="#16a34a" />
                                         <span>
-                                            <strong>Cartão verificado com sucesso!</strong> O seletor de parcelas oficial do Mercado Pago está ativo no formulário abaixo. Selecione sua opção preferida.
+                                            <strong>Cartão identificado!</strong> O seletor oficial de parcelas dentro do formulário acima foi configurado com a sua bandeira.
                                         </span>
                                     </div>
                                 ) : (
                                     <div className={styles.binWaitingBadge}>
                                         <Info size={16} color="#1d4ed8" />
                                         <span>
-                                            Insira os números do seu cartão no formulário seguro abaixo para selecionar oficialmente o número de parcelas da sua bandeira.
+                                            Insira os números do seu cartão no formulário acima para atualizar automaticamente as opções de parcelamento da sua bandeira.
                                         </span>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {/* Formulário Oficial do Brick com Envoltório Seguro */}
-                        <div className={styles.brickWrapper}>
-                            <div className={styles.brickWrapperHeader}>
-                                <Lock size={15} color="#166534" />
-                                <span>Ambiente Seguro Criptografado Mercado Pago</span>
-                            </div>
-
-                            {brickLoading && (
-                                <div className={styles.brickLoadingBox}>
-                                    <Loader2 size={24} className="spin" color="#2d5a27" />
-                                    <span>Carregando formulário seguro do Mercado Pago...</span>
-                                </div>
-                            )}
-
-                            <div id="cardPaymentBrick_container" className={styles.brickContainer} />
-
-                            <div className={styles.brickSecurityFooter}>
-                                <ShieldCheck size={16} color="#16a34a" />
-                                <span>Seus dados são transmitidos com criptografia SSL de 256 bits. O Ecosopis não armazena os dados do seu cartão.</span>
-                            </div>
-                        </div>
 
                         {errorMessage && (
                             <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
