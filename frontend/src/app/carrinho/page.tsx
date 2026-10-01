@@ -70,6 +70,18 @@ export default function CarrinhoPage() {
     const [isMobile, setIsMobile] = useState(false);
     const [mobileStep, setMobileStep] = useState<"cart" | "address" | "payment">("cart");
 
+    // Restore step from URL query (e.g. returning from login redirect)
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const stepParam = params.get("step");
+            if (stepParam === "address" || stepParam === "payment") {
+                setStep(stepParam);
+                setMobileStep(stepParam);
+            }
+        }
+    }, []);
+
     useEffect(() => {
         const handleResize = () => {
             setIsMobile(window.innerWidth < 768);
@@ -912,7 +924,11 @@ export default function CarrinhoPage() {
                                     className="btn-primary" 
                                     style={{ flex: 1, height: '48px', fontSize: '0.95rem' }}
                                     onClick={() => {
-                                        changeMobileStep("address");
+                                        if (!token) {
+                                            window.location.href = `/conta?redirect=${encodeURIComponent('/carrinho?step=address')}`;
+                                        } else {
+                                            changeMobileStep("address");
+                                        }
                                     }}
                                 >
                                     Continuar para Entrega ➔
@@ -1934,7 +1950,7 @@ export default function CarrinhoPage() {
                                     style={{ width: "100%", marginTop: "24px", height: "56px" }} 
                                     onClick={() => {
                                         if (!token) {
-                                            window.location.href = "/conta";
+                                            window.location.href = `/conta?redirect=${encodeURIComponent('/carrinho?step=address')}`;
                                         } else {
                                             setStep("address");
                                             window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1990,7 +2006,7 @@ export default function CarrinhoPage() {
                 {step === "cart" ? (
                     <button className="btn-primary" onClick={() => {
                         if (!token) {
-                            window.location.href = "/conta";
+                            window.location.href = `/conta?redirect=${encodeURIComponent('/carrinho?step=address')}`;
                         } else {
                             setStep("address");
                             window.scrollTo({ top: 0, behavior: 'smooth' });

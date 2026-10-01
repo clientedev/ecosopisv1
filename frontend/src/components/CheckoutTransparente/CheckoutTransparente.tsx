@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import Script from "next/script";
-import { QrCode, CreditCard, Copy, Check, Loader2, ShieldCheck, AlertCircle, Lock, Info } from "lucide-react";
+import { QrCode, CreditCard, Copy, Check, Loader2, ShieldCheck, AlertCircle, Lock, Info, ChevronDown, ChevronUp } from "lucide-react";
 import styles from "./CheckoutTransparente.module.css";
 
 interface CheckoutTransparenteProps {
@@ -60,6 +60,30 @@ export default function CheckoutTransparente({
 
     // Error & info states
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [showAllInstallments, setShowAllInstallments] = useState(false);
+
+    // Installments breakdown (showing installment value AND total order value)
+    const installmentsList = useMemo(() => {
+        const total = Math.max(0.01, orderData.total);
+        const list = [];
+        for (let i = 1; i <= 12; i++) {
+            list.push({
+                times: i,
+                installmentAmount: (total / i).toFixed(2),
+                totalAmount: total.toFixed(2),
+                isSingle: i === 1
+            });
+        }
+        return list;
+    }, [orderData.total]);
+
+    const displayedInstallments = showAllInstallments ? installmentsList : [
+        installmentsList[0], // 1x
+        installmentsList[1], // 2x
+        installmentsList[2], // 3x
+        installmentsList[5], // 6x
+        installmentsList[11] // 12x
+    ];
 
     // Fetch config if public key not in env
     useEffect(() => {
@@ -548,71 +572,113 @@ export default function CheckoutTransparente({
                     ══════════════════════════════════════════════════════════════ */}
                 {selectedTab === "card" && (
                     <div className={styles.tabContent}>
-                        <div className={styles.installmentsPreviewCard}>
-                            <div className={styles.installmentsPreviewHeader}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <CreditCard size={18} color="#166534" />
-                                    <strong>Parcelamento Disponível</strong>
+                        {/* Header Banner com Bandeiras Aceitas */}
+                        <div className={styles.cardHeaderBanner}>
+                            <div className={styles.cardHeaderLeft}>
+                                <div className={styles.cardHeaderIcon}>
+                                    <CreditCard size={22} color="#2d5a27" />
                                 </div>
-                                <span className={styles.installmentsPreviewMax}>
+                                <div>
+                                    <h4 className={styles.cardHeaderTitle}>Cartão de Crédito</h4>
+                                    <p className={styles.cardHeaderSubtitle}>Parcele em até 12x com aprovação imediata e proteção Mercado Pago</p>
+                                </div>
+                            </div>
+                            <div className={styles.cardBrandBadges}>
+                                <span className={styles.brandBadge}>VISA</span>
+                                <span className={styles.brandBadge}>MASTERCARD</span>
+                                <span className={styles.brandBadge}>ELO</span>
+                                <span className={styles.brandBadge}>HIPERCARD</span>
+                                <span className={styles.brandBadge}>AMEX</span>
+                            </div>
+                        </div>
+
+                        {/* Tabela de Parcelamento com Valor da Parcela E Valor Total */}
+                        <div className={styles.installmentsTableCard}>
+                            <div className={styles.installmentsTableHeader}>
+                                <div>
+                                    <span className={styles.installmentsTableTitle}>Opções de Parcelamento</span>
+                                    <span className={styles.installmentsTableSub}>Valor por parcela e total correspondente:</span>
+                                </div>
+                                <span className={styles.installmentsMaxBadge}>
                                     Até 12x de R$ {(orderData.total / 12).toFixed(2)}
                                 </span>
                             </div>
 
-                            <div className={styles.installmentsChipsGrid}>
-                                <div className={styles.installmentChip}>
-                                    <span className={styles.chipInstallment}>1x de</span>
-                                    <strong className={styles.chipValue}>R$ {orderData.total.toFixed(2)}</strong>
-                                    <small className={styles.chipTag}>à vista</small>
-                                </div>
-                                <div className={styles.installmentChip}>
-                                    <span className={styles.chipInstallment}>2x de</span>
-                                    <strong className={styles.chipValue}>R$ {(orderData.total / 2).toFixed(2)}</strong>
-                                    <small className={styles.chipTag}>sem juros</small>
-                                </div>
-                                <div className={styles.installmentChip}>
-                                    <span className={styles.chipInstallment}>3x de</span>
-                                    <strong className={styles.chipValue}>R$ {(orderData.total / 3).toFixed(2)}</strong>
-                                    <small className={styles.chipTag}>sem juros</small>
-                                </div>
-                                <div className={styles.installmentChip}>
-                                    <span className={styles.chipInstallment}>6x de</span>
-                                    <strong className={styles.chipValue}>R$ {(orderData.total / 6).toFixed(2)}</strong>
-                                    <small className={styles.chipTag}>no cartão</small>
-                                </div>
-                                <div className={styles.installmentChip}>
-                                    <span className={styles.chipInstallment}>12x de</span>
-                                    <strong className={styles.chipValue}>R$ {(orderData.total / 12).toFixed(2)}</strong>
-                                    <small className={styles.chipTag}>até 12x</small>
-                                </div>
+                            <div className={styles.installmentsRowsContainer}>
+                                {displayedInstallments.map((inst) => (
+                                    <div key={inst.times} className={styles.installmentRowItem}>
+                                        <div className={styles.installmentRowLeft}>
+                                            <span className={styles.installmentNumber}>{inst.times}x de</span>
+                                            <strong className={styles.installmentAmount}>R$ {inst.installmentAmount}</strong>
+                                            {inst.isSingle && <span className={styles.singlePill}>à vista</span>}
+                                        </div>
+                                        <div className={styles.installmentRowRight}>
+                                            <span className={styles.installmentTotalText}>
+                                                Total: <strong>R$ {inst.totalAmount}</strong>
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
 
-                            <div className={styles.installmentsStatusBox}>
+                            <button
+                                type="button"
+                                className={styles.toggleInstallmentsBtn}
+                                onClick={() => setShowAllInstallments(!showAllInstallments)}
+                            >
+                                {showAllInstallments ? (
+                                    <>
+                                        <span>Recolher tabela de parcelas</span>
+                                        <ChevronUp size={16} />
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>Ver todas as 12 opções com valor total</span>
+                                        <ChevronDown size={16} />
+                                    </>
+                                )}
+                            </button>
+
+                            <div className={styles.installmentsNoticeBox}>
                                 {cardBin.length >= 6 ? (
-                                    <div className={styles.binReadyNotice}>
+                                    <div className={styles.binDetectedBadge}>
                                         <Check size={16} color="#16a34a" />
                                         <span>
-                                            <strong>Cartão identificado!</strong> O seletor oficial de parcelas do Mercado Pago está ativo abaixo. Selecione suas parcelas e confirme.
+                                            <strong>Cartão verificado com sucesso!</strong> O seletor de parcelas oficial do Mercado Pago está ativo no formulário abaixo. Selecione sua opção preferida.
                                         </span>
                                     </div>
                                 ) : (
-                                    <div className={styles.binWaitingNotice}>
-                                        <Info size={16} color="#0284c7" />
+                                    <div className={styles.binWaitingBadge}>
+                                        <Info size={16} color="#1d4ed8" />
                                         <span>
-                                            Digite os 16 números do seu cartão no formulário abaixo para o Mercado Pago calcular e exibir as opções exatas da sua bandeira.
+                                            Insira os números do seu cartão no formulário seguro abaixo para selecionar oficialmente o número de parcelas da sua bandeira.
                                         </span>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {brickLoading && (
-                            <div className={styles.brickLoadingBox}>
-                                <Loader2 size={24} className="spin" color="#2d5a27" />
-                                <span>Carregando formulário seguro...</span>
+                        {/* Formulário Oficial do Brick com Envoltório Seguro */}
+                        <div className={styles.brickWrapper}>
+                            <div className={styles.brickWrapperHeader}>
+                                <Lock size={15} color="#166534" />
+                                <span>Ambiente Seguro Criptografado Mercado Pago</span>
                             </div>
-                        )}
-                        <div id="cardPaymentBrick_container" className={styles.brickContainer} />
+
+                            {brickLoading && (
+                                <div className={styles.brickLoadingBox}>
+                                    <Loader2 size={24} className="spin" color="#2d5a27" />
+                                    <span>Carregando formulário seguro do Mercado Pago...</span>
+                                </div>
+                            )}
+
+                            <div id="cardPaymentBrick_container" className={styles.brickContainer} />
+
+                            <div className={styles.brickSecurityFooter}>
+                                <ShieldCheck size={16} color="#16a34a" />
+                                <span>Seus dados são transmitidos com criptografia SSL de 256 bits. O Ecosopis não armazena os dados do seu cartão.</span>
+                            </div>
+                        </div>
 
                         {errorMessage && (
                             <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
