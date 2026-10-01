@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Trash2, ShoppingBag, ShieldCheck, Truck, CreditCard, ChevronRight, ChevronLeft, Loader2, Info, ShoppingCart, Coins, Lock, Plus, Minus, Check } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/components/Toast/Toast";
+import CheckoutTransparente from "@/components/CheckoutTransparente/CheckoutTransparente";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -48,6 +49,22 @@ export default function CarrinhoPage() {
     const [step, setStep] = useState<"cart" | "checkout">("cart");
     const [loading, setLoading] = useState(false);
     const { showToast } = useToast();
+
+    // Feature flag: Checkout Transparente Mercado Pago (default false unless explicitly set to 'true')
+    const [transparentEnabled, setTransparentEnabled] = useState(
+        process.env.NEXT_PUBLIC_MP_TRANSPARENT_CHECKOUT_ENABLED === "true"
+    );
+
+    useEffect(() => {
+        fetch("/api/payment/config")
+            .then(res => res.json())
+            .then(data => {
+                if (typeof data.transparent_checkout_enabled === "boolean") {
+                    setTransparentEnabled(data.transparent_checkout_enabled);
+                }
+            })
+            .catch(() => {});
+    }, []);
 
     // Mobile States
     const [isMobile, setIsMobile] = useState(false);
@@ -585,6 +602,79 @@ export default function CarrinhoPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const validateCustomerData = () => {
+        const nameToUse = customerName.trim() || (user?.full_name?.trim() ?? "");
+        const cepToUse = cep.trim();
+
+        if (!nameToUse) {
+            showToast("Por favor, preencha seu nome completo.", "error");
+            return false;
+        }
+        if (!customerPhone.trim() || customerPhone.replace(/\D/g, "").length < 10) {
+            showToast("Por favor, insira um WhatsApp válido com DDD.", "error");
+            return false;
+        }
+        const cleanCpf = customerCpf.replace(/\D/g, "");
+        if (!cleanCpf || cleanCpf.length !== 11) {
+            showToast("Por favor, informe um CPF válido com 11 dígitos.", "error");
+            return false;
+        }
+        const cleanCep = cepToUse.replace(/\D/g, "");
+        if (cleanCep.length !== 8) {
+            showToast("Por favor, digite um CEP válido com 8 dígitos.", "error");
+            return false;
+        }
+        if (!address.street || !address.number || !address.neighborhood || !address.city || !address.state) {
+            showToast("Por favor, preencha todos os campos obrigatórios do endereço.", "error");
+            return false;
+        }
+        const stateVal = address.state.trim().toUpperCase();
+        if (!stateVal || stateVal.length !== 2) {
+            showToast("Por favor, selecione o Estado (UF) de entrega.", "error");
+            return false;
+        }
+        if (!selectedShipping) {
+            showToast("Por favor, selecione uma opção de frete para continuar.", "error");
+            return false;
+        }
+        return true;
+    };
+
+    const activeCouponCode = isWholesaleEligible ? null : (appliedCoupon?.code || null);
+    const activeDiscountAmount = isWholesaleEligible ? 0.0 : discount;
+
+    const orderDataForPayment = {
+        items: cart.map(i => {
+            const isItemDiscounted = i.isWholesale && isWholesaleEligible;
+            const finalPrice = isItemDiscounted ? i.price * 0.7 : i.price;
+            return {
+                product_id: i.id,
+                product_name: isItemDiscounted ? `${i.name} (Atacado)` : i.name,
+                quantity: i.quantity,
+                price: finalPrice
+            };
+        }),
+        total: finalTotal,
+        shippingPrice: shippingPrice,
+        shippingMethod: selectedShipping?.name || "Melhor Envio",
+        address: {
+            ...address,
+            postal_code: cep.replace(/\D/g, ""),
+            zip: cep.replace(/\D/g, ""),
+        },
+        customerName: customerName.trim() || (user?.full_name?.trim() ?? ""),
+        customerPhone: customerPhone,
+        customerCpf: customerCpf.replace(/\D/g, ""),
+        couponCode: activeCouponCode,
+        discountAmount: activeDiscountAmount,
+        cashbackAmount: cashbackDiscount,
+    };
+
+    const handleTransparentPaymentSuccess = (orderId: number) => {
+        clearCart();
+        window.location.href = `/pagamento?status=approved&order_id=${orderId}`;
     };
 
     const handleProfileSubmit = () => {
@@ -1256,36 +1346,51 @@ export default function CarrinhoPage() {
                                 )}
                             </div>
 
-                            {/* Safety info */}
-                            <div className={styles.mobileSecurityNoticeBox}>
-                                <Lock size={16} color="#15803d" />
-                                <div>
-                                    <strong>Pagamento 100% Seguro</strong>
-                                    <p>Processado via Mercado Pago com criptografia SSL.</p>
+                            {transparentEnabled ? (
+                                <div style={{ marginTop: "16px", marginBottom: "40px" }}>
+                                    <CheckoutTransparente
+                                        orderData={orderDataForPayment}
+                                        userEmail={user?.email || ""}
+                                        token={token}
+                                        onPaymentSuccess={handleTransparentPaymentSuccess}
+                                        onFallbackToCheckoutPro={handleCheckout}
+                                        validateCustomerData={validateCustomerData}
+                                    />
                                 </div>
-                            </div>
+                            ) : (
+                                <>
+                                    {/* Safety info */}
+                                    <div className={styles.mobileSecurityNoticeBox}>
+                                        <Lock size={16} color="#15803d" />
+                                        <div>
+                                            <strong>Pagamento 100% Seguro</strong>
+                                            <p>Processado via Mercado Pago com criptografia SSL.</p>
+                                        </div>
+                                    </div>
 
-                            {/* Giant Pay Button */}
-                            <div className={styles.mobileStickyFooter}>
-                                <button
-                                    className="btn-primary"
-                                    style={{ width: '100%', height: '56px', fontSize: '1.05rem', fontWeight: 800 }}
-                                    onClick={handleCheckout}
-                                    disabled={loading}
-                                >
-                                    {loading ? (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                            <Loader2 size={20} className="spin" style={{ color: 'white' }} />
-                                            <span>PROCESSANDO...</span>
-                                        </div>
-                                    ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                            <Lock size={18} />
-                                            <span>FINALIZAR E PAGAR AGORA</span>
-                                        </div>
-                                    )}
-                                </button>
-                            </div>
+                                    {/* Giant Pay Button */}
+                                    <div className={styles.mobileStickyFooter}>
+                                        <button
+                                            className="btn-primary"
+                                            style={{ width: '100%', height: '56px', fontSize: '1.05rem', fontWeight: 800 }}
+                                            onClick={handleCheckout}
+                                            disabled={loading}
+                                        >
+                                            {loading ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                    <Loader2 size={20} className="spin" style={{ color: 'white' }} />
+                                                    <span>PROCESSANDO...</span>
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                    <Lock size={18} />
+                                                    <span>FINALIZAR E PAGAR AGORA</span>
+                                                </div>
+                                            )}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
@@ -1529,6 +1634,19 @@ export default function CarrinhoPage() {
                                         </div>
                                     )}
                                 </div>
+
+                                {transparentEnabled && (
+                                    <div style={{ marginTop: "24px" }}>
+                                        <CheckoutTransparente
+                                            orderData={orderDataForPayment}
+                                            userEmail={user?.email || ""}
+                                            token={token}
+                                            onPaymentSuccess={handleTransparentPaymentSuccess}
+                                            onFallbackToCheckoutPro={handleCheckout}
+                                            validateCustomerData={validateCustomerData}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -1689,7 +1807,7 @@ export default function CarrinhoPage() {
                                 </div>
                             )}
 
-                            {step === "checkout" && (
+                            {step === "checkout" && !transparentEnabled && (
                                 <div className={styles.paymentSectionInSummary}>
                                     <h4 style={{ fontSize: "0.9rem", color: "#64748b", margin: "20px 0 12px", fontWeight: 700 }}>MÉTODO DE PAGAMENTO</h4>
                                     <div className={styles.compactPaymentSelector}>
@@ -1716,7 +1834,7 @@ export default function CarrinhoPage() {
                                 }}>
                                     CONTINUAR <ChevronRight size={18} />
                                 </button>
-                            ) : (
+                            ) : !transparentEnabled ? (
                                 <button
                                     className={`btn-primary ${styles.desktopCheckoutBtn}`}
                                     style={{ width: "100%", marginTop: "24px", height: "64px", fontSize: "1.1rem" }}
@@ -1725,6 +1843,22 @@ export default function CarrinhoPage() {
                                 >
                                     {loading ? "PROCESSANDO..." : "FINALIZAR COMPRA"}
                                 </button>
+                            ) : (
+                                <div style={{
+                                    marginTop: "20px",
+                                    padding: "16px",
+                                    background: "#f0fdf4",
+                                    borderRadius: "12px",
+                                    border: "1px dashed #86efac",
+                                    textAlign: "center",
+                                    fontSize: "0.85rem",
+                                    color: "#166534"
+                                }}>
+                                    <strong>💳 Pagamento Direto no Site</strong>
+                                    <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "#15803d" }}>
+                                        Selecione PIX ou Cartão ao lado para concluir sua compra com segurança total.
+                                    </p>
+                                </div>
                             )}
 
                             <div className={styles.securityBadge}>

@@ -26,22 +26,34 @@ def _get_backend_base() -> str:
 
 
 def create_pix_payment(order_id: int, total: float, customer_email: str,
-                        customer_name: str, items: list) -> dict:
+                        customer_name: str, items: list = None, customer_cpf: str = "") -> dict:
     """
     Creates a PIX payment via Mercado Pago API.
     """
     # Prefer standardized backend notification path
     webhook_url = os.getenv("MP_WEBHOOK_URL") or f"{_get_backend_base()}/api/payment/webhook/mercadopago"
     
+    clean_cpf = "".join(filter(str.isdigit, customer_cpf or ""))
+    name_parts = (customer_name or "Cliente").split()
+    first_name = name_parts[0] if name_parts else "Cliente"
+    last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else "ECOSOPIS"
+
+    payer_data = {
+        "email": customer_email,
+        "first_name": first_name,
+        "last_name": last_name,
+    }
+    if clean_cpf and len(clean_cpf) >= 11:
+        payer_data["identification"] = {
+            "type": "CPF",
+            "number": clean_cpf
+        }
+
     payment_data = {
         "transaction_amount": round(float(total), 2),
         "description": f"Pedido ECOSOPIS #{order_id}",
         "payment_method_id": "pix",
-        "payer": {
-            "email": customer_email,
-            "first_name": customer_name.split()[0] if customer_name else "Cliente",
-            "last_name": " ".join(customer_name.split()[1:]) if len(customer_name.split()) > 1 else "ECOSOPIS",
-        },
+        "payer": payer_data,
         "external_reference": str(order_id),
         "notification_url": webhook_url,
     }
@@ -59,7 +71,87 @@ def create_pix_payment(order_id: int, total: float, customer_email: str,
         "payment_id": str(response.get("id", "")),
         "qr_code": transaction_data.get("qr_code", ""),
         "qr_code_base64": transaction_data.get("qr_code_base64", ""),
+        "ticket_url": transaction_data.get("ticket_url", ""),
         "status": response.get("status", "pending"),
+        "status_detail": response.get("status_detail", ""),
+    }
+
+
+def create_card_payment(
+    order_id: int,
+    total: float,
+    token: str,
+    installments: int,
+    payment_method_id: str,
+    customer_email: str,
+    customer_name: str,
+    customer_cpf: str,
+    issuer_id: str = None,
+    device_id: str = None,
+) -> dict:
+    """
+    Processes a credit/debit card payment using a tokenized card via Mercado Pago API.
+    Does NOT accept or log sensitive card numbers or CVV.
+    Supports Device ID for anti-fraud analysis.
+    """
+    webhook_url = os.getenv("MP_WEBHOOK_URL") or f"{_get_backend_base()}/api/payment/webhook/mercadopago"
+    
+    clean_cpf = "".join(filter(str.isdigit, customer_cpf or ""))
+    name_parts = (customer_name or "Cliente").split()
+    first_name = name_parts[0] if name_parts else "Cliente"
+    last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else "ECOSOPIS"
+
+    payer_data = {
+        "email": customer_email,
+        "first_name": first_name,
+        "last_name": last_name,
+    }
+    if clean_cpf and len(clean_cpf) >= 11:
+        payer_data["identification"] = {
+            "type": "CPF",
+            "number": clean_cpf
+        }
+
+    payment_data = {
+        "transaction_amount": round(float(total), 2),
+        "token": token,
+        "description": f"Pedido ECOSOPIS #{order_id}",
+        "installments": int(installments) if installments and int(installments) > 0 else 1,
+        "payment_method_id": payment_method_id,
+        "payer": payer_data,
+        "external_reference": str(order_id),
+        "notification_url": webhook_url,
+        "statement_descriptor": "ECOSOPIS"
+    }
+
+    if issuer_id:
+        payment_data["issuer_id"] = str(issuer_id)
+
+    req_options = None
+    if device_id:
+        try:
+            from mercadopago.config import RequestOptions
+            req_options = RequestOptions(custom_headers={"X-meli-session-id": str(device_id)})
+        except Exception:
+            pass
+
+    if req_options:
+        result = sdk.payment().create(payment_data, request_options=req_options)
+    else:
+        result = sdk.payment().create(payment_data)
+
+    response = result.get("response", {})
+    status_code = result.get("status")
+
+    if status_code not in [200, 201]:
+        error_msg = response.get("message") or response.get("cause") or str(response)
+        raise Exception(f"Erro Mercado Pago Cartão: {error_msg}")
+
+    return {
+        "payment_id": str(response.get("id", "")),
+        "status": response.get("status", "pending"),
+        "status_detail": response.get("status_detail", ""),
+        "payer": response.get("payer", {}),
     }
 
 
