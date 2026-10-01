@@ -661,7 +661,7 @@ export default function CheckoutTransparente({
                             </div>
                         </div>
 
-                        {/* Formulário Oficial do Brick (ONDE PREENCHE OS DADOS DO CARTÃO - PRIMEIRO) */}
+                        {/* Formulário Oficial do Brick do Mercado Pago */}
                         <div className={styles.brickWrapper}>
                             <div className={styles.brickWrapperHeader}>
                                 <Lock size={15} color="#166534" />
@@ -680,94 +680,6 @@ export default function CheckoutTransparente({
                             <div className={styles.brickSecurityFooter}>
                                 <ShieldCheck size={16} color="#16a34a" />
                                 <span>Seus dados são transmitidos com criptografia SSL de 256 bits. O Ecosopis não armazena os dados do seu cartão.</span>
-                            </div>
-                        </div>
-
-                        {/* Tabela de Parcelamento 100% REAL do Mercado Pago (ABAIXO DA ONDE PREENCHE) */}
-                        <div className={styles.installmentsTableCard}>
-                            <div className={styles.installmentsTableHeader}>
-                                <div>
-                                    <span className={styles.installmentsTableTitle}>
-                                        Condições Oficiais Mercado Pago
-                                    </span>
-                                    <span className={styles.installmentsTableSub}>
-                                        {detectedBrand ? `Valores oficiais para a bandeira ${detectedBrand}:` : "Consulte os valores reais por parcela e o total final:"}
-                                    </span>
-                                </div>
-                                {maxInstallment && (
-                                    <span className={styles.installmentsMaxBadge}>
-                                        Até {maxInstallment.installments}x de R$ {maxInstallment.installment_amount.toFixed(2)}
-                                        {!maxInstallment.has_interest ? " sem juros" : ""}
-                                    </span>
-                                )}
-                            </div>
-
-                            {loadingInstallments && realInstallments.length === 0 ? (
-                                <div className={styles.installmentsLoadingBox}>
-                                    <Loader2 size={18} className="spin" color="#2d5a27" />
-                                    <span>Consultando condições da sua conta Mercado Pago...</span>
-                                </div>
-                            ) : (
-                                <div className={styles.installmentsRowsContainer}>
-                                    {displayedInstallments.map((inst) => (
-                                        <div key={inst.installments} className={styles.installmentRowItem}>
-                                            <div className={styles.installmentRowLeft}>
-                                                <span className={styles.installmentNumber}>{inst.installments}x de</span>
-                                                <strong className={styles.installmentAmount}>R$ {inst.installment_amount.toFixed(2)}</strong>
-                                                {inst.installments === 1 ? (
-                                                    <span className={styles.singlePill}>à vista</span>
-                                                ) : !inst.has_interest ? (
-                                                    <span className={styles.noInterestPill}>Sem juros</span>
-                                                ) : (
-                                                    <span className={styles.interestPill}>c/ juros</span>
-                                                )}
-                                            </div>
-                                            <div className={styles.installmentRowRight}>
-                                                <span className={styles.installmentTotalText}>
-                                                    Total: <strong>R$ {inst.total_amount.toFixed(2)}</strong>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {realInstallments.length > 5 && (
-                                <button
-                                    type="button"
-                                    className={styles.toggleInstallmentsBtn}
-                                    onClick={() => setShowAllInstallments(!showAllInstallments)}
-                                >
-                                    {showAllInstallments ? (
-                                        <>
-                                            <span>Recolher tabela de parcelas</span>
-                                            <ChevronUp size={16} />
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>Ver todas as {realInstallments.length} opções com valor total</span>
-                                            <ChevronDown size={16} />
-                                        </>
-                                    )}
-                                </button>
-                            )}
-
-                            <div className={styles.installmentsNoticeBox}>
-                                {cardBin.length >= 6 ? (
-                                    <div className={styles.binDetectedBadge}>
-                                        <Check size={16} color="#16a34a" />
-                                        <span>
-                                            <strong>Cartão identificado!</strong> O seletor oficial de parcelas dentro do formulário acima foi configurado com a sua bandeira.
-                                        </span>
-                                    </div>
-                                ) : (
-                                    <div className={styles.binWaitingBadge}>
-                                        <Info size={16} color="#1d4ed8" />
-                                        <span>
-                                            Insira os números do seu cartão no formulário acima para atualizar automaticamente as opções de parcelamento da sua bandeira.
-                                        </span>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
