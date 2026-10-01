@@ -561,21 +561,6 @@ export default function ProductDetailPage() {
                                 ) : (
                                     <p className={styles.price}>R$ {currentPrice.toFixed(2).replace(".", ",")}</p>
                                 )}
-                                <div style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    background: '#f0fdf4',
-                                    border: '1px solid #bbf7d0',
-                                    color: '#166534',
-                                    padding: '5px 12px',
-                                    borderRadius: '6px',
-                                    fontSize: '0.88rem',
-                                    fontWeight: 700,
-                                    margin: '4px 0 10px 0'
-                                }}>
-                                    <span>💳 ou em até <strong>3x de R$ {(currentPrice / 3).toFixed(2).replace(".", ",")}</strong> sem juros no cartão</span>
-                                </div>
                                 <span className={styles.socialProofBadge}>⭐ Mais de 20.000 clientes satisfeitos</span>
                             </div>
                         )}
