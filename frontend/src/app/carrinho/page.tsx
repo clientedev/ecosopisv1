@@ -1373,6 +1373,11 @@ export default function CarrinhoPage() {
                                     <span>Total Geral</span>
                                     <span>R$ {finalTotal.toFixed(2)}</span>
                                 </div>
+                                {finalTotal > 0 && (
+                                    <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#166534', marginTop: '-6px', marginBottom: '8px', fontWeight: 600 }}>
+                                        ou em até <strong>3x de R$ {(finalTotal / 3).toFixed(2).replace('.', ',')} sem juros</strong> no cartão
+                                    </div>
+                                )}
                                 
                                 {earnedCashback > 0 && (
                                     <div className={styles.mobileEarnedCashbackNotice}>
@@ -2027,6 +2032,11 @@ export default function CarrinhoPage() {
                                 <span>Total</span>
                                 <span>R$ {finalTotal.toFixed(2)}</span>
                             </div>
+                            {finalTotal > 0 && (
+                                <div style={{ textAlign: 'right', fontSize: '0.85rem', color: '#166534', marginTop: '-8px', marginBottom: '14px', fontWeight: 600 }}>
+                                    ou em até <strong>3x de R$ {(finalTotal / 3).toFixed(2).replace('.', ',')} sem juros</strong> no cartão
+                                </div>
+                            )}
 
                             {earnedCashback > 0 && (
                                 <div className={styles.earnedCashbackHint}>

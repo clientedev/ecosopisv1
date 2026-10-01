@@ -523,6 +523,7 @@ async def get_payment_config():
     return {
         "transparent_checkout_enabled": transparent_enabled,
         "mp_public_key": mp_public_key,
+        "max_free_installments": int(os.getenv("MP_MAX_FREE_INSTALLMENTS", "3")),
     }
 
 
@@ -889,14 +890,16 @@ async def get_real_installments(
                     "recommended_message": pc.get("recommended_message", ""),
                     "has_interest": rate > 0
                 })
+            max_free = max([i["installments"] for i in results if not i["has_interest"]], default=1)
             return {
                 "payment_method_id": first.get("payment_method_id", ""),
                 "issuer": first.get("issuer", {}).get("name", ""),
-                "installments": results
+                "installments": results,
+                "max_free_installments": max_free
             }
     except Exception as e:
         logger.error(f"Erro ao buscar parcelas reais no Mercado Pago: {e}")
-        return {"installments": []}
+        return {"installments": [], "max_free_installments": 3}
 
 
 @router.get("/status/{order_id}")

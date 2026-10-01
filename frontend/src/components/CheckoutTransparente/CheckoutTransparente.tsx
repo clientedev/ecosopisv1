@@ -487,7 +487,7 @@ export default function CheckoutTransparente({
                     >
                         <CreditCard size={18} />
                         <span>Cartão de Crédito</span>
-                        <span className={styles.cardBadge}>Até 12x</span>
+                        <span className={styles.cardBadge}>Até 3x Sem Juros</span>
                     </button>
                 </div>
 
@@ -649,7 +649,9 @@ export default function CheckoutTransparente({
                                 </div>
                                 <div>
                                     <h4 className={styles.cardHeaderTitle}>Cartão de Crédito</h4>
-                                    <p className={styles.cardHeaderSubtitle}>Parcele em até 12x com aprovação imediata e proteção Mercado Pago</p>
+                                    <p className={styles.cardHeaderSubtitle}>
+                                        Parcele em até <strong>3x sem juros</strong> (ou até 12x) com aprovação imediata
+                                    </p>
                                 </div>
                             </div>
                             <div className={styles.cardBrandBadges}>
@@ -658,6 +660,44 @@ export default function CheckoutTransparente({
                                         <img src={brand.icon} alt={brand.name} className={styles.brandImg} />
                                     </span>
                                 ))}
+                            </div>
+                        </div>
+
+                        {/* BANNER DE DESTAQUE: 3X SEM JUROS */}
+                        <div style={{
+                            background: "#f0fdf4",
+                            border: "1.5px solid #86efac",
+                            borderRadius: "10px",
+                            padding: "10px 14px",
+                            marginBottom: "16px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            fontSize: "0.88rem",
+                            color: "#166534"
+                        }}>
+                            <div style={{
+                                background: "#16a34a",
+                                color: "white",
+                                borderRadius: "50%",
+                                width: "22px",
+                                height: "22px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontWeight: 800,
+                                fontSize: "0.8rem",
+                                flexShrink: 0
+                            }}>✓</div>
+                            <div>
+                                <strong style={{ color: "#14532d" }}>Até 3x SEM JUROS no Cartão!</strong>
+                                <div style={{ fontSize: "0.8rem", color: "#166534", marginTop: "2px" }}>
+                                    {orderData.total > 0 ? (
+                                        <>Parcele em até <strong>3x de R$ {(orderData.total / 3).toFixed(2).replace('.', ',')}</strong> sem juros adicionais.</>
+                                    ) : (
+                                        <>Aproveite o parcelamento sem juros em todas as compras.</>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
