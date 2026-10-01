@@ -247,7 +247,16 @@ def validate_cashback_use(
     return {"valid": True, "available_balance": balance, "amount": body.amount}
 
 
+@router.get("/cashback/public-config", response_model=CashbackConfigOut)
+def get_public_cashback_config(
+    db: Session = Depends(get_db),
+):
+    """Retorna as regras públicas de cashback para exibição no carrinho/checkout."""
+    return _get_config(db)
+
+
 # ── Admin Endpoints ───────────────────────────────────────────────────────────
+
 
 def _require_admin(current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":

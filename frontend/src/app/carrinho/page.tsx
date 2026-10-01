@@ -288,8 +288,7 @@ export default function CarrinhoPage() {
                 try {
                     const [balRes, cfgRes] = await Promise.all([
                         fetch("/api/cashback/me/balance", { headers: { "Authorization": `Bearer ${token}` } }),
-                        // Admin config might be restricted, but we can try or use default if it fails
-                        fetch("/api/cashback/admin/config", { headers: { "Authorization": `Bearer ${token}` } }).catch(() => null)
+                        fetch("/api/cashback/public-config").catch(() => null)
                     ]);
                     
                     if (balRes?.ok) {

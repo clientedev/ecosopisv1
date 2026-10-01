@@ -209,10 +209,7 @@ export default function CheckoutTransparente({
                         },
                         paymentMethods: {
                             minInstallments: 1,
-                            maxInstallments: 12,
-                            types: {
-                                excluded: ['debit_card']
-                            }
+                            maxInstallments: 12
                         }
                     },
                     callbacks: {
