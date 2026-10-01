@@ -344,20 +344,26 @@
 .cardBrandBadges {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
-.brandBadge {
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    padding: 3px 7px;
-    border-radius: 6px;
-    background: #f8fafc;
-    border: 1px solid #cbd5e1;
-    color: #334155;
+.brandLogoItem {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 26px;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
+
+.brandLogoItem:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+}
+
 
 /* INSTALLMENTS TABLE CARD */
 .installmentsTableCard {
@@ -452,7 +458,38 @@
     text-transform: uppercase;
 }
 
+.noInterestPill {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: #dcfce7;
+    color: #15803d;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.interestPill {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.installmentsLoadingBox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
 .installmentRowRight {
+
     text-align: right;
 }
 

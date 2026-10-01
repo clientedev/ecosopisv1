@@ -841,6 +841,64 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     return {"status": "ok"}
 
 
+@router.get("/installments")
+async def get_real_installments(
+    amount: float = Query(..., gt=0),
+    bin: Optional[str] = Query(None)
+):
+    """
+    Retorna parcelas e juros 100% REAIS diretamente da API do Mercado Pago
+    usando as configurações da conta do vendedor.
+    """
+    import urllib.request
+    import json
+    
+    mp_token = os.getenv("MP_ACCESS_TOKEN", "")
+    if not mp_token:
+        raise HTTPException(status_code=500, detail="MP_ACCESS_TOKEN não configurado no backend")
+        
+    card_bin = (bin or "516292").replace(" ", "").replace("-", "")[:8]
+    if len(card_bin) < 6:
+        card_bin = "516292"
+        
+    url = f"https://api.mercadopago.com/v1/payment_methods/installments?bin={card_bin}&amount={amount:.2f}"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {mp_token}",
+            "User-Agent": "Mozilla/5.0"
+        }
+    )
+    
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if not data or not isinstance(data, list):
+                return {"installments": []}
+                
+            first = data[0]
+            payer_costs = first.get("payer_costs", [])
+            results = []
+            for pc in payer_costs:
+                rate = float(pc.get("installment_rate", 0))
+                results.append({
+                    "installments": int(pc.get("installments", 1)),
+                    "installment_amount": round(float(pc.get("installment_amount", 0)), 2),
+                    "total_amount": round(float(pc.get("total_amount", 0)), 2),
+                    "installment_rate": rate,
+                    "recommended_message": pc.get("recommended_message", ""),
+                    "has_interest": rate > 0
+                })
+            return {
+                "payment_method_id": first.get("payment_method_id", ""),
+                "issuer": first.get("issuer", {}).get("name", ""),
+                "installments": results
+            }
+    except Exception as e:
+        logger.error(f"Erro ao buscar parcelas reais no Mercado Pago: {e}")
+        return {"installments": []}
+
+
 @router.get("/status/{order_id}")
 async def get_payment_status(
     order_id: int,

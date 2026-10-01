@@ -26,6 +26,63 @@ interface CheckoutTransparenteProps {
     validateCustomerData: () => boolean;
 }
 
+interface RealInstallment {
+    installments: number;
+    installment_amount: number;
+    total_amount: number;
+    installment_rate: number;
+    recommended_message: string;
+    has_interest: boolean;
+}
+
+// ── BANDEIRAS DE CARTÃO REAIS (SVG OFICIAIS) ──────────────────────────────────
+const VisaLogo = () => (
+    <svg width="42" height="26" viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="30" rx="4" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1"/>
+        <path d="M19.2 21H16.6L18.3 9H20.9L19.2 21Z" fill="#1434CB"/>
+        <path d="M27.8 9.3C27.2 9.1 26.3 9 25.2 9C22.4 9 20.4 10.5 20.4 12.6C20.4 14.2 21.8 15 22.9 15.5C24 16.1 24.4 16.4 24.4 17C24.4 17.8 23.4 18.2 22.5 18.2C21.4 18.2 20.8 18 19.8 17.5L19.4 17.3L19 19.9C19.7 20.2 21 20.5 22.3 20.5C25.3 20.5 27.2 19 27.2 16.8C27.2 15.5 26.4 14.4 24.6 13.5C23.6 13 23 12.6 23 12C23 11.5 23.6 11 24.7 11C25.6 11 26.3 11.2 26.9 11.5L27.2 11.6L27.8 9.3Z" fill="#1434CB"/>
+        <path d="M32.4 17C32.6 16.4 33.4 14.2 33.4 14.2C33.4 14.2 33.6 13.7 33.7 13.2L33.9 14.1C33.9 14.1 34.4 16.5 34.6 17H32.4ZM36.3 21H38.8L36.7 9H34.4C33.8 9 33.4 9.3 33.1 9.9L28.2 21H31L31.6 19.2H35L35.3 21H36.3Z" fill="#1434CB"/>
+        <path d="M14.5 9H11.8L8 18.1L7.6 16C7.1 14.2 5.6 12.3 3.9 11.4L6.5 21H9.3L14.5 9Z" fill="#1434CB"/>
+        <path d="M5.7 9H0.1L0 9.3C4.6 10.5 7.6 13.4 8.8 16.7L7.9 11.9C7.7 10 6.9 9.1 6 9Z" fill="#F8A01A"/>
+    </svg>
+);
+
+const MastercardLogo = () => (
+    <svg width="42" height="26" viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="30" rx="4" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1"/>
+        <circle cx="18.5" cy="15" r="9" fill="#EB001B"/>
+        <circle cx="29.5" cy="15" r="9" fill="#F79E1B"/>
+        <path d="M24 8.4C22.3 10.2 21.2 12.5 21.2 15C21.2 17.5 22.3 19.8 24 21.6C25.7 19.8 26.8 17.5 26.8 15C26.8 12.5 25.7 10.2 24 8.4Z" fill="#FF5F00"/>
+    </svg>
+);
+
+const EloLogo = () => (
+    <svg width="42" height="26" viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="30" rx="4" fill="#0f172a"/>
+        <circle cx="16" cy="11.5" r="4" fill="#EF4123"/>
+        <circle cx="24" cy="17" r="4" fill="#FABA16"/>
+        <circle cx="32" cy="11.5" r="4" fill="#00A4E8"/>
+        <text x="24" y="25" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">elo</text>
+    </svg>
+);
+
+const HipercardLogo = () => (
+    <svg width="42" height="26" viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="30" rx="4" fill="#B31317"/>
+        <rect x="3" y="3" width="42" height="24" rx="2" fill="#8C0D11" />
+        <text x="24" y="19" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="900" fontStyle="italic" fontFamily="system-ui, -apple-system, sans-serif" letterSpacing="-0.5">HIPER</text>
+    </svg>
+);
+
+const AmexLogo = () => (
+    <svg width="42" height="26" viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="30" rx="4" fill="#006FCF"/>
+        <rect x="2" y="2" width="44" height="26" rx="2" fill="#005BA6" stroke="#FFFFFF" strokeWidth="0.8"/>
+        <text x="24" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="900" fontFamily="system-ui, -apple-system, sans-serif" letterSpacing="0.8">AMEX</text>
+    </svg>
+);
+
+
 export default function CheckoutTransparente({
     orderData,
     userEmail,
@@ -62,28 +119,60 @@ export default function CheckoutTransparente({
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [showAllInstallments, setShowAllInstallments] = useState(false);
 
-    // Installments breakdown (showing installment value AND total order value)
-    const installmentsList = useMemo(() => {
-        const total = Math.max(0.01, orderData.total);
-        const list = [];
-        for (let i = 1; i <= 12; i++) {
-            list.push({
-                times: i,
-                installmentAmount: (total / i).toFixed(2),
-                totalAmount: total.toFixed(2),
-                isSingle: i === 1
-            });
-        }
-        return list;
-    }, [orderData.total]);
+    // ── PARCELAS 100% REAIS VIA API MERCADO PAGO ──────────────────────────────
+    const [realInstallments, setRealInstallments] = useState<RealInstallment[]>([]);
+    const [loadingInstallments, setLoadingInstallments] = useState(false);
+    const [detectedBrand, setDetectedBrand] = useState<string>("");
 
-    const displayedInstallments = showAllInstallments ? installmentsList : [
-        installmentsList[0], // 1x
-        installmentsList[1], // 2x
-        installmentsList[2], // 3x
-        installmentsList[5], // 6x
-        installmentsList[11] // 12x
-    ];
+    useEffect(() => {
+        let isCancelled = false;
+        const fetchRealInstallments = async () => {
+            const total = Number(orderData.total);
+            if (!total || total <= 0) return;
+
+            setLoadingInstallments(true);
+            try {
+                const binParam = cardBin && cardBin.length >= 6 ? `&bin=${encodeURIComponent(cardBin)}` : "";
+                const res = await fetch(`/api/payment/installments?amount=${total.toFixed(2)}${binParam}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!isCancelled && data.installments && data.installments.length > 0) {
+                        setRealInstallments(data.installments);
+                        if (data.issuer) {
+                            setDetectedBrand(data.issuer);
+                        } else if (data.payment_method_id) {
+                            setDetectedBrand(data.payment_method_id.toUpperCase());
+                        }
+                    }
+                }
+            } catch (err) {
+                console.debug("Erro ao consultar parcelas reais Mercado Pago:", err);
+            } finally {
+                if (!isCancelled) setLoadingInstallments(false);
+            }
+        };
+
+        fetchRealInstallments();
+        return () => {
+            isCancelled = true;
+        };
+    }, [orderData.total, cardBin]);
+
+    const displayedInstallments = useMemo(() => {
+        if (realInstallments.length === 0) return [];
+        if (showAllInstallments) return realInstallments;
+        if (realInstallments.length <= 5) return realInstallments;
+        // Priorizar opções comuns: 1x, 2x, 3x, 6x, 12x
+        const targets = [1, 2, 3, 6, 12];
+        const filtered = realInstallments.filter(i => targets.includes(i.installments));
+        return filtered.length > 0 ? filtered : realInstallments.slice(0, 5);
+    }, [realInstallments, showAllInstallments]);
+
+    const maxInstallment = useMemo(() => {
+        if (realInstallments.length === 0) return null;
+        return realInstallments[realInstallments.length - 1];
+    }, [realInstallments]);
+
 
     // Fetch config if public key not in env
     useEffect(() => {
@@ -572,7 +661,7 @@ export default function CheckoutTransparente({
                     ══════════════════════════════════════════════════════════════ */}
                 {selectedTab === "card" && (
                     <div className={styles.tabContent}>
-                        {/* Header Banner com Bandeiras Aceitas */}
+                        {/* Header Banner com Bandeiras Aceitas com Logos Reais */}
                         <div className={styles.cardHeaderBanner}>
                             <div className={styles.cardHeaderLeft}>
                                 <div className={styles.cardHeaderIcon}>
@@ -584,60 +673,83 @@ export default function CheckoutTransparente({
                                 </div>
                             </div>
                             <div className={styles.cardBrandBadges}>
-                                <span className={styles.brandBadge}>VISA</span>
-                                <span className={styles.brandBadge}>MASTERCARD</span>
-                                <span className={styles.brandBadge}>ELO</span>
-                                <span className={styles.brandBadge}>HIPERCARD</span>
-                                <span className={styles.brandBadge}>AMEX</span>
+                                <span className={styles.brandLogoItem} title="Visa"><VisaLogo /></span>
+                                <span className={styles.brandLogoItem} title="Mastercard"><MastercardLogo /></span>
+                                <span className={styles.brandLogoItem} title="Elo"><EloLogo /></span>
+                                <span className={styles.brandLogoItem} title="Hipercard"><HipercardLogo /></span>
+                                <span className={styles.brandLogoItem} title="American Express"><AmexLogo /></span>
                             </div>
                         </div>
 
-                        {/* Tabela de Parcelamento com Valor da Parcela E Valor Total */}
+                        {/* Tabela de Parcelamento 100% REAL do Mercado Pago */}
                         <div className={styles.installmentsTableCard}>
                             <div className={styles.installmentsTableHeader}>
                                 <div>
-                                    <span className={styles.installmentsTableTitle}>Opções de Parcelamento</span>
-                                    <span className={styles.installmentsTableSub}>Valor por parcela e total correspondente:</span>
+                                    <span className={styles.installmentsTableTitle}>
+                                        Condições Oficiais Mercado Pago
+                                    </span>
+                                    <span className={styles.installmentsTableSub}>
+                                        {detectedBrand ? `Valores oficiais para a bandeira ${detectedBrand}:` : "Consulte os valores reais por parcela e o total final:"}
+                                    </span>
                                 </div>
-                                <span className={styles.installmentsMaxBadge}>
-                                    Até 12x de R$ {(orderData.total / 12).toFixed(2)}
-                                </span>
-                            </div>
-
-                            <div className={styles.installmentsRowsContainer}>
-                                {displayedInstallments.map((inst) => (
-                                    <div key={inst.times} className={styles.installmentRowItem}>
-                                        <div className={styles.installmentRowLeft}>
-                                            <span className={styles.installmentNumber}>{inst.times}x de</span>
-                                            <strong className={styles.installmentAmount}>R$ {inst.installmentAmount}</strong>
-                                            {inst.isSingle && <span className={styles.singlePill}>à vista</span>}
-                                        </div>
-                                        <div className={styles.installmentRowRight}>
-                                            <span className={styles.installmentTotalText}>
-                                                Total: <strong>R$ {inst.totalAmount}</strong>
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <button
-                                type="button"
-                                className={styles.toggleInstallmentsBtn}
-                                onClick={() => setShowAllInstallments(!showAllInstallments)}
-                            >
-                                {showAllInstallments ? (
-                                    <>
-                                        <span>Recolher tabela de parcelas</span>
-                                        <ChevronUp size={16} />
-                                    </>
-                                ) : (
-                                    <>
-                                        <span>Ver todas as 12 opções com valor total</span>
-                                        <ChevronDown size={16} />
-                                    </>
+                                {maxInstallment && (
+                                    <span className={styles.installmentsMaxBadge}>
+                                        Até {maxInstallment.installments}x de R$ {maxInstallment.installment_amount.toFixed(2)}
+                                        {!maxInstallment.has_interest ? " sem juros" : ""}
+                                    </span>
                                 )}
-                            </button>
+                            </div>
+
+                            {loadingInstallments && realInstallments.length === 0 ? (
+                                <div className={styles.installmentsLoadingBox}>
+                                    <Loader2 size={18} className="spin" color="#2d5a27" />
+                                    <span>Consultando condições da sua conta Mercado Pago...</span>
+                                </div>
+                            ) : (
+                                <div className={styles.installmentsRowsContainer}>
+                                    {displayedInstallments.map((inst) => (
+                                        <div key={inst.installments} className={styles.installmentRowItem}>
+                                            <div className={styles.installmentRowLeft}>
+                                                <span className={styles.installmentNumber}>{inst.installments}x de</span>
+                                                <strong className={styles.installmentAmount}>R$ {inst.installment_amount.toFixed(2)}</strong>
+                                                {inst.installments === 1 ? (
+                                                    <span className={styles.singlePill}>à vista</span>
+                                                ) : !inst.has_interest ? (
+                                                    <span className={styles.noInterestPill}>Sem juros</span>
+                                                ) : (
+                                                    <span className={styles.interestPill}>c/ juros</span>
+                                                )}
+                                            </div>
+                                            <div className={styles.installmentRowRight}>
+                                                <span className={styles.installmentTotalText}>
+                                                    Total: <strong>R$ {inst.total_amount.toFixed(2)}</strong>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {realInstallments.length > 5 && (
+                                <button
+                                    type="button"
+                                    className={styles.toggleInstallmentsBtn}
+                                    onClick={() => setShowAllInstallments(!showAllInstallments)}
+                                >
+                                    {showAllInstallments ? (
+                                        <>
+                                            <span>Recolher tabela de parcelas</span>
+                                            <ChevronUp size={16} />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>Ver todas as {realInstallments.length} opções com valor total</span>
+                                            <ChevronDown size={16} />
+                                        </>
+                                    )}
+                                </button>
+                            )}
+
 
                             <div className={styles.installmentsNoticeBox}>
                                 {cardBin.length >= 6 ? (
