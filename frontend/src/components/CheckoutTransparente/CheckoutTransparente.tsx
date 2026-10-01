@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Script from "next/script";
-import { QrCode, CreditCard, Copy, Check, Loader2, ShieldCheck, AlertCircle, Lock, Info, ChevronDown, ChevronUp } from "lucide-react";
+import { QrCode, CreditCard, Copy, Check, Loader2, AlertCircle, Lock } from "lucide-react";
 import styles from "./CheckoutTransparente.module.css";
 
 interface CheckoutTransparenteProps {
@@ -25,26 +25,6 @@ interface CheckoutTransparenteProps {
     onFallbackToCheckoutPro: () => void;
     validateCustomerData: () => boolean;
 }
-
-interface RealInstallment {
-    installments: number;
-    installment_amount: number;
-    total_amount: number;
-    installment_rate: number;
-    recommended_message: string;
-    has_interest: boolean;
-}
-
-// ── BANDEIRAS OFICIAIS MERCADO PAGO ──────────────────────────────────────────
-const CARD_BRANDS = [
-    { id: "visa", name: "Visa", icon: "/images/cards/visa.png" },
-    { id: "master", name: "Mastercard", icon: "/images/cards/mastercard.png" },
-    { id: "elo", name: "Elo", icon: "/images/cards/elo.png" },
-    { id: "amex", name: "American Express", icon: "/images/cards/amex.png" },
-    { id: "hipercard", name: "Hipercard", icon: "/images/cards/hipercard.png" },
-];
-
-
 
 export default function CheckoutTransparente({
     orderData,
@@ -75,81 +55,10 @@ export default function CheckoutTransparente({
     // Card Brick states
     const [brickMounted, setBrickMounted] = useState(false);
     const [brickLoading, setBrickLoading] = useState(false);
-    const [cardBin, setCardBin] = useState("");
     const brickControllerRef = useRef<any>(null);
 
-    // Error & info states
+    // Error state
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [showAllInstallments, setShowAllInstallments] = useState(false);
-
-    // ── PARCELAS 100% REAIS VIA API MERCADO PAGO ──────────────────────────────
-    const [realInstallments, setRealInstallments] = useState<RealInstallment[]>([]);
-    const [loadingInstallments, setLoadingInstallments] = useState(false);
-    const [detectedBrand, setDetectedBrand] = useState<string>("");
-
-    useEffect(() => {
-        let isCancelled = false;
-        const fetchRealInstallments = async () => {
-            const total = Number(orderData.total);
-            if (!total || total <= 0) return;
-
-            // Se o valor for menor que R$ 1,00 (ex: produto teste de centavos), exibe parcela unica sem erro
-            if (total < 1.0) {
-                setRealInstallments([{
-                    installments: 1,
-                    installment_amount: total,
-                    total_amount: total,
-                    installment_rate: 0,
-                    recommended_message: `1x de R$ ${total.toFixed(2).replace(".", ",")} (sem juros)`,
-                    has_interest: false
-                }]);
-                setLoadingInstallments(false);
-                return;
-            }
-
-            setLoadingInstallments(true);
-            try {
-                const binParam = cardBin && cardBin.length >= 6 ? `&bin=${encodeURIComponent(cardBin)}` : "";
-                const res = await fetch(`/api/payment/installments?amount=${total.toFixed(2)}${binParam}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (!isCancelled && data.installments && data.installments.length > 0) {
-                        setRealInstallments(data.installments);
-                        if (data.issuer) {
-                            setDetectedBrand(data.issuer);
-                        } else if (data.payment_method_id) {
-                            setDetectedBrand(data.payment_method_id.toUpperCase());
-                        }
-                    }
-                }
-            } catch (err) {
-                console.debug("Erro ao consultar parcelas reais Mercado Pago:", err);
-            } finally {
-                if (!isCancelled) setLoadingInstallments(false);
-            }
-        };
-
-        fetchRealInstallments();
-        return () => {
-            isCancelled = true;
-        };
-    }, [orderData.total, cardBin]);
-
-    const displayedInstallments = useMemo(() => {
-        if (realInstallments.length === 0) return [];
-        if (showAllInstallments) return realInstallments;
-        if (realInstallments.length <= 5) return realInstallments;
-        // Priorizar opções comuns: 1x, 2x, 3x, 6x, 12x
-        const targets = [1, 2, 3, 6, 12];
-        const filtered = realInstallments.filter(i => targets.includes(i.installments));
-        return filtered.length > 0 ? filtered : realInstallments.slice(0, 5);
-    }, [realInstallments, showAllInstallments]);
-
-    const maxInstallment = useMemo(() => {
-        if (realInstallments.length === 0) return null;
-        return realInstallments[realInstallments.length - 1];
-    }, [realInstallments]);
-
 
     // Fetch config if public key not in env
     useEffect(() => {
@@ -239,11 +148,7 @@ export default function CheckoutTransparente({
                                 setBrickMounted(true);
                             }
                         },
-                        onBinChange: (bin: string) => {
-                            if (!isCancelled) {
-                                setCardBin(bin || "");
-                            }
-                        },
+                        onBinChange: () => {},
                         onSubmit: (cardFormData: any) => {
                             return new Promise(async (resolve, reject) => {
                                 setErrorMessage(null);
@@ -459,7 +364,6 @@ export default function CheckoutTransparente({
                         <Lock size={18} className={styles.lockIcon} />
                         <h3>PAGAMENTO SEGURO</h3>
                     </div>
-                    <span className={styles.subTitle}>Ambiente criptografado no próprio site Ecosopis</span>
                 </div>
 
                 {/* TAB SELECTOR: PIX vs CARTÃO */}
@@ -474,7 +378,6 @@ export default function CheckoutTransparente({
                     >
                         <QrCode size={18} />
                         <span>PIX</span>
-                        <span className={styles.pixBadge}>Aprovação Imediata</span>
                     </button>
 
                     <button
@@ -487,7 +390,6 @@ export default function CheckoutTransparente({
                     >
                         <CreditCard size={18} />
                         <span>Cartão de Crédito</span>
-                        <span className={styles.cardBadge}>Até 3x Sem Juros</span>
                     </button>
                 </div>
 
@@ -506,30 +408,15 @@ export default function CheckoutTransparente({
                     <div className={styles.tabContent}>
                         {!pixData ? (
                             <div className={styles.pixInitialBox}>
-                                <div className={styles.pixFeatureList}>
-                                    <div className={styles.featureItem}>
-                                        <Check size={16} color="#15803d" />
-                                        <span>Confirmação em tempo real</span>
-                                    </div>
-                                    <div className={styles.featureItem}>
-                                        <Check size={16} color="#15803d" />
-                                        <span>Sem redirecionamentos externos</span>
-                                    </div>
-                                    <div className={styles.featureItem}>
-                                        <Check size={16} color="#15803d" />
-                                        <span>QR Code e Copia e Cola na tela</span>
-                                    </div>
-                                </div>
-
                                 <button
                                     type="button"
                                     className="btn-primary"
                                     style={{
                                         width: "100%",
-                                        height: "54px",
+                                        height: "52px",
                                         fontSize: "1.05rem",
                                         fontWeight: 800,
-                                        marginTop: "16px",
+                                        marginTop: "8px",
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "center",
@@ -641,88 +528,16 @@ export default function CheckoutTransparente({
                     ══════════════════════════════════════════════════════════════ */}
                 {selectedTab === "card" && (
                     <div className={styles.tabContent}>
-                        {/* Header Banner com Bandeiras Aceitas com Logos Reais */}
-                        <div className={styles.cardHeaderBanner}>
-                            <div className={styles.cardHeaderLeft}>
-                                <div className={styles.cardHeaderIcon}>
-                                    <CreditCard size={22} color="#2d5a27" />
-                                </div>
-                                <div>
-                                    <h4 className={styles.cardHeaderTitle}>Cartão de Crédito</h4>
-                                    <p className={styles.cardHeaderSubtitle}>
-                                        Parcele em até <strong>3x sem juros</strong> (ou até 12x) com aprovação imediata
-                                    </p>
-                                </div>
-                            </div>
-                            <div className={styles.cardBrandBadges}>
-                                {CARD_BRANDS.map((brand) => (
-                                    <span key={brand.id} className={styles.brandLogoItem} title={brand.name}>
-                                        <img src={brand.icon} alt={brand.name} className={styles.brandImg} />
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* BANNER DE DESTAQUE: 3X SEM JUROS */}
-                        <div style={{
-                            background: "#f0fdf4",
-                            border: "1.5px solid #86efac",
-                            borderRadius: "10px",
-                            padding: "10px 14px",
-                            marginBottom: "16px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                            fontSize: "0.88rem",
-                            color: "#166534"
-                        }}>
-                            <div style={{
-                                background: "#16a34a",
-                                color: "white",
-                                borderRadius: "50%",
-                                width: "22px",
-                                height: "22px",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontWeight: 800,
-                                fontSize: "0.8rem",
-                                flexShrink: 0
-                            }}>✓</div>
-                            <div>
-                                <strong style={{ color: "#14532d" }}>Até 3x SEM JUROS no Cartão!</strong>
-                                <div style={{ fontSize: "0.8rem", color: "#166534", marginTop: "2px" }}>
-                                    {orderData.total > 0 ? (
-                                        <>Parcele em até <strong>3x de R$ {(orderData.total / 3).toFixed(2).replace('.', ',')}</strong> sem juros adicionais.</>
-                                    ) : (
-                                        <>Aproveite o parcelamento sem juros em todas as compras.</>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Formulário Oficial do Brick do Mercado Pago */}
                         <div className={styles.brickWrapper}>
-                            <div className={styles.brickWrapperHeader}>
-                                <Lock size={15} color="#166534" />
-                                <span>Preencha os dados do seu cartão de crédito</span>
-                            </div>
-
                             {brickLoading && (
                                 <div className={styles.brickLoadingBox}>
                                     <Loader2 size={24} className="spin" color="#2d5a27" />
-                                    <span>Carregando formulário seguro do Mercado Pago...</span>
+                                    <span>Carregando formulário de cartão...</span>
                                 </div>
                             )}
 
                             <div id="cardPaymentBrick_container" className={styles.brickContainer} />
-
-                            <div className={styles.brickSecurityFooter}>
-                                <ShieldCheck size={16} color="#16a34a" />
-                                <span>Seus dados são transmitidos com criptografia SSL de 256 bits. O Ecosopis não armazena os dados do seu cartão.</span>
-                            </div>
                         </div>
-
 
                         {errorMessage && (
                             <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -735,7 +550,7 @@ export default function CheckoutTransparente({
                                         setErrorMessage(null);
                                     }}
                                 >
-                                    Pagar com PIX (Aprovação Instantânea)
+                                    Pagar com PIX
                                 </button>
                                 <button
                                     type="button"
@@ -750,20 +565,15 @@ export default function CheckoutTransparente({
                                     }}
                                     onClick={onFallbackToCheckoutPro}
                                 >
-                                    Ou pagar via Checkout Tradicional Mercado Pago →
+                                    Pagar via Checkout Externo Mercado Pago →
                                 </button>
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* FOOTER: SECURITY & CHECKOUT PRO FALLBACK */}
+                {/* FOOTER: CHECKOUT PRO FALLBACK */}
                 <div className={styles.footer}>
-                    <div className={styles.securityTag}>
-                        <ShieldCheck size={16} color="#15803d" />
-                        <span>Dados protegidos pelo Mercado Pago • Criptografia SSL 256 bits</span>
-                    </div>
-
                     <div className={styles.fallbackBox}>
                         <button
                             type="button"
