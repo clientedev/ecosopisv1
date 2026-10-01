@@ -205,6 +205,7 @@ export default function CheckoutTransparente({
                         onError: (error: any) => {
                             console.error("Card Brick error:", error);
                             setBrickLoading(false);
+                            setErrorMessage("Não foi possível inicializar o formulário de cartão do Mercado Pago. Você pode pagar via PIX imediatamente ou utilizar o Checkout Pro.");
                         }
                     }
                 };
@@ -544,6 +545,37 @@ export default function CheckoutTransparente({
                             </div>
                         )}
                         <div id="cardPaymentBrick_container" className={styles.brickContainer} />
+
+                        {errorMessage && (
+                            <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                                <button
+                                    type="button"
+                                    className="btn-primary"
+                                    style={{ width: "100%", height: "48px", fontWeight: 700 }}
+                                    onClick={() => {
+                                        setSelectedTab("pix");
+                                        setErrorMessage(null);
+                                    }}
+                                >
+                                    Pagar com PIX (Aprovação Instantânea)
+                                </button>
+                                <button
+                                    type="button"
+                                    style={{
+                                        background: "transparent",
+                                        border: "1px solid #cbd5e1",
+                                        borderRadius: "8px",
+                                        padding: "10px",
+                                        fontSize: "0.85rem",
+                                        color: "#475569",
+                                        cursor: "pointer"
+                                    }}
+                                    onClick={onFallbackToCheckoutPro}
+                                >
+                                    Ou pagar via Checkout Tradicional Mercado Pago →
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
