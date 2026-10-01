@@ -104,7 +104,7 @@ def list_products(db: Session = Depends(get_db), include_inactive: bool = False)
     query = db.query(models.Product)
     if not include_inactive:
         query = query.filter(models.Product.is_active == True)
-    query = query.order_by(models.Product.order.asc(), models.Product.id.asc())
+    query = query.order_by(models.Product.is_active.desc(), models.Product.order.asc(), models.Product.id.asc())
     # Eager load details to ensure QR code path is available
     return query.options(joinedload(models.Product.details)).all()
 
@@ -368,20 +368,56 @@ def update_product(
     db.refresh(db_product)
     return db_product
 
+@router.post("/reorder")
+def reorder_products(
+    orders: List[dict],
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    """Admin endpoint: reorder products given a list of {'id': int, 'order': int}."""
+    for item in orders:
+        pid = item.get("id")
+        new_order = item.get("order")
+        if pid is not None and new_order is not None:
+            prod = db.query(models.Product).filter(models.Product.id == pid).first()
+            if prod:
+                prod.order = int(new_order)
+    db.commit()
+    return {"message": "Ordem dos produtos atualizada com sucesso"}
+
+
 @router.delete("/{product_id}")
 def delete_product(
     product_id: int,
+    permanent: bool = False,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
-    # Toggle status: allows both activation and deactivation via DELETE requests
-    # which is used by the frontend Dashboard toggle.
+
+    if permanent:
+        # Exclusão definitiva do produto e dependências
+        db.query(models.ProductClick).filter(models.ProductClick.product_id == product_id).delete(synchronize_session=False)
+        db.query(models.OrderItem).filter(models.OrderItem.product_id == product_id).delete(synchronize_session=False)
+        db.delete(db_product)
+        db.commit()
+        return {"message": "Produto excluído definitivamente", "deleted": True}
+
+    # Alternar status: desativar / reativar
     db_product.is_active = not db_product.is_active
     db.commit()
     return {"message": "Status updated", "is_active": db_product.is_active}
+
+
+@router.delete("/{product_id}/permanent")
+def delete_product_permanent(
+    product_id: int,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    return delete_product(product_id=product_id, permanent=True, db=db, admin=admin)
 class QRRegenerate(BaseModel):
     origin: Optional[str] = None
 
