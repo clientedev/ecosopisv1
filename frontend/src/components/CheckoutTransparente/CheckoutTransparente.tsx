@@ -93,6 +93,20 @@ export default function CheckoutTransparente({
             const total = Number(orderData.total);
             if (!total || total <= 0) return;
 
+            // Se o valor for menor que R$ 1,00 (ex: produto teste de centavos), exibe parcela unica sem erro
+            if (total < 1.0) {
+                setRealInstallments([{
+                    installments: 1,
+                    installment_amount: total,
+                    total_amount: total,
+                    installment_rate: 0,
+                    recommended_message: `1x de R$ ${total.toFixed(2).replace(".", ",")} (sem juros)`,
+                    has_interest: false
+                }]);
+                setLoadingInstallments(false);
+                return;
+            }
+
             setLoadingInstallments(true);
             try {
                 const binParam = cardBin && cardBin.length >= 6 ? `&bin=${encodeURIComponent(cardBin)}` : "";
@@ -186,17 +200,23 @@ export default function CheckoutTransparente({
                 const bricksBuilder = mp.bricks();
 
                 const cleanCpf = (orderData.customerCpf || "").replace(/\D/g, "");
+                // Mercado Pago exige no minimo R$ 0,50 / R$ 1,00 para inicializar Card Brick
+                const brickAmount = Math.max(1.0, Number((orderData.total || 0).toFixed(2)));
+
+                const payerObj: any = {
+                    email: userEmail && userEmail.includes("@") ? userEmail : "contato@ecosopis.com.br"
+                };
+                if (cleanCpf && cleanCpf.length === 11) {
+                    payerObj.identification = {
+                        type: "CPF",
+                        number: cleanCpf
+                    };
+                }
 
                 const settings = {
                     initialization: {
-                        amount: Number(Math.max(0.01, orderData.total).toFixed(2)),
-                        payer: {
-                            email: userEmail || "cliente@ecosopis.com.br",
-                            identification: {
-                                type: "CPF",
-                                number: cleanCpf || ""
-                            }
-                        }
+                        amount: brickAmount,
+                        payer: payerObj
                     },
                     customization: {
                         visual: {

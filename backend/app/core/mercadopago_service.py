@@ -112,8 +112,12 @@ def create_card_payment(
             "number": clean_cpf
         }
 
+    clean_total = round(float(total), 2)
+    # Mercado Pago exige valor minimo de R$ 0,50 para processamento de cartao no Brasil
+    charge_amount = max(0.50, clean_total)
+
     payment_data = {
-        "transaction_amount": round(float(total), 2),
+        "transaction_amount": charge_amount,
         "token": token,
         "description": f"Pedido ECOSOPIS #{order_id}",
         "installments": int(installments) if installments and int(installments) > 0 else 1,
