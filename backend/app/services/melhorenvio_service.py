@@ -108,6 +108,8 @@ def _obter_dados_por_cep(cep: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def _headers() -> dict:
+    if not MELHORENVIO_TOKEN:
+        raise RuntimeError("Token do Melhor Envio não configurado. Defina MELHORENVIO_TOKEN.")
     return {
         "Authorization": f"Bearer {MELHORENVIO_TOKEN}",
         "Accept": "application/json",
@@ -134,6 +136,108 @@ def _request_with_retry(method: str, endpoint: str, **kwargs) -> requests.Respon
             if attempt < MAX_RETRIES:
                 time.sleep(RETRY_DELAY)
     raise RuntimeError(f"Falha após {MAX_RETRIES} tentativas: {last_exc}")
+
+
+def _coletar_agencias_disponiveis(service_id: int = None, cep_origem: str = CEP_ORIGEM) -> list:
+    """Lista agências/pontos de postagem usando a API oficial do Melhor Envio."""
+    try:
+        params = {}
+        if service_id is not None:
+            params["service_id"] = service_id
+        if cep_origem:
+            params["from_postal_code"] = str(cep_origem).replace("-", "").strip()
+        resp = _request_with_retry("GET", "/api/v2/me/agencies", params=params)
+        if resp.status_code != 200:
+            logger.warning(f"[ME] agencies retornou {resp.status_code}: {resp.text[:300]}")
+            return []
+        data = resp.json()
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            for key in ("data", "agencies", "result", "results"):
+                if isinstance(data.get(key), list):
+                    return data[key]
+            return [data]
+        return []
+    except Exception as exc:
+        logger.warning(f"[ME] Falha ao consultar agências: {exc}")
+        return []
+
+
+def _normalizar_agencia_id(raw_agencia) -> str:
+    if raw_agencia is None:
+        return ""
+    if isinstance(raw_agencia, dict):
+        for key in ("id", "agency_id", "agencyId"):
+            if key in raw_agencia:
+                return str(raw_agencia[key])
+        return ""
+    if isinstance(raw_agencia, (int, float, str)):
+        return str(raw_agencia)
+    return ""
+
+
+def _filtrar_agencia_valida(agencias: list, service_id: int = None, cep_origem: str = CEP_ORIGEM):
+    """Retorna a agência mais adequada para o serviço/origem. Se houver mais de uma, prioriza a melhor compatível."""
+    if not agencias:
+        return None
+
+    service_id = int(service_id) if service_id is not None else None
+    cep_origem = str(cep_origem or "").replace("-", "").strip()
+
+    def agencia_apta(item) -> bool:
+        if not isinstance(item, dict):
+            return False
+        agency_id = _normalizar_agencia_id(item)
+        if not agency_id:
+            return False
+
+        # Filtra por serviço quando o retorno expõe `service` ou `services`
+        service_list = item.get("services") or item.get("service") or item.get("service_id") or item.get("service_ids")
+        if service_id is not None:
+            if isinstance(service_list, list):
+                if str(service_id) not in [str(v) for v in service_list]:
+                    return False
+            elif isinstance(service_list, dict):
+                # Alguns payloads devolvem mapping por serviço
+                if str(service_id) not in [str(k) for k in service_list.keys()]:
+                    return False
+            elif isinstance(service_list, (int, float, str)):
+                if str(service_id) != str(service_list):
+                    return False
+
+        # Tenta localizar o CEP/origem quando o item expõe endereço válido
+        postal = item.get("postal_code") or item.get("postalCode") or item.get("cep") or item.get("zip_code")
+        if cep_origem and postal:
+            postal_digits = str(postal).replace("-", "").replace(".", "").strip()
+            if postal_digits and postal_digits != cep_origem:
+                # não é critério obrigatório para todos os retornos, mas ajuda a filtrar
+                pass
+
+        return True
+
+    validas = [item for item in agencias if agencia_apta(item)]
+    if not validas:
+        return None
+
+    # Prioriza agências que incluem o id em campos mais explícitos
+    for item in validas:
+        if isinstance(item, dict):
+            if item.get("is_active") is False:
+                continue
+            if item.get("available") is False:
+                continue
+            return item
+    return validas[0]
+
+
+def _resolver_agencia_para_servico(service_id: int, cep_origem: str = CEP_ORIGEM):
+    """Resolve agency_id válido para a origem e o serviço atual; retorna None se não for obrigatório."""
+    agencias = _coletar_agencias_disponiveis(service_id=service_id, cep_origem=cep_origem)
+    agencia = _filtrar_agencia_valida(agencias, service_id=service_id, cep_origem=cep_origem)
+    if agencia is None:
+        return None
+    return _normalizar_agencia_id(agencia)
 
 
 # ---------------------------------------------------------------------------
@@ -180,21 +284,21 @@ def selecionar_servico(cep_destino: str, valor: float, produto_nome: str = "Prod
 def criar_envio(pedido, service_id: int) -> tuple[str, str]:
     """POST /api/v2/me/cart — Retorna (shipment_id, tracking_code_inicial)."""
     cep_destino = str(pedido.cep_cliente).replace("-", "").strip()
-    
+
     # Busca dados no ViaCEP para preencher campos vazios
     via_cep_data = _obter_dados_por_cep(cep_destino)
 
     to_name       = getattr(pedido, "customer_name", None) or "Cliente"
     to_phone      = getattr(pedido, "customer_phone", None) or "11999999999"
     to_phone      = str(to_phone).replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
-    
+
     to_address    = getattr(pedido, "address_street", None) or via_cep_data.get("logradouro") or "Endereço não informado"
     to_number     = getattr(pedido, "address_number", None) or "S/N"
     to_district   = getattr(pedido, "address_district", None) or via_cep_data.get("bairro") or "Bairro"
     to_city       = getattr(pedido, "address_city", None) or via_cep_data.get("localidade") or "Cidade"
     to_state = getattr(pedido, "address_state", None)
     uf_via_cep = via_cep_data.get("uf")
-    
+
     # Valida consistência de CEP e UF para CEPs fora de SP.
     # Se a UF for "SP" (ou vazia) mas o CEP do destinatário for de outro estado,
     # e o ViaCEP retornar a UF correta, aplica a correção automática.
@@ -202,7 +306,7 @@ def criar_envio(pedido, service_id: int) -> tuple[str, str]:
     if (not to_state or to_state == "SP") and not cep_starts_sp and uf_via_cep and uf_via_cep != "SP":
         logger.info(f"[ENVIO] Corrigindo automaticamente a UF do pedido #{pedido.id}: CEP {cep_destino} é de {uf_via_cep} (estava como '{to_state}')")
         to_state = uf_via_cep
-        
+
     to_state = to_state or uf_via_cep or "SP"
     to_complement = getattr(pedido, "address_complement", None) or ""
 
@@ -220,13 +324,15 @@ def criar_envio(pedido, service_id: int) -> tuple[str, str]:
 
     # Garante peso mínimo de 0.1kg e máximo razoável
     total_weight = max(total_weight, 0.1)
-    
+
     # Determina dimensões básicas com base no peso (estimativa)
     width, height, length = 15, 5, 20
     if total_weight > 2: # Caixa maior para atacado
         width, height, length = 25, 15, 30
     if total_weight > 10:
         width, height, length = 40, 30, 40
+
+    agencia_id = _resolver_agencia_para_servico(service_id, CEP_ORIGEM)
 
     payload = {
         "service": service_id,
@@ -270,7 +376,32 @@ def criar_envio(pedido, service_id: int) -> tuple[str, str]:
         },
     }
 
+    # Campo exigido pela API atual do Melhor Envio para serviços que necessitam agência.
+    # Mantém compatibilidade com serviços sem agência e não envia o campo quando não houver necessidade.
+    if agencia_id:
+        payload["agency"] = agencia_id
+        logger.info(f"[ME] Agência resolvida para serviço {service_id}: agency={agencia_id}")
+    else:
+        logger.info(f"[ME] Nenhuma agência necessária ou encontrada para serviço {service_id}. Mantendo fluxo sem agency.")
+
+    # Garante que, se a API retornar 422 alegando que a agência é obrigatória,
+    # a integração tenta novamente usando a agência correta da origem/serviço.
     resp = _request_with_retry("POST", "/api/v2/me/cart", json=payload)
+
+    if resp.status_code == 422:
+        reply_text = str(resp.text or "").lower()
+        if "agência" in reply_text or "agency" in reply_text or "agencia" in reply_text:
+            agencias = _coletar_agencias_disponiveis(service_id=service_id, cep_origem=CEP_ORIGEM)
+            agency_id_retry = _normalizar_agencia_id(_filtrar_agencia_valida(agencias, service_id=service_id, cep_origem=CEP_ORIGEM))
+            if agency_id_retry:
+                payload["agency"] = agency_id_retry
+                logger.warning(f"[ME] Cart 422 sem agency; retry com agency={agency_id_retry} para service={service_id}")
+                resp = _request_with_retry("POST", "/api/v2/me/cart", json=payload)
+            else:
+                raise RuntimeError(
+                    "O serviço selecionado exige agência/ponto de postagem, mas nenhuma agência válida foi encontrada para a origem e o serviço. "
+                    "Verifique a configuração/credenciais do Melhor Envio e a disponibilidade da agência para este serviço."
+                )
 
     if resp.status_code not in (200, 201):
         raise RuntimeError(f"Erro ao criar envio no carrinho: {resp.status_code} – {resp.text[:400]}")
@@ -575,7 +706,6 @@ def sync_melhor_envio_status(order, db) -> dict:
         "status_modificado": status_modificado,
         "novo_tracking": novo_tracking_salvo,
     }
-
 
 
 def processar_envio(pedido, db) -> dict:
