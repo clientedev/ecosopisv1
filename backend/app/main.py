@@ -64,7 +64,12 @@ def _apply_startup_migrations():
         ("customer_cpf",             "VARCHAR"),
         ("buyer_name",               "VARCHAR"),
         ("buyer_email",              "VARCHAR"),
-        ("correios_label_url",       "VARCHAR")
+        ("correios_label_url",       "VARCHAR"),
+        ("customer_name",            "VARCHAR"),
+        ("customer_email",           "VARCHAR"),
+        ("customer_phone",           "VARCHAR"),
+        ("coupon_code",              "VARCHAR"),
+        ("discount_amount",          "DOUBLE PRECISION DEFAULT 0")
     ]
     
     ADDRESS_COLS = [

@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from app.core.melhorenvio_service import MelhorEnvioService
 import os
+import time
 import logging
 import io
 from datetime import datetime
@@ -272,11 +273,23 @@ async def generate_label(
             )
         
         shipment_id = resultado.get("shipment_id")
-        raise HTTPException(
-            status_code=422,
-            detail=f"A etiqueta foi enviada para o carrinho do Melhor Envio (ID: {shipment_id}). "
-                   f"Efetue o pagamento da etiqueta no painel do Melhor Envio e depois clique aqui novamente para gerá-la."
-        )
+        
+        # Tenta debitar a etiqueta automaticamente se a conta do Melhor Envio tiver saldo
+        bought = False
+        try:
+            me_service.comprar_etiqueta(shipment_id)
+            bought = True
+            logger.info(f"[ME] Etiqueta comprada automaticamente para shipment_id={shipment_id}")
+            time.sleep(1)
+        except Exception as buy_err:
+            logger.info(f"[ME] Não foi possível debitar automaticamente ({buy_err}). Usuário pagará no painel do Melhor Envio.")
+
+        if not bought:
+            raise HTTPException(
+                status_code=422,
+                detail=f"A etiqueta foi enviada para o carrinho do Melhor Envio (ID: {shipment_id}). "
+                       f"Efetue o pagamento da etiqueta no painel do Melhor Envio e depois clique aqui novamente para gerá-la."
+            )
 
     # 2. Verificar se a etiqueta já foi paga/comprada no Melhor Envio
     shipment_details = me_service.obter_detalhes_envio(order.shipment_id)

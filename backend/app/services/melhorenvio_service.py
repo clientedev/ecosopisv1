@@ -13,6 +13,7 @@ Fluxo oficial (docs.melhorenvio.com.br/reference/geracao-de-etiquetas):
 import os
 import time
 import logging
+from typing import Optional, Tuple, Dict, Any, List, Union
 import requests
 from dotenv import load_dotenv
 
@@ -137,10 +138,98 @@ def _request_with_retry(method: str, endpoint: str, **kwargs) -> requests.Respon
 
 
 # ---------------------------------------------------------------------------
-# 1. Selecionar serviço mais barato
+# Mapeamento de Serviços e Agências (Jadlog, Azul, etc.)
 # ---------------------------------------------------------------------------
 
-def selecionar_servico(cep_destino: str, valor: float, produto_nome: str = "Produto") -> int:
+SERVICE_TO_COMPANY = {
+    1: 1,   # Correios PAC
+    2: 1,   # Correios SEDEX
+    17: 1,  # Correios Mini Envios
+    3: 2,   # Jadlog .Package
+    4: 2,   # Jadlog .Com
+    27: 2,  # Jadlog Pickup
+    8: 9,   # Azul Cargo Amanhã
+    9: 9,   # Azul Cargo 2 Dias
+    15: 4,  # Buslog
+    16: 4,  # Buslog
+}
+
+_AGENCY_CACHE: Dict[str, int] = {}
+
+
+def obter_agencia(company_id: int = 2, state: str = STORE_STATE, city: str = STORE_CITY) -> Optional[int]:
+    """
+    Busca o ID da agência/ponto de coleta no Melhor Envio para transportadoras
+    que exigem agência de postagem (como Jadlog, Azul Cargo, etc.).
+    """
+    env_agency = os.getenv("MELHORENVIO_AGENCY_ID", "").strip()
+    if env_agency and env_agency.isdigit():
+        return int(env_agency)
+
+    cache_key = f"{company_id}:{state}:{city}".lower().strip()
+    if cache_key in _AGENCY_CACHE:
+        return _AGENCY_CACHE[cache_key]
+
+    # Tentativas em cascata:
+    # 1. Cidade + Estado da loja
+    # 2. Somente Estado da loja
+    # 3. Somente Empresa
+    attempts = [
+        {"company": company_id, "state": state, "city": city},
+        {"company": company_id, "state": state},
+        {"company": company_id},
+    ]
+
+    for params in attempts:
+        try:
+            logger.info(f"[ME] Consultando agências de postagem com parâmetros: {params}")
+            resp = _request_with_retry("GET", "/api/v2/me/shipment/agencies", params=params)
+            if resp.status_code == 200:
+                data = resp.json()
+                agencies = data if isinstance(data, list) else data.get("data", [])
+                if isinstance(agencies, list) and len(agencies) > 0:
+                    # Dá preferência a agência com status "active" ou a primeira retornada
+                    active = [a for a in agencies if a.get("status") == "active"] or agencies
+                    agency_id = active[0].get("id")
+                    agency_name = active[0].get("name") or active[0].get("company_name") or "Agência"
+                    if agency_id:
+                        logger.info(f"[ME] Agência encontrada: ID {agency_id} ({agency_name})")
+                        _AGENCY_CACHE[cache_key] = int(agency_id)
+                        return int(agency_id)
+        except Exception as err:
+            logger.warning(f"[ME] Falha ao consultar agências com {params}: {err}")
+
+    logger.warning(f"[ME] Nenhuma agência encontrada para company_id={company_id}, state={state}, city={city}")
+    return None
+
+
+def servico_exige_agencia(service_id: int, company_id: Optional[int] = None, company_name: str = "") -> bool:
+    """Retorna True se o serviço exigir agência obrigatória no payload do Melhor Envio."""
+    # Correios NUNCA exige agência
+    if company_id == 1 or "correios" in company_name.lower() or service_id in (1, 2, 17):
+        return False
+    # Jadlog e outras transportadoras privadas exigem agência
+    return True
+
+
+# ---------------------------------------------------------------------------
+# 1. Selecionar serviço
+# ---------------------------------------------------------------------------
+
+def selecionar_servico(
+    cep_destino: str,
+    valor: float,
+    produto_nome: str = "Produto",
+    shipping_method: str = "",
+) -> Tuple[int, Optional[int]]:
+    """
+    Calcula opções de frete e seleciona o melhor serviço viável:
+      1. Se o pedido tem shipping_method (ex: 'PAC', 'SEDEX', 'Jadlog', etc.), prioriza o método escolhido.
+      2. Caso contrário, escolhe a opção mais barata que seja viável (ou seja, se exigir agência, que uma agência exista).
+      3. Se o serviço selecionado exigir agência, retorna (service_id, agency_id).
+      4. Se nenhuma agência estiver disponível para o serviço privado, faz fallback seguro para Correios PAC ou SEDEX.
+    Retorna tupla: (service_id, agency_id)
+    """
     cep = cep_destino.replace("-", "").strip()
     payload = {
         "from": {"postal_code": CEP_ORIGEM},
@@ -168,17 +257,95 @@ def selecionar_servico(cep_destino: str, valor: float, produto_nome: str = "Prod
         erros = [o.get("error") or o.get("name") for o in all_options[:3]]
         raise RuntimeError(f"Nenhuma opção de frete válida. Detalhes: {erros}")
 
-    cheapest = min(valid_options, key=lambda o: float(o["price"]))
-    logger.info(f"[ME] Serviço mais barato: {cheapest.get('name')} (R$ {cheapest.get('price')}) id={cheapest.get('id')}")
-    return cheapest["id"]
+    def _avaliar_opcao(opt: dict) -> Tuple[bool, Optional[int]]:
+        sid = int(opt["id"])
+        comp = opt.get("company") or {}
+        cid = comp.get("id") or SERVICE_TO_COMPANY.get(sid, 1)
+        cname = str(comp.get("name") or "")
+
+        if not servico_exige_agencia(sid, cid, cname):
+            return True, None
+
+        ag_id = obter_agencia(company_id=cid, state=STORE_STATE, city=STORE_CITY)
+        if ag_id:
+            return True, ag_id
+        return False, None
+
+    sm_clean = (shipping_method or "").strip().lower()
+    selected_option = None
+    selected_agency_id = None
+
+    # 1. Se o cliente selecionou um método específico (ex: PAC, SEDEX, Jadlog .Package)
+    if sm_clean and sm_clean not in ("melhor envio", "fixo", "padrão", "padrao", "frete"):
+        for opt in valid_options:
+            opt_name = str(opt.get("name") or "").lower()
+            opt_comp = str((opt.get("company") or {}).get("name") or "").lower()
+            full_str = f"{opt_name} {opt_comp}"
+
+            if sm_clean in full_str or sm_clean == str(opt.get("id")):
+                viavel, ag_id = _avaliar_opcao(opt)
+                if viavel:
+                    selected_option = opt
+                    selected_agency_id = ag_id
+                    logger.info(
+                        f"[ME] Serviço correspondente ao escolhido pelo cliente (#{shipping_method}): "
+                        f"{opt.get('name')} (R$ {opt.get('price')}) agência={ag_id}"
+                    )
+                    break
+
+    # 2. Se não bateu com nenhum específico, busca o mais barato viável
+    if not selected_option:
+        sorted_by_price = sorted(valid_options, key=lambda o: float(o["price"]))
+        for opt in sorted_by_price:
+            viavel, ag_id = _avaliar_opcao(opt)
+            if viavel:
+                selected_option = opt
+                selected_agency_id = ag_id
+                logger.info(
+                    f"[ME] Serviço mais barato viável: {opt.get('name')} (R$ {opt.get('price')}) "
+                    f"id={opt.get('id')} agência={ag_id}"
+                )
+                break
+
+    # 3. Fallback: se nenhum privado tiver agência, garante Correios (PAC/SEDEX)
+    if not selected_option:
+        correios_options = [
+            o for o in valid_options 
+            if not servico_exige_agencia(int(o["id"]), (o.get("company") or {}).get("id"), str((o.get("company") or {}).get("name") or ""))
+        ]
+        if correios_options:
+            selected_option = min(correios_options, key=lambda o: float(o["price"]))
+            selected_agency_id = None
+            logger.info(f"[ME] Fallback Correios sem agência: {selected_option.get('name')} id={selected_option.get('id')}")
+        else:
+            selected_option = valid_options[0]
+            selected_agency_id = None
+
+    return int(selected_option["id"]), selected_agency_id
 
 
 # ---------------------------------------------------------------------------
 # 2. Criar envio no carrinho
 # ---------------------------------------------------------------------------
 
-def criar_envio(pedido, service_id: int) -> tuple[str, str]:
+def criar_envio(pedido, service_id: int, agency_id: Optional[int] = None) -> tuple[str, str]:
     """POST /api/v2/me/cart — Retorna (shipment_id, tracking_code_inicial)."""
+    service_id = int(service_id)
+
+    # Se agency_id não foi informado mas o serviço exige agência (ex: Jadlog 3 ou 4),
+    # tenta resolver a agência automaticamente.
+    if agency_id is None and servico_exige_agencia(service_id):
+        comp_id = SERVICE_TO_COMPANY.get(service_id, 2)
+        agency_id = obter_agencia(company_id=comp_id, state=STORE_STATE, city=STORE_CITY)
+        if not agency_id:
+            # Se absolutamente nenhuma agência for encontrada para Jadlog/privada,
+            # faz fallback para Correios PAC (id=1) para não tomar erro 422
+            logger.warning(
+                f"[ME] Serviço {service_id} exige agência mas nenhuma foi localizada. "
+                f"Alterando serviço para Correios PAC (id=1) para evitar erro 422."
+            )
+            service_id = 1
+
     cep_destino = str(pedido.cep_cliente).replace("-", "").strip()
     
     # Busca dados no ViaCEP para preencher campos vazios
@@ -269,6 +436,10 @@ def criar_envio(pedido, service_id: int) -> tuple[str, str]:
             "non_commercial":  True,
         },
     }
+
+    if agency_id:
+        payload["agency"] = int(agency_id)
+        logger.info(f"[ME] Agência informada no carrinho: agency={agency_id}")
 
     resp = _request_with_retry("POST", "/api/v2/me/cart", json=payload)
 
@@ -613,10 +784,13 @@ def processar_envio(pedido, db) -> dict:
         tracking_from_cart = ""
 
         if not shipment_id:
-            service_id = selecionar_servico(cep_digits, pedido.valor, pedido.produto_nome)
+            shipping_method = getattr(pedido, "shipping_method", "") or ""
+            service_id, agency_id = selecionar_servico(
+                cep_digits, pedido.valor, pedido.produto_nome, shipping_method=shipping_method
+            )
             resultado["service_id"] = service_id
 
-            shipment_id, tracking_from_cart = criar_envio(pedido, service_id)
+            shipment_id, tracking_from_cart = criar_envio(pedido, service_id, agency_id=agency_id)
             pedido.shipment_id = shipment_id
             if tracking_from_cart:
                 pedido.tracking_code = tracking_from_cart
@@ -652,7 +826,8 @@ class MelhorEnvioV2Service:
     def calcular_frete(cep_destino: str, peso: float = 1, comprimento: int = 20,
                        altura: int = 5, largura: int = 15):
         try:
-            sid = selecionar_servico(cep_destino, 0)
+            res = selecionar_servico(cep_destino, 0)
+            sid = res[0] if isinstance(res, tuple) else res
             return [{"id": sid}]
         except Exception:
             return []
@@ -667,12 +842,19 @@ class MelhorEnvioV2Service:
             valor=total_value,
             produto_nome=produto_nome,
             cep_cliente=user_info.get("postal_code", "00000000"),
+            shipping_method="",
         )
         try:
-            service_id = int(shipping_service_id) if shipping_service_id else selecionar_servico(
-                pedido_ns.cep_cliente, pedido_ns.valor
-            )
-            shipment_id, tracking_from_cart = criar_envio(pedido_ns, service_id)
+            agency_id = None
+            if shipping_service_id:
+                service_id = int(shipping_service_id)
+            else:
+                res = selecionar_servico(pedido_ns.cep_cliente, pedido_ns.valor)
+                if isinstance(res, tuple):
+                    service_id, agency_id = res
+                else:
+                    service_id = res
+            shipment_id, tracking_from_cart = criar_envio(pedido_ns, service_id, agency_id=agency_id)
             comprar_etiqueta(shipment_id)
             gerar_etiqueta(shipment_id)
             etiqueta_url = imprimir_etiqueta(shipment_id)

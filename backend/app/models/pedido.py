@@ -63,6 +63,10 @@ class Pedido:
         digits = "".join(c for c in str(cep) if c.isdigit())
         return digits if digits else "00000000"
 
+    @property
+    def shipping_method(self) -> str:
+        return getattr(self._order, "shipping_method", "") or ""
+
     # Campos de rastreio / envio — lidos/escritos no Order diretamente
     @property
     def status(self) -> str:
