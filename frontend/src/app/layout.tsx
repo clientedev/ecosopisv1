@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import HeartAnimation from "@/components/HeartAnimation/HeartAnimation";
 import WorldCupAnimation from "@/components/WorldCupAnimation/WorldCupAnimation";
 import AnniversaryAnimation from "@/components/AnniversaryAnimation/AnniversaryAnimation";
+import OutubroRosaAnimation from "@/components/OutubroRosaAnimation/OutubroRosaAnimation";
 
 const raleway = Raleway({
     subsets: ["latin"],
@@ -61,6 +62,7 @@ export default function RootLayout({
                                 <HeartAnimation />
                                 <WorldCupAnimation />
                                 <AnniversaryAnimation />
+                                <OutubroRosaAnimation />
                                 {children}
                                 <CartDrawer />
                                 <WhatsAppPromptModal />

@@ -1,0 +1,626 @@
+import os
+import logging
+from typing import Any, Dict, List, Optional
+
+import stripe
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.api.endpoints.auth import get_current_user, get_current_user_optional
+from app.repositories.order_repository import OrderRepository
+from app.core.stripe_service import create_checkout_session, verify_webhook_signature, get_session
+from app.core.mercadopago_service import create_checkout_pro_preference, get_payment_status as get_mp_payment_status
+from app.services.melhorenvio_service import processar_envio
+from app.models import models
+from app.models.pedido import Pedido
+from app.core import emails
+from app.api.endpoints.cashback import create_cashback_for_order
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
+
+# ── Pydantic schemas ─────────────────────────────────────────────────────────
+class CheckoutItemIn(BaseModel):
+    product_id: int
+    product_name: str
+    quantity: int
+    price: float
+
+
+class CreateCheckoutIn(BaseModel):
+    order_id: Optional[int] = None
+    items: List[CheckoutItemIn]
+    total: float
+    address: Optional[Dict[str, Any]] = None
+    shipping_method: Optional[str] = "fixo"
+    shipping_price: Optional[float] = 20.0
+    coupon_code: Optional[str] = None
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    customer_cpf: Optional[str] = None
+    discount_amount: Optional[float] = 0.0
+    cashback_amount: Optional[float] = 0.0
+
+
+class CheckoutResponse(BaseModel):
+    checkout_url: str
+    session_id: Optional[str] = None
+    preference_id: Optional[str] = None
+    order_id: int
+
+
+class StatusUpdateIn(BaseModel):
+    status: str
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+def _normalize_url(url: str) -> str:
+    url = url.strip().rstrip("/")
+    if not url:
+        return "http://localhost:3000"
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    return f"https://{url}"
+
+def _resolve_frontend_url(request: Request) -> str:
+    if FRONTEND_URL:
+        return _normalize_url(FRONTEND_URL)
+    origin = request.headers.get("origin")
+    if origin and "localhost" not in origin:
+        return _normalize_url(origin)
+    return "http://localhost:3000"
+
+
+def _get_or_create_order(data: CreateCheckoutIn, current_user: models.User, db: Session, payment_method: str) -> models.Order:
+    repo = OrderRepository(db)
+    if any("(Atacado)" in (item.product_name or "") for item in data.items):
+        data.coupon_code = ""
+        data.discount_amount = 0.0
+    if data.order_id:
+        order = repo.get_order_by_id(data.order_id)
+        if not order:
+            raise HTTPException(status_code=404, detail="Pedido não encontrado")
+        order.payment_method = payment_method
+    else:
+        order = repo.create_order(
+            user_id=current_user.id,
+            total=data.total,
+            shipping_price=data.shipping_price or 0.0,
+            shipping_method=data.shipping_method or "fixo",
+            items=[item.dict() for item in data.items],
+            address=data.address or {},
+            status="pending",
+            coupon_code=data.coupon_code or "",
+            discount_amount=data.discount_amount or 0.0,
+            customer_cpf=data.customer_cpf
+        )
+        repo.add_order_items(order.id, [item.dict() for item in data.items])
+        
+        order.payment_method = payment_method
+        order.customer_name = data.customer_name or current_user.full_name or ""
+        order.customer_email = current_user.email
+        order.customer_phone = data.customer_phone or ""
+        
+        # Clear saved cart JSON upon checkout creation
+        current_user.cart_json = None
+        current_user.cart_updated_at = None
+
+    db.commit()
+    db.refresh(order)
+    return order
+
+
+def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str = None, session_id: str = None, buyer_email: str = None, buyer_name: str = None):
+    """
+    Shared logic to handle successful payment:
+    1. Mark order as paid.
+    2. Update buyer info.
+    3. Update user metrics (total purchases, roulette).
+    4. Process Cashback.
+    5. GENERATE SHIPPING LABEL / Cart Entry (Melhor Envio).
+    6. Send Confirmation Emails (Customer + contato@ecosopis.com.br).
+    7. Send WhatsApp Notification to Julia (11951559212) & Customer.
+    """
+    try:
+        db.refresh(order)
+    except Exception as ref_err:
+        logger.warning(f"Could not refresh order {order.id} state from DB: {ref_err}")
+
+    # Re-read status from the refreshed object to avoid race conditions
+    # where another webhook call already finalized this order concurrently.
+    if order.status in ("paid", "shipped", "delivered", "processando_envio", "erro_envio", "PROCESSANDO_ENVIO", "ERRO_ENVIO"):
+        logger.info(f"Order {order.id} already in status '{order.status}'. Skipping finalize.")
+        return
+
+    order.status = "paid"
+    if payment_id:
+        if order.payment_method == "stripe":
+            order.stripe_payment_id = payment_id
+        else:
+            order.mercadopago_payment_id = payment_id
+            
+    if session_id:
+        order.stripe_session_id = session_id
+        
+    if buyer_email: order.buyer_email = buyer_email
+    if buyer_name: order.buyer_name = buyer_name
+
+    # Update the purchase metric used by the current promotions and cashback
+    # flows. Clear saved cart JSON on payment confirmation.
+    user = db.query(models.User).filter(models.User.id == order.user_id).first()
+    if user:
+        user.total_compras = (user.total_compras or 0) + 1
+        user.cart_json = None
+        user.cart_updated_at = None
+        
+        # Cashback logic
+        try:
+            create_cashback_for_order(db, order, user)
+        except Exception as e:
+            logger.error(f"Error processing cashback for order {order.id}: {e}")
+
+    db.commit()
+    logger.info(f"Order {order.id} status updated to PAID via {order.payment_method}")
+
+    # ── LOGISTICS: MELHOR ENVIO ──────────────────────────────────────────────
+    # Sempre processa envio via Melhor Envio, mesmo para frete grátis.
+    # Quando o cliente recebe frete grátis, internamente selecionamos o frete
+    # mais barato do Melhor Envio e o administrador arca com o custo.
+    # O cliente continua vendo R$ 0,00 de frete.
+    try:
+        logger.info(f"Starting Melhor Envio processing for order {order.id}...")
+        is_free_shipping = (order.shipping_price or 0) == 0
+        if is_free_shipping:
+            logger.info(f"Order {order.id} has FREE SHIPPING for customer. "
+                        f"Internally selecting cheapest Melhor Envio option (admin pays).")
+
+        # Wrap Order in Pedido adapter — processar_envio requires
+        # properties like cep_cliente, valor, produto_nome that only
+        # the Pedido adapter exposes.
+        pedido = Pedido.from_order(order)
+        envio_res = processar_envio(pedido, db)
+
+        if envio_res.get("erro"):
+            logger.warning(f"Shipping processing had issues for order {order.id}: {envio_res['erro']}")
+        else:
+            logger.info(
+                f"Shipping label generated for order {order.id}: "
+                f"tracking={envio_res.get('tracking_code')} | "
+                f"shipment={envio_res.get('shipment_id')} | "
+                f"free_for_customer={is_free_shipping}"
+            )
+    except Exception as e:
+        logger.error(f"Critical error on shipping integration for order {order.id}: {e}", exc_info=True)
+
+    # ── EMAIL NOTIFICATIONS ──────────────────────────────────────────────────
+    try:
+        items_data = order.items or []
+        if not items_data and order.order_items:
+            items_data = [{"name": item.product.name, "quantity": item.quantity, "price": item.price} for item in order.order_items]
+        
+        # 1. E-mail de confirmação para o comprador
+        buyer_dest_email = order.buyer_email or order.customer_email or (user.email if user else None)
+        if buyer_dest_email:
+            emails.send_order_confirmation_email(
+                email=buyer_dest_email,
+                order_id=order.id,
+                items=items_data,
+                total=order.total
+            )
+        
+        # 2. E-mail de notificação para contato@ecosopis.com.br (Garantido sempre)
+        emails.send_admin_notification_email(
+            admin_email="contato@ecosopis.com.br",
+            order_id=order.id,
+            total=order.total,
+            customer_name=order.buyer_name or order.customer_name or "Cliente",
+            order=order
+        )
+
+        # Se houver outro admin_email configurado no banco, notifica também
+        admin_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "admin_order_notification_email").first()
+        if admin_setting and admin_setting.value and admin_setting.value.lower() != "contato@ecosopis.com.br":
+            emails.send_admin_notification_email(
+                admin_email=admin_setting.value,
+                order_id=order.id,
+                total=order.total,
+                customer_name=order.buyer_name or order.customer_name or "Cliente",
+                order=order
+            )
+    except Exception as e:
+        logger.error(f"Error sending confirmation emails for order {order.id}: {e}")
+
+    # ── WHATSAPP NOTIFICATIONS (JÚLIA 11951559212 + CLIENTE) ────────────────
+    try:
+        from app.services.whatsapp import notify_julia_new_order, trigger_whatsapp_event
+        # 1. Notifica Júlia imediatamente no WhatsApp (11951559212)
+        notify_julia_new_order(order, db)
+
+        # 2. Notifica o cliente se houver telefone cadastrado
+        customer_phone = order.customer_phone or (user.phone if user else None)
+        if customer_phone:
+            client_name = order.customer_name or order.buyer_name or (user.full_name if user else "Cliente")
+            items_names = [it.get("name") or it.get("product_name") for it in (order.items or []) if it]
+            items_str = ", ".join(filter(None, items_names)) or "Cosméticos ECOSOPIS"
+            
+            context = {
+                "cliente": client_name,
+                "pedido": order.id,
+                "valor": f"{order.total:.2f}".replace(".", ","),
+                "itens": items_str,
+                "codigo_rastreio": order.codigo_rastreio or "Em breve"
+            }
+            trigger_whatsapp_event("order_paid", customer_phone, context, db, recipient_name=client_name)
+    except Exception as wa_err:
+        logger.error(f"Error triggering WhatsApp notifications for order {order.id}: {wa_err}")
+
+
+
+# ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@router.post("/create-stripe-checkout", response_model=CheckoutResponse)
+@router.post("/create-payment", include_in_schema=False)
+async def create_stripe_payment(
+    data: CreateCheckoutIn,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    try:
+        order = _get_or_create_order(data, current_user, db, "stripe")
+        frontend_url = _resolve_frontend_url(request)
+
+        items_for_stripe = [item.dict() for item in data.items]
+        result = create_checkout_session(
+            order_id=order.id,
+            items=items_for_stripe,
+            shipping_price=order.shipping_price,
+            frontend_url=frontend_url,
+        )
+        order.stripe_session_id = result["session_id"]
+        db.commit()
+
+        return CheckoutResponse(
+            checkout_url=result["checkout_url"],
+            session_id=result["session_id"],
+            order_id=order.id,
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Erro no checkout Stripe: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"ERRO TÉCNICO STRIPE: {str(e)}"
+        )
+
+
+@router.post("/create-mercadopago-checkout", response_model=CheckoutResponse)
+@router.post("/create-preference", include_in_schema=False)
+async def create_mp_payment(
+    data: CreateCheckoutIn,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    try:
+        order = _get_or_create_order(data, current_user, db, "mercadopago")
+        
+        items_for_mp = [item.dict() for item in data.items]
+        preference = create_checkout_pro_preference(
+            order_id=order.id,
+            items=items_for_mp,
+            shipping_price=order.shipping_price,
+            customer_email=current_user.email,
+            customer_name=current_user.full_name,
+            customer_cpf=order.customer_cpf,
+            discount_amount=(data.discount_amount or 0.0) + (data.cashback_amount or 0.0)
+        )
+        
+        order.mercadopago_preference_id = preference["id"]
+        db.commit()
+
+        return CheckoutResponse(
+            checkout_url=preference["init_point"],
+            preference_id=preference["id"],
+            order_id=order.id,
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Erro no checkout Mercado Pago: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"ERRO TÉCNICO MP: {str(e)}"
+        )
+
+
+@router.post("/webhook/stripe")
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+    
+    try:
+        event = verify_webhook_signature(payload, sig_header)
+    except Exception as e:
+        logger.error(f"Stripe Webhook error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if event["type"] in ["checkout.session.completed", "checkout.session.async_payment_succeeded", "payment_intent.succeeded"]:
+        session = event["data"]["object"]
+        metadata = session.get("metadata", {})
+        pedido_id = metadata.get("pedido_id")
+        
+        if pedido_id:
+            order = db.query(models.Order).filter(models.Order.id == int(pedido_id)).first()
+            if order:
+                cust_det = session.get("customer_details") or {}
+                finalize_order_on_payment(
+                    order=order, 
+                    db=db, 
+                    payment_id=session.get("payment_intent"),
+                    session_id=session.get("id"),
+                    buyer_email=cust_det.get("email"),
+                    buyer_name=cust_det.get("name")
+                )
+    return {"status": "ok"}
+
+
+@router.get("/webhook/mercadopago")
+@router.get("/api/payment/webhook/mercadopago")
+@router.get("/payment/webhook/mercadopago")
+async def mercadopago_webhook_health():
+    """Healthcheck e validação de URL de notificação do Mercado Pago."""
+    return {"status": "online", "service": "Mercado Pago Webhook ECOSOPIS"}
+
+
+@router.post("/webhook/mercadopago")
+@router.post("/api/payment/webhook/mercadopago")
+@router.post("/payment/webhook/mercadopago")
+async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
+    """
+    Receives notification from Mercado Pago (topic: merchant_order or payment).
+    Handles JSON payloads (Webhooks v2), Form URL Encoded payloads (IPN), and Query Parameters.
+    Automatically finalizes order as 'paid', triggers emails and WhatsApp alerts.
+    """
+    data = {}
+    try:
+        data = await request.json()
+        if not isinstance(data, dict):
+            data = {}
+    except Exception:
+        try:
+            form_data = await request.form()
+            data = dict(form_data)
+        except Exception:
+            data = {}
+
+    if not data:
+        data = dict(request.query_params)
+
+    logger.info(f"MP Webhook received. Data: {data}, Query: {dict(request.query_params)}")
+
+    # Extract resource ID safely without crashing on null nested fields
+    data_obj = data.get("data")
+    data_id = data_obj.get("id") if isinstance(data_obj, dict) else None
+
+    resource_id = (
+        data_id or 
+        data.get("id") or 
+        data.get("resource") or
+        request.query_params.get("data.id") or 
+        request.query_params.get("id") or
+        request.query_params.get("resource")
+    )
+    topic = (
+        data.get("type") or 
+        data.get("topic") or 
+        request.query_params.get("type") or 
+        request.query_params.get("topic")
+    )
+    
+    action = data.get("action") or request.query_params.get("action")
+    if action and isinstance(action, str):
+        if action.startswith("payment."):
+            topic = "payment"
+        elif action.startswith("merchant_order."):
+            topic = "merchant_order"
+
+    if not topic and resource_id:
+        topic = "payment"
+
+    if topic in ("payment", "collection") and resource_id:
+        try:
+            payment_info = get_mp_payment_status(str(resource_id))
+            if payment_info.get("status") in ["approved", "authorized"]:
+                pedido_id = payment_info.get("external_reference")
+                order = None
+                if pedido_id:
+                    try:
+                        order_id_int = int(pedido_id)
+                        order = db.query(models.Order).filter(models.Order.id == order_id_int).first()
+                    except ValueError:
+                        logger.error(f"Invalid external_reference (not an int): {pedido_id}")
+                
+                # Fallback: se não achou por external_reference, busca por payment_id ou preference_id
+                if not order and resource_id:
+                    order = db.query(models.Order).filter(models.Order.mercadopago_payment_id == str(resource_id)).first()
+                if not order and payment_info.get("preference_id"):
+                    order = db.query(models.Order).filter(models.Order.mercadopago_preference_id == str(payment_info["preference_id"])).first()
+
+                if order:
+                    finalize_order_on_payment(
+                        order=order,
+                        db=db,
+                        payment_id=str(resource_id),
+                        buyer_email=payment_info.get("payer", {}).get("email")
+                    )
+                    logger.info(f"MP Payment {resource_id} successfully processed for order {order.id}")
+                else:
+                    logger.warning(f"Order not found for MP Payment {resource_id} (ext_ref: {pedido_id})")
+        except Exception as e:
+            logger.error(f"Error processing MP payment {resource_id}: {e}", exc_info=True)
+            
+    elif topic == "merchant_order" and resource_id:
+        try:
+            from app.core.mercadopago_service import sdk as mp_sdk
+            result = mp_sdk.merchant_order().get(str(resource_id))
+            if result.get("status") in [200, 201]:
+                order_info = result.get("response", {})
+                payments = order_info.get("payments", [])
+                
+                has_approved_payment = False
+                approved_payment_id = None
+                
+                for p in payments:
+                    if p.get("status") in ["approved", "authorized"]:
+                        has_approved_payment = True
+                        approved_payment_id = str(p.get("id"))
+                        break
+                
+                if has_approved_payment:
+                    pedido_id = order_info.get("external_reference")
+                    order = None
+                    if pedido_id:
+                        try:
+                            order_id_int = int(pedido_id)
+                            order = db.query(models.Order).filter(models.Order.id == order_id_int).first()
+                        except ValueError:
+                            logger.error(f"Invalid external_reference in merchant_order (not an int): {pedido_id}")
+                    
+                    if not order and approved_payment_id:
+                        order = db.query(models.Order).filter(models.Order.mercadopago_payment_id == approved_payment_id).first()
+                    if not order and order_info.get("preference_id"):
+                        order = db.query(models.Order).filter(models.Order.mercadopago_preference_id == str(order_info["preference_id"])).first()
+
+                    if order:
+                        payer_info = order_info.get("payer", {})
+                        buyer_email = payer_info.get("email")
+                        finalize_order_on_payment(
+                            order=order,
+                            db=db,
+                            payment_id=approved_payment_id,
+                            buyer_email=buyer_email
+                        )
+                        logger.info(f"MP Merchant Order {resource_id} successfully processed for order {order.id}")
+        except Exception as e:
+            logger.error(f"Error processing MP merchant_order {resource_id}: {e}", exc_info=True)
+
+    return {"status": "ok"}
+
+
+@router.get("/status/{order_id}")
+async def get_payment_status(
+    order_id: int,
+    payment_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
+):
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+        
+    if current_user and current_user.role != "admin" and order.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    # If explicit payment_id provided, attempt immediate verification
+    if payment_id and order.status == "pending":
+        try:
+            payment_info = get_mp_payment_status(str(payment_id))
+            if payment_info.get("status") in ["approved", "authorized"]:
+                finalize_order_on_payment(
+                    order=order,
+                    db=db,
+                    payment_id=str(payment_id),
+                    buyer_email=payment_info.get("payer", {}).get("email")
+                )
+                db.commit()
+                db.refresh(order)
+        except Exception as e:
+            logger.warning(f"Error checking explicit payment_id {payment_id} for order {order_id}: {e}")
+
+    # Proactive payment sync if still pending
+    if order.status == "pending":
+        from app.repositories.order_repository import OrderRepository
+        from app.services.order_service import OrderService
+        repo = OrderRepository(db)
+        service = OrderService(repo)
+        if getattr(order, "stripe_session_id", None):
+            service.sync_order_status(order.id)
+            db.commit()
+            db.refresh(order)
+        if order.status == "pending" and (getattr(order, "mercadopago_preference_id", None) or getattr(order, "mercadopago_payment_id", None) or order.payment_method == "mercadopago"):
+            service.sync_mp_order_status(order.id)
+            db.commit()
+            db.refresh(order)
+
+    # Proactive shipping sync with Melhor Envio if paid or shipped
+    if order.status in ("paid", "shipped", "processando_envio", "erro_envio") and getattr(order, "shipment_id", None):
+        try:
+            from app.services.melhorenvio_service import sync_melhor_envio_status
+            sync_melhor_envio_status(order, db)
+            db.refresh(order)
+        except Exception as me_err:
+            logger.debug(f"Proactive ME sync on payment status skipped: {me_err}")
+
+
+    payment_details = {}
+    if order.status == "pending":
+        if order.payment_method == "stripe" and order.stripe_session_id:
+            try:
+                session = get_session(order.stripe_session_id)
+                pi = session.get("payment_intent")
+                if pi and isinstance(pi, dict) and pi.get("next_action"):
+                    action = pi["next_action"]
+                    if action.get("type") == "pix_display_qr_code":
+                        d = action["pix_display_qr_code"]
+                        payment_details = {"method": "pix", "qr_code_url": d.get("image_url_png"), "qr_code_data": d.get("data")}
+                    elif action.get("type") == "boleto_display_details":
+                        d = action["boleto_display_details"]
+                        payment_details = {"method": "boleto", "url": d.get("hosted_voucher_url"), "number": d.get("number")}
+            except: pass
+
+    return {
+        "order_id": order.id,
+        "status": order.status,
+        "total": order.total,
+        "payment_method": order.payment_method,
+        "payment_details": payment_details,
+        "tracking_code": getattr(order, "codigo_rastreio", None),
+        "etiqueta_url": getattr(order, "etiqueta_url", None)
+    }
+
+# Admin list and Patch status kept for backwards compat
+@router.get("/admin/orders")
+async def list_admin_orders(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role != "admin": raise HTTPException(status_code=403)
+    orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
+    return [{
+        "id": o.id, "status": o.status, "total": o.total, "payment_method": o.payment_method,
+        "buyer_name": o.buyer_name or o.customer_name, "created_at": o.created_at,
+        "tracking_code": o.codigo_rastreio, "etiqueta_url": o.etiqueta_url
+    } for o in orders]
+
+@router.patch("/admin/orders/{order_id}/status")
+async def update_order_status(order_id: int, body: StatusUpdateIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role != "admin": raise HTTPException(status_code=403)
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order: raise HTTPException(status_code=404)
+    
+    if body.status == "paid" and order.status != "paid":
+        if order.status == "pending":
+            # Keep the legacy admin endpoint on the same post-payment path as
+            # the main orders endpoint and both payment webhooks.
+            finalize_order_on_payment(order, db)
+        else:
+            order.status = "paid"
+            db.commit()
+    else:
+        order.status = body.status
+        db.commit()
+        
+    return {"status": "ok"}

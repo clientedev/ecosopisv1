@@ -36,6 +36,14 @@ const THEMES: Record<string, Record<string, string>> = {
         text_secondary: "#4a4a4a",
         bg_color: "#fdfcf9",
     },
+    outubro_rosa: {
+        primary_color: "#d63b7c",
+        primary_color_dark: "#a8275d",
+        secondary_color: "#ffffff",
+        text_primary: "#1a0a0f",
+        text_secondary: "#5a2040",
+        bg_color: "#fff5f8",
+    },
 };
 
 export default function DynamicBranding() {
@@ -430,6 +438,145 @@ export default function DynamicBranding() {
         }
     ` : '';
 
+    const octubroRosaExtras = themeId === "outubro_rosa" ? `
+        /* ============================================
+           OUTUBRO ROSA THEME - COMPREHENSIVE OVERRIDES
+           ============================================ */
+
+        /* --- Buttons --- */
+        .btn-primary {
+            background: linear-gradient(135deg, #d63b7c 0%, #a8275d 100%) !important;
+            box-shadow: 0 4px 15px rgba(214, 59, 124, 0.35) !important;
+            border-color: #d63b7c !important;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #a8275d 0%, #861d49 100%) !important;
+            box-shadow: 0 6px 20px rgba(168, 39, 93, 0.45) !important;
+            transform: translateY(-1px);
+        }
+        .btn-outline {
+            border-color: #d63b7c !important;
+            color: #d63b7c !important;
+        }
+        .btn-outline:hover {
+            background-color: rgba(214, 59, 124, 0.08) !important;
+        }
+
+        /* --- Logo: shift green hue to pink/rose --- */
+        html[data-theme="outubro_rosa"] img[alt="ECOSOPIS Logo"] {
+            filter: hue-rotate(249deg) saturate(1.5) brightness(1.05) !important;
+            transition: filter 0.4s ease;
+        }
+
+        /* --- Cart badge --- */
+        html[data-theme="outubro_rosa"] [class*="cartBadge"] {
+            background: #d63b7c !important;
+        }
+
+        /* --- Cart status bar --- */
+        html[data-theme="outubro_rosa"] [data-cart-status-bar] {
+            background-color: #fff0f4 !important;
+            border-color: #f5c0d0 !important;
+            color: #861d49 !important;
+        }
+
+        /* --- Highlight nav link --- */
+        html[data-theme="outubro_rosa"] [class*="highlightNavLink"] {
+            color: #d63b7c !important;
+            border-color: #d63b7c !important;
+        }
+        html[data-theme="outubro_rosa"] [class*="highlightNavLink"]:hover {
+            background: rgba(214, 59, 124, 0.1) !important;
+        }
+
+        /* --- LIA AI nav link --- */
+        html[data-theme="outubro_rosa"] [class*="liaLink"] {
+            color: #d63b7c !important;
+        }
+
+        /* --- Links on hover --- */
+        a:hover { color: #d63b7c; }
+
+        /* --- Section badges / pills --- */
+        html[data-theme="outubro_rosa"] [class*="sectionBadge"],
+        html[data-theme="outubro_rosa"] [class*="scientificBadge"],
+        html[data-theme="outubro_rosa"] .scientific-badge {
+            background: rgba(214, 59, 124, 0.12) !important;
+            color: #a8275d !important;
+            border-color: rgba(214, 59, 124, 0.3) !important;
+        }
+
+        /* --- Stat cards icons --- */
+        html[data-theme="outubro_rosa"] [class*="statIcon"] { color: #d63b7c !important; }
+        html[data-theme="outubro_rosa"] [class*="statCard"] h3 { color: #d63b7c !important; }
+
+        /* --- History section highlight --- */
+        html[data-theme="outubro_rosa"] [class*="historyHighlight"] { color: #d63b7c !important; }
+
+        /* --- Rank badges --- */
+        html[data-theme="outubro_rosa"] [class*="rankBadgeTop1"] {
+            background: linear-gradient(135deg, #d63b7c, #a8275d) !important;
+        }
+
+        /* --- Reviews stars --- */
+        html[data-theme="outubro_rosa"] [class*="reviewStars"] { color: #d63b7c !important; }
+
+        /* --- Diagnostic / Goal cards --- */
+        html[data-theme="outubro_rosa"] [class*="diagnosticCard"]:hover {
+            border-color: #d63b7c !important;
+            box-shadow: 0 8px 30px rgba(214,59,124,0.2) !important;
+        }
+        html[data-theme="outubro_rosa"] [class*="diagnosticIcon"] { color: #d63b7c !important; }
+        html[data-theme="outubro_rosa"] [class*="diagnosticAction"] { color: #d63b7c !important; }
+
+        /* --- Outubro Rosa announcement bar --- */
+        html[data-theme="outubro_rosa"] [data-outubro-rosa-announcement] {
+            background: linear-gradient(90deg, #d63b7c 0%, #a8275d 50%, #d63b7c 100%) !important;
+            background-size: 200% 100% !important;
+            animation: octubroRosaShimmer 3s ease infinite !important;
+        }
+
+        /* --- Pink ribbon banner --- */
+        html[data-theme="outubro_rosa"] [data-outubro-rosa-overlay] {
+            display: block !important;
+        }
+
+        /* --- Avatar / user menu --- */
+        html[data-theme="outubro_rosa"] [class*="avatar"] {
+            background: linear-gradient(135deg, #d63b7c, #a8275d) !important;
+        }
+
+        /* --- Search tags / suggestion pills --- */
+        html[data-theme="outubro_rosa"] [class*="desktopSuggestionTag"]:hover {
+            background: rgba(214, 59, 124, 0.1) !important;
+            border-color: #d63b7c !important;
+            color: #d63b7c !important;
+        }
+
+        /* --- Mobile nav active/hover --- */
+        html[data-theme="outubro_rosa"] [class*="mobileNavItem"]:hover { color: #d63b7c !important; }
+        html[data-theme="outubro_rosa"] [class*="mobileLiaItem"] { color: #d63b7c !important; }
+
+        /* --- Global green text fallback --- */
+        html[data-theme="outubro_rosa"] [style*="color: #2d5a27"],
+        html[data-theme="outubro_rosa"] [style*="color: #4B8411"],
+        html[data-theme="outubro_rosa"] [style*="color: #166534"] {
+            color: #a8275d !important;
+        }
+
+        /* --- Product card border on hover --- */
+        html[data-theme="outubro_rosa"] [class*="productCard"]:hover,
+        html[data-theme="outubro_rosa"] [class*="card"]:hover {
+            border-color: rgba(214,59,124,0.3) !important;
+            box-shadow: 0 4px 24px rgba(214,59,124,0.15) !important;
+        }
+
+        @keyframes octubroRosaShimmer {
+            0%   { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+    ` : '';
+
     return (
         <style dangerouslySetInnerHTML={{
             __html: `
@@ -459,6 +606,9 @@ export default function DynamicBranding() {
                 [data-anniversary-overlay] {
                     display: none;
                 }
+                [data-outubro-rosa-overlay] {
+                    display: none;
+                }
                 @keyframes floatHeart {
                     0%   { transform: translateY(0) scale(1); opacity: 0.85; }
                     50%  { transform: translateY(-45vh) scale(1.15) rotate(12deg); opacity: 0.6; }
@@ -467,6 +617,7 @@ export default function DynamicBranding() {
                 ${valentinesExtras}
                 ${aniversario4AnosExtras}
                 ${pgProdutosV2Extras}
+                ${octubroRosaExtras}
             `
         }} />
     );

@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="pt-BR" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Ecosopis Launch Video</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Karla:wght@400;500;600&family=Raleway:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #071204;
+        color: #ffffff;
+        font-family: 'Karla', sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: radial-gradient(circle at 50% 20%, #15320c 0%, #071204 70%, #030802 100%);
+      }
+
+      /* Glow & Ambient */
+      .ambient-glow {
+        position: absolute;
+        width: 800px;
+        height: 800px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(75, 132, 17, 0.4) 0%, transparent 70%);
+        filter: blur(80px);
+        top: 25%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+      }
+
+      .scene-wrapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1080px;
+        height: 1920px;
+      }
+
+      .scene-content {
+        width: 100%;
+        height: 100%;
+        padding: 100px 70px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+      }
+
+      /* Typography */
+      .brand-title {
+        font-family: 'Cinzel', serif;
+        font-size: 88px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        background: linear-gradient(135deg, #ffffff 0%, #d8f5b5 50%, #d97706 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-transform: uppercase;
+        margin-bottom: 24px;
+        filter: drop-shadow(0 10px 25px rgba(0,0,0,0.5));
+      }
+
+      .headline {
+        font-family: 'Raleway', sans-serif;
+        font-size: 64px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: #ffffff;
+        margin-bottom: 32px;
+      }
+
+      .highlight-green {
+        color: #72cf1c;
+      }
+      .highlight-gold {
+        color: #f59e0b;
+      }
+
+      .subhead {
+        font-size: 34px;
+        font-weight: 500;
+        color: #c7d8be;
+        line-height: 1.5;
+        max-width: 850px;
+        margin-bottom: 50px;
+      }
+
+      /* Badges */
+      .badge-row {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 30px;
+      }
+      .badge {
+        background: rgba(255, 255, 255, 0.08);
+        border: 2px solid rgba(114, 207, 28, 0.4);
+        backdrop-filter: blur(16px);
+        padding: 18px 36px;
+        border-radius: 50px;
+        font-size: 28px;
+        font-weight: 600;
+        color: #f0fdf4;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      }
+
+      /* Product Showcase Cards */
+      .product-grid {
+        display: flex;
+        gap: 30px;
+        width: 100%;
+        margin-top: 40px;
+        justify-content: center;
+      }
+
+      .product-card {
+        background: rgba(255, 255, 255, 0.06);
+        border: 2px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(20px);
+        border-radius: 36px;
+        padding: 30px;
+        width: 440px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+      }
+
+      .product-img {
+        width: 380px;
+        height: 480px;
+        object-fit: cover;
+        border-radius: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+      }
+
+      .product-tag {
+        background: #4B8411;
+        color: #ffffff;
+        font-size: 22px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 8px 20px;
+        border-radius: 20px;
+        margin-bottom: 12px;
+      }
+
+      .product-name {
+        font-family: 'Raleway', sans-serif;
+        font-size: 32px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 8px;
+      }
+
+      .product-benefit {
+        font-size: 22px;
+        color: #a7f3d0;
+        font-weight: 500;
+      }
+
+      .review-bubble {
+        margin-top: 40px;
+        background: rgba(245, 158, 11, 0.15);
+        border: 2px solid rgba(245, 158, 11, 0.5);
+        border-radius: 30px;
+        padding: 24px 44px;
+        font-size: 28px;
+        color: #fef3c7;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      /* Value Props (Scene 3) */
+      .value-props {
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        width: 100%;
+        max-width: 900px;
+        margin-top: 30px;
+      }
+
+      .value-card {
+        background: rgba(255, 255, 255, 0.07);
+        border: 2px solid rgba(114, 207, 28, 0.3);
+        backdrop-filter: blur(24px);
+        border-radius: 28px;
+        padding: 36px 48px;
+        display: flex;
+        align-items: center;
+        gap: 32px;
+        text-align: left;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+      }
+
+      .value-icon {
+        font-size: 64px;
+        width: 100px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(75, 132, 17, 0.35);
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .value-title {
+        font-family: 'Raleway', sans-serif;
+        font-size: 36px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 8px;
+      }
+
+      .value-desc {
+        font-size: 26px;
+        color: #c7d8be;
+      }
+
+      /* CTA Scene 4 */
+      .cta-button {
+        background: linear-gradient(135deg, #5ba415 0%, #3a660d 100%);
+        border: 2px solid #84cc16;
+        color: #ffffff;
+        font-family: 'Raleway', sans-serif;
+        font-size: 38px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        padding: 30px 60px;
+        border-radius: 60px;
+        margin-top: 40px;
+        margin-bottom: 35px;
+        box-shadow: 0 20px 50px rgba(75, 132, 17, 0.6);
+        text-transform: uppercase;
+      }
+
+      .url-display {
+        font-family: 'Cinzel', serif;
+        font-size: 48px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: #f59e0b;
+        text-decoration: none;
+        border-bottom: 3px solid #f59e0b;
+        padding-bottom: 6px;
+      }
+
+      .guarantee-tag {
+        margin-top: 40px;
+        font-size: 28px;
+        color: #a7f3d0;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="20"
+      data-width="1080"
+      data-height="1920"
+    >
+      <div class="ambient-glow"></div>
+
+      <!-- Audio Track -->
+      <audio
+        id="bgm"
+        data-start="0"
+        data-duration="20"
+        data-volume="0.85"
+        src="assets/music/track.mp3"
+      ></audio>
+
+      <!-- SCENE 1: Hook (0s - 4.5s) -->
+      <div id="scene1" class="scene-wrapper clip" data-start="0" data-duration="4.5" data-track-index="1">
+        <div class="scene-content" id="c1">
+          <div class="brand-title">ECOSOPIS</div>
+          <h1 class="headline">
+            Sua pele merece mais que <span class="highlight-gold">químicos industriais</span>.
+          </h1>
+          <p class="subhead">
+            Descubra o verdadeiro poder do autocuidado <strong class="highlight-green">100% natural</strong> e de alta performance.
+          </p>
+          <div class="badge-row">
+            <div class="badge" id="b1">🌿 100% Botânico</div>
+            <div class="badge" id="b2">🐰 Cruelty-Free</div>
+            <div class="badge" id="b3">✨ Fórmulas Limpas</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 2: Catalog Highlights (4.5s - 10s) -->
+      <div id="scene2" class="scene-wrapper clip" data-start="4.5" data-duration="5.5" data-track-index="2">
+        <div class="scene-content" id="c2">
+          <h2 class="headline" style="font-size: 54px; margin-bottom: 20px;">
+            Cosméticos que <span class="highlight-green">transformam</span> de verdade
+          </h2>
+          <p class="subhead" style="margin-bottom: 25px;">
+            Ingredientes puros selecionados para nutrir e iluminar.
+          </p>
+          <div class="product-grid">
+            <div class="product-card" id="card1">
+              <img src="assets/images/soaps.png" alt="Sabonete Artesanal" class="product-img" />
+              <div class="product-tag">Tratamento</div>
+              <div class="product-name">Sabonetes Artesanais</div>
+              <div class="product-benefit">Açafrão Clareador & Argilas</div>
+            </div>
+            <div class="product-card" id="card2">
+              <img src="assets/images/serum.png" alt="Óleo Vegetal Puro" class="product-img" />
+              <div class="product-tag">Regeneração</div>
+              <div class="product-name">Óleo de Rosa Mosqueta</div>
+              <div class="product-benefit">100% Puro & Prensado a Frio</div>
+            </div>
+          </div>
+          <div class="review-bubble" id="review">
+            ⭐⭐⭐⭐⭐ "Minha pele nunca esteve tão limpa e uniforme!" — Cliente Verificada
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 3: Value Props (10s - 15.5s) -->
+      <div id="scene3" class="scene-wrapper clip" data-start="10" data-duration="5.5" data-track-index="3">
+        <div class="scene-content" id="c3">
+          <h2 class="headline" style="font-size: 56px;">
+            A segurança de comprar <span class="highlight-gold">direto da fonte</span>
+          </h2>
+          <div class="value-props">
+            <div class="value-card" id="val1">
+              <div class="value-icon">📦</div>
+              <div>
+                <div class="value-title">Entrega Expressa para Todo o Brasil</div>
+                <div class="value-desc">Embalagens ecológicas e rastreamento em tempo real.</div>
+              </div>
+            </div>
+            <div class="value-card" id="val2">
+              <div class="value-icon">🧪</div>
+              <div>
+                <div class="value-title">Zero Parabenos & Petrolatos</div>
+                <div class="value-desc">Sem corantes sintéticos, sem crueldade animal.</div>
+              </div>
+            </div>
+            <div class="value-card" id="val3">
+              <div class="value-icon">💳</div>
+              <div>
+                <div class="value-title">Compra 100% Segura</div>
+                <div class="value-desc">Pix instantâneo e Cartão de Crédito em até 12x.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 4: CTA Finale (15.5s - 20s) -->
+      <div id="scene4" class="scene-wrapper clip" data-start="15.5" data-duration="4.5" data-track-index="4">
+        <div class="scene-content" id="c4">
+          <div class="brand-title" style="font-size: 100px;">ECOSOPIS</div>
+          <h2 class="headline" style="max-width: 900px; font-size: 58px;">
+            Dê à sua pele o respeito que ela merece hoje mesmo.
+          </h2>
+          <div class="cta-button" id="ctaBtn">
+            QUERO MINHA PELE RADIANTE ➔
+          </div>
+          <div class="url-display">www.ecosopis.com.br</div>
+          <div class="guarantee-tag">
+            🌱 Frete Seguro & Atendimento Personalizado
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ===== SCENE 1 (0.0s - 4.5s) =====
+      tl.fromTo("#c1", { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.6, ease: "power2.out" }, 0)
+        .fromTo("#c1 .brand-title", { y: -50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "back.out(1.5)" }, 0.2)
+        .fromTo("#c1 .headline", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power2.out" }, 0.5)
+        .fromTo("#c1 .subhead", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, 0.8)
+        .fromTo("#b1", { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }, 1.2)
+        .fromTo("#b2", { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }, 1.5)
+        .fromTo("#b3", { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }, 1.8)
+        .to("#c1", { opacity: 0, scale: 0.95, duration: 0.4, ease: "power2.in" }, 4.0);
+
+      // ===== SCENE 2 (4.5s - 10.0s) =====
+      tl.fromTo("#c2", { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" }, 4.5)
+        .fromTo("#c2 .headline", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, 4.8)
+        .fromTo("#card1", { x: -100, opacity: 0, rotate: -3 }, { x: 0, opacity: 1, rotate: 0, duration: 0.8, ease: "power3.out" }, 5.2)
+        .fromTo("#card2", { x: 100, opacity: 0, rotate: 3 }, { x: 0, opacity: 1, rotate: 0, duration: 0.8, ease: "power3.out" }, 5.5)
+        .fromTo("#review", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "back.out(1.4)" }, 6.3)
+        .to("#c2", { opacity: 0, y: -40, duration: 0.4, ease: "power2.in" }, 9.5);
+
+      // ===== SCENE 3 (10.0s - 15.5s) =====
+      tl.fromTo("#c3", { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" }, 10.0)
+        .fromTo("#c3 .headline", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, 10.3)
+        .fromTo("#val1", { x: -80, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, 10.8)
+        .fromTo("#val2", { x: 80, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, 11.4)
+        .fromTo("#val3", { x: -80, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, 12.0)
+        .to("#c3", { opacity: 0, scale: 0.95, duration: 0.4, ease: "power2.in" }, 15.0);
+
+      // ===== SCENE 4: CTA (15.5s - 20.0s) =====
+      tl.fromTo("#c4", { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" }, 15.5)
+        .fromTo("#c4 .brand-title", { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: "back.out(1.6)" }, 15.8)
+        .fromTo("#c4 .headline", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, 16.2)
+        .fromTo("#ctaBtn", { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.7, ease: "elastic.out(1, 0.6)" }, 16.6)
+        .fromTo(".url-display", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, 17.2)
+        .fromTo(".guarantee-tag", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 17.8);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

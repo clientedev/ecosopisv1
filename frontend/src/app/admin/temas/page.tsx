@@ -160,6 +160,18 @@ const THEME_DEFINITIONS: ThemeDefinition[] = [
         tags: ["Produtos V2", "CeraVe Style", "Atacado Highlight"],
         features: ["Cards de produto minimalistas e refinados", "Filtros precisos por tipo de pele e benefício", "Destaque banner para Área de Atacado", "Visual dermocosmético clean"],
     },
+    {
+        id: "outubro_rosa" as ThemeId,
+        name: "Outubro Rosa 🎀",
+        description: "Tema especial de conscientização ao câncer de mama. Visual rosa vibrante com animações de laços e flores, fundo rosado suave e toda a paleta convertida do verde para tons de rosa e magenta.",
+        emoji: "🎀",
+        primary: "#d63b7c",
+        primaryDark: "#a8275d",
+        bg: "#fff5f8",
+        accent: "#f9c0d8",
+        tags: ["Sazonal", "Rosa", "Outubro Rosa", "Conscientização"],
+        features: ["Cores rosa vibrantes em toda a loja", "Animação de laços e flores ao carregar e clicar", "Fundo rosado suave", "Logo filtrado para rosa", "Barra de anúncio rosa animada"],
+    },
 ];
 
 export default function AdminTemas() {
