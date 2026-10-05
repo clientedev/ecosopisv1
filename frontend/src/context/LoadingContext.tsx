@@ -1,7 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
 import BrandLoader from "@/components/BrandLoader/BrandLoader";
 
 interface LoadingContextValue {
@@ -68,7 +67,7 @@ async function ensureUnderlyingLoaded(): Promise<void> {
             );
         }
 
-        // 3. Give two animation frames for React DOM paint and styles to settle
+        // 3. Give animation frames for React DOM paint and styles to settle
         await new Promise<void>(resolve => {
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => resolve());
@@ -80,22 +79,12 @@ async function ensureUnderlyingLoaded(): Promise<void> {
 }
 
 export function LoadingProvider({ children }: { children: ReactNode }) {
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-
-    // 1. Initial Site Load States
+    // 1. Initial Site Load States (First open / Refresh)
     const [initialLoading, setInitialLoading] = useState(true);
     const [initialFadeOut, setInitialFadeOut] = useState(false);
     const initialStartTimeRef = useRef<number>(Date.now());
 
-    // 2. Route Navigation Transition States
-    const [isNavigating, setIsNavigating] = useState(false);
-    const [navFadeOut, setNavFadeOut] = useState(false);
-    const navStartTimeRef = useRef<number>(0);
-    const prevPathRef = useRef(pathname);
-    const navTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-    // 3. Manual / Programmatic Loading States
+    // 2. Manual / Programmatic Loading States (Checkout, Processando Pedido, Fechar Compra)
     const [manualLoading, setManualLoading] = useState(false);
     const [manualFadeOut, setManualFadeOut] = useState(false);
     const manualStartTimeRef = useRef<number>(0);
@@ -112,7 +101,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // 1. Initial Site Load Effect: Plays full loop AND waits for everything underneath
+    // Initial Site Load Effect: Plays full loop AND waits for everything underneath to settle
     useEffect(() => {
         initialStartTimeRef.current = Date.now();
 
@@ -146,92 +135,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
         }
     }, [cleanRawHtmlPreloader]);
 
-    // 2. Route Navigation: Intercept same-origin link clicks
-    useEffect(() => {
-        const handleAnchorClick = (e: MouseEvent) => {
-            const target = (e.target as HTMLElement).closest("a");
-            if (!target) return;
-
-            const href = target.getAttribute("href");
-            const targetAttr = target.getAttribute("target");
-
-            if (
-                !href ||
-                href.startsWith("#") ||
-                href.startsWith("mailto:") ||
-                href.startsWith("tel:") ||
-                href.startsWith("javascript:") ||
-                targetAttr === "_blank" ||
-                e.metaKey ||
-                e.ctrlKey ||
-                e.shiftKey ||
-                e.altKey
-            ) {
-                return;
-            }
-
-            try {
-                const currentUrl = new URL(window.location.href);
-                const nextUrl = new URL(href, window.location.href);
-
-                if (
-                    nextUrl.origin === currentUrl.origin &&
-                    (nextUrl.pathname !== currentUrl.pathname || nextUrl.search !== currentUrl.search)
-                ) {
-                    navStartTimeRef.current = Date.now();
-                    setNavFadeOut(false);
-                    setIsNavigating(true);
-
-                    // Safety timeout (max 10s if route navigation gets stuck)
-                    if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
-                    navTimeoutRef.current = setTimeout(() => {
-                        setNavFadeOut(true);
-                        setTimeout(() => {
-                            setIsNavigating(false);
-                            setNavFadeOut(false);
-                        }, 400);
-                    }, 10000);
-                }
-            } catch {
-                // If parsing fails, allow default browser navigation
-            }
-        };
-
-        document.addEventListener("click", handleAnchorClick, { capture: true });
-        return () => {
-            document.removeEventListener("click", handleAnchorClick, { capture: true });
-            if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
-        };
-    }, []);
-
-    // Dismiss route transition ONLY AFTER full loop completes and background page is ready
-    useEffect(() => {
-        if (prevPathRef.current !== pathname) {
-            prevPathRef.current = pathname;
-
-            if (isNavigating) {
-                const completeNavigation = async () => {
-                    // Make sure new page DOM, fonts, and images are loaded underneath
-                    await ensureUnderlyingLoaded();
-
-                    // Calculate remaining time so the tree GIF completes its full cycle
-                    const remaining = getDelayUntilCycleEnd(navStartTimeRef.current || Date.now());
-
-                    setTimeout(() => {
-                        setNavFadeOut(true);
-                        setTimeout(() => {
-                            setIsNavigating(false);
-                            setNavFadeOut(false);
-                        }, 400);
-                    }, remaining);
-                };
-
-                completeNavigation();
-            }
-        }
-    }, [pathname, searchParams, isNavigating]);
-
-    // 3. Programmatic Controls: Always finish full loop before hiding
+    // Programmatic Controls: For heavy operations (fechar compra, processando pedido, etc.)
     const showLoading = useCallback(() => {
         manualStartTimeRef.current = Date.now();
         setManualFadeOut(false);
@@ -262,7 +166,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
         [showLoading, hideLoading]
     );
 
-    const isAnyActive = initialLoading || isNavigating || manualLoading;
+    const isAnyActive = initialLoading || manualLoading;
 
     // Body scroll lock during full screen loader to prevent scrolling before page is ready
     useEffect(() => {
@@ -284,7 +188,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
                 withLoading,
             }}
         >
-            {/* Initial Splash Loader */}
+            {/* Initial Splash Loader: First visit / reload */}
             {initialLoading && (
                 <BrandLoader
                     fullScreen={true}
@@ -292,16 +196,8 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
                 />
             )}
 
-            {/* Navigation Loader */}
-            {!initialLoading && isNavigating && (
-                <BrandLoader
-                    fullScreen={true}
-                    fadeOut={navFadeOut}
-                />
-            )}
-
-            {/* Manual Programmatic Loader */}
-            {!initialLoading && !isNavigating && manualLoading && (
+            {/* Heavy Action / Checkout / Processando Pedido Loader */}
+            {!initialLoading && manualLoading && (
                 <BrandLoader
                     fullScreen={true}
                     fadeOut={manualFadeOut}

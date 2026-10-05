@@ -552,7 +552,7 @@ export default function CarrinhoPage() {
             return;
         }
 
-        showLoading("Conectando ao checkout seguro...");
+        showLoading();
         setLoading(true);
         const token = localStorage.getItem("token");
         try {
