@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './VerifyEmail.module.css';
+import BrandLoader from '@/components/BrandLoader/BrandLoader';
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -78,7 +79,7 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<div>Carregando...</div>}>
+    <Suspense fallback={<BrandLoader fullScreen />}>
       <VerifyEmailContent />
     </Suspense>
   );

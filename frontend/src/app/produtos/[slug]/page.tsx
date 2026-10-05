@@ -13,6 +13,7 @@ import { getStaticProductData } from "@/lib/productData";
 
 import ProductStoryCircles from "@/components/ProductStory/ProductStoryCircles";
 import ProductStoryModal from "@/components/ProductStory/ProductStoryModal";
+import BrandLoader from "@/components/BrandLoader/BrandLoader";
 
 export default function ProductDetailPage() {
     const params = useParams();
@@ -218,9 +219,9 @@ export default function ProductDetailPage() {
     const { addToCart } = useCart();
 
     if (!product) return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'var(--font-karla)' }}>
-            <p>Carregando produto...</p>
-        </div>
+        <BrandLoader 
+            fullScreen={true} 
+        />
     );
 
     const allImages = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image_url].filter(Boolean);

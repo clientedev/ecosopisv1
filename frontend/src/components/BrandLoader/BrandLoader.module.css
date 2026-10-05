@@ -1,0 +1,92 @@
+.fullScreenWrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+              visibility 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: all;
+  user-select: none;
+}
+
+.fullScreenWrapper.fadeOut {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(1.02);
+}
+
+.inlineWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 10px;
+  width: 100%;
+  min-height: 220px;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.loaderCard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.35s ease-out forwards;
+}
+
+/* Pure GIF sizing */
+.sizeSm .gifMedia {
+  width: 160px;
+  height: auto;
+  max-width: 60vw;
+}
+
+.sizeMd .gifMedia {
+  width: 280px;
+  height: auto;
+  max-width: 75vw;
+}
+
+.sizeLg .gifMedia {
+  width: 380px;
+  height: auto;
+  max-width: 88vw;
+}
+
+.gifMedia {
+  display: block;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .sizeLg .gifMedia {
+    width: 290px;
+    max-width: 90vw;
+  }
+  .sizeMd .gifMedia {
+    width: 230px;
+  }
+}

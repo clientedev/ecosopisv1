@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getStaticProductData } from "@/lib/productData";
 import { fuzzySearch } from "@/utils/search";
+import BrandLoader from "@/components/BrandLoader/BrandLoader";
 
 interface LiaMessage {
     role: 'user' | 'lia';
@@ -225,7 +226,10 @@ export default function WholesalePage() {
                             <span className={styles.resultsCount}>{filteredProducts.length} produtos encontrados</span>
                         </div>
                         {loading ? (
-                            <div className={styles.loading}>Carregando catálogo...</div>
+                            <BrandLoader 
+                                fullScreen={false} 
+                                size="md" 
+                            />
                         ) : (
                             <div className={styles.productGrid}>
                                 {filteredProducts.map(p => {

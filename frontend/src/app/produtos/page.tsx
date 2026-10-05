@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { fuzzySearch } from "@/utils/search";
+import BrandLoader from "@/components/BrandLoader/BrandLoader";
 
 const categories = [
     { id: "all", name: "Todos os Produtos" },
@@ -326,10 +327,10 @@ export default function ProductsPage() {
 
                     {/* Products Grid */}
                     {loading ? (
-                        <div className={styles.loadingContainer}>
-                            <div className="loader"></div>
-                            <p>Carregando produtos botânicos...</p>
-                        </div>
+                        <BrandLoader 
+                            fullScreen={false} 
+                            size="md" 
+                        />
                     ) : filteredProducts.length === 0 ? (
                         <div className={styles.emptyResultsState}>
                             <ShoppingBag size={48} className={styles.emptyIcon} />

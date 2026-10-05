@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
+import BrandLoader from "@/components/BrandLoader/BrandLoader";
 
 const STATUS_STEPS = [
     { key: "pending",   label: "Pedido Criado",       icon: "🛍️" },
@@ -109,15 +110,10 @@ function OrderContent() {
                 <div style={{ maxWidth: 660, margin: "0 auto" }}>
 
                     {loading ? (
-                        <div style={{ textAlign: "center", padding: "80px 20px" }}>
-                            <div style={{
-                                width: 48, height: 48, borderRadius: "50%",
-                                border: "4px solid #e2e8f0", borderTopColor: "#2d5a27",
-                                animation: "spin 0.8s linear infinite", margin: "0 auto 16px"
-                            }} />
-                            <p style={{ color: "#94a3b8", margin: 0 }}>Carregando pedido...</p>
-                            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                        </div>
+                        <BrandLoader 
+                            fullScreen={false} 
+                            size="md" 
+                        />
                     ) : !order ? (
                         <div style={{ textAlign: "center", background: "white", borderRadius: 20, padding: "60px 32px", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
                             <div style={{ fontSize: "3rem", marginBottom: 16 }}>🔍</div>

@@ -6,6 +6,7 @@ import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
 import { Copy, ExternalLink, QrCode, FileText } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import BrandLoader from "@/components/BrandLoader/BrandLoader";
 
 function PaymentContent() {
     const searchParams = useSearchParams();
@@ -333,7 +334,7 @@ function PaymentContent() {
 
 export default function PagamentoPage() {
     return (
-        <Suspense fallback={<div style={{ padding: "100px", textAlign: "center" }}>Carregando...</div>}>
+        <Suspense fallback={<BrandLoader fullScreen />}>
             <PaymentContent />
         </Suspense>
     );

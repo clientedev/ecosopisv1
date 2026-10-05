@@ -42,6 +42,7 @@ const BRAZILIAN_STATES = [
 ];
 
 import { useAuth } from "@/context/AuthContext";
+import { useLoading } from "@/context/LoadingContext";
 
 export default function CarrinhoPage() {
     const { cart, updateQuantity, removeFromCart, cartTotal: subtotal, isWholesaleUnlocked, clearCart } = useCart();
@@ -49,6 +50,7 @@ export default function CarrinhoPage() {
     const [step, setStep] = useState<"cart" | "address" | "payment">("cart");
     const [loading, setLoading] = useState(false);
     const { showToast } = useToast();
+    const { showLoading, hideLoading } = useLoading();
 
     // Feature flag: Checkout Transparente Mercado Pago (default false unless explicitly set to 'true')
     const [transparentEnabled, setTransparentEnabled] = useState(
@@ -550,6 +552,7 @@ export default function CarrinhoPage() {
             return;
         }
 
+        showLoading("Conectando ao checkout seguro...");
         setLoading(true);
         const token = localStorage.getItem("token");
         try {
@@ -613,6 +616,7 @@ export default function CarrinhoPage() {
             alert("Falha na conexão com o servidor.");
         } finally {
             setLoading(false);
+            hideLoading();
         }
     };
 

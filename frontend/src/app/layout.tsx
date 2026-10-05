@@ -45,6 +45,9 @@ export const viewport = {
 
 import CartDrawer from "@/components/CartDrawer/CartDrawer";
 import WhatsAppPromptModal from "@/components/WhatsAppPromptModal/WhatsAppPromptModal";
+import { LoadingProvider } from "@/context/LoadingContext";
+import BrandLoader from "@/components/BrandLoader/BrandLoader";
+import { Suspense } from "react";
 
 export default function RootLayout({
     children,
@@ -58,16 +61,20 @@ export default function RootLayout({
                     <ToastProvider>
                         <CartProvider>
                             <ThemeProvider>
-                                <DynamicBranding />
-                                <HeartAnimation />
-                                <WorldCupAnimation />
-                                <AnniversaryAnimation />
-                                <OutubroRosaAnimation />
-                                {children}
-                                <CartDrawer />
-                                <WhatsAppPromptModal />
-                                <DeferredComponents />
-                                <MobileBottomNav />
+                                <Suspense fallback={<BrandLoader fullScreen={true} />}>
+                                    <LoadingProvider>
+                                        <DynamicBranding />
+                                        <HeartAnimation />
+                                        <WorldCupAnimation />
+                                        <AnniversaryAnimation />
+                                        <OutubroRosaAnimation />
+                                        {children}
+                                        <CartDrawer />
+                                        <WhatsAppPromptModal />
+                                        <DeferredComponents />
+                                        <MobileBottomNav />
+                                    </LoadingProvider>
+                                </Suspense>
                             </ThemeProvider>
                         </CartProvider>
                     </ToastProvider>

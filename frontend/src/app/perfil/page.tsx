@@ -10,6 +10,7 @@ import {
     CheckCircle, Truck, Clock, XCircle, Map, Filter, Pencil, Save, X, Camera, Lock, Coins,
     Phone, Smartphone
 } from "lucide-react";
+import BrandLoader from "@/components/BrandLoader/BrandLoader";
 
 export default function UserProfile() {
     const { user, isLoading: authLoading, logout, refreshProfile } = useAuth();
@@ -291,10 +292,7 @@ export default function UserProfile() {
         return (
             <main>
                 <Header />
-                <div className={styles.loading}>
-                    <div className={styles.spinner}></div>
-                    <p>Carregando seu portal exclusivo...</p>
-                </div>
+                <BrandLoader fullScreen={false} />
                 <Footer />
             </main>
         );

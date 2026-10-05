@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { getStaticProductData } from "@/lib/productData";
+import BrandLoader from "@/components/BrandLoader/BrandLoader";
 
 interface ProductDetail {
     curiosidades: string;
@@ -155,10 +156,9 @@ export default function ProductTechnicalPage() {
 
     if (loading) {
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', gap: '20px', background: '#fbfbfb' }}>
-                <div className="loader"></div>
-                <p style={{ color: '#2d5a27', fontWeight: 600, fontFamily: 'Inter' }}>Sintonizando frequências naturais...</p>
-            </div>
+            <BrandLoader 
+                fullScreen={true} 
+            />
         );
     }
 
