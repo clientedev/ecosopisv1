@@ -6,9 +6,9 @@ import BrandLoader from "@/components/BrandLoader/BrandLoader";
 
 interface LoadingContextValue {
     isLoading: boolean;
-    showLoading: (message?: string) => void;
+    showLoading: () => void;
     hideLoading: () => void;
-    withLoading: <T>(action: () => Promise<T>, message?: string) => Promise<T>;
+    withLoading: <T>(action: () => Promise<T>) => Promise<T>;
 }
 
 const LoadingContext = createContext<LoadingContextValue>({
@@ -18,25 +18,87 @@ const LoadingContext = createContext<LoadingContextValue>({
     withLoading: async (fn) => fn(),
 });
 
+// Full animation cycle duration of the tree video/GIF (in milliseconds)
+const CYCLE_DURATION = 3725;
+
+/**
+ * Calculates remaining milliseconds needed so the animation completes
+ * its current (or next) full cycle from the moment it started.
+ */
+function getDelayUntilCycleEnd(startTime: number): number {
+    const elapsed = Date.now() - startTime;
+    const completedCycles = Math.max(1, Math.ceil(elapsed / CYCLE_DURATION));
+    const targetTime = startTime + completedCycles * CYCLE_DURATION;
+    return Math.max(0, targetTime - Date.now());
+}
+
+/**
+ * Ensures critical assets in the document underneath are fully loaded and ready
+ * before revealing the page to avoid layout shifts or broken placeholders.
+ */
+async function ensureUnderlyingLoaded(): Promise<void> {
+    if (typeof document === "undefined") return;
+
+    try {
+        // 1. Wait for document fonts
+        if ("fonts" in document) {
+            await (document as any).fonts.ready;
+        }
+
+        // 2. Wait for pending images in viewport (up to first 12 images)
+        const images = Array.from(document.querySelectorAll("img"));
+        const pendingImages = images
+            .filter(img => !img.complete && img.src && !img.src.includes("loading"))
+            .slice(0, 12);
+
+        if (pendingImages.length > 0) {
+            await Promise.all(
+                pendingImages.map(
+                    img =>
+                        new Promise<void>(resolve => {
+                            if (img.complete) {
+                                resolve();
+                                return;
+                            }
+                            img.onload = () => resolve();
+                            img.onerror = () => resolve();
+                            setTimeout(resolve, 2500); // Safety fallback
+                        })
+                )
+            );
+        }
+
+        // 3. Give two animation frames for React DOM paint and styles to settle
+        await new Promise<void>(resolve => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => resolve());
+            });
+        });
+    } catch {
+        // Non-blocking fallback
+    }
+}
+
 export function LoadingProvider({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    // Initial site load states
+    // 1. Initial Site Load States
     const [initialLoading, setInitialLoading] = useState(true);
     const [initialFadeOut, setInitialFadeOut] = useState(false);
+    const initialStartTimeRef = useRef<number>(Date.now());
 
-    // Route navigation transition states
+    // 2. Route Navigation Transition States
     const [isNavigating, setIsNavigating] = useState(false);
     const [navFadeOut, setNavFadeOut] = useState(false);
+    const navStartTimeRef = useRef<number>(0);
+    const prevPathRef = useRef(pathname);
+    const navTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Programmatic / manual loading states
+    // 3. Manual / Programmatic Loading States
     const [manualLoading, setManualLoading] = useState(false);
     const [manualFadeOut, setManualFadeOut] = useState(false);
-    const [manualMessage, setManualMessage] = useState<string | undefined>(undefined);
-
-    const prevPathRef = useRef(pathname);
-    const navigationTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const manualStartTimeRef = useRef<number>(0);
 
     // Remove pre-rendered raw HTML splash if present
     const cleanRawHtmlPreloader = useCallback(() => {
@@ -50,23 +112,15 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // 1. Initial Page Load Handler
+    // 1. Initial Site Load Effect: Plays full loop AND waits for everything underneath
     useEffect(() => {
-        const startTime = Date.now();
-        const MIN_DISPLAY_TIME = 1000; // ensures smooth brand visual without abrupt flash
+        initialStartTimeRef.current = Date.now();
 
-        const handleReady = async () => {
-            try {
-                // Wait for document fonts if available
-                if (typeof document !== "undefined" && "fonts" in document) {
-                    await (document as any).fonts.ready;
-                }
-            } catch {
-                // Ignore font loading errors
-            }
+        const handleInitialReady = async () => {
+            await ensureUnderlyingLoaded();
 
-            const elapsed = Date.now() - startTime;
-            const remaining = Math.max(0, MIN_DISPLAY_TIME - elapsed);
+            // Wait for the full loop of the animation to finish
+            const remaining = getDelayUntilCycleEnd(initialStartTimeRef.current);
 
             setTimeout(() => {
                 setInitialFadeOut(true);
@@ -74,26 +128,25 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
                 setTimeout(() => {
                     setInitialLoading(false);
                     setInitialFadeOut(false);
-                }, 450);
+                }, 400);
             }, remaining);
         };
 
         if (typeof document !== "undefined") {
             if (document.readyState === "complete") {
-                handleReady();
+                handleInitialReady();
             } else {
-                window.addEventListener("load", handleReady, { once: true });
-                // Fallback safety timeout
-                const safetyTimer = setTimeout(handleReady, 3000);
+                window.addEventListener("load", handleInitialReady, { once: true });
+                const safety = setTimeout(handleInitialReady, 6000);
                 return () => {
-                    window.removeEventListener("load", handleReady);
-                    clearTimeout(safetyTimer);
+                    window.removeEventListener("load", handleInitialReady);
+                    clearTimeout(safety);
                 };
             }
         }
     }, [cleanRawHtmlPreloader]);
 
-    // 2. Route Change Interception (Client-side Navigation)
+    // 2. Route Navigation: Intercept same-origin link clicks
     useEffect(() => {
         const handleAnchorClick = (e: MouseEvent) => {
             const target = (e.target as HTMLElement).closest("a");
@@ -102,7 +155,6 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
             const href = target.getAttribute("href");
             const targetAttr = target.getAttribute("target");
 
-            // Ignore external, download, anchor hash, or modified clicks (Ctrl, Cmd, Shift)
             if (
                 !href ||
                 href.startsWith("#") ||
@@ -118,7 +170,6 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
                 return;
             }
 
-            // Check if same origin and actually navigating to another path
             try {
                 const currentUrl = new URL(window.location.href);
                 const nextUrl = new URL(href, window.location.href);
@@ -127,68 +178,81 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
                     nextUrl.origin === currentUrl.origin &&
                     (nextUrl.pathname !== currentUrl.pathname || nextUrl.search !== currentUrl.search)
                 ) {
+                    navStartTimeRef.current = Date.now();
                     setNavFadeOut(false);
                     setIsNavigating(true);
 
-                    // Safety timeout if navigation takes too long or errors
-                    if (navigationTimerRef.current) clearTimeout(navigationTimerRef.current);
-                    navigationTimerRef.current = setTimeout(() => {
+                    // Safety timeout (max 10s if route navigation gets stuck)
+                    if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
+                    navTimeoutRef.current = setTimeout(() => {
                         setNavFadeOut(true);
                         setTimeout(() => {
                             setIsNavigating(false);
                             setNavFadeOut(false);
-                        }, 300);
-                    }, 4000);
+                        }, 400);
+                    }, 10000);
                 }
             } catch {
-                // If invalid URL, proceed naturally
+                // If parsing fails, allow default browser navigation
             }
         };
 
         document.addEventListener("click", handleAnchorClick, { capture: true });
         return () => {
             document.removeEventListener("click", handleAnchorClick, { capture: true });
-            if (navigationTimerRef.current) clearTimeout(navigationTimerRef.current);
+            if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
         };
     }, []);
 
-    // Dismiss route transition loader when pathname or searchParams change
+    // Dismiss route transition ONLY AFTER full loop completes and background page is ready
     useEffect(() => {
         if (prevPathRef.current !== pathname) {
             prevPathRef.current = pathname;
+
             if (isNavigating) {
-                // Give small frame for component to render then fade out
-                const timer = setTimeout(() => {
-                    setNavFadeOut(true);
+                const completeNavigation = async () => {
+                    // Make sure new page DOM, fonts, and images are loaded underneath
+                    await ensureUnderlyingLoaded();
+
+                    // Calculate remaining time so the tree GIF completes its full cycle
+                    const remaining = getDelayUntilCycleEnd(navStartTimeRef.current || Date.now());
+
                     setTimeout(() => {
-                        setIsNavigating(false);
-                        setNavFadeOut(false);
-                    }, 350);
-                }, 150);
-                return () => clearTimeout(timer);
+                        setNavFadeOut(true);
+                        setTimeout(() => {
+                            setIsNavigating(false);
+                            setNavFadeOut(false);
+                        }, 400);
+                    }, remaining);
+                };
+
+                completeNavigation();
             }
         }
     }, [pathname, searchParams, isNavigating]);
 
-    // 3. Programmatic Controls
-    const showLoading = useCallback((message?: string) => {
-        setManualMessage(message);
+    // 3. Programmatic Controls: Always finish full loop before hiding
+    const showLoading = useCallback(() => {
+        manualStartTimeRef.current = Date.now();
         setManualFadeOut(false);
         setManualLoading(true);
     }, []);
 
     const hideLoading = useCallback(() => {
-        setManualFadeOut(true);
+        const remaining = getDelayUntilCycleEnd(manualStartTimeRef.current || Date.now());
+
         setTimeout(() => {
-            setManualLoading(false);
-            setManualFadeOut(false);
-            setManualMessage(undefined);
-        }, 350);
+            setManualFadeOut(true);
+            setTimeout(() => {
+                setManualLoading(false);
+                setManualFadeOut(false);
+            }, 400);
+        }, remaining);
     }, []);
 
     const withLoading = useCallback(
-        async <T,>(action: () => Promise<T>, message?: string): Promise<T> => {
-            showLoading(message);
+        async <T,>(action: () => Promise<T>): Promise<T> => {
+            showLoading();
             try {
                 return await action();
             } finally {
@@ -200,7 +264,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
 
     const isAnyActive = initialLoading || isNavigating || manualLoading;
 
-    // Body scroll lock during full screen loader
+    // Body scroll lock during full screen loader to prevent scrolling before page is ready
     useEffect(() => {
         if (typeof document !== "undefined") {
             if (isAnyActive) {
