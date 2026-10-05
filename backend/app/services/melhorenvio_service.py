@@ -34,10 +34,10 @@ CEP_ORIGEM = os.getenv("MELHORENVIO_CEP_ORIGEM", "02969000").replace("-", "").st
 
 STORE_NAME     = os.getenv("STORE_NAME", "ECOSOPIS Cosméticos Naturais")
 STORE_PHONE    = os.getenv("STORE_PHONE", "11999999999").replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
-STORE_ADDRESS  = os.getenv("STORE_ADDRESS", "Rua José Benedito Bispo")
+STORE_ADDRESS  = os.getenv("STORE_ADDRESS", "Rua Doutor João Toniolo")
 STORE_NUMBER   = os.getenv("STORE_NUMBER", "63")
-STORE_DISTRICT = os.getenv("STORE_DISTRICT", "Jardim Presidente Dutra")
-STORE_CITY     = os.getenv("STORE_CITY", "Guarulhos")
+STORE_DISTRICT = os.getenv("STORE_DISTRICT", "Jardim São José")
+STORE_CITY     = os.getenv("STORE_CITY", "São Paulo")
 STORE_STATE    = os.getenv("STORE_STATE", "SP")
 STORE_DOCUMENT = os.getenv("STORE_DOCUMENT", "32273095805").replace(".", "").replace("-", "").replace("/", "").strip()
 
@@ -147,11 +147,16 @@ SERVICE_TO_COMPANY = {
     17: 1,  # Correios Mini Envios
     3: 2,   # Jadlog .Package
     4: 2,   # Jadlog .Com
-    27: 2,  # Jadlog Pickup
-    8: 9,   # Azul Cargo Amanhã
-    9: 9,   # Azul Cargo 2 Dias
-    15: 4,  # Buslog
-    16: 4,  # Buslog
+    27: 2,  # Jadlog .Package Centralizado / Pickup
+    12: 6,  # LATAM Cargo éFácil
+    15: 9,  # Azul Cargo Expresso
+    16: 9,  # Azul Cargo e-commerce
+    22: 12, # Buslog Rodoviário
+    31: 14, # Loggi Express
+    32: 14, # Loggi Coleta
+    33: 15, # J&T Standard
+    34: 14, # Loggi Ponto
+    35: 8,  # Total Express Standard
 }
 
 _AGENCY_CACHE: Dict[str, int] = {}
@@ -444,7 +449,22 @@ def criar_envio(pedido, service_id: int, agency_id: Optional[int] = None) -> tup
     resp = _request_with_retry("POST", "/api/v2/me/cart", json=payload)
 
     if resp.status_code not in (200, 201):
-        raise RuntimeError(f"Erro ao criar envio no carrinho: {resp.status_code} – {resp.text[:400]}")
+        err_lower = resp.text.lower()
+        if resp.status_code == 422 and ("agência" in err_lower or "agencia" in err_lower):
+            logger.warning(f"[ME] Erro de agência obrigatória para serviço {service_id}. Buscando agência automática...")
+            comp_id = SERVICE_TO_COMPANY.get(service_id, 2)
+            fallback_agency = obter_agencia(company_id=comp_id, state="SP", city="São Paulo")
+            if fallback_agency:
+                payload["agency"] = int(fallback_agency)
+                resp = _request_with_retry("POST", "/api/v2/me/cart", json=payload)
+            if resp.status_code not in (200, 201):
+                logger.warning(f"[ME] Falha com agência. Aplicando fallback de segurança para Correios SEDEX (id=2)...")
+                payload["service"] = 2
+                payload.pop("agency", None)
+                resp = _request_with_retry("POST", "/api/v2/me/cart", json=payload)
+
+        if resp.status_code not in (200, 201):
+            raise RuntimeError(f"Erro ao criar envio no carrinho: {resp.status_code} – {resp.text[:400]}")
 
     data = resp.json()
     shipment_id = str(data.get("id", ""))

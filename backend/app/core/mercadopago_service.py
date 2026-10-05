@@ -228,13 +228,17 @@ def create_checkout_pro_preference(order_id: int, items: list, shipping_price: f
                 "number": clean_cpf
             }
 
+    frontend_base = FRONTEND_URL.rstrip("/") if FRONTEND_URL else "https://ecosopis.com.br"
+    if not frontend_base.startswith("https://"):
+        frontend_base = "https://ecosopis.com.br"
+
     preference_data = {
         "items": mp_items,
         "payer": payer_data,
         "back_urls": {
-            "success": f"{FRONTEND_URL}/pagamento?status=approved&order_id={order_id}",
-            "failure": f"{FRONTEND_URL}/pagamento?status=failure&order_id={order_id}",
-            "pending": f"{FRONTEND_URL}/pagamento?status=pending&order_id={order_id}",
+            "success": f"{frontend_base}/pagamento?status=approved&order_id={order_id}",
+            "failure": f"{frontend_base}/pagamento?status=failure&order_id={order_id}",
+            "pending": f"{frontend_base}/pagamento?status=pending&order_id={order_id}",
         },
         "auto_return": "approved",
         "external_reference": str(order_id),
