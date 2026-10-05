@@ -6,7 +6,8 @@ import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import {
     Package, CheckCircle, Truck, Clock, Download,
     ChevronDown, ChevronUp, XCircle, RefreshCw, Search,
-    AlertTriangle, ExternalLink, Tag, Loader2, Copy, MapPin
+    AlertTriangle, ExternalLink, Tag, Loader2, Copy, MapPin,
+    PlusCircle, ShoppingBag, X
 } from "lucide-react";
 import pedidoStyles from "./pedidos.module.css";
 import { fuzzySearch } from "@/utils/search";
@@ -31,6 +32,8 @@ interface Order {
     shipping_price: number;
     stripe_session_id: string | null;
     stripe_payment_id: string | null;
+    mercadopago_payment_id?: string | null;
+    mercadopago_preference_id?: string | null;
     payment_method: string | null;
     coupon_code: string | null;
     discount_amount: number;
@@ -81,12 +84,80 @@ export default function AdminPedidosPage() {
     const [savingAddress, setSavingAddress] = useState(false);
     const [downloadingPdf, setDownloadingPdf] = useState<number | null>(null);
     const [syncingME, setSyncingME] = useState<number | "all" | null>(null);
+    const [showExternalModal, setShowExternalModal] = useState(false);
+    const [savingExternal, setSavingExternal] = useState(false);
+    const [externalForm, setExternalForm] = useState({
+        channel: "mercadolivre",
+        customer_name: "Comprador Mercado Livre",
+        customer_email: "",
+        customer_phone: "",
+        product_name: "Óleo Vegetal De Rosa Mosqueta Rubiginosa 100% Puro",
+        quantity: 1,
+        total: 19.89,
+        transaction_id: "",
+        notes: "Venda externa. Etiqueta e envio gerenciados pelo Mercado Envios."
+    });
 
     const getToken = () => typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
     const authHeaders = () => ({
         "Content-Type": "application/json",
         "Authorization": `Bearer ${getToken()}`
     });
+
+    const handleCreateExternalOrder = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSavingExternal(true);
+        try {
+            const payload = {
+                channel: externalForm.channel,
+                customer_name: externalForm.customer_name || "Cliente Externo",
+                customer_email: externalForm.customer_email || `vendas.${externalForm.channel}@ecosopis.com.br`,
+                customer_phone: externalForm.customer_phone || null,
+                total: Number(externalForm.total) || 0,
+                shipping_method: externalForm.channel === "mercadolivre" ? "Mercado Envios" : "Balcão",
+                shipping_price: 0,
+                status: "paid",
+                transaction_id: externalForm.transaction_id || null,
+                notes: externalForm.notes || null,
+                items: [
+                    {
+                        product_id: 1,
+                        product_name: externalForm.product_name || "Produto",
+                        quantity: Number(externalForm.quantity) || 1,
+                        price: (Number(externalForm.total) || 0) / (Number(externalForm.quantity) || 1)
+                    }
+                ]
+            };
+            const res = await authFetch("/api/orders/admin/manual", {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                setShowExternalModal(false);
+                await fetchOrders();
+                setNotification({
+                    type: "success",
+                    title: "Venda Externa Cadastrada!",
+                    message: `Pedido registrado com sucesso (${externalForm.channel === 'mercadolivre' ? 'Mercado Livre' : externalForm.channel}) no valor de R$ ${Number(externalForm.total).toFixed(2)}.`
+                });
+            } else {
+                const err = await res.json();
+                setNotification({
+                    type: "error",
+                    title: "Erro ao cadastrar",
+                    message: err.detail || "Não foi possível cadastrar a venda externa."
+                });
+            }
+        } catch (err: any) {
+            setNotification({
+                type: "error",
+                title: "Erro de conexão",
+                message: err.message || "Falha ao registrar venda."
+            });
+        } finally {
+            setSavingExternal(false);
+        }
+    };
 
     // Centralized fetch that auto-redirects to login on 401
     const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
@@ -484,6 +555,14 @@ export default function AdminPedidosPage() {
                     </div>
                     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                         <button 
+                            onClick={() => setShowExternalModal(true)} 
+                            className={pedidoStyles.btnAction}
+                            style={{ background: "#f59e0b", borderColor: "#f59e0b", color: "#ffffff", fontWeight: 700 }}
+                            title="Lançar venda externa (Mercado Livre, Shopee, WhatsApp, Balcão)"
+                        >
+                            <PlusCircle size={14} /> + Nova Venda Externa
+                        </button>
+                        <button 
                             onClick={() => handleSyncME()} 
                             disabled={syncingME === "all"} 
                             className={pedidoStyles.btnAction + " " + pedidoStyles.btnPrimary}
@@ -575,11 +654,27 @@ export default function AdminPedidosPage() {
                                             <div className={pedidoStyles.customerBrief}>
                                                 <h3 title={name}>{name}</h3>
                                                 <p>{email}</p>
-                                                {order.payment_method && (
-                                                    <span style={{ display: 'inline-block', fontSize: "0.7rem", backgroundColor: "#e2e8f0", padding: "2px 6px", borderRadius: "8px", color: "#475569", fontWeight: 700, marginTop: "2px", marginBottom: "2px" }}>
-                                                        Via {order.payment_method === 'mercadopago' ? 'Mercado Pago' : order.payment_method}
+                                                {order.payment_method === 'mercadolivre' ? (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: "0.72rem", backgroundColor: "#fef08a", border: "1px solid #fde047", padding: "2px 8px", borderRadius: "8px", color: "#854d0e", fontWeight: 700, marginTop: "2px", marginBottom: "2px" }}>
+                                                        🟡 Mercado Livre {order.mercadopago_payment_id ? `· Transação #${order.mercadopago_payment_id}` : ""}
                                                     </span>
-                                                )}
+                                                ) : order.payment_method === 'shopee' ? (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: "0.72rem", backgroundColor: "#ffedd5", border: "1px solid #fed7aa", padding: "2px 8px", borderRadius: "8px", color: "#c2410c", fontWeight: 700, marginTop: "2px", marginBottom: "2px" }}>
+                                                        🟠 Shopee {order.mercadopago_payment_id ? `· #${order.mercadopago_payment_id}` : ""}
+                                                    </span>
+                                                ) : order.payment_method === 'whatsapp' ? (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: "0.72rem", backgroundColor: "#dcfce7", border: "1px solid #bbf7d0", padding: "2px 8px", borderRadius: "8px", color: "#15803d", fontWeight: 700, marginTop: "2px", marginBottom: "2px" }}>
+                                                        💬 WhatsApp
+                                                    </span>
+                                                ) : order.payment_method === 'balcao' ? (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: "0.72rem", backgroundColor: "#f1f5f9", border: "1px solid #cbd5e1", padding: "2px 8px", borderRadius: "8px", color: "#334155", fontWeight: 700, marginTop: "2px", marginBottom: "2px" }}>
+                                                        🏪 Balcão / Loja Física
+                                                    </span>
+                                                ) : order.payment_method ? (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: "0.7rem", backgroundColor: "#e2e8f0", padding: "2px 6px", borderRadius: "8px", color: "#475569", fontWeight: 700, marginTop: "2px", marginBottom: "2px" }}>
+                                                        🟢 Loja Virtual (Via {order.payment_method === 'mercadopago' ? 'Mercado Pago' : order.payment_method === 'mercadopago_pix' ? 'PIX' : order.payment_method === 'mercadopago_card' ? 'Cartão' : order.payment_method})
+                                                    </span>
+                                                ) : null}
                                                 {trackingCode && (
                                                     <p style={{ color: "#2563eb", fontSize: "0.75rem", marginTop: "2px" }}>
                                                         🔍 Rastreio: <strong>{trackingCode}</strong>
@@ -670,6 +765,23 @@ export default function AdminPedidosPage() {
                                                                         <Copy size={12} style={{ cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); copyToClipboard(trackingCode); }} />
                                                                     </span>
                                                                 </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Informações de Venda Externa / Mercado Livre */}
+                                                    {order.payment_method === 'mercadolivre' && (
+                                                        <div style={{ marginTop: "1rem", background: "#fef9c3", border: "1px solid #fde047", borderRadius: "10px", padding: "0.85rem 1rem", fontSize: "0.82rem", color: "#713f12" }}>
+                                                            <p style={{ fontWeight: 700, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                                                                🟡 Venda Concluída no Mercado Livre
+                                                            </p>
+                                                            <p style={{ margin: "0 0 6px" }}>
+                                                                O pagamento foi aprovado pelo Mercado Pago. O envio e a etiqueta fiscal/correios são gerenciados diretamente pelo <strong>Mercado Envios</strong> dentro do painel do Mercado Livre.
+                                                            </p>
+                                                            {order.mercadopago_payment_id && (
+                                                                <p style={{ margin: 0, fontFamily: "monospace", fontSize: "0.8rem", color: "#854d0e" }}>
+                                                                    Transação / ID MP: <strong>{order.mercadopago_payment_id}</strong>
+                                                                </p>
                                                             )}
                                                         </div>
                                                     )}
@@ -810,8 +922,28 @@ export default function AdminPedidosPage() {
                                                     )}
                                                 </button>
 
-                                                {/* Etiqueta Melhor Envio */}
-                                                {etiquetaUrl ? (
+                                                {/* Etiqueta */}
+                                                {order.payment_method === 'mercadolivre' ? (
+                                                    <a
+                                                        href="https://www.mercadolivre.com.br/vendas/lista"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className={pedidoStyles.btnAction}
+                                                        style={{
+                                                            background: "#ffe600",
+                                                            color: "#2d3277",
+                                                            borderColor: "#ffe600",
+                                                            fontWeight: 700,
+                                                            textDecoration: "none",
+                                                            display: "inline-flex",
+                                                            alignItems: "center",
+                                                            gap: "6px"
+                                                        }}
+                                                        title="Gerenciar envio e imprimir etiqueta no Mercado Envios / Mercado Livre"
+                                                    >
+                                                        🟡 Etiqueta no Mercado Envios (ML) <ExternalLink size={14} />
+                                                    </a>
+                                                ) : etiquetaUrl ? (
                                                     <>
                                                         <button
                                                             onClick={() => window.open(etiquetaUrl, "_blank")}
@@ -912,6 +1044,182 @@ export default function AdminPedidosPage() {
                         Esta ação removerá todos os pedidos permanentemente. Use apenas para limpeza de testes.
                     </p>
                 </footer>
+
+                {/* Modal de Cadastro de Venda Externa */}
+                {showExternalModal && (
+                    <div style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                        backdropFilter: "blur(4px)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 9999,
+                        padding: "1rem"
+                    }} onClick={() => setShowExternalModal(false)}>
+                        <div style={{
+                            backgroundColor: "#ffffff",
+                            borderRadius: "16px",
+                            maxWidth: "520px",
+                            width: "100%",
+                            maxHeight: "90vh",
+                            overflowY: "auto",
+                            padding: "1.75rem",
+                            boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)"
+                        }} onClick={(e) => e.stopPropagation()}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: "8px" }}>
+                                        <PlusCircle size={20} color="#f59e0b" /> Lançar Venda Externa
+                                    </h3>
+                                    <p style={{ margin: "4px 0 0", fontSize: "0.82rem", color: "#64748b" }}>
+                                        Cadastre vendas do Mercado Livre, Shopee, WhatsApp ou Balcão para manter o histórico e faturamento consolidados.
+                                    </p>
+                                </div>
+                                <button onClick={() => setShowExternalModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: "4px" }}>
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleCreateExternalOrder} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                                <div>
+                                    <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#334155", marginBottom: "4px" }}>
+                                        Canal de Venda
+                                    </label>
+                                    <select
+                                        value={externalForm.channel}
+                                        onChange={(e) => {
+                                            const ch = e.target.value;
+                                            setExternalForm(prev => ({
+                                                ...prev,
+                                                channel: ch,
+                                                customer_name: ch === "mercadolivre" ? "Comprador Mercado Livre" : ch === "shopee" ? "Comprador Shopee" : prev.customer_name,
+                                                notes: ch === "mercadolivre" ? "Venda externa. Etiqueta gerada pelo Mercado Envios." : prev.notes
+                                            }));
+                                        }}
+                                        style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.9rem", backgroundColor: "#fff" }}
+                                    >
+                                        <option value="mercadolivre">🟡 Mercado Livre</option>
+                                        <option value="shopee">🟠 Shopee</option>
+                                        <option value="whatsapp">💬 WhatsApp / Pedido Direto</option>
+                                        <option value="balcao">🏪 Balcão / Loja Física</option>
+                                        <option value="outro">📦 Outro Canal</option>
+                                    </select>
+                                </div>
+
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                                    <div>
+                                        <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#334155", marginBottom: "4px" }}>
+                                            ID da Transação / Pedido
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: 181368521047"
+                                            value={externalForm.transaction_id}
+                                            onChange={(e) => setExternalForm({ ...externalForm, transaction_id: e.target.value })}
+                                            style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.88rem" }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#334155", marginBottom: "4px" }}>
+                                            Nome do Cliente
+                                        </label>
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="Ex: Comprador Mercado Livre"
+                                            value={externalForm.customer_name}
+                                            onChange={(e) => setExternalForm({ ...externalForm, customer_name: e.target.value })}
+                                            style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.88rem" }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#334155", marginBottom: "4px" }}>
+                                        Produto / Descrição dos Itens
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Ex: Óleo Vegetal De Rosa Mosqueta Rubiginosa 100% Puro"
+                                        value={externalForm.product_name}
+                                        onChange={(e) => setExternalForm({ ...externalForm, product_name: e.target.value })}
+                                        style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.88rem" }}
+                                    />
+                                </div>
+
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                                    <div>
+                                        <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#334155", marginBottom: "4px" }}>
+                                            Quantidade
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            required
+                                            value={externalForm.quantity}
+                                            onChange={(e) => setExternalForm({ ...externalForm, quantity: Number(e.target.value) || 1 })}
+                                            style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.88rem" }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#334155", marginBottom: "4px" }}>
+                                            Valor Total (R$)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0.01"
+                                            required
+                                            value={externalForm.total}
+                                            onChange={(e) => setExternalForm({ ...externalForm, total: Number(e.target.value) || 0 })}
+                                            style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.88rem" }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#334155", marginBottom: "4px" }}>
+                                        Observações / Envio
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ex: Envio gerenciado pelo Mercado Envios"
+                                        value={externalForm.notes}
+                                        onChange={(e) => setExternalForm({ ...externalForm, notes: e.target.value })}
+                                        style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.88rem" }}
+                                    />
+                                </div>
+
+                                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "0.5rem" }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowExternalModal(false)}
+                                        style={{ padding: "0.6rem 1.25rem", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#f8fafc", color: "#475569", fontWeight: 600, cursor: "pointer" }}
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={savingExternal}
+                                        style={{ padding: "0.6rem 1.5rem", borderRadius: "8px", border: "none", background: "#f59e0b", color: "#ffffff", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                                    >
+                                        {savingExternal ? (
+                                            <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Salvando...</>
+                                        ) : (
+                                            "Cadastrar Venda"
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
 
                 <style>{`
                     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

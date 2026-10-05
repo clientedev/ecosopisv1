@@ -3,6 +3,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text
 from typing import List, Dict, Any, Optional
+from pydantic import BaseModel
 from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
@@ -15,7 +16,26 @@ import os
 
 router = APIRouter()
 
-router = APIRouter()
+class AdminManualOrderItem(BaseModel):
+    product_id: Optional[int] = 1
+    product_name: str
+    quantity: int = 1
+    price: float
+
+class AdminManualOrderCreate(BaseModel):
+    customer_name: str
+    customer_email: Optional[str] = None
+    customer_phone: Optional[str] = None
+    customer_cpf: Optional[str] = None
+    channel: str = "mercadolivre"  # mercadolivre, shopee, whatsapp, balcao, outro
+    total: float
+    items: List[AdminManualOrderItem]
+    shipping_method: Optional[str] = "Mercado Envios"
+    shipping_price: Optional[float] = 0.0
+    status: Optional[str] = "paid"
+    transaction_id: Optional[str] = None
+    address: Optional[Dict[str, Any]] = None
+    notes: Optional[str] = None
 
 @router.post("/", response_model=schemas.OrderResponse)
 def create_order(
@@ -68,6 +88,70 @@ def list_all_orders(
     orders = db.query(models.Order).options(joinedload(models.Order.user)).order_by(models.Order.created_at.desc()).all()
     
     return [_order_to_response(o, db) for o in orders]
+
+
+@router.post("/admin/manual")
+def create_manual_admin_order(
+    payload: AdminManualOrderCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Permite ao administrador lançar manualmente uma venda externa
+    (Mercado Livre, Shopee, WhatsApp, Balcão/Físico ou outro canal).
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    items_data = [item.dict() for item in payload.items]
+    
+    default_address = {
+        "street": f"Envio via {payload.shipping_method or 'Canal Externo'}",
+        "number": "S/N",
+        "neighborhood": payload.channel.upper(),
+        "city": "Consulte painel externo",
+        "state": "BR",
+        "postal_code": "00000-000",
+        "observacao": payload.notes or f"Venda externa via {payload.channel}."
+    }
+    final_address = payload.address or default_address
+
+    new_order = models.Order(
+        user_id=current_user.id,
+        status=payload.status or "paid",
+        total=payload.total,
+        shipping_price=payload.shipping_price or 0.0,
+        shipping_method=payload.shipping_method or ("Mercado Envios" if payload.channel == "mercadolivre" else "Fixo"),
+        items=items_data,
+        address=final_address,
+        payment_method=payload.channel,
+        mercadopago_payment_id=payload.transaction_id,
+        customer_name=payload.customer_name,
+        customer_email=payload.customer_email or f"vendas.{payload.channel}@ecosopis.com.br",
+        customer_phone=payload.customer_phone,
+        customer_cpf=payload.customer_cpf,
+        buyer_name=payload.customer_name,
+        buyer_email=payload.customer_email or f"vendas.{payload.channel}@ecosopis.com.br",
+    )
+    db.add(new_order)
+    db.flush()
+
+    for item in items_data:
+        try:
+            oi = models.OrderItem(
+                order_id=new_order.id,
+                product_id=item.get("product_id") or 1,
+                quantity=item.get("quantity") or 1,
+                price=float(item.get("price") or 0.0)
+            )
+            db.add(oi)
+        except Exception:
+            pass
+
+    db.commit()
+    db.refresh(new_order)
+
+    return _order_to_response(new_order, db)
 
 
 @router.get("/{order_id}/label")
@@ -374,6 +458,8 @@ def _order_to_response(o: models.Order, db: Session = None) -> dict:
         "shipping_price": getattr(o, "shipping_price", None),
         "stripe_payment_id": getattr(o, "stripe_payment_id", None),
         "stripe_session_id": getattr(o, "stripe_session_id", None),
+        "mercadopago_payment_id": getattr(o, "mercadopago_payment_id", None),
+        "mercadopago_preference_id": getattr(o, "mercadopago_preference_id", None),
         "payment_url": None,
         "customer_name": buyer_name,
         "customer_email": buyer_email,

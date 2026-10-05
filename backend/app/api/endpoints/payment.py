@@ -707,6 +707,118 @@ async def mercadopago_webhook_health():
     return {"status": "online", "service": "Mercado Pago Webhook ECOSOPIS"}
 
 
+def _handle_external_mp_payment(payment_info: dict, resource_id: str, db: Session) -> Optional[models.Order]:
+    """
+    Quando um pagamento é aprovado no Mercado Pago (ex: venda realizada no Mercado Livre,
+    checkout avulso ou link direto) e não possui um pedido prévio no site, cria o pedido
+    automaticamente com status 'paid' para que o lojista veja a venda em /admin/pedidos.
+    """
+    try:
+        existing = db.query(models.Order).filter(
+            models.Order.mercadopago_payment_id == str(resource_id)
+        ).first()
+        if existing:
+            logger.info(f"External MP payment {resource_id} already registered as order #{existing.id}")
+            return existing
+
+        desc = payment_info.get("description") or "Venda Mercado Livre / Mercado Pago"
+        mp_order_obj = payment_info.get("order") or {}
+        order_type = str(mp_order_obj.get("type", "")).lower()
+        is_meli = (
+            order_type == "mercadolibre" 
+            or "mercado livre" in desc.lower() 
+            or "mercadolivre" in desc.lower()
+        )
+        
+        channel = "mercadolivre" if is_meli else "mercadopago"
+        shipping_method = "Mercado Envios" if is_meli else "A Combinar"
+
+        payer_info = payment_info.get("payer") or {}
+        buyer_email = payer_info.get("email") or "comprador@mercadolivre.com"
+        first_n = payer_info.get("first_name") or ""
+        last_n = payer_info.get("last_name") or ""
+        buyer_name = f"{first_n} {last_n}".strip() or (
+            "Comprador Mercado Livre" if is_meli else "Cliente Mercado Pago"
+        )
+        ident = payer_info.get("identification") or {}
+        customer_cpf = ident.get("number")
+
+        amount = float(payment_info.get("transaction_amount") or 0.0)
+
+        additional_info = payment_info.get("additional_info") or {}
+        raw_items = additional_info.get("items") or []
+        items_json = []
+        if raw_items:
+            for it in raw_items:
+                items_json.append({
+                    "product_id": 1,
+                    "product_name": it.get("title") or desc,
+                    "quantity": int(it.get("quantity") or 1),
+                    "price": float(it.get("unit_price") or amount)
+                })
+        else:
+            items_json.append({
+                "product_id": 1,
+                "product_name": desc,
+                "quantity": 1,
+                "price": amount
+            })
+
+        ship_info = additional_info.get("shipments") or {}
+        receiver_addr = ship_info.get("receiver_address") or {}
+        address_json = {
+            "street": receiver_addr.get("street_name") or ("Envio via Mercado Envios" if is_meli else "Endereço não informado"),
+            "number": str(receiver_addr.get("street_number") or "S/N"),
+            "neighborhood": "Mercado Livre" if is_meli else "Balcão",
+            "city": receiver_addr.get("city_name") or "Consulte etiqueta no painel ML",
+            "state": receiver_addr.get("state_name") or "BR",
+            "postal_code": receiver_addr.get("zip_code") or "00000-000",
+            "observacao": "Venda externa. Etiqueta gerada diretamente pelo Mercado Envios." if is_meli else "Venda direta via Mercado Pago"
+        }
+
+        admin_user = db.query(models.User).filter(models.User.role == "admin").first()
+        user_id = admin_user.id if admin_user else 1
+
+        new_order = models.Order(
+            user_id=user_id,
+            status="paid",
+            total=amount,
+            shipping_price=0.0,
+            shipping_method=shipping_method,
+            items=items_json,
+            address=address_json,
+            payment_method=channel,
+            mercadopago_payment_id=str(resource_id),
+            customer_name=buyer_name,
+            customer_email=buyer_email,
+            customer_cpf=customer_cpf,
+            buyer_name=buyer_name,
+            buyer_email=buyer_email
+        )
+        db.add(new_order)
+        db.flush()
+
+        for itm in items_json:
+            try:
+                oi = models.OrderItem(
+                    order_id=new_order.id,
+                    product_id=itm.get("product_id") or 1,
+                    quantity=itm.get("quantity") or 1,
+                    price=float(itm.get("price") or 0.0)
+                )
+                db.add(oi)
+            except Exception:
+                pass
+
+        db.commit()
+        db.refresh(new_order)
+        logger.info(f"✓ Pedido #{new_order.id} criado automaticamente para pagamento externo MP/ML {resource_id}")
+        return new_order
+    except Exception as err:
+        logger.error(f"Erro ao criar pedido para pagamento externo {resource_id}: {err}", exc_info=True)
+        return None
+
+
 @router.post("/webhook/mercadopago")
 @router.post("/api/payment/webhook/mercadopago")
 @router.post("/payment/webhook/mercadopago")
@@ -715,6 +827,7 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     Receives notification from Mercado Pago (topic: merchant_order or payment).
     Handles JSON payloads (Webhooks v2), Form URL Encoded payloads (IPN), and Query Parameters.
     Automatically finalizes order as 'paid', triggers emails and WhatsApp alerts.
+    Also captures external payments (e.g. from Mercado Livre sales) and registers them as orders.
     """
     data = {}
     try:
@@ -790,7 +903,8 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                     )
                     logger.info(f"MP Payment {resource_id} successfully processed for order {order.id}")
                 else:
-                    logger.warning(f"Order not found for MP Payment {resource_id} (ext_ref: {pedido_id})")
+                    logger.info(f"Order not found for MP Payment {resource_id} (ext_ref: {pedido_id}). Capturing as external payment...")
+                    _handle_external_mp_payment(payment_info, str(resource_id), db)
         except Exception as e:
             logger.error(f"Error processing MP payment {resource_id}: {e}", exc_info=True)
             
@@ -836,6 +950,12 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                             buyer_email=buyer_email
                         )
                         logger.info(f"MP Merchant Order {resource_id} successfully processed for order {order.id}")
+                    elif approved_payment_id:
+                        try:
+                            payment_info = get_mp_payment_status(str(approved_payment_id))
+                            _handle_external_mp_payment(payment_info, str(approved_payment_id), db)
+                        except Exception as p_err:
+                            logger.error(f"Error fetching approved payment {approved_payment_id} for merchant_order {resource_id}: {p_err}")
         except Exception as e:
             logger.error(f"Error processing MP merchant_order {resource_id}: {e}", exc_info=True)
 

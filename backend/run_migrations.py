@@ -206,6 +206,112 @@ def initialize_original_prices():
     except Exception as e:
         logger.warning(f"Could not backfill original_price: {e}")
 
+def ensure_missing_mercadolivre_orders():
+    """Ensure completed Mercado Livre orders are registered in the database."""
+    try:
+        from datetime import datetime
+        with SessionLocal() as db:
+            admin_user = db.query(models.User).filter(models.User.role == "admin").first()
+            admin_id = admin_user.id if admin_user else 1
+
+            # Order 1: 04 de outubro 15:57 - Óleo Vegetal De Rosa Mosqueta Rubiginosa 100% Puro (R$ 19,89)
+            existing_1 = db.query(models.Order).filter(
+                (models.Order.mercadopago_payment_id == "181368521047") |
+                ((models.Order.total == 19.89) & (models.Order.payment_method == "mercadolivre"))
+            ).first()
+
+            if not existing_1:
+                order_1 = models.Order(
+                    user_id=admin_id,
+                    status="paid",
+                    total=19.89,
+                    shipping_price=0.0,
+                    shipping_method="Mercado Envios",
+                    payment_method="mercadolivre",
+                    mercadopago_payment_id="181368521047",
+                    customer_name="Comprador Mercado Livre",
+                    customer_email="vendas.mercadolivre@ecosopis.com.br",
+                    buyer_name="Comprador Mercado Livre",
+                    buyer_email="vendas.mercadolivre@ecosopis.com.br",
+                    items=[
+                        {
+                            "product_id": 13,
+                            "product_name": "Óleo Vegetal De Rosa Mosqueta Rubiginosa 100% Puro",
+                            "quantity": 1,
+                            "price": 19.89
+                        }
+                    ],
+                    address={
+                        "street": "Envio via Mercado Envios",
+                        "number": "ML",
+                        "neighborhood": "Mercado Livre",
+                        "city": "Consulte etiqueta no painel ML",
+                        "state": "BR",
+                        "postal_code": "00000-000",
+                        "observacao": "Etiqueta e envio gerenciados diretamente pelo Mercado Envios"
+                    },
+                    created_at=datetime(2026, 10, 4, 15, 57, 0)
+                )
+                db.add(order_1)
+                db.flush()
+                try:
+                    oi_1 = models.OrderItem(order_id=order_1.id, product_id=13, quantity=1, price=19.89)
+                    db.add(oi_1)
+                except Exception:
+                    pass
+                db.commit()
+                logger.info("✓ Pedido ML 181368521047 inserido com sucesso.")
+
+            # Order 2: 02 de outubro 11:41 - Pedido de 3 produtos (R$ 49,79)
+            existing_2 = db.query(models.Order).filter(
+                (models.Order.mercadopago_payment_id == "200001531507") |
+                ((models.Order.total == 49.79) & (models.Order.payment_method == "mercadolivre"))
+            ).first()
+
+            if not existing_2:
+                order_2 = models.Order(
+                    user_id=admin_id,
+                    status="paid",
+                    total=49.79,
+                    shipping_price=0.0,
+                    shipping_method="Mercado Envios",
+                    payment_method="mercadolivre",
+                    mercadopago_payment_id="200001531507",
+                    customer_name="Comprador Mercado Livre",
+                    customer_email="vendas.mercadolivre@ecosopis.com.br",
+                    buyer_name="Comprador Mercado Livre",
+                    buyer_email="vendas.mercadolivre@ecosopis.com.br",
+                    items=[
+                        {
+                            "product_id": 1,
+                            "product_name": "Pedido de 3 produtos (Mercado Livre)",
+                            "quantity": 3,
+                            "price": 16.59
+                        }
+                    ],
+                    address={
+                        "street": "Envio via Mercado Envios",
+                        "number": "ML",
+                        "neighborhood": "Mercado Livre",
+                        "city": "Consulte etiqueta no painel ML",
+                        "state": "BR",
+                        "postal_code": "00000-000",
+                        "observacao": "Etiqueta e envio gerenciados diretamente pelo Mercado Envios"
+                    },
+                    created_at=datetime(2026, 10, 2, 11, 41, 0)
+                )
+                db.add(order_2)
+                db.flush()
+                try:
+                    oi_2 = models.OrderItem(order_id=order_2.id, product_id=1, quantity=3, price=16.59)
+                    db.add(oi_2)
+                except Exception:
+                    pass
+                db.commit()
+                logger.info("✓ Pedido ML 200001531507 inserido com sucesso.")
+    except Exception as e:
+        logger.warning(f"Could not ensure ML orders: {e}")
+
 def run_migrations():
     success = True
     try:
@@ -219,6 +325,7 @@ def run_migrations():
         add_missing_columns()
         ensure_extra_tables()
         initialize_original_prices()
+        ensure_missing_mercadolivre_orders()
         logger.info("✓ Column and table migrations complete.")
 
         # Run seed data
