@@ -204,31 +204,46 @@ export default function AdminPedidosPage() {
         if (!order) return;
         const pkg = getPackageForm(order);
         setSavingPackage(orderId);
+        setNotification(null);
         try {
+            const body = {
+                package_length: Number(pkg.length) || 20,
+                package_width: Number(pkg.width) || 16,
+                package_height: Number(pkg.height) || 12,
+                package_weight: Number(pkg.weight) || 0.3,
+                shipping_service_id: Number(pkg.serviceId) || 1,
+                shipping_method: pkg.serviceName || "Correios PAC"
+            };
+
             const res = await authFetch(`/api/orders/${orderId}/shipping-package`, {
                 method: "PATCH",
-                body: JSON.stringify({
-                    package_length: Number(pkg.length),
-                    package_width: Number(pkg.width),
-                    package_height: Number(pkg.height),
-                    package_weight: Number(pkg.weight),
-                    shipping_service_id: Number(pkg.serviceId),
-                    shipping_method: pkg.serviceName
-                })
+                body: JSON.stringify(body)
             });
             if (res.ok) {
+                const updatedOrder = await res.json().catch(() => ({}));
+                setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updatedOrder, ...body } : o));
+                setPackageForms(prev => ({
+                    ...prev,
+                    [orderId]: {
+                        length: body.package_length,
+                        width: body.package_width,
+                        height: body.package_height,
+                        weight: body.package_weight,
+                        serviceId: body.shipping_service_id,
+                        serviceName: body.shipping_method,
+                    }
+                }));
                 setNotification({
                     type: "success",
-                    title: "Embalagem salva!",
-                    message: `Dimensões e transportadora do pedido #${orderId} atualizadas com sucesso.`
+                    title: "Embalagem salva com sucesso!",
+                    message: `Pedido #${orderId}: dimensões (${body.package_length}x${body.package_width}x${body.package_height}cm, ${body.package_weight}kg) e transportadora (${body.shipping_method}) foram salvas no sistema.`
                 });
-                await fetchOrders();
             } else {
                 const err = await res.json().catch(() => ({}));
                 setNotification({
                     type: "error",
                     title: "Erro ao salvar embalagem",
-                    message: err.detail || "Não foi possível salvar as alterações."
+                    message: err.detail || "Não foi possível salvar as alterações no servidor."
                 });
             }
         } catch {
@@ -667,7 +682,7 @@ export default function AdminPedidosPage() {
         <AdminLayout>
             <AdminSidebar activePath="/admin/pedidos" />
 
-            <main style={{ flex: 1, padding: "2rem", overflowY: "auto", height: "100%" }}>
+            <main className={pedidoStyles.mainContainer}>
 
                 {/* ── Notificação in-page ── */}
                 {notification && (
@@ -1162,50 +1177,50 @@ export default function AdminPedidosPage() {
                                                         </div>
 
                                                         {/* Dimensões e Peso */}
-                                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "6px", marginBottom: "8px" }}>
+                                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "8px", marginBottom: "10px" }}>
                                                             <div>
-                                                                <label style={{ fontSize: "0.7rem", color: "#64748b", display: "block" }}>Comprimento (cm)</label>
+                                                                <label style={{ fontSize: "0.72rem", color: "#64748b", display: "block", marginBottom: "2px" }}>Comprimento (cm)</label>
                                                                 <input
                                                                     type="number"
-                                                                    min="10"
-                                                                    max="105"
-                                                                    value={pkg.length}
-                                                                    onChange={e => updatePackageField(order.id, "length", Number(e.target.value))}
-                                                                    style={{ width: "100%", padding: "4px 6px", fontSize: "0.8rem", border: "1px solid #cbd5e1", borderRadius: "4px" }}
+                                                                    min="5"
+                                                                    max="150"
+                                                                    value={pkg.length ?? ""}
+                                                                    onChange={e => updatePackageField(order.id, "length", e.target.value === "" ? "" : Number(e.target.value))}
+                                                                    style={{ width: "100%", padding: "5px 8px", fontSize: "0.82rem", border: "1px solid #cbd5e1", borderRadius: "6px", boxSizing: "border-box" }}
                                                                 />
                                                             </div>
                                                             <div>
-                                                                <label style={{ fontSize: "0.7rem", color: "#64748b", display: "block" }}>Largura (cm)</label>
+                                                                <label style={{ fontSize: "0.72rem", color: "#64748b", display: "block", marginBottom: "2px" }}>Largura (cm)</label>
                                                                 <input
                                                                     type="number"
-                                                                    min="10"
-                                                                    max="105"
-                                                                    value={pkg.width}
-                                                                    onChange={e => updatePackageField(order.id, "width", Number(e.target.value))}
-                                                                    style={{ width: "100%", padding: "4px 6px", fontSize: "0.8rem", border: "1px solid #cbd5e1", borderRadius: "4px" }}
+                                                                    min="5"
+                                                                    max="150"
+                                                                    value={pkg.width ?? ""}
+                                                                    onChange={e => updatePackageField(order.id, "width", e.target.value === "" ? "" : Number(e.target.value))}
+                                                                    style={{ width: "100%", padding: "5px 8px", fontSize: "0.82rem", border: "1px solid #cbd5e1", borderRadius: "6px", boxSizing: "border-box" }}
                                                                 />
                                                             </div>
                                                             <div>
-                                                                <label style={{ fontSize: "0.7rem", color: "#64748b", display: "block" }}>Altura (cm)</label>
+                                                                <label style={{ fontSize: "0.72rem", color: "#64748b", display: "block", marginBottom: "2px" }}>Altura (cm)</label>
                                                                 <input
                                                                     type="number"
                                                                     min="2"
-                                                                    max="105"
-                                                                    value={pkg.height}
-                                                                    onChange={e => updatePackageField(order.id, "height", Number(e.target.value))}
-                                                                    style={{ width: "100%", padding: "4px 6px", fontSize: "0.8rem", border: "1px solid #cbd5e1", borderRadius: "4px" }}
+                                                                    max="150"
+                                                                    value={pkg.height ?? ""}
+                                                                    onChange={e => updatePackageField(order.id, "height", e.target.value === "" ? "" : Number(e.target.value))}
+                                                                    style={{ width: "100%", padding: "5px 8px", fontSize: "0.82rem", border: "1px solid #cbd5e1", borderRadius: "6px", boxSizing: "border-box" }}
                                                                 />
                                                             </div>
                                                             <div>
-                                                                <label style={{ fontSize: "0.7rem", color: "#64748b", display: "block" }}>Peso (kg)</label>
+                                                                <label style={{ fontSize: "0.72rem", color: "#64748b", display: "block", marginBottom: "2px" }}>Peso (kg)</label>
                                                                 <input
                                                                     type="number"
                                                                     step="0.05"
                                                                     min="0.1"
-                                                                    max="30"
-                                                                    value={pkg.weight}
-                                                                    onChange={e => updatePackageField(order.id, "weight", Number(e.target.value))}
-                                                                    style={{ width: "100%", padding: "4px 6px", fontSize: "0.8rem", border: "1px solid #cbd5e1", borderRadius: "4px" }}
+                                                                    max="50"
+                                                                    value={pkg.weight ?? ""}
+                                                                    onChange={e => updatePackageField(order.id, "weight", e.target.value === "" ? "" : Number(e.target.value))}
+                                                                    style={{ width: "100%", padding: "5px 8px", fontSize: "0.82rem", border: "1px solid #cbd5e1", borderRadius: "6px", boxSizing: "border-box" }}
                                                                 />
                                                             </div>
                                                         </div>
