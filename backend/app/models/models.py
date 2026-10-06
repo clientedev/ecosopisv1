@@ -256,6 +256,12 @@ class Order(Base):
     etiqueta_url = Column(String, nullable=True)
     codigo_rastreio = Column(String, nullable=True)
     shipment_id = Column(String, nullable=True)
+    # Dimensões e peso da embalagem / transportadora customizada
+    package_width = Column(Float, nullable=True, default=16.0)
+    package_height = Column(Float, nullable=True, default=12.0)
+    package_length = Column(Float, nullable=True, default=20.0)
+    package_weight = Column(Float, nullable=True, default=0.3)
+    shipping_service_id = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="orders")

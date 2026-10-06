@@ -30,6 +30,21 @@ class ShippingRequest(BaseModel):
     dest_cep: str
     items: List[ShippingItem]
 
+class GenerateLabelPayload(BaseModel):
+    package_width: Optional[float] = None
+    package_height: Optional[float] = None
+    package_length: Optional[float] = None
+    package_weight: Optional[float] = None
+    shipping_service_id: Optional[int] = None
+    shipping_method: Optional[str] = None
+    force_recreate: Optional[bool] = False
+
+class QuoteOrderPayload(BaseModel):
+    package_width: Optional[float] = None
+    package_height: Optional[float] = None
+    package_length: Optional[float] = None
+    package_weight: Optional[float] = None
+
 @router.post("/calculate")
 async def calculate_shipping(request: ShippingRequest):
     """
@@ -222,12 +237,13 @@ def _simulate_label_pdf(order: models.Order) -> bytes:
 @router.post("/generate-label/{order_id}")
 async def generate_label(
     order_id: int,
+    payload: Optional[GenerateLabelPayload] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     """
     Controla a geração da etiqueta:
-    1. Se o envio não foi criado no cart, cria.
+    1. Se o envio não foi criado no cart, cria (com dimensões/peso/transportadora customizadas).
     2. Se já foi criado, verifica se o pagamento foi feito no Melhor Envio.
     3. Se pago, gera o PDF e atualiza status para 'shipped'.
     """
@@ -246,8 +262,39 @@ async def generate_label(
             detail=f"Pedido com status '{order.status}' não pode ter etiqueta gerada."
         )
 
-    # Se já tem etiqueta salva e o pedido está enviado/entregue, apenas retorna
-    if order.status in ("shipped", "delivered") and getattr(order, "etiqueta_url", None):
+    # Se foram passados parâmetros de dimensões / transportadora, atualiza no pedido
+    has_package_override = False
+    if payload:
+        if payload.package_width is not None and float(payload.package_width) > 0:
+            order.package_width = float(payload.package_width)
+            has_package_override = True
+        if payload.package_height is not None and float(payload.package_height) > 0:
+            order.package_height = float(payload.package_height)
+            has_package_override = True
+        if payload.package_length is not None and float(payload.package_length) > 0:
+            order.package_length = float(payload.package_length)
+            has_package_override = True
+        if payload.package_weight is not None and float(payload.package_weight) > 0:
+            order.package_weight = float(payload.package_weight)
+            has_package_override = True
+        if payload.shipping_service_id is not None:
+            order.shipping_service_id = int(payload.shipping_service_id)
+            has_package_override = True
+        if payload.shipping_method:
+            order.shipping_method = payload.shipping_method
+
+        # Se forçar recriação ou alterar pacote/transportadora para pedido ainda não entregue
+        if (payload.force_recreate or has_package_override) and order.status != "delivered":
+            order.shipment_id = None
+            order.etiqueta_url = None
+            order.correios_label_url = None
+            order.codigo_rastreio = None
+
+        db.commit()
+        db.refresh(order)
+
+    # Se já tem etiqueta salva e o pedido está enviado/entregue (sem forçar recriação), retorna existente
+    if order.status in ("shipped", "delivered") and getattr(order, "etiqueta_url", None) and not (payload and payload.force_recreate):
         return {
             "order_id": order_id,
             "label_url": order.etiqueta_url,
@@ -265,7 +312,18 @@ async def generate_label(
     
     # 1. Garantir que o shipment_id existe no carrinho
     if not order.shipment_id:
-        resultado = me_service.processar_envio(pedido, db)
+        package_dims = {
+            "width": getattr(order, "package_width", None) or 16.0,
+            "height": getattr(order, "package_height", None) or 12.0,
+            "length": getattr(order, "package_length", None) or 20.0,
+            "weight": getattr(order, "package_weight", None) or 0.3,
+        }
+        resultado = me_service.processar_envio(
+            pedido,
+            db,
+            service_id_override=getattr(order, "shipping_service_id", None),
+            package_dimensions=package_dims
+        )
         if resultado.get("erro"):
             raise HTTPException(
                 status_code=422,
@@ -413,4 +471,54 @@ async def sync_all_active_shipping(
             results.append({"pedido_id": o.id, "erro": str(e)})
 
     return {"total": len(orders), "synced": len(results), "details": results}
+
+
+@router.post("/quote-order/{order_id}", summary="Cotar opções de frete disponíveis para o CEP do pedido")
+async def quote_order_shipping(
+    order_id: int,
+    payload: Optional[QuoteOrderPayload] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Calcula as opções reais de transportadoras para o CEP do pedido
+    utilizando as dimensões e peso informados pelo administrador.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+    from app.models.pedido import Pedido
+    pedido = Pedido.from_order(order)
+    dest_cep = pedido.cep_cliente
+
+    width = (payload.package_width if payload and payload.package_width else getattr(order, "package_width", None)) or 16.0
+    height = (payload.package_height if payload and payload.package_height else getattr(order, "package_height", None)) or 12.0
+    length = (payload.package_length if payload and payload.package_length else getattr(order, "package_length", None)) or 20.0
+    weight = (payload.package_weight if payload and payload.package_weight else getattr(order, "package_weight", None)) or 0.3
+
+    shipping_items = [{
+        "id": "1",
+        "width": float(width),
+        "height": float(height),
+        "length": float(length),
+        "weight": float(weight),
+        "price": float(order.total or 10.0),
+        "quantity": 1
+    }]
+
+    options, error = MelhorEnvioService.calculate_shipping(dest_cep, shipping_items)
+    return {
+        "dest_cep": dest_cep,
+        "width": width,
+        "height": height,
+        "length": length,
+        "weight": weight,
+        "options": options or [],
+        "error": error
+    }
+
 

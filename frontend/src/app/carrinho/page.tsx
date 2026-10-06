@@ -126,6 +126,29 @@ export default function CarrinhoPage() {
         return `${digits.slice(0,3)}.${digits.slice(3,6)}.${digits.slice(6,9)}-${digits.slice(9)}`;
     };
 
+    const isCpfValid = (cpf: string): boolean => {
+        const clean = (cpf || "").replace(/\D/g, "");
+        if (clean.length !== 11) return false;
+        if (/^(\d)\1{10}$/.test(clean)) return false;
+        let sum = 0;
+        for (let i = 0; i < 9; i++) {
+            sum += parseInt(clean.charAt(i), 10) * (10 - i);
+        }
+        let rest = (sum * 10) % 11;
+        if (rest === 10 || rest === 11) rest = 0;
+        if (rest !== parseInt(clean.charAt(9), 10)) return false;
+
+        sum = 0;
+        for (let i = 0; i < 10; i++) {
+            sum += parseInt(clean.charAt(i), 10) * (11 - i);
+        }
+        rest = (sum * 10) % 11;
+        if (rest === 10 || rest === 11) rest = 0;
+        if (rest !== parseInt(clean.charAt(10), 10)) return false;
+
+        return true;
+    };
+
     const [address, setAddress] = useState<any>({
         street: "",
         number: "",
@@ -552,6 +575,12 @@ export default function CarrinhoPage() {
             return;
         }
 
+        const cleanCpf = customerCpf.replace(/\D/g, "");
+        if (!cleanCpf || cleanCpf.length !== 11 || !isCpfValid(cleanCpf)) {
+            alert("⚠️ Digite um CPF válido.");
+            return;
+        }
+
         showLoading();
         setLoading(true);
         const token = localStorage.getItem("token");
@@ -633,8 +662,8 @@ export default function CarrinhoPage() {
             return false;
         }
         const cleanCpf = customerCpf.replace(/\D/g, "");
-        if (!cleanCpf || cleanCpf.length !== 11) {
-            showToast("Por favor, informe um CPF válido com 11 dígitos.", "error");
+        if (!cleanCpf || cleanCpf.length !== 11 || !isCpfValid(cleanCpf)) {
+            showToast("Por favor, informe um CPF válido.", "error");
             return false;
         }
         const cleanCep = cepToUse.replace(/\D/g, "");

@@ -4,11 +4,33 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "")
+PROD_MP_ACCESS_TOKEN = "APP_USR-4537358767232135-032413-ba08bddc033a371e523702d69104d623-3281059589"
+env_token = os.getenv("MP_ACCESS_TOKEN", "").strip()
+if not env_token or "TEST-" in env_token or "TEST" in env_token.upper() or len(env_token) < 20:
+    MP_ACCESS_TOKEN = PROD_MP_ACCESS_TOKEN
+else:
+    MP_ACCESS_TOKEN = env_token
+
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5000")
 BACKEND_URL = os.getenv("BACKEND_URL", "https://web-production-33f04.up.railway.app")
 
 sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
+
+
+def is_valid_cpf(cpf: str) -> bool:
+    """Valida número de CPF usando o algoritmo oficial dos dígitos verificadores (Módulo 11)."""
+    digits = "".join(filter(str.isdigit, cpf or ""))
+    if len(digits) != 11:
+        return False
+    if digits == digits[0] * 11:
+        return False
+    s1 = sum(int(digits[i]) * (10 - i) for i in range(9))
+    d1 = (s1 * 10 % 11) % 10
+    if d1 != int(digits[9]):
+        return False
+    s2 = sum(int(digits[i]) * (11 - i) for i in range(10))
+    d2 = (s2 * 10 % 11) % 10
+    return d2 == int(digits[10])
 
 
 def _get_backend_base() -> str:
@@ -43,7 +65,10 @@ def create_pix_payment(order_id: int, total: float, customer_email: str,
         "first_name": first_name,
         "last_name": last_name,
     }
-    if clean_cpf and len(clean_cpf) >= 11:
+    # Mercado Pago rejeita com HTTP 400 (código 2067) se o CPF for inválido no algoritmo Módulo 11.
+    # Se o CPF for válido, incluímos na identificação do pagador.
+    # Se for ausente ou inválido, omitimos identification (o Mercado Pago gera o PIX com sucesso 201).
+    if clean_cpf and is_valid_cpf(clean_cpf):
         payer_data["identification"] = {
             "type": "CPF",
             "number": clean_cpf
@@ -106,7 +131,7 @@ def create_card_payment(
         "first_name": first_name,
         "last_name": last_name,
     }
-    if clean_cpf and len(clean_cpf) >= 11:
+    if clean_cpf and is_valid_cpf(clean_cpf):
         payer_data["identification"] = {
             "type": "CPF",
             "number": clean_cpf

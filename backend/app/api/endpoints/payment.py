@@ -117,6 +117,9 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
     clean_cpf = "".join(filter(str.isdigit, data.customer_cpf or ""))
     if not clean_cpf or len(clean_cpf) != 11:
         raise HTTPException(status_code=400, detail="Por favor, forneça um CPF válido com 11 dígitos.")
+    from app.core.mercadopago_service import is_valid_cpf
+    if not is_valid_cpf(clean_cpf):
+        raise HTTPException(status_code=400, detail="O CPF informado é inválido. Por favor, confira os números digitados.")
     data.customer_cpf = clean_cpf
 
     # 2. Wholesale detection
@@ -519,7 +522,13 @@ async def get_payment_config():
     Returns public payment gateway configuration and feature flag status.
     """
     transparent_enabled = os.getenv("MP_TRANSPARENT_CHECKOUT_ENABLED", "true").lower() in ("true", "1", "yes")
-    mp_public_key = os.getenv("NEXT_PUBLIC_MP_PUBLIC_KEY") or os.getenv("MP_PUBLIC_KEY") or ""
+    default_pk = "APP_USR-97552469-004a-4797-bb6a-6c25fa57dbbe"
+    mp_public_key = (os.getenv("MP_PUBLIC_KEY") or os.getenv("NEXT_PUBLIC_MP_PUBLIC_KEY") or "").strip()
+    
+    # Se a variável estiver vazia, for de teste ou for a chave antiga sem juros configurado, usar a chave oficial
+    if not mp_public_key or "APP_USR-99b73990" in mp_public_key or mp_public_key.startswith("TEST-"):
+        mp_public_key = default_pk
+
     return {
         "transparent_checkout_enabled": transparent_enabled,
         "mp_public_key": mp_public_key,

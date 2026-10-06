@@ -254,6 +254,31 @@ class Pedido:
             
         return detailed_items
 
+    @property
+    def package_width(self) -> float:
+        val = getattr(self._order, "package_width", None)
+        return float(val) if val is not None and float(val) > 0 else 16.0
+
+    @property
+    def package_height(self) -> float:
+        val = getattr(self._order, "package_height", None)
+        return float(val) if val is not None and float(val) > 0 else 12.0
+
+    @property
+    def package_length(self) -> float:
+        val = getattr(self._order, "package_length", None)
+        return float(val) if val is not None and float(val) > 0 else 20.0
+
+    @property
+    def package_weight(self) -> float:
+        val = getattr(self._order, "package_weight", None)
+        return float(val) if val is not None and float(val) > 0 else 0.3
+
+    @property
+    def shipping_service_id(self):
+        val = getattr(self._order, "shipping_service_id", None)
+        return int(val) if val is not None else None
+
     @classmethod
     def from_order(cls, order: Order) -> "Pedido":
         return cls(order)
@@ -275,4 +300,9 @@ class Pedido:
             "shipment_id": self.shipment_id,
             "tracking_code": self.tracking_code,
             "etiqueta_url": self.etiqueta_url,
+            "package_width": self.package_width,
+            "package_height": self.package_height,
+            "package_length": self.package_length,
+            "package_weight": self.package_weight,
+            "shipping_service_id": self.shipping_service_id,
         }

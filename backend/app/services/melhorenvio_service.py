@@ -333,7 +333,12 @@ def selecionar_servico(
 # 2. Criar envio no carrinho
 # ---------------------------------------------------------------------------
 
-def criar_envio(pedido, service_id: int, agency_id: Optional[int] = None) -> tuple[str, str]:
+def criar_envio(
+    pedido,
+    service_id: int,
+    agency_id: Optional[int] = None,
+    package_dimensions: Optional[dict] = None
+) -> tuple[str, str]:
     """POST /api/v2/me/cart — Retorna (shipment_id, tracking_code_inicial)."""
     service_id = int(service_id)
 
@@ -393,12 +398,29 @@ def criar_envio(pedido, service_id: int, agency_id: Optional[int] = None) -> tup
     # Garante peso mínimo de 0.1kg e máximo razoável
     total_weight = max(total_weight, 0.1)
     
-    # Determina dimensões básicas com base no peso (estimativa)
-    width, height, length = 15, 5, 20
+    # Determina dimensões básicas com base no peso (estimativa padrão)
+    width, height, length = 16, 12, 20
     if total_weight > 2: # Caixa maior para atacado
         width, height, length = 25, 15, 30
     if total_weight > 10:
         width, height, length = 40, 30, 40
+
+    # Dimensões e peso customizados pelo administrador (payload ou pedido)
+    custom_w = (package_dimensions or {}).get("width") or getattr(pedido, "package_width", None)
+    custom_h = (package_dimensions or {}).get("height") or getattr(pedido, "package_height", None)
+    custom_l = (package_dimensions or {}).get("length") or getattr(pedido, "package_length", None)
+    custom_weight = (package_dimensions or {}).get("weight") or getattr(pedido, "package_weight", None)
+
+    if custom_w and float(custom_w) > 0:
+        width = float(custom_w)
+    if custom_h and float(custom_h) > 0:
+        height = float(custom_h)
+    if custom_l and float(custom_l) > 0:
+        length = float(custom_l)
+    if custom_weight and float(custom_weight) > 0:
+        total_weight = float(custom_weight)
+
+    logger.info(f"[ME] Embalagem final: {length}x{width}x{height}cm, peso: {total_weight}kg para pedido #{pedido.id}")
 
     payload = {
         "service": service_id,
@@ -429,10 +451,10 @@ def criar_envio(pedido, service_id: int, agency_id: Optional[int] = None) -> tup
         },
         "products": products_payload,
         "volumes": [{
-            "weight": round(total_weight, 3),
-            "width":  width,
-            "height": height,
-            "length": length,
+            "weight": round(float(total_weight), 3),
+            "width":  round(float(width), 1),
+            "height": round(float(height), 1),
+            "length": round(float(length), 1),
         }],
         "options": {
             "receipt":         False,
@@ -769,12 +791,17 @@ def sync_melhor_envio_status(order, db) -> dict:
 
 
 
-def processar_envio(pedido, db) -> dict:
+def processar_envio(
+    pedido,
+    db,
+    service_id_override: Optional[int] = None,
+    package_dimensions: Optional[dict] = None
+) -> dict:
     """
     Executa a criação do envio no carrinho do Melhor Envio:
       1. Valida o CEP do destinatário
-      2. selecionar_servico (calcula frete mais barato)
-      3. criar_envio (cart — envia ao carrinho do Melhor Envio)
+      2. Seleciona o serviço (usando service_id_override se fornecido, ou calculando)
+      3. criar_envio (cart — envia ao carrinho do Melhor Envio com dimensões/peso)
       4. Salva o shipment_id no banco
       Note: A etiqueta NÃO é comprada ou gerada automaticamente aqui.
     """
@@ -805,12 +832,27 @@ def processar_envio(pedido, db) -> dict:
 
         if not shipment_id:
             shipping_method = getattr(pedido, "shipping_method", "") or ""
-            service_id, agency_id = selecionar_servico(
-                cep_digits, pedido.valor, pedido.produto_nome, shipping_method=shipping_method
-            )
+            target_service_id = service_id_override or getattr(pedido, "shipping_service_id", None)
+            
+            if target_service_id:
+                service_id = int(target_service_id)
+                agency_id = None
+                if servico_exige_agencia(service_id):
+                    comp_id = SERVICE_TO_COMPANY.get(service_id, 2)
+                    agency_id = obter_agencia(company_id=comp_id, state=STORE_STATE, city=STORE_CITY)
+                logger.info(f"[ENVIO] Usando transportadora/serviço explicitamente selecionado: ID {service_id}")
+            else:
+                service_id, agency_id = selecionar_servico(
+                    cep_digits, pedido.valor, pedido.produto_nome, shipping_method=shipping_method
+                )
             resultado["service_id"] = service_id
 
-            shipment_id, tracking_from_cart = criar_envio(pedido, service_id, agency_id=agency_id)
+            shipment_id, tracking_from_cart = criar_envio(
+                pedido,
+                service_id,
+                agency_id=agency_id,
+                package_dimensions=package_dimensions
+            )
             pedido.shipment_id = shipment_id
             if tracking_from_cart:
                 pedido.tracking_code = tracking_from_cart

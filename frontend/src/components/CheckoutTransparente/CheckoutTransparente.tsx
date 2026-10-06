@@ -26,6 +26,8 @@ interface CheckoutTransparenteProps {
     validateCustomerData: () => boolean;
 }
 
+const PROD_MP_PUBLIC_KEY = "APP_USR-97552469-004a-4797-bb6a-6c25fa57dbbe";
+
 export default function CheckoutTransparente({
     orderData,
     userEmail,
@@ -36,7 +38,13 @@ export default function CheckoutTransparente({
 }: CheckoutTransparenteProps) {
     const [selectedTab, setSelectedTab] = useState<"pix" | "card">("pix");
     const [mpLoaded, setMpLoaded] = useState(false);
-    const [publicKey, setPublicKey] = useState(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "");
+    const [publicKey, setPublicKey] = useState(() => {
+        const envKey = (process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "").trim();
+        if (envKey && !envKey.includes("APP_USR-99b73990") && !envKey.startsWith("TEST-")) {
+            return envKey;
+        }
+        return PROD_MP_PUBLIC_KEY;
+    });
 
     // PIX states
     const [pixLoading, setPixLoading] = useState(false);
@@ -65,7 +73,11 @@ export default function CheckoutTransparente({
         fetch("/api/payment/config")
             .then(res => res.json())
             .then(data => {
-                if (data.mp_public_key) setPublicKey(data.mp_public_key);
+                if (data.mp_public_key && !data.mp_public_key.includes("APP_USR-99b73990") && !data.mp_public_key.startsWith("TEST-")) {
+                    setPublicKey(data.mp_public_key);
+                } else {
+                    setPublicKey(PROD_MP_PUBLIC_KEY);
+                }
             })
             .catch(() => {});
     }, []);

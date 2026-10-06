@@ -37,6 +37,14 @@ class AdminManualOrderCreate(BaseModel):
     address: Optional[Dict[str, Any]] = None
     notes: Optional[str] = None
 
+class ShippingPackageUpdate(BaseModel):
+    package_width: Optional[float] = None
+    package_height: Optional[float] = None
+    package_length: Optional[float] = None
+    package_weight: Optional[float] = None
+    shipping_service_id: Optional[int] = None
+    shipping_method: Optional[str] = None
+
 @router.post("/", response_model=schemas.OrderResponse)
 def create_order(
     order_in: schemas.OrderCreate,
@@ -307,6 +315,36 @@ def update_order_address(
     return _order_to_response(order, db)
 
 
+@router.patch("/{order_id}/shipping-package")
+def update_order_shipping_package(
+    order_id: int,
+    payload: ShippingPackageUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+    if payload.package_width is not None and float(payload.package_width) > 0:
+        order.package_width = float(payload.package_width)
+    if payload.package_height is not None and float(payload.package_height) > 0:
+        order.package_height = float(payload.package_height)
+    if payload.package_length is not None and float(payload.package_length) > 0:
+        order.package_length = float(payload.package_length)
+    if payload.package_weight is not None and float(payload.package_weight) > 0:
+        order.package_weight = float(payload.package_weight)
+    if payload.shipping_service_id is not None:
+        order.shipping_service_id = int(payload.shipping_service_id)
+    if payload.shipping_method:
+        order.shipping_method = payload.shipping_method
+
+    db.commit()
+    db.refresh(order)
+    return _order_to_response(order, db)
+
 
 @router.delete("/admin/clear-all", status_code=204)
 def clear_all_orders(
@@ -475,5 +513,10 @@ def _order_to_response(o: models.Order, db: Session = None) -> dict:
         "etiqueta_url": getattr(o, "etiqueta_url", None) or getattr(o, "correios_label_url", None),
         "shipment_id": getattr(o, "shipment_id", None),
         "codigo_rastreio": getattr(o, "codigo_rastreio", None),
+        "package_width": getattr(o, "package_width", None),
+        "package_height": getattr(o, "package_height", None),
+        "package_length": getattr(o, "package_length", None),
+        "package_weight": getattr(o, "package_weight", None),
+        "shipping_service_id": getattr(o, "shipping_service_id", None),
         "created_at": o.created_at,
     }

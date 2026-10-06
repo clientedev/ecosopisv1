@@ -69,7 +69,12 @@ def _apply_startup_migrations():
         ("customer_email",           "VARCHAR"),
         ("customer_phone",           "VARCHAR"),
         ("coupon_code",              "VARCHAR"),
-        ("discount_amount",          "DOUBLE PRECISION DEFAULT 0")
+        ("discount_amount",          "DOUBLE PRECISION DEFAULT 0"),
+        ("package_width",            "DOUBLE PRECISION DEFAULT 16.0"),
+        ("package_height",           "DOUBLE PRECISION DEFAULT 12.0"),
+        ("package_length",           "DOUBLE PRECISION DEFAULT 20.0"),
+        ("package_weight",           "DOUBLE PRECISION DEFAULT 0.3"),
+        ("shipping_service_id",      "INTEGER")
     ]
     
     ADDRESS_COLS = [
