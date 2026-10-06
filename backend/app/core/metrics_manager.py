@@ -69,12 +69,12 @@ def redistribute_exact_metrics(db: Session):
     now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # Cotas diárias exatas para os últimos 7 dias (dias 6 até 0)
-    # Total visitas: 128 + 135 + 142 + 130 + 125 + 132 + 133 = 925
-    visits_per_day = [128, 135, 142, 130, 125, 132, 133]
-    # Total shopee: 14 + 16 + 15 + 13 + 14 + 15 + 14 = 101
-    shopee_per_day = [14, 16, 15, 13, 14, 15, 14]
-    # Total site buy: 7 + 8 + 8 + 7 + 7 + 8 + 8 = 53
-    site_per_day   = [7, 8, 8, 7, 7, 8, 8]
+    # Total visitas: 155 + 162 + 170 + 158 + 152 + 158 + 145 = 1100
+    visits_per_day = [155, 162, 170, 158, 152, 158, 145]
+    # Total shopee: 45 + 47 + 48 + 46 + 45 + 46 + 44 = 321
+    shopee_per_day = [45, 47, 48, 46, 45, 46, 44]
+    # Total site buy: 6 + 6 + 6 + 6 + 6 + 6 + 5 = 41
+    site_per_day   = [6, 6, 6, 6, 6, 6, 5]
     # Total lia: 1 + 0 + 1 + 1 + 0 + 1 + 1 = 5
     lia_per_day    = [1, 0, 1, 1, 0, 1, 1]
 

@@ -193,6 +193,9 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
                         ) : (
                             <p className={styles.price}>R$ {currentPrice.toFixed(2).replace(".", ",")}</p>
                         )}
+                        <span className={styles.installmentsBadge}>
+                            💳 3x de R$ {(currentPrice / 3).toFixed(2).replace(".", ",")} sem juros
+                        </span>
                     </div>
                 )}
 

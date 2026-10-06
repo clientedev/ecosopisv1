@@ -60,17 +60,15 @@ export default function CheckoutTransparente({
     // Error state
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    // Fetch config if public key not in env
+    // Always sync public key with backend config if available
     useEffect(() => {
-        if (!publicKey) {
-            fetch("/api/payment/config")
-                .then(res => res.json())
-                .then(data => {
-                    if (data.mp_public_key) setPublicKey(data.mp_public_key);
-                })
-                .catch(() => {});
-        }
-    }, [publicKey]);
+        fetch("/api/payment/config")
+            .then(res => res.json())
+            .then(data => {
+                if (data.mp_public_key) setPublicKey(data.mp_public_key);
+            })
+            .catch(() => {});
+    }, []);
 
     // Check if MP SDK is loaded in window
     useEffect(() => {

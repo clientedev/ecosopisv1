@@ -1377,6 +1377,20 @@ export default function CarrinhoPage() {
                                     <span>Total Geral</span>
                                     <span>R$ {finalTotal.toFixed(2)}</span>
                                 </div>
+                                {finalTotal > 0 && (
+                                    <div style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "6px",
+                                        color: "#15803d",
+                                        fontSize: "0.84rem",
+                                        fontWeight: 600,
+                                        marginTop: "4px"
+                                    }}>
+                                        <CreditCard size={14} color="#15803d" />
+                                        <span>ou em até <strong>3x de R$ {(finalTotal / 3).toFixed(2).replace(".", ",")}</strong> sem juros</span>
+                                    </div>
+                                )}
 
                                 
                                 {earnedCashback > 0 && (
@@ -2032,6 +2046,22 @@ export default function CarrinhoPage() {
                                 <span>Total</span>
                                 <span>R$ {finalTotal.toFixed(2)}</span>
                             </div>
+                            {finalTotal > 0 && (
+                                <div style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "flex-end",
+                                    gap: "6px",
+                                    color: "#15803d",
+                                    fontSize: "0.82rem",
+                                    fontWeight: 600,
+                                    marginTop: "2px",
+                                    marginBottom: "8px"
+                                }}>
+                                    <CreditCard size={14} color="#15803d" />
+                                    <span>ou em até <strong>3x de R$ {(finalTotal / 3).toFixed(2).replace(".", ",")}</strong> sem juros</span>
+                                </div>
+                            )}
 
 
                             {earnedCashback > 0 && (

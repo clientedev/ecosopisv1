@@ -6,7 +6,7 @@ import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
 import styles from "./page.module.css";
 import Image from "next/image";
-import { QrCode, Plus, Minus, ShoppingBag, Leaf, ChevronDown, Sparkles } from "lucide-react";
+import { QrCode, Plus, Minus, ShoppingBag, Leaf, ChevronDown, Sparkles, CreditCard } from "lucide-react";
 import { useToast } from "@/components/Toast/Toast";
 import { useCart } from "@/context/CartContext";
 import { getStaticProductData } from "@/lib/productData";
@@ -562,6 +562,10 @@ export default function ProductDetailPage() {
                                 ) : (
                                     <p className={styles.price}>R$ {currentPrice.toFixed(2).replace(".", ",")}</p>
                                 )}
+                                <div className={styles.installmentBadge}>
+                                    <CreditCard size={16} color="#15803d" />
+                                    <span>ou em até <strong>3x de R$ {(currentPrice / 3).toFixed(2).replace(".", ",")}</strong> sem juros</span>
+                                </div>
                                 <span className={styles.socialProofBadge}>⭐ Mais de 20.000 clientes satisfeitos</span>
                             </div>
                         )}

@@ -59,7 +59,18 @@
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--primary-green);
-    margin-bottom: var(--spacing-md);
+    margin-bottom: 4px;
+}
+
+.installmentsBadge {
+    font-size: 0.76rem;
+    color: #15803d;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: var(--spacing-sm);
+    letter-spacing: -0.01em;
 }
 
 .actionsContainer {
