@@ -200,6 +200,7 @@ export default function AdminPedidosPage() {
     const [quotingOrderId, setQuotingOrderId] = useState<number | null>(null);
     const [quotes, setQuotes] = useState<Record<number, any[]>>({});
     const [shippingModalOrder, setShippingModalOrder] = useState<Order | null>(null);
+    const [modalPackage, setModalPackage] = useState<PackageConfig | null>(null);
 
     const getPackageForm = (order: Order): PackageConfig => {
         if (packageForms[order.id]) {
@@ -208,32 +209,101 @@ export default function AdminPedidosPage() {
         return getDefaultPackageForOrder(order);
     };
 
-    const openShippingModal = (order: Order) => {
-        // Inicializa com as dimensões padrão ou já configuradas e transportadora do cliente
-        if (!packageForms[order.id]) {
-            setPackageForms(prev => ({
-                ...prev,
-                [order.id]: getDefaultPackageForOrder(order)
-            }));
+    const fetchCheapestQuoteForFreeShipping = async (order: Order, pkgConfig: PackageConfig) => {
+        try {
+            const res = await authFetch(`/api/shipping/quote-order/${order.id}`, {
+                method: "POST",
+                body: JSON.stringify({
+                    package_length: Number(pkgConfig.length) || 20,
+                    package_width: Number(pkgConfig.width) || 16,
+                    package_height: Number(pkgConfig.height) || 12,
+                    package_weight: Number(pkgConfig.weight) || 0.3,
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.options && data.options.length > 0) {
+                    setQuotes(prev => ({ ...prev, [order.id]: data.options }));
+                    const validQuotes = data.options.filter((q: any) => q.price && !q.error);
+                    const cheapestQuote = [...validQuotes].sort((a: any, b: any) => Number(a.price) - Number(b.price))[0];
+                    if (cheapestQuote) {
+                        const found = CARRIER_SERVICES.find(c => c.id === Number(cheapestQuote.id));
+                        if (found) {
+                            setModalPackage(prev => {
+                                if (!prev) return prev;
+                                return {
+                                    ...prev,
+                                    serviceId: found.id,
+                                    serviceName: found.name,
+                                };
+                            });
+                        }
+                    }
+                }
+            }
+        } catch {
+            // Silencioso se offline
         }
+    };
+
+    const openShippingModal = (order: Order) => {
+        const pkg = packageForms[order.id] || getDefaultPackageForOrder(order);
+        const sm = (order.shipping_method || "").toLowerCase();
+        const isFree = Number(order.shipping_price || 0) === 0 || sm.includes("grátis") || sm.includes("gratis") || sm.includes("free");
+
+        let serviceId = pkg.serviceId;
+        let serviceName = pkg.serviceName;
+
+        // Se for frete grátis e houver cotações já feitas para o pedido, prioriza automaticamente a mais barata
+        if (isFree && quotes[order.id] && quotes[order.id].length > 0) {
+            const validQuotes = quotes[order.id].filter((q: any) => q.price && !q.error);
+            const cheapestQuote = [...validQuotes].sort((a, b) => Number(a.price) - Number(b.price))[0];
+            if (cheapestQuote) {
+                const found = CARRIER_SERVICES.find(c => c.id === Number(cheapestQuote.id));
+                if (found) {
+                    serviceId = found.id;
+                    serviceName = found.name;
+                }
+            }
+        }
+
+        const initialConfig: PackageConfig = {
+            length: pkg.length,
+            width: pkg.width,
+            height: pkg.height,
+            weight: pkg.weight,
+            serviceId,
+            serviceName,
+        };
+
+        setModalPackage(initialConfig);
         setShippingModalOrder(order);
+
+        // Se for frete grátis e ainda não tiver cotações feitas, busca em segundo plano para selecionar a mais barata
+        if (isFree && (!quotes[order.id] || quotes[order.id].length === 0)) {
+            fetchCheapestQuoteForFreeShipping(order, initialConfig);
+        }
     };
 
     const closeShippingModal = () => {
         setShippingModalOrder(null);
+        setModalPackage(null);
     };
 
     const updatePackageField = (orderId: number, field: keyof PackageConfig, value: any) => {
-        const order = orders.find(o => o.id === orderId);
-        if (!order) return;
-        const current = getPackageForm(order);
-        setPackageForms(prev => ({
-            ...prev,
-            [orderId]: {
-                ...current,
-                [field]: value
-            }
-        }));
+        setPackageForms(prev => {
+            const order = orders.find(o => o.id === orderId);
+            const current = prev[orderId] || (order ? getDefaultPackageForOrder(order) : {
+                length: 20, width: 16, height: 12, weight: 0.3, serviceId: 1, serviceName: "Correios PAC"
+            });
+            return {
+                ...prev,
+                [orderId]: {
+                    ...current,
+                    [field]: value
+                }
+            };
+        });
     };
 
     const savePackageConfig = async (orderId: number) => {
@@ -475,6 +545,12 @@ export default function AdminPedidosPage() {
     const parseMEError = (detail: string): { title: string; message: string } => {
         const raw = detail || "";
         const lower = raw.toLowerCase();
+        if (lower.includes("carrinho")) {
+            return {
+                title: "Etiqueta enviada para o Carrinho do Melhor Envio!",
+                message: "O envio foi adicionado com sucesso ao carrinho do Melhor Envio com as configurações selecionadas. Você pode visualizá-la e efetuar a compra no painel do Melhor Envio quando desejar."
+            };
+        }
         if (lower.includes("saldo") && lower.includes("insuficiente")) {
             const match = raw.match(/R\$\s*[\d.,]+/g);
             const balanceStr = match ? match[0] : "insuficiente";
@@ -650,16 +726,88 @@ export default function AdminPedidosPage() {
         finally { setGeneratingLabel(null); }
     };
 
+    const handleQuoteInModal = async (order: Order) => {
+        if (!modalPackage) return;
+        setQuotingOrderId(order.id);
+        try {
+            const res = await authFetch(`/api/shipping/quote-order/${order.id}`, {
+                method: "POST",
+                body: JSON.stringify({
+                    package_length: Number(modalPackage.length) || 20,
+                    package_width: Number(modalPackage.width) || 16,
+                    package_height: Number(modalPackage.height) || 12,
+                    package_weight: Number(modalPackage.weight) || 0.3,
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.options && data.options.length > 0) {
+                    setQuotes(prev => ({ ...prev, [order.id]: data.options }));
+                    const sm = (order.shipping_method || "").toLowerCase();
+                    const isFree = Number(order.shipping_price || 0) === 0 || sm.includes("grátis") || sm.includes("gratis") || sm.includes("free");
+
+                    const validQuotes = data.options.filter((q: any) => q.price && !q.error);
+                    if (isFree && validQuotes.length > 0) {
+                        const cheapestQuote = [...validQuotes].sort((a: any, b: any) => Number(a.price) - Number(b.price))[0];
+                        if (cheapestQuote) {
+                            const found = CARRIER_SERVICES.find(c => c.id === Number(cheapestQuote.id));
+                            if (found) {
+                                setModalPackage(prev => prev ? {
+                                    ...prev,
+                                    serviceId: found.id,
+                                    serviceName: found.name,
+                                } : null);
+                                setNotification({
+                                    type: "success",
+                                    title: "Frete Grátis: Opção mais barata selecionada!",
+                                    message: `Selecionada automaticamente: ${found.name} (R$ ${Number(cheapestQuote.price).toFixed(2).replace(".", ",")}). Se quiser, você pode alterar no seletor abaixo.`
+                                });
+                                return;
+                            }
+                        }
+                    }
+
+                    setNotification({
+                        type: "success",
+                        title: "Cotação realizada!",
+                        message: `Encontradas ${data.options.length} opções de frete. Selecione a transportadora desejada.`
+                    });
+                } else {
+                    setNotification({
+                        type: "warning",
+                        title: "Sem cotações",
+                        message: data.error || "Nenhuma transportadora retornou cotação para o CEP deste pedido."
+                    });
+                }
+            }
+        } catch {
+            setNotification({
+                type: "error",
+                title: "Erro ao cotar",
+                message: "Falha na comunicação ao cotar frete."
+            });
+        } finally {
+            setQuotingOrderId(null);
+        }
+    };
+
     const handleSendFromModal = async (orderId: number) => {
         const order = orders.find(o => o.id === orderId);
-        if (!order) return;
-        const pkg = getPackageForm(order);
+        if (!order || !modalPackage) return;
         try {
-            await savePackageConfig(orderId);
-            await gerarEtiquetaME(orderId, pkg);
-            setShippingModalOrder(null);
+            const finalPkg: PackageConfig = {
+                length: Number(modalPackage.length) || 20,
+                width: Number(modalPackage.width) || 16,
+                height: Number(modalPackage.height) || 12,
+                weight: Number(modalPackage.weight) || 0.3,
+                serviceId: Number(modalPackage.serviceId) || 1,
+                serviceName: modalPackage.serviceName || "Correios PAC",
+            };
+            setPackageForms(prev => ({ ...prev, [orderId]: finalPkg }));
+            await gerarEtiquetaME(orderId, finalPkg);
+            closeShippingModal();
         } catch {
-            // Notificações já tratadas em savePackageConfig e gerarEtiquetaME
+            // Notificações já tratadas em gerarEtiquetaME
         }
     };
 
@@ -1625,9 +1773,9 @@ export default function AdminPedidosPage() {
                 )}
 
                 {/* Modal de Configuração de Embalagem & Envio ao Melhor Envio */}
-                {shippingModalOrder && (() => {
+                {shippingModalOrder && modalPackage && (() => {
                     const order = shippingModalOrder;
-                    const pkg = getPackageForm(order);
+                    const pkg = modalPackage;
                     const isAlreadyShipped = ['shipped', 'delivered'].includes(order.status) || Boolean(order.etiqueta_url);
                     const customerChosenCarrier = order.shipping_method || "Correios PAC";
                     const customerName = order.buyer_name || order.customer_name || "Cliente";
@@ -1735,8 +1883,11 @@ export default function AdminPedidosPage() {
                                                 type="number"
                                                 min="5"
                                                 max="150"
-                                                value={pkg.length ?? ""}
-                                                onChange={e => updatePackageField(order.id, "length", e.target.value === "" ? "" : Number(e.target.value))}
+                                                value={modalPackage.length === 0 ? "" : modalPackage.length}
+                                                onChange={e => {
+                                                    const val = e.target.value === "" ? 0 : Number(e.target.value);
+                                                    setModalPackage(prev => prev ? { ...prev, length: val } : null);
+                                                }}
                                                 style={{ width: "100%", padding: "7px 8px", fontSize: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", boxSizing: "border-box" }}
                                             />
                                         </div>
@@ -1746,8 +1897,11 @@ export default function AdminPedidosPage() {
                                                 type="number"
                                                 min="5"
                                                 max="150"
-                                                value={pkg.width ?? ""}
-                                                onChange={e => updatePackageField(order.id, "width", e.target.value === "" ? "" : Number(e.target.value))}
+                                                value={modalPackage.width === 0 ? "" : modalPackage.width}
+                                                onChange={e => {
+                                                    const val = e.target.value === "" ? 0 : Number(e.target.value);
+                                                    setModalPackage(prev => prev ? { ...prev, width: val } : null);
+                                                }}
                                                 style={{ width: "100%", padding: "7px 8px", fontSize: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", boxSizing: "border-box" }}
                                             />
                                         </div>
@@ -1757,8 +1911,11 @@ export default function AdminPedidosPage() {
                                                 type="number"
                                                 min="2"
                                                 max="150"
-                                                value={pkg.height ?? ""}
-                                                onChange={e => updatePackageField(order.id, "height", e.target.value === "" ? "" : Number(e.target.value))}
+                                                value={modalPackage.height === 0 ? "" : modalPackage.height}
+                                                onChange={e => {
+                                                    const val = e.target.value === "" ? 0 : Number(e.target.value);
+                                                    setModalPackage(prev => prev ? { ...prev, height: val } : null);
+                                                }}
                                                 style={{ width: "100%", padding: "7px 8px", fontSize: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", boxSizing: "border-box" }}
                                             />
                                         </div>
@@ -1769,8 +1926,11 @@ export default function AdminPedidosPage() {
                                                 step="0.05"
                                                 min="0.1"
                                                 max="50"
-                                                value={pkg.weight ?? ""}
-                                                onChange={e => updatePackageField(order.id, "weight", e.target.value === "" ? "" : Number(e.target.value))}
+                                                value={modalPackage.weight === 0 ? "" : modalPackage.weight}
+                                                onChange={e => {
+                                                    const val = e.target.value === "" ? 0 : Number(e.target.value);
+                                                    setModalPackage(prev => prev ? { ...prev, weight: val } : null);
+                                                }}
                                                 style={{ width: "100%", padding: "7px 8px", fontSize: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", boxSizing: "border-box" }}
                                             />
                                         </div>
@@ -1785,7 +1945,7 @@ export default function AdminPedidosPage() {
                                         </label>
                                         <button
                                             type="button"
-                                            onClick={() => handleQuoteOrder(order.id)}
+                                            onClick={() => handleQuoteInModal(order)}
                                             disabled={quotingOrderId === order.id}
                                             style={{
                                                 background: "#f8fafc",
@@ -1803,14 +1963,15 @@ export default function AdminPedidosPage() {
                                         </button>
                                     </div>
                                     <select
-                                        value={pkg.serviceId}
+                                        value={modalPackage.serviceId}
                                         onChange={e => {
                                             const sId = Number(e.target.value);
                                             const found = CARRIER_SERVICES.find(c => c.id === sId);
-                                            updatePackageField(order.id, "serviceId", sId);
-                                            if (found) {
-                                                updatePackageField(order.id, "serviceName", found.name);
-                                            }
+                                            setModalPackage(prev => prev ? {
+                                                ...prev,
+                                                serviceId: sId,
+                                                serviceName: found ? found.name : prev.serviceName
+                                            } : null);
                                         }}
                                         style={{ width: "100%", padding: "8px 10px", fontSize: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", boxSizing: "border-box" }}
                                     >

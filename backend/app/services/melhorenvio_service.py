@@ -281,7 +281,16 @@ def selecionar_servico(
     selected_agency_id = None
 
     # 1. Se o cliente selecionou um método específico (ex: PAC, SEDEX, Jadlog .Package)
-    if sm_clean and sm_clean not in ("melhor envio", "fixo", "padrão", "padrao", "frete"):
+    is_generic_or_free = (
+        sm_clean in (
+            "melhor envio", "fixo", "padrão", "padrao", "frete",
+            "frete grátis", "frete gratis", "grátis", "gratis", "free", "free shipping"
+        )
+        or "grátis" in sm_clean
+        or "gratis" in sm_clean
+        or "free" in sm_clean
+    )
+    if sm_clean and not is_generic_or_free:
         for opt in valid_options:
             opt_name = str(opt.get("name") or "").lower()
             opt_comp = str((opt.get("company") or {}).get("name") or "").lower()

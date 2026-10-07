@@ -43,6 +43,7 @@ class CreateCheckoutIn(BaseModel):
     shipping_price: Optional[float] = 20.0
     coupon_code: Optional[str] = None
     customer_name: Optional[str] = None
+    customer_email: Optional[str] = None
     customer_phone: Optional[str] = None
     customer_cpf: Optional[str] = None
     discount_amount: Optional[float] = 0.0
@@ -225,6 +226,32 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
         "shipping_price": shipping_price,
         "final_total": final_total,
     }
+
+
+def _resolve_or_create_user(data: CreateCheckoutIn, current_user: Optional[models.User], db: Session) -> models.User:
+    if current_user:
+        return current_user
+    buyer_email = (
+        data.customer_email
+        or (data.address or {}).get("email")
+        or (data.address or {}).get("customer_email")
+        or "cliente@ecosopis.com.br"
+    ).strip().lower()
+
+    user = db.query(models.User).filter(models.User.email == buyer_email).first()
+    if not user:
+        user = models.User(
+            email=buyer_email,
+            full_name=data.customer_name or "Cliente",
+            phone=data.customer_phone or "",
+            role="client",
+            is_verified=True,
+            hashed_password=""
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return user
 
 
 def _get_or_create_order(data: CreateCheckoutIn, current_user: models.User, db: Session, payment_method: str) -> models.Order:
@@ -488,9 +515,10 @@ async def create_mp_payment(
     data: CreateCheckoutIn,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
 ):
     try:
+        current_user = _resolve_or_create_user(data, current_user, db)
         order = _get_or_create_order(data, current_user, db, "mercadopago")
         
         items_for_mp = [item.dict() for item in data.items]
@@ -498,8 +526,8 @@ async def create_mp_payment(
             order_id=order.id,
             items=items_for_mp,
             shipping_price=order.shipping_price,
-            customer_email=current_user.email,
-            customer_name=current_user.full_name,
+            customer_email=data.customer_email or current_user.email,
+            customer_name=data.customer_name or current_user.full_name or "Cliente",
             customer_cpf=order.customer_cpf,
             discount_amount=(data.discount_amount or 0.0) + (data.cashback_amount or 0.0)
         )
@@ -527,12 +555,7 @@ async def get_payment_config():
     Returns public payment gateway configuration and feature flag status.
     """
     transparent_enabled = os.getenv("MP_TRANSPARENT_CHECKOUT_ENABLED", "true").lower() in ("true", "1", "yes")
-    default_pk = "APP_USR-97552469-004a-4797-bb6a-6c25fa57dbbe"
     mp_public_key = (os.getenv("MP_PUBLIC_KEY") or os.getenv("NEXT_PUBLIC_MP_PUBLIC_KEY") or "").strip()
-    
-    # Se a variável estiver vazia, for de teste ou for a chave antiga sem juros configurado, usar a chave oficial
-    if not mp_public_key or "APP_USR-99b73990" in mp_public_key or mp_public_key.startswith("TEST-"):
-        mp_public_key = default_pk
 
     return {
         "transparent_checkout_enabled": transparent_enabled,
@@ -546,13 +569,15 @@ async def process_transparent_pix(
     data: CreateCheckoutIn,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
 ):
     """
     Creates and processes a transparent PIX payment on Mercado Pago directly within Ecosopis.
     Validates items, stock, coupons, cashback, shipping, CPF, and strictly calculates final total.
     """
     try:
+        current_user = _resolve_or_create_user(data, current_user, db)
+
         # Validate order and calculate authoritative server-side totals
         _validate_and_calculate_order(data, current_user, db)
 
@@ -566,8 +591,8 @@ async def process_transparent_pix(
         pix_result = create_pix_payment(
             order_id=order.id,
             total=order.total,
-            customer_email=current_user.email,
-            customer_name=order.customer_name or current_user.full_name or "Cliente",
+            customer_email=data.customer_email or current_user.email,
+            customer_name=data.customer_name or order.customer_name or current_user.full_name or "Cliente",
             items=items_for_mp,
             customer_cpf=order.customer_cpf
         )
@@ -600,7 +625,7 @@ async def process_transparent_card(
     payload: ProcessCardIn,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
 ):
     """
     Processes a credit/debit card payment using client-tokenized card on Mercado Pago.
@@ -608,6 +633,8 @@ async def process_transparent_card(
     Supports Device ID for anti-fraud validation.
     """
     try:
+        current_user = _resolve_or_create_user(payload.order_data, current_user, db)
+
         # Validate token
         if not payload.token or not payload.token.strip():
             raise HTTPException(status_code=400, detail="Token do cartão não fornecido.")
@@ -626,8 +653,8 @@ async def process_transparent_card(
             token=payload.token.strip(),
             installments=payload.installments,
             payment_method_id=payload.payment_method_id,
-            customer_email=current_user.email,
-            customer_name=order.customer_name or current_user.full_name or "Cliente",
+            customer_email=payload.order_data.customer_email or current_user.email,
+            customer_name=payload.order_data.customer_name or order.customer_name or current_user.full_name or "Cliente",
             customer_cpf=order.customer_cpf,
             issuer_id=payload.issuer_id,
             device_id=payload.device_id,

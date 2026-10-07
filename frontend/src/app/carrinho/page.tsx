@@ -319,6 +319,9 @@ export default function CarrinhoPage() {
                     if (balRes?.ok) {
                         const data = await balRes.json();
                         setAvailableCashback(data.available_balance);
+                    } else if (balRes?.status === 401) {
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("user");
                     }
                     if (cfgRes?.ok) {
                         const data = await cfgRes.json();
@@ -712,6 +715,7 @@ export default function CarrinhoPage() {
             zip: cep.replace(/\D/g, ""),
         },
         customerName: customerName.trim() || (user?.full_name?.trim() ?? ""),
+        customerEmail: user?.email || (address as any)?.email || "",
         customerPhone: customerPhone,
         customerCpf: customerCpf.replace(/\D/g, ""),
         couponCode: activeCouponCode,

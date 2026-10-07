@@ -4,12 +4,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-PROD_MP_ACCESS_TOKEN = "APP_USR-4537358767232135-032413-ba08bddc033a371e523702d69104d623-3281059589"
-env_token = os.getenv("MP_ACCESS_TOKEN", "").strip()
-if not env_token or "TEST-" in env_token or "TEST" in env_token.upper() or len(env_token) < 20:
-    MP_ACCESS_TOKEN = PROD_MP_ACCESS_TOKEN
-else:
-    MP_ACCESS_TOKEN = env_token
+MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "").strip()
+if not MP_ACCESS_TOKEN:
+    import logging
+    logging.getLogger("mercadopago_service").warning("MP_ACCESS_TOKEN não configurado no ambiente (.env).")
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5000")
 BACKEND_URL = os.getenv("BACKEND_URL", "https://web-production-33f04.up.railway.app")

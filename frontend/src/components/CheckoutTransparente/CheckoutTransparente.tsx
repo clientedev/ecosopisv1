@@ -27,8 +27,6 @@ interface CheckoutTransparenteProps {
     validateCustomerData: () => boolean;
 }
 
-const PROD_MP_PUBLIC_KEY = "APP_USR-97552469-004a-4797-bb6a-6c25fa57dbbe";
-
 export default function CheckoutTransparente({
     orderData,
     userEmail,
@@ -40,11 +38,7 @@ export default function CheckoutTransparente({
     const [selectedTab, setSelectedTab] = useState<"pix" | "card">("pix");
     const [mpLoaded, setMpLoaded] = useState(false);
     const [publicKey, setPublicKey] = useState(() => {
-        const envKey = (process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "").trim();
-        if (envKey && !envKey.includes("APP_USR-99b73990") && !envKey.startsWith("TEST-")) {
-            return envKey;
-        }
-        return PROD_MP_PUBLIC_KEY;
+        return (process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "").trim();
     });
 
     // PIX states
@@ -74,10 +68,8 @@ export default function CheckoutTransparente({
         fetch("/api/payment/config")
             .then(res => res.json())
             .then(data => {
-                if (data.mp_public_key && !data.mp_public_key.includes("APP_USR-99b73990") && !data.mp_public_key.startsWith("TEST-")) {
+                if (data.mp_public_key) {
                     setPublicKey(data.mp_public_key);
-                } else {
-                    setPublicKey(PROD_MP_PUBLIC_KEY);
                 }
             })
             .catch(() => {});
@@ -173,12 +165,16 @@ export default function CheckoutTransparente({
                                 try {
                                     const deviceId = (typeof window !== "undefined" && ((window as any).MP_DEVICE_SESSION_ID || (window as any).meuDeviceId)) || null;
 
+                                    const headers: Record<string, string> = {
+                                        "Content-Type": "application/json",
+                                    };
+                                    if (token) {
+                                        headers["Authorization"] = `Bearer ${token}`;
+                                    }
+
                                     const response = await fetch("/api/payment/process-transparent-card", {
                                         method: "POST",
-                                        headers: {
-                                            "Content-Type": "application/json",
-                                            Authorization: `Bearer ${token}`
-                                        },
+                                        headers,
                                         body: JSON.stringify({
                                             order_data: {
                                                 items: orderData.items,
@@ -188,6 +184,7 @@ export default function CheckoutTransparente({
                                                 shipping_service_id: orderData.shippingServiceId,
                                                 address: orderData.address,
                                                 customer_name: orderData.customerName,
+                                                customer_email: userEmail || (orderData.address as any)?.email || "",
                                                 customer_phone: orderData.customerPhone,
                                                 customer_cpf: orderData.customerCpf,
                                                 coupon_code: orderData.couponCode,
@@ -268,12 +265,16 @@ export default function CheckoutTransparente({
 
         setPixLoading(true);
         try {
+            const headers: Record<string, string> = {
+                "Content-Type": "application/json",
+            };
+            if (token) {
+                headers["Authorization"] = `Bearer ${token}`;
+            }
+
             const response = await fetch("/api/payment/process-transparent-pix", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
+                headers,
                 body: JSON.stringify({
                     items: orderData.items,
                     total: orderData.total,
@@ -282,6 +283,7 @@ export default function CheckoutTransparente({
                     shipping_service_id: orderData.shippingServiceId,
                     address: orderData.address,
                     customer_name: orderData.customerName,
+                    customer_email: userEmail || (orderData.address as any)?.email || "",
                     customer_phone: orderData.customerPhone,
                     customer_cpf: orderData.customerCpf,
                     coupon_code: orderData.couponCode,
