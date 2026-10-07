@@ -378,34 +378,11 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
     logger.info(f"Order {order.id} status updated to PAID via {order.payment_method}")
 
     # ── LOGISTICS: MELHOR ENVIO ──────────────────────────────────────────────
-    # Sempre processa envio via Melhor Envio, mesmo para frete grátis.
-    # Quando o cliente recebe frete grátis, internamente selecionamos o frete
-    # mais barato do Melhor Envio e o administrador arca com o custo.
-    # O cliente continua vendo R$ 0,00 de frete.
-    try:
-        logger.info(f"Starting Melhor Envio processing for order {order.id}...")
-        is_free_shipping = (order.shipping_price or 0) == 0
-        if is_free_shipping:
-            logger.info(f"Order {order.id} has FREE SHIPPING for customer. "
-                        f"Internally selecting cheapest Melhor Envio option (admin pays).")
-
-        # Wrap Order in Pedido adapter — processar_envio requires
-        # properties like cep_cliente, valor, produto_nome that only
-        # the Pedido adapter exposes.
-        pedido = Pedido.from_order(order)
-        envio_res = processar_envio(pedido, db)
-
-        if envio_res.get("erro"):
-            logger.warning(f"Shipping processing had issues for order {order.id}: {envio_res['erro']}")
-        else:
-            logger.info(
-                f"Shipping label generated for order {order.id}: "
-                f"tracking={envio_res.get('tracking_code')} | "
-                f"shipment={envio_res.get('shipment_id')} | "
-                f"free_for_customer={is_free_shipping}"
-            )
-    except Exception as e:
-        logger.error(f"Critical error on shipping integration for order {order.id}: {e}", exc_info=True)
+    # O envio para o Melhor Envio NÃO é feito automaticamente no pagamento.
+    # O envio só é adicionado ao carrinho quando o administrador clicar explicitamente
+    # em "Gerar Etiqueta" no painel de pedidos, onde poderá conferir a embalagem e
+    # decidir no painel do Melhor Envio se compra ou não.
+    logger.info(f"Order {order.id} marked as PAID. Shipment will be sent to Melhor Envio only when admin clicks 'Gerar' in admin panel.")
 
     # ── EMAIL NOTIFICATIONS ──────────────────────────────────────────────────
     try:

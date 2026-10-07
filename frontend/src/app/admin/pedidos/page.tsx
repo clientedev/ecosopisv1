@@ -715,6 +715,12 @@ export default function AdminPedidosPage() {
                         });
                     }
                     window.open(data.label_url, "_blank");
+                } else if (data.in_cart || data.message || data.shipment_id) {
+                    setNotification({
+                        type: "success",
+                        title: "Envio no Carrinho do Melhor Envio!",
+                        message: data.message || `Pedido #${orderId} adicionado ao carrinho do Melhor Envio (ID: ${data.shipment_id || ""}). Você pode conferir e decidir se compra a etiqueta diretamente no painel do Melhor Envio.`
+                    });
                 }
             } else {
                 const parsed = parseMEError(data.detail || "");
@@ -1334,6 +1340,11 @@ export default function AdminPedidosPage() {
                                                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                                                             <strong style={{ fontSize: "0.85rem", color: "#1e293b", display: "flex", alignItems: "center", gap: "6px" }}>
                                                                 📦 Embalagem & Transportadora ({pkg.serviceName})
+                                                                {order.shipment_id && !order.etiqueta_url && (
+                                                                    <span style={{ fontSize: "0.72rem", background: "#fef3c7", color: "#92400e", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>
+                                                                        🛒 No Carrinho ME
+                                                                    </span>
+                                                                )}
                                                             </strong>
                                                             <div style={{ display: "flex", gap: "6px" }}>
                                                                 <button
@@ -1520,9 +1531,11 @@ export default function AdminPedidosPage() {
                                                         style={{ position: "relative" }}
                                                     >
                                                         {generatingLabel === order.id ? (
-                                                            <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Gerando Etiqueta ME...</>
+                                                            <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Processando...</>
+                                                        ) : order.shipment_id ? (
+                                                            <><Tag size={14} /> Verificar / Gerar Etiqueta ME</>
                                                         ) : (
-                                                            <><Tag size={14} /> Gerar Etiqueta Melhor Envio</>
+                                                            <><Tag size={14} /> Mandar p/ Carrinho Melhor Envio</>
                                                         )}
                                                     </button>
                                                 )}

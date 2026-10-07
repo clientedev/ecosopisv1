@@ -926,15 +926,12 @@ class MelhorEnvioV2Service:
                 else:
                     service_id = res
             shipment_id, tracking_from_cart = criar_envio(pedido_ns, service_id, agency_id=agency_id)
-            comprar_etiqueta(shipment_id)
-            gerar_etiqueta(shipment_id)
-            etiqueta_url = imprimir_etiqueta(shipment_id)
-            tracking_code = obter_tracking(shipment_id, tracking_from_cart)
             return {
                 "melhorenvio_id": shipment_id,
-                "tracking_code": tracking_code,
-                "etiqueta_url": etiqueta_url,
-                "generated": bool(etiqueta_url),
+                "tracking_code": tracking_from_cart,
+                "etiqueta_url": None,
+                "generated": False,
+                "in_cart": True,
             }
         except Exception as exc:
             logger.error(f"[MelhorEnvioV2Service] Erro: {exc}", exc_info=True)

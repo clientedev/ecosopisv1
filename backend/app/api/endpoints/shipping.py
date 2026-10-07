@@ -310,7 +310,7 @@ async def generate_label(
 
     pedido = Pedido.from_order(order)
     
-    # 1. Garantir que o shipment_id existe no carrinho
+    # 1. Se ainda não possui envio criado no Melhor Envio, envia apenas para o carrinho
     if not order.shipment_id:
         package_dims = {
             "width": getattr(order, "package_width", None) or 16.0,
@@ -331,30 +331,29 @@ async def generate_label(
             )
         
         shipment_id = resultado.get("shipment_id")
-        
-        # Tenta debitar a etiqueta automaticamente se a conta do Melhor Envio tiver saldo
-        bought = False
-        try:
-            me_service.comprar_etiqueta(shipment_id)
-            bought = True
-            logger.info(f"[ME] Etiqueta comprada automaticamente para shipment_id={shipment_id}")
-            time.sleep(1)
-        except Exception as buy_err:
-            logger.info(f"[ME] Não foi possível debitar automaticamente ({buy_err}). Usuário pagará no painel do Melhor Envio.")
+        order.shipment_id = shipment_id
+        db.commit()
+        db.refresh(order)
+        logger.info(f"[ME] Envio adicionado ao carrinho do Melhor Envio para o pedido #{order.id} (shipment_id={shipment_id}). Nenhuma compra automática foi realizada.")
 
-        if not bought:
-            raise HTTPException(
-                status_code=422,
-                detail=f"A etiqueta foi enviada para o carrinho do Melhor Envio (ID: {shipment_id}). "
-                       f"Efetue o pagamento da etiqueta no painel do Melhor Envio e depois clique aqui novamente para gerá-la."
-            )
+        return {
+            "order_id": order_id,
+            "shipment_id": shipment_id,
+            "status": order.status,
+            "in_cart": True,
+            "label_url": None,
+            "tracking_code": getattr(order, "codigo_rastreio", None),
+            "reused": False,
+            "simulated": False,
+            "message": f"Etiqueta adicionada ao carrinho do Melhor Envio (ID: {shipment_id})! Você decide quando efetuar a compra diretamente no painel do Melhor Envio."
+        }
 
-    # 2. Verificar se a etiqueta já foi paga/comprada no Melhor Envio
+    # 2. Verificar se a etiqueta já foi paga/comprada pelo lojista no Melhor Envio
     shipment_details = me_service.obter_detalhes_envio(order.shipment_id)
     if not shipment_details:
         raise HTTPException(
             status_code=422,
-            detail="Não foi possível consultar os detalhes do envio no Melhor Envio. Verifique a sua conexão ou se o token está ativo."
+            detail="Não foi possível consultar os detalhes do envio no Melhor Envio. Verifique sua conexão ou se o token está ativo."
         )
 
     me_status = str(shipment_details.get("status", "")).lower()
@@ -364,13 +363,20 @@ async def generate_label(
     paid_statuses = {"released", "generated", "posted", "delivered", "received", "attending"}
     
     if me_status not in paid_statuses:
-        raise HTTPException(
-            status_code=422,
-            detail=f"A etiqueta (Status ME: '{me_status}') ainda não foi paga no Melhor Envio. "
-                   f"Acesse o carrinho no painel do Melhor Envio, realize o pagamento da etiqueta, e tente novamente."
-        )
+        return {
+            "order_id": order_id,
+            "shipment_id": order.shipment_id,
+            "status": order.status,
+            "in_cart": True,
+            "label_url": None,
+            "tracking_code": getattr(order, "codigo_rastreio", None),
+            "reused": False,
+            "simulated": False,
+            "message": f"A etiqueta já está no seu carrinho do Melhor Envio (ID: {order.shipment_id}, status: '{me_status}'). "
+                       f"Efetue a compra no painel do Melhor Envio quando desejar e depois clique aqui novamente para gerar e imprimir o PDF."
+        }
 
-    # 3. Gerar, imprimir e obter tracking
+    # 3. Gerar, imprimir e obter tracking (a etiqueta já foi paga no Melhor Envio)
     try:
         me_service.gerar_etiqueta(order.shipment_id)
         etiqueta_url = me_service.imprimir_etiqueta(order.shipment_id)
@@ -403,8 +409,10 @@ async def generate_label(
         "tracking_code": order.codigo_rastreio,
         "shipment_id": order.shipment_id,
         "status": order.status,
+        "in_cart": False,
         "reused": False,
         "simulated": False,
+        "message": "Etiqueta gerada e pronta para impressão!"
     }
 
 @router.get("/label/{order_id}")
