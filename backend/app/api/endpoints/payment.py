@@ -39,6 +39,7 @@ class CreateCheckoutIn(BaseModel):
     total: float
     address: Optional[Dict[str, Any]] = None
     shipping_method: Optional[str] = "fixo"
+    shipping_service_id: Optional[int] = None
     shipping_price: Optional[float] = 20.0
     coupon_code: Optional[str] = None
     customer_name: Optional[str] = None
@@ -240,6 +241,8 @@ def _get_or_create_order(data: CreateCheckoutIn, current_user: models.User, db: 
         order.total = data.total
         order.shipping_price = data.shipping_price or 0.0
         order.shipping_method = data.shipping_method or "fixo"
+        if data.shipping_service_id is not None:
+            order.shipping_service_id = int(data.shipping_service_id)
         order.coupon_code = data.coupon_code or ""
         order.discount_amount = data.discount_amount or 0.0
         order.customer_cpf = data.customer_cpf
@@ -261,6 +264,8 @@ def _get_or_create_order(data: CreateCheckoutIn, current_user: models.User, db: 
         )
         repo.add_order_items(order.id, [item.dict() for item in data.items])
         
+        if data.shipping_service_id is not None:
+            order.shipping_service_id = int(data.shipping_service_id)
         order.payment_method = payment_method
         order.customer_name = data.customer_name or current_user.full_name or ""
         order.customer_email = current_user.email

@@ -11,6 +11,7 @@ interface CheckoutTransparenteProps {
         total: number;
         shippingPrice: number;
         shippingMethod: string;
+        shippingServiceId?: number | null;
         address: any;
         customerName: string;
         customerPhone: string;
@@ -184,6 +185,7 @@ export default function CheckoutTransparente({
                                                 total: orderData.total,
                                                 shipping_price: orderData.shippingPrice,
                                                 shipping_method: orderData.shippingMethod,
+                                                shipping_service_id: orderData.shippingServiceId,
                                                 address: orderData.address,
                                                 customer_name: orderData.customerName,
                                                 customer_phone: orderData.customerPhone,
@@ -277,6 +279,7 @@ export default function CheckoutTransparente({
                     total: orderData.total,
                     shipping_price: orderData.shippingPrice,
                     shipping_method: orderData.shippingMethod,
+                    shipping_service_id: orderData.shippingServiceId,
                     address: orderData.address,
                     customer_name: orderData.customerName,
                     customer_phone: orderData.customerPhone,

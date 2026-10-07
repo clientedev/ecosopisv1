@@ -45,7 +45,7 @@ interface Order {
     created_at: string;
 }
 
-export interface PackageConfig {
+interface PackageConfig {
     length: number;
     width: number;
     height: number;
@@ -54,7 +54,7 @@ export interface PackageConfig {
     serviceName: string;
 }
 
-export const CARRIER_SERVICES = [
+const CARRIER_SERVICES = [
     { id: 1, name: "Correios PAC", badge: "Econômico", company: "Correios", icon: "📦" },
     { id: 2, name: "Correios SEDEX", badge: "Expresso", company: "Correios", icon: "⚡" },
     { id: 17, name: "Correios Mini Envios", badge: "Pequenos Volumes", company: "Correios", icon: "✉️" },
@@ -64,53 +64,74 @@ export const CARRIER_SERVICES = [
     { id: 15, name: "Azul Cargo Expresso", badge: "Aéreo Express", company: "Azul", icon: "✈️" },
 ];
 
-export const getDefaultPackageForOrder = (order: Order): PackageConfig => {
-    // 1. Peso padrão calculado dos itens (mínimo 0.30 kg)
+const getDefaultPackageForOrder = (order: Order): PackageConfig => {
+    // 1. Dimensões padrão da loja (20x16x12) ou as já salvas anteriormente
+    const length = (order.package_length && Number(order.package_length) > 0) ? Number(order.package_length) : 20;
+    const width = (order.package_width && Number(order.package_width) > 0) ? Number(order.package_width) : 16;
+    const height = (order.package_height && Number(order.package_height) > 0) ? Number(order.package_height) : 12;
+
+    // Peso padrão: calculado pela quantidade de itens (0.25kg por item, mín 0.30kg) ou o salvo no pedido
     let calculatedWeight = 0.3;
     if (order.items && Array.isArray(order.items)) {
         const totalItemsCount = order.items.reduce((sum: number, item: any) => sum + (Number(item.quantity) || 1), 0);
         calculatedWeight = Math.max(0.3, Number((totalItemsCount * 0.25).toFixed(2)));
     }
+    const weight = (order.package_weight && Number(order.package_weight) > 0) ? Number(order.package_weight) : calculatedWeight;
 
     // 2. Transportadora pré-selecionada com base na escolha do cliente
     let defaultServiceId = 1;
     let defaultServiceName = "Correios PAC";
 
-    const sm = (order.shipping_method || "").toLowerCase();
+    const sm = (order.shipping_method || "").toLowerCase().trim();
+
+    // 2.1. Se já possui o shipping_service_id salvo diretamente
     if (order.shipping_service_id) {
         const found = CARRIER_SERVICES.find(c => c.id === order.shipping_service_id);
         if (found) {
             defaultServiceId = found.id;
             defaultServiceName = found.name;
+            return { length, width, height, weight, serviceId: defaultServiceId, serviceName: defaultServiceName };
         }
-    } else if (sm.includes("sedex")) {
+    }
+
+    // 2.2. Mapeamento inteligente pelo nome da opção escolhida pelo cliente
+    if (sm.includes("sedex")) {
         defaultServiceId = 2;
         defaultServiceName = "Correios SEDEX";
     } else if (sm.includes("mini")) {
         defaultServiceId = 17;
         defaultServiceName = "Correios Mini Envios";
-    } else if (sm.includes("jadlog") && sm.includes("com")) {
+    } else if (sm.includes(".com") || sm === "com" || (sm.includes("jadlog") && sm.includes("com"))) {
         defaultServiceId = 4;
         defaultServiceName = "Jadlog .Com";
-    } else if (sm.includes("jadlog")) {
+    } else if (sm.includes("package") || sm.includes(".package") || sm.includes("jadlog")) {
         defaultServiceId = 3;
         defaultServiceName = "Jadlog .Package";
-    } else if (sm.includes("loggi")) {
-        defaultServiceId = 31;
-        defaultServiceName = "Loggi Express";
     } else if (sm.includes("azul")) {
         defaultServiceId = 15;
         defaultServiceName = "Azul Cargo Expresso";
-    } else {
+    } else if (sm.includes("loggi") || sm.includes("express")) {
+        defaultServiceId = 31;
+        defaultServiceName = "Loggi Express";
+    } else if (sm.includes("pac")) {
         defaultServiceId = 1;
         defaultServiceName = "Correios PAC";
+    } else {
+        const directFound = CARRIER_SERVICES.find(c => sm.includes(c.name.toLowerCase()) || sm.includes(c.company.toLowerCase()));
+        if (directFound) {
+            defaultServiceId = directFound.id;
+            defaultServiceName = directFound.name;
+        } else {
+            defaultServiceId = 1;
+            defaultServiceName = "Correios PAC";
+        }
     }
 
     return {
-        length: order.package_length ? Number(order.package_length) : 20,
-        width: order.package_width ? Number(order.package_width) : 16,
-        height: order.package_height ? Number(order.package_height) : 12,
-        weight: order.package_weight ? Number(order.package_weight) : calculatedWeight,
+        length,
+        width,
+        height,
+        weight,
         serviceId: defaultServiceId,
         serviceName: defaultServiceName,
     };
@@ -178,12 +199,28 @@ export default function AdminPedidosPage() {
     const [savingPackage, setSavingPackage] = useState<number | null>(null);
     const [quotingOrderId, setQuotingOrderId] = useState<number | null>(null);
     const [quotes, setQuotes] = useState<Record<number, any[]>>({});
+    const [shippingModalOrder, setShippingModalOrder] = useState<Order | null>(null);
 
     const getPackageForm = (order: Order): PackageConfig => {
         if (packageForms[order.id]) {
             return packageForms[order.id];
         }
         return getDefaultPackageForOrder(order);
+    };
+
+    const openShippingModal = (order: Order) => {
+        // Inicializa com as dimensões padrão ou já configuradas e transportadora do cliente
+        if (!packageForms[order.id]) {
+            setPackageForms(prev => ({
+                ...prev,
+                [order.id]: getDefaultPackageForOrder(order)
+            }));
+        }
+        setShippingModalOrder(order);
+    };
+
+    const closeShippingModal = () => {
+        setShippingModalOrder(null);
     };
 
     const updatePackageField = (orderId: number, field: keyof PackageConfig, value: any) => {
@@ -554,12 +591,12 @@ export default function AdminPedidosPage() {
         finally { setUpdatingStatus(null); }
     };
 
-    const gerarEtiquetaME = async (orderId: number) => {
+    const gerarEtiquetaME = async (orderId: number, customPkg?: PackageConfig) => {
         setGeneratingLabel(orderId);
         setNotification(null);
         try {
             const order = orders.find(o => o.id === orderId);
-            const pkg = order ? getPackageForm(order) : null;
+            const pkg = customPkg || (order ? getPackageForm(order) : null);
 
             const bodyPayload = pkg ? {
                 package_length: Number(pkg.length),
@@ -611,6 +648,19 @@ export default function AdminPedidosPage() {
             setNotification({ type: "error", title: "Erro de conexão", message: "Não foi possível contactar o servidor. Verifique sua rede e tente novamente." });
         }
         finally { setGeneratingLabel(null); }
+    };
+
+    const handleSendFromModal = async (orderId: number) => {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) return;
+        const pkg = getPackageForm(order);
+        try {
+            await savePackageConfig(orderId);
+            await gerarEtiquetaME(orderId, pkg);
+            setShippingModalOrder(null);
+        } catch {
+            // Notificações já tratadas em savePackageConfig e gerarEtiquetaME
+        }
     };
 
     const copyToClipboard = (text: string) => {
@@ -1122,8 +1172,8 @@ export default function AdminPedidosPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Configuração da Embalagem e Transportadora (apenas pedidos da loja) */}
-                                            {order.payment_method !== 'mercadolivre' && (() => {
+                                            {/* Configuração da Embalagem e Transportadora (apenas pedidos da loja que ainda NÃO foram enviados) */}
+                                            {order.payment_method !== 'mercadolivre' && !['shipped', 'delivered'].includes(order.status) && (() => {
                                                 const pkg = getPackageForm(order);
                                                 return (
                                                     <div style={{
@@ -1158,8 +1208,7 @@ export default function AdminPedidosPage() {
                                                                 </button>
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => savePackageConfig(order.id)}
-                                                                    disabled={savingPackage === order.id}
+                                                                    onClick={() => openShippingModal(order)}
                                                                     style={{
                                                                         background: "#059669",
                                                                         border: "none",
@@ -1170,8 +1219,9 @@ export default function AdminPedidosPage() {
                                                                         fontWeight: 600,
                                                                         cursor: "pointer"
                                                                     }}
+                                                                    title="Abrir modal de configuração e envio"
                                                                 >
-                                                                    {savingPackage === order.id ? "Salvando..." : "💾 Salvar"}
+                                                                    🚀 Mandar ao Melhor Envio
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -1250,8 +1300,8 @@ export default function AdminPedidosPage() {
                                                                 })}
                                                             </select>
                                                             {order.shipping_method && (
-                                                                <span style={{ fontSize: "0.7rem", color: "#64748b", display: "block", marginTop: "3px" }}>
-                                                                    Opção escolhida pelo cliente: <strong>{order.shipping_method}</strong> (R$ {Number(order.shipping_price || 0).toFixed(2)})
+                                                                <span style={{ fontSize: "0.7rem", color: "#166534", display: "block", marginTop: "3px", fontWeight: 500 }}>
+                                                                    🚚 Opção escolhida pelo cliente: <strong>{order.shipping_method}</strong> (R$ {Number(order.shipping_price || 0).toFixed(2)})
                                                                 </span>
                                                             )}
                                                         </div>
@@ -1283,18 +1333,18 @@ export default function AdminPedidosPage() {
                                                         rel="noopener noreferrer"
                                                         className={pedidoStyles.btnAction}
                                                         style={{
-                                                            background: "#ffe600",
-                                                            color: "#2d3277",
-                                                            borderColor: "#ffe600",
-                                                            fontWeight: 700,
-                                                            textDecoration: "none",
-                                                            display: "inline-flex",
-                                                            alignItems: "center",
-                                                            gap: "6px"
-                                                        }}
-                                                        title="Gerenciar envio e imprimir etiqueta no Mercado Envios / Mercado Livre"
+                                                             background: "#ffe600",
+                                                             color: "#2d3277",
+                                                             borderColor: "#ffe600",
+                                                             fontWeight: 700,
+                                                             textDecoration: "none",
+                                                             display: "inline-flex",
+                                                             alignItems: "center",
+                                                             gap: "6px"
+                                                         }}
+                                                         title="Gerenciar envio e imprimir etiqueta no Mercado Envios / Mercado Livre"
                                                     >
-                                                        🟡 Etiqueta no Mercado Envios (ML) <ExternalLink size={14} />
+                                                         🟡 Etiqueta no Mercado Envios (ML) <ExternalLink size={14} />
                                                     </a>
                                                 ) : etiquetaUrl ? (
                                                     <>
@@ -1305,7 +1355,7 @@ export default function AdminPedidosPage() {
                                                             <Download size={14} /> Baixar Etiqueta
                                                         </button>
                                                         <button
-                                                            onClick={() => gerarEtiquetaME(order.id)}
+                                                            onClick={() => openShippingModal(order)}
                                                             disabled={generatingLabel === order.id}
                                                             className={`${pedidoStyles.btnAction} ${pedidoStyles.btnSecondary}`}
                                                             title="Reenviar pedido ao Melhor Envio e gerar nova etiqueta"
@@ -1316,7 +1366,7 @@ export default function AdminPedidosPage() {
                                                     </>
                                                 ) : canGenerateLabel && (
                                                     <button
-                                                        onClick={() => gerarEtiquetaME(order.id)}
+                                                        onClick={() => openShippingModal(order)}
                                                         disabled={generatingLabel === order.id}
                                                         className={`${pedidoStyles.btnAction} ${pedidoStyles.btnPrimary}`}
                                                         style={{ position: "relative" }}
@@ -1573,6 +1623,271 @@ export default function AdminPedidosPage() {
                         </div>
                     </div>
                 )}
+
+                {/* Modal de Configuração de Embalagem & Envio ao Melhor Envio */}
+                {shippingModalOrder && (() => {
+                    const order = shippingModalOrder;
+                    const pkg = getPackageForm(order);
+                    const isAlreadyShipped = ['shipped', 'delivered'].includes(order.status) || Boolean(order.etiqueta_url);
+                    const customerChosenCarrier = order.shipping_method || "Correios PAC";
+                    const customerName = order.buyer_name || order.customer_name || "Cliente";
+                    const isProcessing = generatingLabel === order.id;
+
+                    return (
+                        <div style={{
+                            position: "fixed",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: "rgba(0, 0, 0, 0.55)",
+                            backdropFilter: "blur(4px)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            zIndex: 9999,
+                            padding: "1rem"
+                        }} onClick={closeShippingModal}>
+                            <div style={{
+                                backgroundColor: "#ffffff",
+                                borderRadius: "16px",
+                                maxWidth: "560px",
+                                width: "100%",
+                                maxHeight: "92vh",
+                                overflowY: "auto",
+                                padding: "1.75rem",
+                                boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "1.2rem"
+                            }} onClick={e => e.stopPropagation()}>
+                                {/* Cabeçalho do Modal */}
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: "8px" }}>
+                                            📦 {isAlreadyShipped ? "Mandar Mais Uma Etiqueta" : "Enviar ao Melhor Envio"} · Pedido #{order.id}
+                                        </h3>
+                                        <p style={{ margin: "4px 0 0", fontSize: "0.82rem", color: "#64748b" }}>
+                                            {customerName} · Total: R$ {Number(order.total || 0).toFixed(2).replace(".", ",")}
+                                            {order.address?.city && ` · ${order.address.city}/${order.address.state || ""}`}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={closeShippingModal}
+                                        style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: "4px" }}
+                                        title="Fechar"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                {/* Destaque da escolha do cliente */}
+                                <div style={{
+                                    background: "#f0fdf4",
+                                    border: "1px solid #bbf7d0",
+                                    borderRadius: "10px",
+                                    padding: "10px 14px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "10px"
+                                }}>
+                                    <Truck size={22} color="#15803d" style={{ flexShrink: 0 }} />
+                                    <div style={{ fontSize: "0.82rem", color: "#166534" }}>
+                                        <div style={{ fontWeight: 600 }}>Transportadora escolhida pelo cliente:</div>
+                                        <div style={{ fontSize: "0.92rem", fontWeight: 800, marginTop: "2px", color: "#14532d" }}>
+                                            {customerChosenCarrier} {order.shipping_price ? `(R$ ${Number(order.shipping_price).toFixed(2).replace(".", ",")})` : ""}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Alerta explicativo se já tiver sido enviado antes */}
+                                {isAlreadyShipped && (
+                                    <div style={{
+                                        background: "#fffbeb",
+                                        border: "1px solid #fde68a",
+                                        borderRadius: "10px",
+                                        padding: "10px 14px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "10px"
+                                    }}>
+                                        <AlertTriangle size={20} color="#b45309" style={{ flexShrink: 0 }} />
+                                        <div style={{ fontSize: "0.78rem", color: "#92400e" }}>
+                                            Este pedido já possui uma etiqueta gerada. Se você mudar a embalagem ou transportadora, poderá mandar <strong>mais uma etiqueta</strong> para o carrinho do seu Melhor Envio, onde você decide se realiza a compra ou não.
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Dimensões e Peso pré-preenchidos */}
+                                <div>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                        <label style={{ fontSize: "0.82rem", fontWeight: 700, color: "#334155" }}>
+                                            Dimensões da Embalagem & Peso
+                                        </label>
+                                        <span style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                                            Padrão da loja: 20x16x12 cm
+                                        </span>
+                                    </div>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
+                                        <div>
+                                            <label style={{ fontSize: "0.7rem", color: "#64748b", display: "block", marginBottom: "2px" }}>Compr. (cm)</label>
+                                            <input
+                                                type="number"
+                                                min="5"
+                                                max="150"
+                                                value={pkg.length ?? ""}
+                                                onChange={e => updatePackageField(order.id, "length", e.target.value === "" ? "" : Number(e.target.value))}
+                                                style={{ width: "100%", padding: "7px 8px", fontSize: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", boxSizing: "border-box" }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: "0.7rem", color: "#64748b", display: "block", marginBottom: "2px" }}>Largura (cm)</label>
+                                            <input
+                                                type="number"
+                                                min="5"
+                                                max="150"
+                                                value={pkg.width ?? ""}
+                                                onChange={e => updatePackageField(order.id, "width", e.target.value === "" ? "" : Number(e.target.value))}
+                                                style={{ width: "100%", padding: "7px 8px", fontSize: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", boxSizing: "border-box" }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: "0.7rem", color: "#64748b", display: "block", marginBottom: "2px" }}>Altura (cm)</label>
+                                            <input
+                                                type="number"
+                                                min="2"
+                                                max="150"
+                                                value={pkg.height ?? ""}
+                                                onChange={e => updatePackageField(order.id, "height", e.target.value === "" ? "" : Number(e.target.value))}
+                                                style={{ width: "100%", padding: "7px 8px", fontSize: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", boxSizing: "border-box" }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: "0.7rem", color: "#64748b", display: "block", marginBottom: "2px" }}>Peso (kg)</label>
+                                            <input
+                                                type="number"
+                                                step="0.05"
+                                                min="0.1"
+                                                max="50"
+                                                value={pkg.weight ?? ""}
+                                                onChange={e => updatePackageField(order.id, "weight", e.target.value === "" ? "" : Number(e.target.value))}
+                                                style={{ width: "100%", padding: "7px 8px", fontSize: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", boxSizing: "border-box" }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Seleção de Transportadora */}
+                                <div>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                        <label style={{ fontSize: "0.82rem", fontWeight: 700, color: "#334155" }}>
+                                            Transportadora / Serviço no Melhor Envio
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleQuoteOrder(order.id)}
+                                            disabled={quotingOrderId === order.id}
+                                            style={{
+                                                background: "#f8fafc",
+                                                border: "1px solid #cbd5e1",
+                                                borderRadius: "6px",
+                                                padding: "3px 8px",
+                                                fontSize: "0.72rem",
+                                                cursor: "pointer",
+                                                color: "#334155",
+                                                fontWeight: 600
+                                            }}
+                                            title="Cotar valores reais para o CEP do pedido"
+                                        >
+                                            {quotingOrderId === order.id ? "Cotando..." : "⚡ Cotar Frete Agora"}
+                                        </button>
+                                    </div>
+                                    <select
+                                        value={pkg.serviceId}
+                                        onChange={e => {
+                                            const sId = Number(e.target.value);
+                                            const found = CARRIER_SERVICES.find(c => c.id === sId);
+                                            updatePackageField(order.id, "serviceId", sId);
+                                            if (found) {
+                                                updatePackageField(order.id, "serviceName", found.name);
+                                            }
+                                        }}
+                                        style={{ width: "100%", padding: "8px 10px", fontSize: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", boxSizing: "border-box" }}
+                                    >
+                                        {CARRIER_SERVICES.map(srv => {
+                                            const quoteOpt = quotes[order.id]?.find((q: any) => q.id === srv.id);
+                                            return (
+                                                <option key={srv.id} value={srv.id}>
+                                                    {srv.icon} {srv.name} — {srv.badge} {quoteOpt ? `[R$ ${Number(quoteOpt.price).toFixed(2)}]` : ""}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                </div>
+
+                                {/* Informação contextual */}
+                                <div style={{
+                                    fontSize: "0.74rem",
+                                    color: "#64748b",
+                                    background: "#f8fafc",
+                                    border: "1px dashed #cbd5e1",
+                                    borderRadius: "8px",
+                                    padding: "8px 12px"
+                                }}>
+                                    💡 O envio será enviado para o carrinho da sua conta no <strong>Melhor Envio</strong>. Lá na plataforma você decide se realiza a compra da etiqueta ou não.
+                                </div>
+
+                                {/* Ações do Modal */}
+                                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "4px" }}>
+                                    <button
+                                        type="button"
+                                        onClick={closeShippingModal}
+                                        disabled={isProcessing}
+                                        style={{
+                                            padding: "0.6rem 1.25rem",
+                                            borderRadius: "8px",
+                                            border: "1px solid #cbd5e1",
+                                            background: "#ffffff",
+                                            color: "#475569",
+                                            fontWeight: 600,
+                                            cursor: "pointer",
+                                            fontSize: "0.85rem"
+                                        }}
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSendFromModal(order.id)}
+                                        disabled={isProcessing}
+                                        style={{
+                                            padding: "0.6rem 1.4rem",
+                                            borderRadius: "8px",
+                                            border: "none",
+                                            background: isAlreadyShipped ? "#2563eb" : "#059669",
+                                            color: "#ffffff",
+                                            fontWeight: 700,
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "8px",
+                                            fontSize: "0.88rem",
+                                            boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
+                                        }}
+                                    >
+                                        {isProcessing ? (
+                                            <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Processando...</>
+                                        ) : isAlreadyShipped ? (
+                                            <><RefreshCw size={16} /> Mandar mais uma etiqueta pro Melhor Envio</>
+                                        ) : (
+                                            <><Tag size={16} /> Mandar pro Melhor Envio</>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 <style>{`
                     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
