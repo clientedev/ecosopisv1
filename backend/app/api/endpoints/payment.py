@@ -378,11 +378,34 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
     logger.info(f"Order {order.id} status updated to PAID via {order.payment_method}")
 
     # ── LOGISTICS: MELHOR ENVIO ──────────────────────────────────────────────
-    # O envio para o Melhor Envio NÃO é feito automaticamente no pagamento.
-    # O envio só é adicionado ao carrinho quando o administrador clicar explicitamente
-    # em "Gerar Etiqueta" no painel de pedidos, onde poderá conferir a embalagem e
-    # decidir no painel do Melhor Envio se compra ou não.
-    logger.info(f"Order {order.id} marked as PAID. Shipment will be sent to Melhor Envio only when admin clicks 'Gerar' in admin panel.")
+    # Envia automaticamente o pedido para o carrinho do Melhor Envio (sem finalizar compra).
+    # O lojista decide no painel do Melhor Envio se efetua a compra da etiqueta,
+    # ou pode ajustar dimensões/transportadora no modal do admin e mandar uma nova etiqueta.
+    try:
+        logger.info(f"Starting automatic Melhor Envio cart placement for order {order.id}...")
+        is_free_shipping = (order.shipping_price or 0) == 0 or any(
+            g in str(order.shipping_method or "").lower() for g in ["grátis", "gratis", "free"]
+        )
+        if is_free_shipping:
+            logger.info(
+                f"Order {order.id} has FREE SHIPPING. "
+                f"Automatically selecting cheapest available Melhor Envio carrier."
+            )
+
+        pedido = Pedido.from_order(order)
+        envio_res = processar_envio(pedido, db)
+
+        if envio_res.get("erro"):
+            logger.warning(f"Melhor Envio cart submission had issues for order {order.id}: {envio_res['erro']}")
+        else:
+            logger.info(
+                f"Order {order.id} added to Melhor Envio cart: "
+                f"shipment={envio_res.get('shipment_id')} | "
+                f"service_id={envio_res.get('service_id')} | "
+                f"free_for_customer={is_free_shipping}"
+            )
+    except Exception as e:
+        logger.error(f"Critical error on Melhor Envio auto-cart for order {order.id}: {e}", exc_info=True)
 
     # ── EMAIL NOTIFICATIONS ──────────────────────────────────────────────────
     try:

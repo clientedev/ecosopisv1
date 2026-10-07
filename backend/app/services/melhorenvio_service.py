@@ -811,12 +811,13 @@ def processar_envio(
     pedido,
     db,
     service_id_override: Optional[int] = None,
-    package_dimensions: Optional[dict] = None
+    package_dimensions: Optional[dict] = None,
+    force_create: bool = False
 ) -> dict:
     """
     Executa a criação do envio no carrinho do Melhor Envio:
       1. Valida o CEP do destinatário
-      2. Seleciona o serviço (usando service_id_override se fornecido, ou calculando)
+      2. Seleciona o serviço (usando service_id_override se fornecido, ou calculando o mais barato)
       3. criar_envio (cart — envia ao carrinho do Melhor Envio com dimensões/peso)
       4. Salva o shipment_id no banco
       Note: A etiqueta NÃO é comprada ou gerada automaticamente aqui.
@@ -846,9 +847,22 @@ def processar_envio(
         shipment_id = getattr(pedido, "shipment_id", None)
         tracking_from_cart = ""
 
-        if not shipment_id:
+        if force_create or not shipment_id:
             shipping_method = getattr(pedido, "shipping_method", "") or ""
             target_service_id = service_id_override or getattr(pedido, "shipping_service_id", None)
+
+            # Para frete grátis, se o lojista não especificou uma transportadora manual,
+            # sempre considera automaticamente a mais barata viável
+            order_obj = getattr(pedido, "_order", None)
+            is_free_shipping = (
+                getattr(pedido, "shipping_price", None) == 0
+                or (order_obj and getattr(order_obj, "shipping_price", None) == 0)
+                or any(g in str(shipping_method).lower() for g in ["grátis", "gratis", "free"])
+            )
+            if is_free_shipping and not service_id_override:
+                target_service_id = None
+                shipping_method = "frete grátis"
+                logger.info(f"[ENVIO] Frete grátis identificado para pedido #{pedido.id}: buscando opção mais barata do Melhor Envio.")
             
             if target_service_id:
                 service_id = int(target_service_id)

@@ -257,16 +257,16 @@ export default function AdminPedidosPage() {
                     const cheapestQuote = [...validQuotes].sort((a: any, b: any) => Number(a.price) - Number(b.price))[0];
                     if (cheapestQuote) {
                         const found = CARRIER_SERVICES.find(c => c.id === Number(cheapestQuote.id));
-                        if (found) {
-                            setModalPackage(prev => {
-                                if (!prev) return prev;
-                                return {
-                                    ...prev,
-                                    serviceId: found.id,
-                                    serviceName: found.name,
-                                };
-                            });
-                        }
+                        const sId = found ? found.id : Number(cheapestQuote.id);
+                        const sName = found ? found.name : (cheapestQuote.name || "Opção Mais Barata");
+                        setModalPackage(prev => {
+                            if (!prev) return prev;
+                            return {
+                                ...prev,
+                                serviceId: sId,
+                                serviceName: sName,
+                            };
+                        });
                     }
                 }
             }
@@ -786,19 +786,19 @@ export default function AdminPedidosPage() {
                         const cheapestQuote = [...validQuotes].sort((a: any, b: any) => Number(a.price) - Number(b.price))[0];
                         if (cheapestQuote) {
                             const found = CARRIER_SERVICES.find(c => c.id === Number(cheapestQuote.id));
-                            if (found) {
-                                setModalPackage(prev => prev ? {
-                                    ...prev,
-                                    serviceId: found.id,
-                                    serviceName: found.name,
-                                } : null);
-                                setNotification({
-                                    type: "success",
-                                    title: "Frete Grátis: Opção mais barata selecionada!",
-                                    message: `Selecionada automaticamente: ${found.name} (R$ ${Number(cheapestQuote.price).toFixed(2).replace(".", ",")}). Se quiser, você pode alterar no seletor abaixo.`
-                                });
-                                return;
-                            }
+                            const sId = found ? found.id : Number(cheapestQuote.id);
+                            const sName = found ? found.name : (cheapestQuote.name || "Opção Mais Barata");
+                            setModalPackage(prev => prev ? {
+                                ...prev,
+                                serviceId: sId,
+                                serviceName: sName,
+                            } : null);
+                            setNotification({
+                                type: "success",
+                                title: "Frete Grátis: Opção mais barata selecionada!",
+                                message: `Selecionada automaticamente: ${sName} (R$ ${Number(cheapestQuote.price).toFixed(2).replace(".", ",")}). Se quiser, você pode alterar no seletor abaixo.`
+                            });
+                            return;
                         }
                     }
 

@@ -337,7 +337,8 @@ async def generate_label(
             pedido,
             db,
             service_id_override=getattr(order, "shipping_service_id", None),
-            package_dimensions=package_dims
+            package_dimensions=package_dims,
+            force_create=True
         )
         if resultado.get("erro"):
             raise HTTPException(
