@@ -238,12 +238,17 @@ class Pedido:
                 pass
 
             # Peso estimado por unidade (em kg)
-            # Sabonetes ~ 0.1kg, Óleos ~ 0.15kg
-            weight = 0.1
-            if "óleo" in name.lower() or "oleo" in name.lower():
-                weight = 0.15
-            elif "sabonete" in name.lower():
-                weight = 0.1
+            # Regras solicitadas:
+            # - Sabonete líquido: 300g (0.30 kg)
+            # - Sabonete em barra / comum: 100g (0.10 kg)
+            # - Demais produtos: 100g (0.10 kg)
+            n_lower = name.lower()
+            if "sabonete" in n_lower and ("líquido" in n_lower or "liquido" in n_lower):
+                weight = 0.30
+            elif "sabonete" in n_lower:
+                weight = 0.10
+            else:
+                weight = 0.10
             
             detailed_items.append({
                 "name": name[:100],
@@ -253,6 +258,11 @@ class Pedido:
             })
             
         return detailed_items
+
+    @property
+    def estimated_weight(self) -> float:
+        total = sum(item["weight"] * item["quantity"] for item in self.items_list)
+        return round(max(total, 0.10), 2)
 
     @property
     def package_width(self) -> float:
@@ -272,7 +282,9 @@ class Pedido:
     @property
     def package_weight(self) -> float:
         val = getattr(self._order, "package_weight", None)
-        return float(val) if val is not None and float(val) > 0 else 0.3
+        if val is not None and float(val) > 0 and float(val) != 0.3:
+            return float(val)
+        return self.estimated_weight
 
     @property
     def shipping_service_id(self):

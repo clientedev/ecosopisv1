@@ -356,15 +356,27 @@ export default function CarrinhoPage() {
                 try {
                     const reqBody = {
                         dest_cep: cleanCep,
-                        items: cart.map(item => ({
-                            id: item.id.toString(),
-                            width: 16,
-                            height: 12,
-                            length: 20,
-                            weight: 0.3,
-                            price: item.price,
-                            quantity: item.quantity
-                        }))
+                        items: cart.map(item => {
+                            const name = (item.name || "").toLowerCase().trim();
+                            let unitWeight = 0.10;
+                            if (name.includes("sabonete") && (name.includes("líquido") || name.includes("liquido"))) {
+                                unitWeight = 0.30;
+                            } else if (name.includes("sabonete")) {
+                                unitWeight = 0.10;
+                            } else {
+                                unitWeight = 0.10;
+                            }
+                            return {
+                                id: item.id.toString(),
+                                name: item.name,
+                                width: 16,
+                                height: 12,
+                                length: 20,
+                                weight: unitWeight,
+                                price: item.price,
+                                quantity: item.quantity
+                            };
+                        })
                     };
                     const res = await fetch(`/api/shipping/calculate`, {
                         method: "POST",

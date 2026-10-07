@@ -226,6 +226,7 @@ def selecionar_servico(
     valor: float,
     produto_nome: str = "Produto",
     shipping_method: str = "",
+    package_dimensions: Optional[dict] = None,
 ) -> Tuple[int, Optional[int]]:
     """
     Calcula opções de frete e seleciona o melhor serviço viável:
@@ -236,19 +237,25 @@ def selecionar_servico(
     Retorna tupla: (service_id, agency_id)
     """
     cep = cep_destino.replace("-", "").strip()
+    width = (package_dimensions or {}).get("width") or 16.0
+    height = (package_dimensions or {}).get("height") or 12.0
+    length = (package_dimensions or {}).get("length") or 20.0
+    weight = (package_dimensions or {}).get("weight") or 0.3
+
     payload = {
         "from": {"postal_code": CEP_ORIGEM},
         "to": {"postal_code": cep},
-        "products": [{
-            "id": "1",
-            "width": 15,
-            "height": 5,
-            "length": 20,
-            "weight": 1,
-            "insurance_value": max(float(valor), 1.0),
-            "quantity": 1,
-        }],
-        "options": {"receipt": False, "own_hand": False},
+        "package": {
+            "height": round(float(height), 1),
+            "width": round(float(width), 1),
+            "length": round(float(length), 1),
+            "weight": round(float(weight), 3),
+        },
+        "options": {
+            "insurance_value": max(float(valor), 0.01),
+            "receipt": False,
+            "own_hand": False
+        },
     }
 
     resp = _request_with_retry("POST", "/api/v2/me/shipment/calculate", json=payload)
@@ -852,7 +859,11 @@ def processar_envio(
                 logger.info(f"[ENVIO] Usando transportadora/serviço explicitamente selecionado: ID {service_id}")
             else:
                 service_id, agency_id = selecionar_servico(
-                    cep_digits, pedido.valor, pedido.produto_nome, shipping_method=shipping_method
+                    cep_digits,
+                    pedido.valor,
+                    pedido.produto_nome,
+                    shipping_method=shipping_method,
+                    package_dimensions=package_dimensions
                 )
             resultado["service_id"] = service_id
 

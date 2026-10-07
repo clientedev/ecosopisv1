@@ -87,35 +87,63 @@ class MelhorEnvioService:
             "User-Agent": "ECOSOPIS/2.0 (ecosopisartesanais@gmail.com)",
         }
 
+        def _get_item_weight(item: dict) -> float:
+            name = str(item.get("name") or item.get("product_name") or "").lower().strip()
+            qty_mult = 1
+            if "60 unidades" in name or "60 un" in name:
+                qty_mult = 60
+            elif "10 unidades" in name or "10 un" in name:
+                qty_mult = 10
+
+            # Regras de peso aproximado:
+            # - Sabonete líquido: 300 gramas (0.30 kg)
+            # - Sabonete em barra / comum: 100 gramas (0.10 kg)
+            # - Demais produtos: 100 gramas (0.10 kg)
+            if "sabonete" in name and ("líquido" in name or "liquido" in name):
+                unit_w = 0.30
+            elif "sabonete" in name:
+                unit_w = 0.10
+            elif name:
+                unit_w = 0.10
+            else:
+                unit_w = float(item.get("weight") or 0.10)
+
+            return unit_w * qty_mult
+
         total_quantity = sum(item.get("quantity", 1) for item in items)
         total_price = sum(item.get("price", 0) * item.get("quantity", 1) for item in items)
-        total_weight = max(total_quantity * 0.25, 0.3)
+        calculated_weight = sum(_get_item_weight(item) * item.get("quantity", 1) for item in items)
+        total_weight = round(max(calculated_weight, 0.10), 2)
 
-        if total_quantity <= 2:
-            width, height, length = 16, 12, 20
-        elif total_quantity <= 5:
-            width, height, length = 20, 20, 20
+        # Se for um item único com dimensões explícitas passadas (ex: pacote único)
+        if len(items) == 1 and items[0].get("width") and items[0].get("height") and items[0].get("length") and items[0].get("weight") and not items[0].get("name"):
+            width = float(items[0]["width"])
+            height = float(items[0]["height"])
+            length = float(items[0]["length"])
+            total_weight = float(items[0]["weight"])
+            insurance_value = max(float(items[0].get("price") or total_price), 1.0)
         else:
-            width, height, length = 30, 25, 25
+            if total_quantity <= 2:
+                width, height, length = 16, 12, 20
+            elif total_quantity <= 5:
+                width, height, length = 20, 20, 20
+            else:
+                width, height, length = 30, 25, 25
 
-        width = max(width, 16)
-        height = max(height, 12)
-        length = max(length, 20)
-        total_weight = max(total_weight, 0.3)
-        insurance_value = max(total_price, 1.0)
+            width = max(width, 16)
+            height = max(height, 12)
+            length = max(length, 20)
+            insurance_value = max(total_price, 1.0)
 
         payload = {
             "from": {"postal_code": STORE_CEP},
             "to": {"postal_code": clean_dest_cep},
-            "products": [{
-                "id": "envio_ecosopis",
-                "width": width,
-                "height": height,
-                "length": length,
-                "weight": total_weight,
-                "insurance_value": insurance_value,
-                "quantity": 1
-            }],
+            "package": {
+                "height": round(float(height), 1),
+                "width": round(float(width), 1),
+                "length": round(float(length), 1),
+                "weight": round(float(total_weight), 3),
+            },
             "options": {
                 "insurance_value": insurance_value,
                 "receipt": False,

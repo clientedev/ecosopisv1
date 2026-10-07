@@ -19,6 +19,7 @@ router = APIRouter()
 
 class ShippingItem(BaseModel):
     id: Optional[str] = "1"
+    name: Optional[str] = None
     width: float
     height: float
     length: float
@@ -46,11 +47,25 @@ class QuoteOrderPayload(BaseModel):
     package_weight: Optional[float] = None
 
 @router.post("/calculate")
-async def calculate_shipping(request: ShippingRequest):
+async def calculate_shipping(request: ShippingRequest, db: Session = Depends(get_db)):
     """
-    Calcula opções de frete reais via Melhor Envio.
+    Calcula opções de frete reais via Melhor Envio utilizando as regras exatas de produtos:
+    - Sabonete líquido: 300g
+    - Sabonete em barra / comum: 100g
+    - Demais produtos: 100g
     """
-    items_dict = [item.model_dump() for item in request.items]
+    items_dict = []
+    for item in request.items:
+        i_dict = item.model_dump()
+        if not i_dict.get("name") and i_dict.get("id"):
+            try:
+                prod = db.query(models.Product).filter(models.Product.id == int(i_dict["id"])).first()
+                if prod:
+                    i_dict["name"] = prod.name
+            except Exception:
+                pass
+        items_dict.append(i_dict)
+
     options, error = MelhorEnvioService.calculate_shipping(request.dest_cep, items_dict)
     if error and not options:
         if error == "CONEXAO_INDISPONIVEL":
@@ -500,32 +515,71 @@ async def quote_order_shipping(
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
 
     from app.models.pedido import Pedido
+    from app.services.melhorenvio_service import _request_with_retry, CEP_ORIGEM
     pedido = Pedido.from_order(order)
     dest_cep = pedido.cep_cliente
 
     width = (payload.package_width if payload and payload.package_width else getattr(order, "package_width", None)) or 16.0
     height = (payload.package_height if payload and payload.package_height else getattr(order, "package_height", None)) or 12.0
     length = (payload.package_length if payload and payload.package_length else getattr(order, "package_length", None)) or 20.0
-    weight = (payload.package_weight if payload and payload.package_weight else getattr(order, "package_weight", None)) or 0.3
+    
+    # Se package_weight não foi informado ou é o default 0.3 sem personalização, usa o peso estimado aproximado
+    if payload and payload.package_weight and float(payload.package_weight) > 0:
+        weight = float(payload.package_weight)
+    elif getattr(order, "package_weight", None) and float(order.package_weight) > 0 and float(order.package_weight) != 0.3:
+        weight = float(order.package_weight)
+    else:
+        weight = pedido.estimated_weight
 
-    shipping_items = [{
-        "id": "1",
-        "width": float(width),
-        "height": float(height),
-        "length": float(length),
-        "weight": float(weight),
-        "price": float(order.total or 10.0),
-        "quantity": 1
-    }]
+    insurance_val = max(float(pedido.valor or order.total or 10.0), 0.01)
 
-    options, error = MelhorEnvioService.calculate_shipping(dest_cep, shipping_items)
+    quote_payload = {
+        "from": {"postal_code": CEP_ORIGEM},
+        "to": {"postal_code": dest_cep},
+        "package": {
+            "height": round(float(height), 1),
+            "width": round(float(width), 1),
+            "length": round(float(length), 1),
+            "weight": round(float(weight), 3),
+        },
+        "options": {
+            "insurance_value": insurance_val,
+            "receipt": False,
+            "own_hand": False,
+        }
+    }
+
+    try:
+        resp = _request_with_retry("POST", "/api/v2/me/shipment/calculate", json=quote_payload)
+        if resp.status_code == 200:
+            raw_options = resp.json()
+            options = []
+            for opt in raw_options:
+                if not opt.get("error") and (opt.get("price") or opt.get("custom_price")):
+                    price_val = float(opt.get("custom_price") or opt.get("price") or 0)
+                    options.append({
+                        "id": opt.get("id"),
+                        "name": opt.get("name"),
+                        "company": (opt.get("company") or {}).get("name", ""),
+                        "price": price_val,
+                        "delivery_time": opt.get("custom_delivery_time") or opt.get("delivery_time"),
+                        "currency": opt.get("currency", "R$"),
+                    })
+            error = None
+        else:
+            options = []
+            error = f"Erro Melhor Envio ({resp.status_code}): {resp.text[:200]}"
+    except Exception as exc:
+        options = []
+        error = str(exc)
+
     return {
         "dest_cep": dest_cep,
         "width": width,
         "height": height,
         "length": length,
         "weight": weight,
-        "options": options or [],
+        "options": options,
         "error": error
     }
 

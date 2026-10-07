@@ -64,19 +64,48 @@ const CARRIER_SERVICES = [
     { id: 15, name: "Azul Cargo Expresso", badge: "Aéreo Express", company: "Azul", icon: "✈️" },
 ];
 
+const calculateEstimatedWeight = (items: any[]): number => {
+    if (!items || !Array.isArray(items) || items.length === 0) return 0.10;
+    let total = 0;
+    for (const item of items) {
+        const name = String(item.product_name || item.name || "").toLowerCase().trim();
+        let qty = Number(item.quantity) || 1;
+
+        if (name.includes("60 unidades") || name.includes("60 un")) {
+            qty *= 60;
+        } else if (name.includes("10 unidades") || name.includes("10 un")) {
+            qty *= 10;
+        }
+
+        // Regras:
+        // - Sabonete líquido: 300g (0.30 kg)
+        // - Sabonete em barra / comum: 100g (0.10 kg)
+        // - Demais produtos: 100g (0.10 kg)
+        let unitWeight = 0.10;
+        if (name.includes("sabonete") && (name.includes("líquido") || name.includes("liquido"))) {
+            unitWeight = 0.30;
+        } else if (name.includes("sabonete")) {
+            unitWeight = 0.10;
+        } else {
+            unitWeight = 0.10;
+        }
+
+        total += unitWeight * qty;
+    }
+    return Math.max(0.10, Number(total.toFixed(2)));
+};
+
 const getDefaultPackageForOrder = (order: Order): PackageConfig => {
     // 1. Dimensões padrão da loja (20x16x12) ou as já salvas anteriormente
     const length = (order.package_length && Number(order.package_length) > 0) ? Number(order.package_length) : 20;
     const width = (order.package_width && Number(order.package_width) > 0) ? Number(order.package_width) : 16;
     const height = (order.package_height && Number(order.package_height) > 0) ? Number(order.package_height) : 12;
 
-    // Peso padrão: calculado pela quantidade de itens (0.25kg por item, mín 0.30kg) ou o salvo no pedido
-    let calculatedWeight = 0.3;
-    if (order.items && Array.isArray(order.items)) {
-        const totalItemsCount = order.items.reduce((sum: number, item: any) => sum + (Number(item.quantity) || 1), 0);
-        calculatedWeight = Math.max(0.3, Number((totalItemsCount * 0.25).toFixed(2)));
-    }
-    const weight = (order.package_weight && Number(order.package_weight) > 0) ? Number(order.package_weight) : calculatedWeight;
+    // Peso estimado aproximado calculado pelos itens do pedido
+    const estimatedWeight = calculateEstimatedWeight(order.items);
+    const weight = (order.package_weight && Number(order.package_weight) > 0 && Number(order.package_weight) !== 0.3)
+        ? Number(order.package_weight)
+        : estimatedWeight;
 
     // 2. Transportadora pré-selecionada com base na escolha do cliente
     let defaultServiceId = 1;
