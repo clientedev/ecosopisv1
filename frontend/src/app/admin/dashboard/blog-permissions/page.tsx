@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "../dashboard.module.css";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
 interface User {
@@ -88,7 +89,7 @@ export default function BlogPermissions() {
     const admins = users.filter(u => u.role === "admin");
 
     return (
-        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard/blog-permissions" />
             <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
@@ -161,9 +162,9 @@ export default function BlogPermissions() {
                         <tbody>
                             {admins.map(user => (
                                 <tr key={user.id}>
-                                    <td><strong>{user.full_name}</strong></td>
-                                    <td>{user.email}</td>
-                                    <td>
+                                    <td data-label="Nome"><strong>{user.full_name}</strong></td>
+                                    <td data-label="Email">{user.email}</td>
+                                    <td data-label="Status Blog">
                                         <span className={styles.stockBadge} style={{ background: "#2d5a27", color: "#fff", padding: "4px 14px", borderRadius: 20 }}>
                                             ✅ Acesso Total
                                         </span>
@@ -199,12 +200,12 @@ export default function BlogPermissions() {
                             <tbody>
                                 {clientUsers.map(user => (
                                     <tr key={user.id}>
-                                        <td><strong>{user.full_name}</strong></td>
-                                        <td>{user.email}</td>
-                                        <td style={{ color: "#888" }}>
+                                        <td data-label="Nome"><strong>{user.full_name}</strong></td>
+                                        <td data-label="Email">{user.email}</td>
+                                        <td data-label="Cadastro" style={{ color: "#888" }}>
                                             {new Date(user.created_at).toLocaleDateString("pt-BR")}
                                         </td>
-                                        <td>
+                                        <td data-label="Status Blog">
                                             {user.can_post_news ? (
                                                 <span style={{
                                                     background: "#e8f5e9", color: "#2d5a27",
@@ -223,7 +224,7 @@ export default function BlogPermissions() {
                                                 </span>
                                             )}
                                         </td>
-                                        <td>
+                                        <td data-label="Ação">
                                             <button
                                                 onClick={() => togglePermission(user)}
                                                 disabled={toggling === user.id}
@@ -251,6 +252,6 @@ export default function BlogPermissions() {
                     )}
                 </div>
             </main>
-        </div>
+        </AdminLayout>
     );
 }

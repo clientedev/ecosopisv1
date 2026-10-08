@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import styles from "../dashboard.module.css";
 import { Plus, Trash2, Image, Video, Calendar, Eye, Instagram, Loader2, CheckCircle2 } from "lucide-react";
 import InstagramPostEmbed from "@/components/InstagramEmbed/InstagramPostEmbed";
@@ -211,7 +212,7 @@ export default function NovidadesAdmin() {
     };
 
     return (
-        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard/novidades" />
             <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
@@ -275,7 +276,7 @@ export default function NovidadesAdmin() {
                             ) : (
                                 posts.map((post) => (
                                     <tr key={post.id}>
-                                        <td>
+                                        <td data-label="Mídia">
                                             {post.media_url ? (
                                                 isInstagramContent(post.media_url) || post.media_type === 'instagram' ? (
                                                     <div style={{
@@ -331,10 +332,10 @@ export default function NovidadesAdmin() {
                                                 </div>
                                             )}
                                         </td>
-                                        <td>
+                                        <td data-label="Título">
                                             <strong style={{ color: '#1e293b' }}>{post.title}</strong>
                                         </td>
-                                        <td>
+                                        <td data-label="Conteúdo">
                                             <span style={{
                                                 color: '#64748b',
                                                 display: '-webkit-box',
@@ -346,13 +347,13 @@ export default function NovidadesAdmin() {
                                                 {post.content}
                                             </span>
                                         </td>
-                                        <td>
+                                        <td data-label="Data">
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.875rem' }}>
                                                 <Calendar size={14} />
                                                 {formatDate(post.created_at)}
                                             </div>
                                         </td>
-                                        <td>
+                                        <td data-label="Ações">
                                             <div className={styles.actions}>
                                                 <a
                                                     href="/novidades"
@@ -585,6 +586,6 @@ export default function NovidadesAdmin() {
                     </div>
                 )}
             </main>
-        </div>
+        </AdminLayout>
     );
 }

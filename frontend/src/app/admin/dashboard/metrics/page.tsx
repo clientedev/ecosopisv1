@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import styles from "../dashboard.module.css";
 import biStyles from "./metrics.module.css";
 import {
@@ -59,12 +60,14 @@ export default function AdminMetricsPage() {
 
     if (loading && !data) {
         return (
-            <div className={styles.dashboard} style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ textAlign: 'center', color: '#64748b' }}>
-                    <RefreshCw size={36} style={{ margin: '0 auto 1rem auto', color: '#10b981', animation: 'spin 1s linear infinite' }} />
-                    <h2>Carregando Dashboard de BI...</h2>
+            <AdminLayout>
+                <div style={{ flex: 1, minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ textAlign: 'center', color: '#64748b' }}>
+                        <RefreshCw size={36} style={{ margin: '0 auto 1rem auto', color: '#10b981', animation: 'spin 1s linear infinite' }} />
+                        <h2>Carregando Dashboard de BI...</h2>
+                    </div>
                 </div>
-            </div>
+            </AdminLayout>
         );
     }
 
@@ -83,10 +86,10 @@ export default function AdminMetricsPage() {
     const hasLiaRecent = (lia.recent_queries || []).length > 0;
 
     return (
-        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard/metrics" />
 
-            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto', background: '#f8fafc', padding: '1.75rem' }}>
+            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto', background: '#f8fafc' }}>
                 <div className={biStyles.metricsContainer}>
 
                     {/* BI Executive Header */}
@@ -530,6 +533,6 @@ export default function AdminMetricsPage() {
 
                 </div>
             </main>
-        </div>
+        </AdminLayout>
     );
 }

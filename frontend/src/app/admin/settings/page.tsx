@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import styles from "../dashboard/dashboard.module.css";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
 export default function AdminSettings() {
@@ -80,7 +81,7 @@ export default function AdminSettings() {
     };
 
     return (
-        <div className={styles.dashboard} style={{ height: "100vh", overflow: "hidden", display: "flex" }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/settings" />
             <main className={styles.mainContent} style={{ flex: 1, overflowY: "auto" }}>
                 <header className={styles.header}>
@@ -109,7 +110,7 @@ export default function AdminSettings() {
                 {loading ? (
                     <div style={{ padding: "3rem", textAlign: "center", color: "#888" }}>Carregando configurações...</div>
                 ) : (
-                    <div style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem", maxWidth: "680px" }}>
+                    <div style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: "680px" }}>
 
                         {/* Payment Settings */}
                         <div style={{ background: "white", padding: "1.75rem", borderRadius: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #f0f0f0" }}>
@@ -186,7 +187,7 @@ export default function AdminSettings() {
                         {/* Save Button */}
                         <button
                             className="btn-primary"
-                            style={{ alignSelf: "flex-start", padding: "0.85rem 2.5rem", fontSize: "1rem", fontWeight: 700 }}
+                            style={{ padding: "0.85rem 2rem", fontSize: "1rem", fontWeight: 700, width: "100%", maxWidth: "280px" }}
                             onClick={handleSave}
                             disabled={saving}
                         >
@@ -195,6 +196,6 @@ export default function AdminSettings() {
                     </div>
                 )}
             </main>
-        </div>
+        </AdminLayout>
     );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styles from "../dashboard/dashboard.module.css";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import { useTheme, ThemeId } from "@/context/ThemeContext";
 
@@ -224,7 +225,7 @@ export default function AdminTemas() {
     };
 
     return (
-        <div className={styles.dashboard} style={{ height: "100vh", overflow: "hidden", display: "flex" }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/temas" />
 
             <main className={styles.mainContent} style={{ flex: 1, overflowY: "auto" }}>
@@ -252,14 +253,14 @@ export default function AdminTemas() {
                     </div>
                 )}
 
-                <div style={{ padding: "2rem" }}>
+                <div style={{ padding: "1rem" }}>
                     {/* Info banner */}
                     <div style={{
                         background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
                         border: "1px solid #bae6fd",
                         borderRadius: "12px",
-                        padding: "1rem 1.5rem",
-                        marginBottom: "2rem",
+                        padding: "1rem 1.25rem",
+                        marginBottom: "1.5rem",
                         display: "flex",
                         alignItems: "center",
                         gap: "12px",
@@ -277,8 +278,8 @@ export default function AdminTemas() {
                     {/* Theme cards grid */}
                     <div style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-                        gap: "1.5rem",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
+                        gap: "1.25rem",
                     }}>
                         {THEME_DEFINITIONS.map((theme) => {
                             const isActive = currentTheme === theme.id;
@@ -579,6 +580,6 @@ export default function AdminTemas() {
                     }
                 `}</style>
             </main>
-        </div>
+        </AdminLayout>
     );
 }

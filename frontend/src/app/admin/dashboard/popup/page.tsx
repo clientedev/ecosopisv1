@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import styles from "./page.module.css";
 import {
@@ -313,7 +314,7 @@ export default function AdminPopupPage() {
     };
 
     return (
-        <div className={styles.container}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard/popup" />
 
             <main className={styles.main}>
@@ -951,6 +952,6 @@ export default function AdminPopupPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </AdminLayout>
     );
 }

@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import styles from "../dashboard.module.css";
 import { 
     TrendingUp, 
@@ -56,12 +57,12 @@ export default function AdminCRMPage() {
     }, []);
 
     if (loading) return (
-        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard/crm" />
             <main className={styles.mainContent} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ fontSize: '1.2rem', color: '#64748b' }}>Carregando Inteligência de Vendas...</div>
             </main>
-        </div>
+        </AdminLayout>
     );
 
     const stats = [
@@ -97,9 +98,9 @@ export default function AdminCRMPage() {
     })) || [];
 
     return (
-        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard/crm" />
-            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
+            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                     <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>Inteligência de Vendas - CRM</h1>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
@@ -152,10 +153,10 @@ export default function AdminCRMPage() {
                 </div>
 
                 {/* Dashboard Charts Row 1: Sales and Orders (Split) */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '20px', marginBottom: '24px' }}>
                     
                     {/* Revenue Card (Area) */}
-                    <div style={{ background: '#fff', padding: '28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+                    <div style={{ background: '#fff', padding: '1.25rem 1rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
                         <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', fontSize: '1.2rem', fontWeight: 700 }}>
                             <TrendingUp size={22} color="#10b981" /> Faturamento Diário (30 dias)
                         </h3>
@@ -186,7 +187,7 @@ export default function AdminCRMPage() {
                     </div>
 
                     {/* Order Count Card (Bar) */}
-                    <div style={{ background: '#fff', padding: '28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+                    <div style={{ background: '#fff', padding: '1.25rem 1rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
                         <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', fontSize: '1.2rem', fontWeight: 700 }}>
                             <ShoppingBag size={22} color="#3b82f6" /> Volume de Pedidos (30 dias)
                         </h3>
@@ -212,10 +213,10 @@ export default function AdminCRMPage() {
                 </div>
 
                 {/* Dashboard Charts Row 2: Status and Customer Growth */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '20px', marginBottom: '24px' }}>
                     
                     {/* Status Pie Chart */}
-                    <div style={{ background: '#fff', padding: '28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+                    <div style={{ background: '#fff', padding: '1.25rem 1rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
                         <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', fontSize: '1.2rem', fontWeight: 700 }}>
                             <Clock size={22} color="#f59e0b" /> Mix de Status de Pedidos (Total)
                         </h3>
@@ -237,7 +238,7 @@ export default function AdminCRMPage() {
                     </div>
 
                     {/* User Growth Chart */}
-                    <div style={{ background: '#fff', padding: '28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+                    <div style={{ background: '#fff', padding: '1.25rem 1rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
                         <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', fontSize: '1.2rem', fontWeight: 700 }}>
                             <Users size={22} color="#8b5cf6" /> Novos Clientes (30 dias)
                         </h3>
@@ -262,10 +263,10 @@ export default function AdminCRMPage() {
                 </div>
 
                 {/* Dashboard Charts Row 3: Payments and Click Channels */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '20px', marginBottom: '24px' }}>
                     
                     {/* Payments Distribution */}
-                    <div style={{ background: '#fff', padding: '28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+                    <div style={{ background: '#fff', padding: '1.25rem 1rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
                         <h3 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', fontSize: '1.2rem', fontWeight: 700 }}>
                             <DollarSign size={22} color="#10b981" /> Métodos de Pagamento (Pedidos Pagos)
                         </h3>
@@ -353,6 +354,6 @@ export default function AdminCRMPage() {
                     </div>
                 </div>
             </main>
-        </div>
+        </AdminLayout>
     );
 }

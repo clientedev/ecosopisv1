@@ -296,10 +296,9 @@ export default function GlobalPriceAdjustmentPage() {
 
     return (
         <AdminLayout>
-            <div className={styles.container}>
-                <AdminSidebar activePath="/admin/dashboard/precos" />
+            <AdminSidebar activePath="/admin/dashboard/precos" />
 
-                <main className={styles.main}>
+            <main className={styles.main}>
                     {/* Toast Notification */}
                     {toast && (
                         <div className={`${styles.toast} ${toast.type === "success" ? styles.toastSuccess : styles.toastError}`}>
@@ -697,7 +696,6 @@ export default function GlobalPriceAdjustmentPage() {
                         )}
                     </div>
                 </main>
-            </div>
         </AdminLayout>
     );
 }

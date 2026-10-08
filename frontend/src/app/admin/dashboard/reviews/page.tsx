@@ -20,6 +20,7 @@ import {
     X
 } from "lucide-react";
 import { fuzzySearch } from "@/utils/search";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 
 interface ReviewItem {
@@ -427,10 +428,10 @@ export default function AdminReviewsPage() {
     };
 
     return (
-        <div className={styles.dashboard} style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard/reviews" />
 
-            <main className={styles.mainContent} style={{ flex: 1, padding: '32px', overflowY: 'auto', overflowX: 'hidden', height: '100%' }}>
+            <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
                     <div>
                         <h1>Moderação de Avaliações</h1>
@@ -652,23 +653,23 @@ export default function AdminReviewsPage() {
                                             <tbody>
                                                 {group.items.map((rev) => (
                                                     <tr key={rev.id} style={{ opacity: rev.is_approved ? 0.9 : 1 }}>
-                                                        <td>
+                                                        <td data-label="Data">
                                                             <span className={reviewStyles.dateText}>
                                                                 {rev.created_at ? new Date(rev.created_at).toLocaleDateString("pt-BR") : "—"}
                                                             </span>
                                                         </td>
-                                                        <td>
+                                                        <td data-label="Cliente">
                                                             <strong>{rev.user_name}</strong>
                                                         </td>
-                                                        <td>
+                                                        <td data-label="Nota">
                                                             <div className={reviewStyles.stars}>
                                                                 {"★".repeat(rev.rating)}{"☆".repeat(Math.max(0, 5 - rev.rating))}
                                                             </div>
                                                         </td>
-                                                        <td className={reviewStyles.commentCell}>
+                                                        <td data-label="Comentário" className={reviewStyles.commentCell}>
                                                             {rev.comment}
                                                         </td>
-                                                        <td>
+                                                        <td data-label="Fotos">
                                                             {Array.isArray(rev.images) && rev.images.length > 0 ? (
                                                                 <div className={reviewStyles.photoThumbsGrid}>
                                                                     {rev.images.map((imgUrl, i) => (
@@ -692,12 +693,12 @@ export default function AdminReviewsPage() {
                                                                 <span className={reviewStyles.noPhotosText}>Sem fotos</span>
                                                             )}
                                                         </td>
-                                                        <td>
+                                                        <td data-label="Status">
                                                             <span className={rev.is_approved ? reviewStyles.statusApproved : reviewStyles.statusPending}>
                                                                 {rev.is_approved ? "Aprovada" : "Pendente"}
                                                             </span>
                                                         </td>
-                                                        <td>
+                                                        <td data-label="Ações">
                                                             <div className={styles.actions}>
                                                                 {!rev.is_approved && (
                                                                     <button
@@ -928,6 +929,6 @@ export default function AdminReviewsPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </AdminLayout>
     );
 }

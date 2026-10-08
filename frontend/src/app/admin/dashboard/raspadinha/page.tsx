@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import styles from "./raspadinha.module.css";
 import dashboardStyles from "../dashboard.module.css";
@@ -127,10 +128,10 @@ export default function AdminRaspadinhaPage() {
   };
 
   return (
-    <div className={dashboardStyles.dashboard} style={{ height: "100vh", overflow: "hidden", display: "flex" }}>
+    <AdminLayout>
       <AdminSidebar activePath="/admin/dashboard/raspadinha" />
       
-      <main className={dashboardStyles.mainContent} style={{ flex: 1, overflowY: "auto", padding: "2rem" }}>
+      <main className={dashboardStyles.mainContent} style={{ flex: 1, overflowY: "auto" }}>
         <div className={styles.header}>
           <h1>
             <Sparkles size={28} color="#4a7c59" /> Raspadinha de Boas-vindas
@@ -279,21 +280,21 @@ export default function AdminRaspadinhaPage() {
                   <tbody>
                     {history.map((item) => (
                       <tr key={item.id}>
-                        <td>
+                        <td data-label="Usuário">
                           <strong>{item.user?.full_name || "Usuário"}</strong>
                           <br />
                           <small style={{ color: "#64748b" }}>{item.user?.email}</small>
                         </td>
-                        <td>
+                        <td data-label="Tipo">
                           <span className={styles.typeBadge}>
                             {formatRewardTypeLabel(item.reward_type)}
                           </span>
                         </td>
-                        <td>{formatRewardValueDisplay(item.reward_type, item.reward_value)}</td>
-                        <td>
+                        <td data-label="Valor">{formatRewardValueDisplay(item.reward_type, item.reward_value)}</td>
+                        <td data-label="Cupom">
                           <span className={styles.codeBadge}>{item.coupon_code}</span>
                         </td>
-                        <td>
+                        <td data-label="Data">
                           {new Date(item.created_at).toLocaleDateString("pt-BR", {
                             day: "2-digit",
                             month: "2-digit",
@@ -309,6 +310,6 @@ export default function AdminRaspadinhaPage() {
           </div>
         </div>
       </main>
-    </div>
+    </AdminLayout>
   );
 }

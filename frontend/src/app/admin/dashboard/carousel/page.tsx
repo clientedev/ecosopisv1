@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import styles from "../dashboard.module.css";
 import EditCarouselModal from "./EditCarouselModal";
 import EditStoryModal from "./EditStoryModal";
@@ -219,7 +220,7 @@ export default function CarouselAdmin() {
     };
 
     return (
-        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard/carousel" />
             <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
@@ -253,17 +254,10 @@ export default function CarouselAdmin() {
                                     onDragStart={(e) => handleDragStart(e, index)}
                                     onDragOver={(e) => handleDragOver(e, index)}
                                     onDragEnd={handleDragEnd}
+                                    className={styles.bannerRowCard}
                                     style={{
-                                        background: 'white',
-                                        border: draggedIndex === index ? '1px dashed #10b981' : '1px solid #e5e7eb',
-                                        borderRadius: '12px',
-                                        overflow: 'hidden',
-                                        display: 'flex',
-                                        alignItems: 'stretch',
-                                        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                                        border: draggedIndex === index ? '1px dashed #10b981' : undefined,
                                         opacity: draggedIndex === index ? 0.4 : (item.is_active === false ? 0.65 : 1),
-                                        transition: 'opacity 0.2s, border-color 0.2s',
-                                        cursor: 'grab',
                                     }}
                                 >
                                     {/* Drag Handle */}
@@ -280,7 +274,7 @@ export default function CarouselAdmin() {
                                         <GripVertical size={20} />
                                     </div>
                                     {/* Image Thumbnail */}
-                                    <div style={{ width: '160px', minWidth: '160px', height: '90px', position: 'relative', overflow: 'hidden', background: '#f3f4f6' }}>
+                                    <div className={styles.bannerThumbWrap}>
                                         {(item.image_url || item.mobile_image_url) ? (
                                             <img
                                                 src={item.image_url || item.mobile_image_url}
@@ -332,7 +326,7 @@ export default function CarouselAdmin() {
                                     </div>
 
                                     {/* Actions */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', borderLeft: '1px solid #f1f5f9' }}>
+                                    <div className={styles.bannerCardActions}>
                                         <button
                                             onClick={() => toggleActive(item)}
                                             style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', background: item.is_active === false ? '#f0fdf4' : '#fff5f5', color: item.is_active === false ? '#10b981' : '#ef4444', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer' }}
@@ -474,20 +468,12 @@ export default function CarouselAdmin() {
                                 return (
                                     <div
                                         key={story.id || index}
+                                        className={styles.storyRowCard}
                                         style={{
-                                            background: 'white',
-                                            border: '1px solid #e5e7eb',
-                                            borderRadius: '12px',
-                                            padding: '12px 16px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            gap: '16px',
-                                            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                                             opacity: story.is_active === false ? 0.6 : 1
                                         }}
                                     >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0, flex: 1 }}>
                                             {/* Bolinha Preview */}
                                             <div style={{
                                                 width: '56px',
@@ -532,8 +518,8 @@ export default function CarouselAdmin() {
                                             </div>
 
                                             {/* Detalhes */}
-                                            <div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                                            <div style={{ minWidth: 0, flex: 1 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' }}>
                                                     <strong style={{ fontSize: '0.95rem', color: '#1e293b' }}>
                                                         {story.title}
                                                     </strong>
@@ -572,7 +558,7 @@ export default function CarouselAdmin() {
                                         </div>
 
                                         {/* Botões */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div className={styles.storyActionsWrap}>
                                             {/* Reordenação */}
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                                 <button
@@ -684,6 +670,6 @@ export default function CarouselAdmin() {
                     />
                 )}
             </main>
-        </div>
+        </AdminLayout>
     );
 }

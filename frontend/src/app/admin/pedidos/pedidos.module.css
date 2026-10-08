@@ -585,6 +585,37 @@
 }
 
 @media (max-width: 860px) {
+  .mainContainer {
+    padding: 1rem;
+    overflow-y: visible;
+  }
+  .headerRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1.25rem 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .filtersRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .searchSection {
+    min-width: 100%;
+    width: 100%;
+  }
+  .filterTabs {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .filterBtn {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
   .orderDetailGrid {
     grid-template-columns: 1fr;
     gap: 1.25rem;
@@ -592,6 +623,8 @@
   .orderRowHeader {
     padding: 1rem;
     gap: 0.75rem;
+    flex-direction: column;
+    align-items: stretch;
   }
   .orderMainInfo {
     width: 100%;
@@ -623,5 +656,8 @@
   }
   .orderIdBox strong {
     font-size: 0.95rem;
+  }
+  .mainContainer {
+    padding: 0.75rem;
   }
 }

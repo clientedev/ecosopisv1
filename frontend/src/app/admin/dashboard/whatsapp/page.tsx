@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminSidebar from '@/components/AdminSidebar/AdminSidebar';
+import AdminLayout from '@/components/AdminLayout/AdminLayout';
 import styles from './whatsapp.module.css';
 import {
   MessageSquare,
@@ -729,7 +730,7 @@ export default function AdminWhatsAppPage() {
   };
 
   return (
-    <div className={styles.whatsappContainer}>
+    <AdminLayout>
       <AdminSidebar activePath="/admin/dashboard/whatsapp" />
 
       <main className={styles.contentWrapper}>
@@ -1800,6 +1801,6 @@ export default function AdminWhatsAppPage() {
           </div>
         )}
       </main>
-    </div>
+    </AdminLayout>
   );
 }

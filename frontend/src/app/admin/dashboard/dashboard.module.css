@@ -182,6 +182,15 @@
 @media (max-width: 768px) {
     .productTable {
         border-radius: 0.75rem;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        overflow-x: visible;
+    }
+
+    .productTable table {
+        min-width: 0 !important;
+        width: 100% !important;
     }
 
     .productTable table,
@@ -202,31 +211,37 @@
 
     .productTable tr {
         border: 1px solid #e2e8f0;
-        border-radius: 0.75rem;
-        margin: 0.75rem;
-        padding: 0.75rem;
+        border-radius: 1rem;
+        margin: 0.75rem 0 1rem 0;
+        padding: 1rem;
         background: white;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
     }
 
     .productTable td {
-        padding: 0.4rem 0.5rem;
+        padding: 0.45rem 0;
         border: none;
         border-bottom: 1px solid #f1f5f9;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 0.85rem;
+        font-size: 0.88rem;
+        min-height: 38px;
     }
 
     .productTable td:last-child {
         border-bottom: none;
+        padding-top: 0.75rem;
+        margin-top: 0.25rem;
     }
 
     .productTable td::before {
         content: attr(data-label);
         font-weight: 700;
-        font-size: 0.7rem;
+        font-size: 0.72rem;
         color: #64748b;
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -235,14 +250,26 @@
     }
 
     .actions {
+        width: 100%;
+        display: flex;
         flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 0.375rem;
+        justify-content: stretch;
+        gap: 0.5rem;
+    }
+
+    .actions > * {
+        flex: 1 1 calc(50% - 0.5rem);
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
     }
 
     .editBtn, .deleteBtn {
-        font-size: 0.75rem;
-        padding: 0.375rem 0.6rem;
+        font-size: 0.82rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
     }
 }
 
@@ -839,5 +866,154 @@
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Mobile Modal & Form Overrides ── */
+@media (max-width: 768px) {
+    .modalOverlay {
+        padding: 0;
+        align-items: flex-end;
+        z-index: 1000;
+    }
+
+    .modalContent {
+        padding: 1.25rem 1rem 2rem;
+        border-radius: 1.5rem 1.5rem 0 0;
+        max-height: 90vh;
+        width: 100%;
+        max-width: 100vw;
+    }
+
+    .formGrid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+
+    .formActions {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        width: 100%;
+    }
+
+    .formActions button,
+    .formActions .cancelBtn,
+    .formActions .btn-primary {
+        width: 100%;
+        min-height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+    }
+
+    .imagePreviewGrid {
+        grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.85rem;
+    }
+
+    .header > div {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .header > div > * {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ── Carousel & Banner Cards ── */
+.bannerRowCard {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    transition: opacity 0.2s, border-color 0.2s;
+    cursor: grab;
+}
+
+.bannerThumbWrap {
+    width: 160px;
+    min-width: 160px;
+    height: 90px;
+    position: relative;
+    overflow: hidden;
+    background: #f3f4f6;
+}
+
+.bannerCardActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-left: 1px solid #f1f5f9;
+}
+
+.storyRowCard {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.storyActionsWrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+@media (max-width: 768px) {
+    .bannerRowCard {
+        flex-direction: column;
+    }
+    .bannerThumbWrap {
+        width: 100% !important;
+        min-width: 100% !important;
+        height: 150px !important;
+    }
+    .bannerCardActions {
+        border-left: none !important;
+        border-top: 1px solid #f1f5f9;
+        flex-wrap: wrap;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .bannerCardActions > button {
+        flex: 1;
+        min-height: 40px;
+        text-align: center;
+        justify-content: center;
+    }
+    .storyRowCard {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .storyActionsWrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 10px;
+    }
+}
+
 
 

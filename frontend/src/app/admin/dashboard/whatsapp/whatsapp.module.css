@@ -13,6 +13,16 @@
   overflow-y: auto;
 }
 
+@media (max-width: 768px) {
+  .contentWrapper {
+    padding: 1rem 0.75rem 2rem;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-y: visible;
+  }
+}
+
 /* ─── HEADER ─── */
 .headerSection {
   display: flex;
@@ -1130,7 +1140,7 @@
   inset: 0;
   background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(4px);
-  z-index: 100;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1244,4 +1254,76 @@
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* ── Mobile UI/UX Overrides ── */
+@media (max-width: 768px) {
+  .headerSection {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .tabsContainer {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    gap: 6px;
+  }
+
+  .tabButton {
+    padding: 10px 14px;
+    font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .card {
+    padding: 1.25rem 1rem;
+    border-radius: 16px;
+  }
+
+  .qrCodeContainer {
+    padding: 10px;
+    max-width: 100%;
+  }
+
+  .qrImage {
+    width: 220px;
+    height: 220px;
+    max-width: 100%;
+  }
+
+  .modalBackdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modalContent {
+    max-height: 90vh;
+    border-radius: 20px 20px 0 0;
+    max-width: 100vw;
+  }
+
+  .modalHeader {
+    padding: 16px 18px;
+  }
+
+  .modalBody {
+    padding: 16px 18px;
+    gap: 14px;
+  }
+
+  .modalFooter {
+    padding: 14px 18px 24px;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .modalFooter > * {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
 }

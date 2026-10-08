@@ -122,6 +122,18 @@ export default function AdminSidebar({ activePath }: AdminSidebarProps) {
         setMobileOpen(false);
     }, [activePath]);
 
+    // Lock body scroll on mobile when drawer is open
+    useEffect(() => {
+        if (mobileOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [mobileOpen]);
+
     const handleLogout = () => {
         localStorage.removeItem("token");
         router.push("/admin");

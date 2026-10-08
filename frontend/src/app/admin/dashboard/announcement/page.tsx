@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import styles from "../dashboard.module.css";
 import { Save } from "lucide-react";
@@ -82,7 +83,7 @@ export default function AdminAnnouncementPage() {
     );
 
     return (
-        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard/announcement" />
             <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
@@ -105,7 +106,7 @@ export default function AdminAnnouncementPage() {
                         </p>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div className={styles.formGrid}>
                         <div className={styles.formGroup}>
                             <label>Cor de Fundo</label>
                             <input
@@ -197,6 +198,6 @@ export default function AdminAnnouncementPage() {
                     </button>
                 </form>
             </main>
-        </div>
+        </AdminLayout>
     );
 }

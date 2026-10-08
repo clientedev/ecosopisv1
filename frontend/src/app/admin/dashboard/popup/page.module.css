@@ -1,21 +1,4 @@
 /* Page Layout */
-.container {
-    display: flex;
-    height: 100vh;
-    background-color: #f8fafc;
-    overflow: hidden;
-}
-
-@media (max-width: 768px) {
-    .container {
-        flex-direction: column;
-        height: auto;
-        min-height: 100vh;
-        overflow: visible;
-        padding-top: 56px;
-    }
-}
-
 .main {
     flex: 1;
     padding: 2.5rem;
@@ -25,7 +8,7 @@
 
 @media (max-width: 768px) {
     .main {
-        padding: 1.25rem;
+        padding: 1rem;
         height: auto;
         overflow-y: visible;
     }

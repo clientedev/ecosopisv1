@@ -6,6 +6,7 @@ import styles from "../dashboard.module.css";
 import { Mail, Upload, X, Send, Loader2 } from "lucide-react";
 
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 
 export default function UserManagement() {
     const [users, setUsers] = useState<any[]>([]);
@@ -194,7 +195,7 @@ export default function UserManagement() {
     };
 
     return (
-        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard/usuarios" />
             <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
@@ -449,6 +450,6 @@ export default function UserManagement() {
                     </table>
                 </div>
             </main>
-        </div>
+        </AdminLayout>
     );
 }

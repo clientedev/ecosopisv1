@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "../dashboard.module.css";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 
 export default function CouponManagement() {
     const [coupons, setCoupons] = useState([]);
@@ -103,7 +104,7 @@ export default function CouponManagement() {
     };
 
     return (
-        <div className={styles.dashboard} style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard/cupons" />
             <main className={styles.mainContent} style={{ flex: 1, overflowY: 'auto' }}>
                 <header className={styles.header}>
@@ -126,16 +127,16 @@ export default function CouponManagement() {
                         <tbody>
                             {coupons.map((c: any) => (
                                 <tr key={c.id}>
-                                    <td><strong>{c.code}</strong></td>
-                                    <td>
+                                    <td data-label="Código"><strong>{c.code}</strong></td>
+                                    <td data-label="Desconto">
                                         {c.discount_type === 'percentage' ? `${c.discount_value}%` : 
                                          c.discount_type === 'free_shipping' ? '🚚 Frete Grátis' : 
                                          `R$ ${c.discount_value}`}
                                     </td>
-                                    <td>R$ {c.min_purchase_value}</td>
-                                    <td>{c.usage_count} / {c.usage_limit || '∞'}</td>
-                                    <td>{c.valid_until ? new Date(c.valid_until).toLocaleDateString() : 'N/A'}</td>
-                                    <td>
+                                    <td data-label="Min. Compra">R$ {c.min_purchase_value}</td>
+                                    <td data-label="Uso">{c.usage_count} / {c.usage_limit || '∞'}</td>
+                                    <td data-label="Expiração">{c.valid_until ? new Date(c.valid_until).toLocaleDateString() : 'N/A'}</td>
+                                    <td data-label="Ações">
                                         <button className={styles.deleteBtn} onClick={() => handleDeleteCoupon(c.id)}>Remover</button>
                                     </td>
                                 </tr>
@@ -228,6 +229,6 @@ export default function CouponManagement() {
                     </div>
                 )}
             </main>
-        </div>
+        </AdminLayout>
     );
 }

@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import styles from "../../dashboard.module.css";
+import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
+import { ArrowLeft, User, Mail, ShoppingBag, Calendar } from "lucide-react";
 
 export default function UserProfileAdmin() {
     const [user, setUser] = useState<any>(null);
@@ -32,41 +35,62 @@ export default function UserProfileAdmin() {
         fetchUserProfile();
     }, [params.id, router]);
 
-    if (loading) return <div className={styles.mainContent}>Carregando...</div>;
-    if (!user) return <div className={styles.mainContent}>Usuário não encontrado</div>;
+    if (loading) return (
+        <AdminLayout>
+            <AdminSidebar activePath="/admin/dashboard/usuarios" />
+            <main className={styles.mainContent} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ color: '#64748b', fontSize: '1.1rem' }}>Carregando dados do usuário...</p>
+            </main>
+        </AdminLayout>
+    );
+
+    if (!user) return (
+        <AdminLayout>
+            <AdminSidebar activePath="/admin/dashboard/usuarios" />
+            <main className={styles.mainContent} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ color: '#ef4444' }}>Usuário não encontrado.</p>
+            </main>
+        </AdminLayout>
+    );
 
     return (
-        <div className={styles.dashboard}>
-            <aside className={styles.sidebar}>
-                <div className={styles.logo}>ECOSOPIS ADMIN</div>
-                <nav>
-                    <Link href="/admin/dashboard">Produtos</Link>
-                    <Link href="/admin/dashboard/usuarios" className={styles.active}>Usuários</Link>
-                    <Link href="/">Ver Site</Link>
-                </nav>
-            </aside>
+        <AdminLayout>
+            <AdminSidebar activePath="/admin/dashboard/usuarios" />
             <main className={styles.mainContent}>
                 <header className={styles.header}>
-                    <h1>Perfil do Cliente: {user.full_name}</h1>
-                    <Link href="/admin/dashboard/usuarios" className={styles.editBtn}>Voltar</Link>
+                    <div>
+                        <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <User size={24} color="#2d5a27" /> Perfil: {user.full_name}
+                        </h1>
+                        <p style={{ color: '#64748b', margin: '4px 0 0', fontSize: '0.9rem' }}>
+                            Visualização detalhada e histórico de compras do cliente.
+                        </p>
+                    </div>
+                    <Link 
+                        href="/admin/dashboard/usuarios" 
+                        className={styles.editBtn}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+                    >
+                        <ArrowLeft size={16} /> Voltar para Usuários
+                    </Link>
                 </header>
 
                 <div className={styles.stats}>
                     <div className={styles.statCard}>
-                        <h3>Email</h3>
-                        <p style={{ fontSize: '1.2rem' }}>{user.email}</p>
+                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Mail size={16} /> Email</h3>
+                        <p style={{ fontSize: '1.05rem', wordBreak: 'break-all', marginTop: '6px' }}>{user.email}</p>
                     </div>
                     <div className={styles.statCard}>
-                        <h3>Total de Pedidos</h3>
-                        <p>{user.orders?.length || 0}</p>
+                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><ShoppingBag size={16} /> Total de Pedidos</h3>
+                        <p style={{ fontSize: '1.8rem', marginTop: '6px' }}>{user.orders?.length || 0}</p>
                     </div>
                     <div className={styles.statCard}>
-                        <h3>Data de Cadastro</h3>
-                        <p style={{ fontSize: '1.2rem' }}>{new Date(user.created_at).toLocaleDateString('pt-BR')}</p>
+                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Calendar size={16} /> Data de Cadastro</h3>
+                        <p style={{ fontSize: '1.05rem', marginTop: '6px' }}>{new Date(user.created_at).toLocaleDateString('pt-BR')}</p>
                     </div>
                 </div>
 
-                <h2 style={{ margin: '2rem 0 1rem', color: '#1e293b' }}>Histórico de Compras</h2>
+                <h2 style={{ margin: '2rem 0 1rem', color: '#1e293b', fontSize: '1.3rem' }}>Histórico de Compras</h2>
                 <div className={styles.productTable}>
                     <table>
                         <thead>
@@ -81,17 +105,17 @@ export default function UserProfileAdmin() {
                         <tbody>
                             {user.orders?.map((order: any) => (
                                 <tr key={order.id}>
-                                    <td>#{order.id}</td>
-                                    <td>{new Date(order.created_at).toLocaleDateString('pt-BR')}</td>
-                                    <td>
+                                    <td data-label="Pedido ID"><strong>#{order.id}</strong></td>
+                                    <td data-label="Data">{new Date(order.created_at).toLocaleDateString('pt-BR')}</td>
+                                    <td data-label="Status">
                                         <span className={`${styles.stockBadge} ${styles.stockOk}`}>
                                             {order.status}
                                         </span>
                                     </td>
-                                    <td><span className={styles.priceTag}>R$ {order.total.toFixed(2)}</span></td>
-                                    <td>
-                                        {order.items.map((item: any, idx: number) => (
-                                            <div key={idx} style={{ fontSize: '0.8rem' }}>
+                                    <td data-label="Total"><span className={styles.priceTag}>R$ {order.total.toFixed(2)}</span></td>
+                                    <td data-label="Itens">
+                                        {order.items?.map((item: any, idx: number) => (
+                                            <div key={idx} style={{ fontSize: '0.85rem' }}>
                                                 {item.quantity}x {item.product_name}
                                             </div>
                                         ))}
@@ -109,6 +133,6 @@ export default function UserProfileAdmin() {
                     </table>
                 </div>
             </main>
-        </div>
+        </AdminLayout>
     );
 }

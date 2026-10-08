@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import styles from "./branding.module.css";
 import { Palette, Save, RefreshCw, Eye, CheckCircle2 } from "lucide-react";
@@ -108,7 +109,7 @@ export default function BrandingPage() {
     if (loading) return <div className={styles.loading}>Carregando configurações...</div>;
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        <AdminLayout>
             <AdminSidebar activePath="/admin/dashboard/branding" />
             
             <main style={{ flex: 1, overflowY: 'auto' }}>
@@ -323,6 +324,6 @@ export default function BrandingPage() {
                     animation: spin 1s linear infinite;
                 }
             `}</style>
-        </div>
+        </AdminLayout>
     );
 }
