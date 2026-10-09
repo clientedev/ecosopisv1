@@ -34,7 +34,8 @@ import {
   ArrowRight,
   ExternalLink,
   Smartphone,
-  Eye
+  Eye,
+  Trash2
 } from 'lucide-react';
 
 interface WhatsAppStatus {
@@ -645,6 +646,25 @@ export default function AdminWhatsAppPage() {
       );
     }
     setCartModalOpen(true);
+  };
+
+  const handleDeleteAbandonedCart = async (userId: number) => {
+    if (!confirm('Deseja realmente excluir este carrinho abandonado?')) return;
+    try {
+      const res = await fetch(`/api/whatsapp/abandoned-carts?user_id=${userId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setAlert({ type: 'success', text: 'Carrinho abandonado excluído com sucesso!' });
+        setCartModalOpen(false);
+        setSingleCartTarget(null);
+        await fetchAbandonedCarts();
+      } else {
+        setAlert({ type: 'error', text: 'Falha ao excluir carrinho.' });
+      }
+    } catch {
+      setAlert({ type: 'error', text: 'Erro ao se comunicar com o servidor.' });
+    }
   };
 
   const handleSendCartRecovery = async () => {
@@ -1499,15 +1519,26 @@ export default function AdminWhatsAppPage() {
                           </span>
                         </div>
 
-                        <button
-                          onClick={() => openCartModal(cart)}
-                          disabled={!cart.has_phone || statusData.status !== 'CONNECTED'}
-                          className={styles.btnPrimaryGreen}
-                          style={{ fontSize: 12, padding: '8px 16px' }}
-                        >
-                          <Send size={13} />
-                          Recuperar WhatsApp
-                        </button>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAbandonedCart(cart.user_id)}
+                            className={styles.modalCloseBtn}
+                            style={{ color: '#ef4444', border: '1px solid #fee2e2', borderRadius: 8, padding: '7px 9px', background: '#fef2f2' }}
+                            title="Excluir este carrinho abandonado"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => openCartModal(cart)}
+                            disabled={!cart.has_phone || statusData.status !== 'CONNECTED'}
+                            className={styles.btnPrimaryGreen}
+                            style={{ fontSize: 12, padding: '8px 16px' }}
+                          >
+                            <Send size={13} />
+                            Recuperar WhatsApp
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1704,9 +1735,22 @@ export default function AdminWhatsAppPage() {
                   <ShoppingCart size={20} color="#25d366" />
                   {singleCartTarget ? `Recuperar Carrinho de ${singleCartTarget.name}` : `Disparo para ${selectedCartUserIds.length} Carrinhos`}
                 </h3>
-                <button onClick={() => setCartModalOpen(false)} className={styles.modalCloseBtn}>
-                  <X size={18} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {singleCartTarget && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAbandonedCart(singleCartTarget.user_id)}
+                      className={styles.modalCloseBtn}
+                      style={{ color: '#ef4444' }}
+                      title="Excluir este carrinho abandonado"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                  <button onClick={() => setCartModalOpen(false)} className={styles.modalCloseBtn} title="Fechar">
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
 
               <div className={styles.modalBody}>

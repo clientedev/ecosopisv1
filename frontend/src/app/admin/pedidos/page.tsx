@@ -7,7 +7,7 @@ import {
     Package, CheckCircle, Truck, Clock, Download,
     ChevronDown, ChevronUp, XCircle, RefreshCw, Search,
     AlertTriangle, ExternalLink, Tag, Loader2, Copy, MapPin,
-    PlusCircle, ShoppingBag, X
+    PlusCircle, ShoppingBag, X, Trash2
 } from "lucide-react";
 import pedidoStyles from "./pedidos.module.css";
 import { fuzzySearch } from "@/utils/search";
@@ -230,6 +230,8 @@ export default function AdminPedidosPage() {
     const [quotes, setQuotes] = useState<Record<number, any[]>>({});
     const [shippingModalOrder, setShippingModalOrder] = useState<Order | null>(null);
     const [modalPackage, setModalPackage] = useState<PackageConfig | null>(null);
+    const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+    const [deletingOrder, setDeletingOrder] = useState<number | null>(null);
 
     const getPackageForm = (order: Order): PackageConfig => {
         if (packageForms[order.id]) {
@@ -676,6 +678,39 @@ export default function AdminPedidosPage() {
         }
     };
 
+    const handleDeleteOrder = async (orderId: number) => {
+        setDeletingOrder(orderId);
+        try {
+            const res = await authFetch(`/api/orders/${orderId}`, {
+                method: "DELETE"
+            });
+            if (res.ok) {
+                setOrders(prev => prev.filter(o => o.id !== orderId));
+                setOrderToDelete(null);
+                setNotification({
+                    type: "success",
+                    title: "Carrinho excluído com sucesso!",
+                    message: `O pedido/carrinho #${orderId} foi removido permanentemente do sistema.`
+                });
+            } else {
+                const err = await res.json().catch(() => ({}));
+                setNotification({
+                    type: "error",
+                    title: "Erro ao excluir carrinho",
+                    message: err.detail || "Não foi possível excluir o carrinho do banco de dados."
+                });
+            }
+        } catch {
+            setNotification({
+                type: "error",
+                title: "Erro de conexão",
+                message: "Falha na comunicação ao tentar excluir o carrinho."
+            });
+        } finally {
+            setDeletingOrder(null);
+        }
+    };
+
     const updateStatus = async (orderId: number, newStatus: string) => {
         setUpdatingStatus(orderId);
         try {
@@ -995,14 +1030,18 @@ export default function AdminPedidosPage() {
                 <header className={pedidoStyles.headerRow}>
                     <div className={pedidoStyles.titleSection}>
                         <div className={pedidoStyles.titleIcon}>
-                            <Package size={26} color="white" strokeWidth={1.8} />
+                            <Package size={28} color="white" strokeWidth={1.8} />
                         </div>
                         <div className={pedidoStyles.titleText}>
+                            <div className={pedidoStyles.headerBadge}>
+                                <span className={pedidoStyles.pulseDot} />
+                                <span>Operações & Expedição • Ecosopis Admin</span>
+                            </div>
                             <h1>Gestão de Pedidos</h1>
-                            <p>Gerencie vendas e gere etiquetas via Melhor Envio.</p>
+                            <p>Controle operacional de vendas, rastreamento inteligente via Melhor Envio e checkout em tempo real.</p>
                         </div>
                     </div>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    <div className={pedidoStyles.headerActionGroup}>
                         <button 
                             onClick={() => setShowExternalModal(true)} 
                             className={pedidoStyles.btnAction}
@@ -1165,6 +1204,19 @@ export default function AdminPedidosPage() {
                                             <div className={pedidoStyles.badge} style={{ background: `${statusInfo.color}15`, color: statusInfo.color, border: `1px solid ${statusInfo.color}30` }}>
                                                 <StatusIcon size={14} /> {statusInfo.label}
                                             </div>
+                                            {order.status === "pending" && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setOrderToDelete(order);
+                                                    }}
+                                                    className={pedidoStyles.btnTrashQuick}
+                                                    title="Excluir este carrinho"
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
+                                            )}
                                             <div style={{ color: "#cbd5e1" }}>
                                                 {isExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
                                             </div>
@@ -1598,6 +1650,18 @@ export default function AdminPedidosPage() {
                                                     </button>
                                                 )}
 
+
+                                                {/* Excluir Carrinho Pendente */}
+                                                {order.status === "pending" && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setOrderToDelete(order)}
+                                                        className={`${pedidoStyles.btnAction} ${pedidoStyles.btnDanger}`}
+                                                        title="Excluir permanentemente este carrinho não finalizado"
+                                                    >
+                                                        <Trash2 size={14} /> Excluir Carrinho
+                                                    </button>
+                                                )}
 
                                                 {/* Transições de Status */}
                                                 {transitions.map(ns => {
@@ -2041,7 +2105,34 @@ export default function AdminPedidosPage() {
                                 </div>
 
                                 {/* Ações do Modal */}
-                                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "4px" }}>
+                                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "10px", marginTop: "4px" }}>
+                                    {order.status === "pending" && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const ord = order;
+                                                closeShippingModal();
+                                                setOrderToDelete(ord);
+                                            }}
+                                            style={{
+                                                padding: "0.6rem 0.9rem",
+                                                borderRadius: "8px",
+                                                border: "1px solid #fecaca",
+                                                background: "#fef2f2",
+                                                color: "#dc2626",
+                                                fontWeight: 600,
+                                                cursor: "pointer",
+                                                fontSize: "0.85rem",
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                gap: "6px",
+                                                marginRight: "auto"
+                                            }}
+                                            title="Excluir este carrinho permanentemente"
+                                        >
+                                            <Trash2 size={15} /> Excluir Carrinho
+                                        </button>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={closeShippingModal}
@@ -2091,6 +2182,95 @@ export default function AdminPedidosPage() {
                         </div>
                     );
                 })()}
+
+                {/* ── Modal de Exclusão de Carrinho ── */}
+                {orderToDelete && (
+                    <div className={pedidoStyles.modalOverlay} onClick={() => !deletingOrder && setOrderToDelete(null)}>
+                        <div className={pedidoStyles.modalCard} onClick={(e) => e.stopPropagation()}>
+                            <div className={pedidoStyles.deleteModalHeader}>
+                                <div className={pedidoStyles.deleteModalIconBox}>
+                                    <Trash2 size={24} color="#dc2626" />
+                                </div>
+                                <div>
+                                    <h3 className={pedidoStyles.deleteModalTitle}>Excluir Carrinho #{orderToDelete.id}</h3>
+                                    <p className={pedidoStyles.deleteModalSubtitle}>Remover permanentemente este carrinho do banco de dados.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => !deletingOrder && setOrderToDelete(null)}
+                                    className={pedidoStyles.modalCloseBtn}
+                                    title="Fechar"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <div className={pedidoStyles.deleteModalBody}>
+                                <div className={pedidoStyles.deleteCartSummary}>
+                                    <div className={pedidoStyles.deleteCartRow}>
+                                        <span>Cliente:</span>
+                                        <strong>{orderToDelete.buyer_name || orderToDelete.customer_name || "Cliente não identificado"}</strong>
+                                    </div>
+                                    <div className={pedidoStyles.deleteCartRow}>
+                                        <span>E-mail:</span>
+                                        <span>{orderToDelete.buyer_email || orderToDelete.customer_email || "Não informado"}</span>
+                                    </div>
+                                    <div className={pedidoStyles.deleteCartRow}>
+                                        <span>Valor Total:</span>
+                                        <strong style={{ color: "#059669" }}>R$ {Number(orderToDelete.total || 0).toFixed(2).replace(".", ",")}</strong>
+                                    </div>
+                                    <div className={pedidoStyles.deleteCartRow}>
+                                        <span>Data:</span>
+                                        <span>{orderToDelete.created_at ? new Date(orderToDelete.created_at).toLocaleString("pt-BR") : "—"}</span>
+                                    </div>
+                                    {orderToDelete.items && orderToDelete.items.length > 0 && (
+                                        <div style={{ marginTop: "6px", paddingTop: "6px", borderTop: "1px dashed #e2e8f0" }}>
+                                            <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Itens:</span>
+                                            <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginTop: "4px" }}>
+                                                {orderToDelete.items.slice(0, 3).map((item: any, idx: number) => (
+                                                    <span key={idx} style={{ fontSize: "0.78rem", color: "#334155" }}>
+                                                        • {item.quantity || 1}x {item.product_name || item.name || "Produto"}
+                                                    </span>
+                                                ))}
+                                                {orderToDelete.items.length > 3 && (
+                                                    <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                                                        + outros {orderToDelete.items.length - 3} itens
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className={pedidoStyles.deleteWarningBox}>
+                                    ⚠️ Tem certeza que deseja excluir este carrinho? O registro será removido permanentemente do painel de pedidos.
+                                </div>
+                            </div>
+
+                            <div className={pedidoStyles.deleteModalFooter}>
+                                <button
+                                    type="button"
+                                    onClick={() => setOrderToDelete(null)}
+                                    disabled={!!deletingOrder}
+                                    className={`${pedidoStyles.btnAction} ${pedidoStyles.btnSecondary}`}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleDeleteOrder(orderToDelete.id)}
+                                    disabled={!!deletingOrder}
+                                    className={`${pedidoStyles.btnAction} ${pedidoStyles.btnDangerSolid}`}
+                                >
+                                    {deletingOrder === orderToDelete.id ? (
+                                        <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Excluindo...</>
+                                    ) : (
+                                        <><Trash2 size={16} /> Excluir Carrinho</>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <style>{`
                     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

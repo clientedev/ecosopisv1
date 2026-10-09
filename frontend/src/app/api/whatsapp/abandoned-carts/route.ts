@@ -140,3 +140,39 @@ export async function GET(req: Request) {
     );
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('user_id');
+    if (!userId) {
+      return NextResponse.json({ error: 'user_id é obrigatório' }, { status: 400 });
+    }
+
+    const pool = getDbPool();
+    if (pool) {
+      try {
+        await pool.query('UPDATE users SET cart_json = NULL, cart_updated_at = NULL WHERE id = $1', [userId]);
+      } catch (dbErr: any) {
+        console.warn('Erro ao atualizar PostgreSQL direto:', dbErr.message);
+      }
+    }
+
+    // Também limpa via fallback backend se necessário
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const authHeader = req.headers.get('authorization') || '';
+    try {
+      await fetch(`${backendUrl}/api/cart/admin/clear/${userId}`, {
+        method: 'DELETE',
+        headers: authHeader ? { Authorization: authHeader } : {}
+      });
+    } catch {
+      // Ignora erro do fallback backend
+    }
+
+    return NextResponse.json({ success: true, message: 'Carrinho excluído com sucesso' });
+  } catch (error: any) {
+    console.error('Erro ao excluir carrinho:', error);
+    return NextResponse.json({ error: error.message || 'Erro ao excluir carrinho' }, { status: 500 });
+  }
+}

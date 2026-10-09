@@ -357,9 +357,28 @@ def clear_all_orders(
     # Delete all orders. Relational order_items should cascade delete if configured, 
     # but we can also do it explicitly to be safe if needed.
     # Base on models.py, order_items has cascade="all, delete-orphan".
+    db.query(models.OrderItem).delete()
     db.query(models.Order).delete()
     db.commit()
     return None
+
+
+@router.delete("/{order_id}")
+def delete_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    
+    db.query(models.OrderItem).filter(models.OrderItem.order_id == order_id).delete()
+    db.delete(order)
+    db.commit()
+    return {"status": "success", "message": f"Pedido #{order_id} excluído com sucesso"}
 
 
 @router.get("/", response_model=List[schemas.OrderResponse])

@@ -71,3 +71,20 @@ async def notify_abandoned_carts(
     
     db.commit()
     return {"message": f"E-mails de recuperação enviados para {count} clientes."}
+
+
+@router.delete("/admin/clear/{user_id}")
+async def admin_clear_user_cart(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    user.cart_json = None
+    user.cart_updated_at = None
+    db.commit()
+    return {"status": "ok", "message": "Carrinho removido com sucesso"}
