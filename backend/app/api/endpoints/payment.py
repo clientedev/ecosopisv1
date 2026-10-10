@@ -143,7 +143,7 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
 
         is_item_wholesale = "(Atacado)" in (item.product_name or "") or bool(prod.is_wholesale)
         if is_item_wholesale:
-            verified_price = round(float(prod.price or 0.0) * 0.7, 2)
+            verified_price = round(float(prod.price or 0.0) * 0.55, 2)
         elif prod.is_on_sale and prod.sale_price:
             verified_price = round(float(prod.sale_price), 2)
         else:

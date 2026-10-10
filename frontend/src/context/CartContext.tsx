@@ -184,7 +184,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     
     const cartTotal = cart.reduce((acc, item) => {
         const isItemDiscounted = item.isWholesale && isWholesaleUnlocked;
-        const itemPrice = isItemDiscounted ? item.price * 0.7 : item.price;
+        const itemPrice = isItemDiscounted ? item.price * 0.55 : item.price;
         return acc + (itemPrice * item.quantity);
     }, 0);
 

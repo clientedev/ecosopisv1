@@ -44,8 +44,8 @@ export default function WholesalePage() {
         
         switch(questionCode) {
             case 1:
-                userText = "Como funciona o desconto de 30%?";
-                liaResponse = "É simples! Basta adicionar 10 ou mais itens no carrinho a partir desta página, e o desconto de 30% (+ preço de fábrica) será aplicado automaticamente em todos os itens. 🌱";
+                userText = "Como funciona o desconto de 45%?";
+                liaResponse = "É direto: basta selecionar 10 ou mais itens no carrinho a partir desta página. O lote promocional entra na hora com 45% de desconto real direto de fábrica (subimos de 30% para 45% por tempo limitado!). Sem cupom nem burocracia. 🌱";
                 break;
             case 2:
                 userText = "Qual é o pedido mínimo?";
@@ -53,7 +53,7 @@ export default function WholesalePage() {
                 break;
             case 3:
                 userText = "O frete é grátis?";
-                liaResponse = "Como oferecemos o preço de fábrica no atacado, o frete é calculado de acordo com o peso da caixa no momento do checkout, mas não temos frete grátis garantido. No entanto, sua economia de 30% geralmente compensa muito mais!";
+                liaResponse = "Como os produtos saem a preço direto de fábrica com 45% de desconto real, o frete é calculado pelo peso da caixa no checkout. Com a economia de 45%, a margem compensa bastante!";
                 break;
         }
 
@@ -151,8 +151,8 @@ export default function WholesalePage() {
     
     // REGRA: no atacado, usa o preço original (sem promoção) para cálculo do bundle
     const rawTotal = bundle.reduce((acc, p) => acc + ((p.original_price ?? p.price) * p.quantity), 0);
-    const discountedTotal = rawTotal * 0.7;
-    const savings = rawTotal * 0.3;
+    const discountedTotal = rawTotal * 0.55;
+    const savings = rawTotal * 0.45;
 
     return (
         <main className={styles.wholesalePage}>
@@ -162,11 +162,23 @@ export default function WholesalePage() {
             <div className={styles.hero}>
                 <div className="container">
                     <div className={styles.heroContent}>
-                        <span className={styles.badge}>DIFERENCIAL ECOSOPIS</span>
+                        <span className={styles.badge}>⚡ LOTE PROMOCIONAL DIRETO DE FÁBRICA</span>
                         <h1 style={{ color: '#ffffff' }}>Atacado Nature-Premium</h1>
-                        <p>Monte seu estoque com <strong>30% de DESCONTO REAL</strong>. Preço de fábrica para revenda ou uso pessoal consciente.</p>
-                        <p style={{ fontSize: '0.9rem', color: '#fcd34d', marginTop: '15px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                            <Info size={16} /> O desconto de atacado não é cumulativo com o cupom de Primeira Compra.
+
+                        <div className={styles.heroPromoBadge}>
+                            <span className={styles.limitedTimeText}>CONDIÇÃO ESPECIAL POR TEMPO LIMITADO</span>
+                            <div className={styles.discountEvolution}>
+                                <span className={styles.oldDiscountCut}>
+                                    <del>30%</del>
+                                </span>
+                                <span className={styles.arrowPromo}>➔</span>
+                                <span className={styles.newDiscountPill}>45% OFF REAL</span>
+                            </div>
+                        </div>
+
+                        <p>Abasteça seu estoque com preço direto de fábrica. Por tempo limitado, liberamos o lote promocional com <strong>45% DE DESCONTO REAL</strong> a partir de 10 unidades.</p>
+                        <p style={{ fontSize: '0.9rem', color: '#fcd34d', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                            <Info size={16} /> O desconto entra automático no carrinho. Não cumulativo com cupom de Primeira Compra.
                         </p>
                     </div>
                 </div>
@@ -189,9 +201,9 @@ export default function WholesalePage() {
                         <div className={styles.progressInfo}>
                             <span className={styles.progressLabel}>
                                 {isUnlocked ? (
-                                    <><CheckCircle2 size={20} color="#f59e0b" /> DESCONTO DESBLOQUEADO!</>
+                                    <><CheckCircle2 size={20} color="#f59e0b" /> DESCONTO DE 45% ATIVADO!</>
                                 ) : (
-                                    `Faltam ${10 - combinedQuantity} itens para o Atacado`
+                                    `Faltam ${10 - combinedQuantity} itens para liberar 45% OFF no Atacado`
                                 )}
                             </span>
                             <span className={styles.itemCount}>{combinedQuantity}/10 ITENS</span>
@@ -276,8 +288,9 @@ export default function WholesalePage() {
                                                     <span className={styles.oldPrice}>R$ {(p.original_price ?? p.price).toFixed(2)}</span>
                                                 </div>
                                                 <div className={styles.priceRow}>
-                                                    <span className={styles.newPrice}>R$ {((p.original_price ?? p.price) * 0.7).toFixed(2)}</span>
+                                                    <span className={styles.newPrice}>R$ {((p.original_price ?? p.price) * 0.55).toFixed(2)}</span>
                                                     <span className={styles.unitLabel}>/ unidade</span>
+                                                    <span className={styles.unitBadgeDiscount}>45% OFF</span>
                                                 </div>
                                                 
                                                 <div className={styles.actionRow}>
@@ -331,7 +344,7 @@ export default function WholesalePage() {
                                 <span>R$ {rawTotal.toFixed(2)}</span>
                             </div>
                             <div className={`${styles.summaryRow} ${styles.saving}`}>
-                                <span>Economia (30%)</span>
+                                <span>Economia do Lote (45%)</span>
                                 <span>- R$ {savings.toFixed(2)}</span>
                             </div>
                             <div className={styles.divider}></div>
@@ -438,7 +451,7 @@ export default function WholesalePage() {
                                 <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '8px', fontWeight: 'bold' }}>Perguntas frequentes:</p>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <button onClick={() => handleLiaQuestion(1)} className={styles.presetQBtn}>
-                                        Como funciona o desconto de 30%?
+                                        Como funciona o desconto de 45%?
                                     </button>
                                     <button onClick={() => handleLiaQuestion(2)} className={styles.presetQBtn}>
                                         Qual é o pedido mínimo?

@@ -259,6 +259,7 @@ export default function CarrinhoPage() {
     
     const finalTotal = Math.max(0, subtotal + shippingPrice - discount - cashbackDiscount);
     const isWholesaleEligible = isWholesaleUnlocked;
+    const wholesaleCount = cart.filter(i => i.isWholesale).reduce((acc, i) => acc + i.quantity, 0);
 
     // ── Load roulette coupon from localStorage on mount + on event ──
     useEffect(() => {
@@ -615,7 +616,7 @@ export default function CarrinhoPage() {
                 body: JSON.stringify({
                     items: cart.map(i => {
                         const isItemDiscounted = i.isWholesale && isWholesaleEligible;
-                        const finalPrice = isItemDiscounted ? i.price * 0.7 : i.price;
+                        const finalPrice = isItemDiscounted ? i.price * 0.55 : i.price;
                         return {
                             product_id: i.id,
                             product_name: isItemDiscounted ? `${i.name} (Atacado)` : i.name,
@@ -709,7 +710,7 @@ export default function CarrinhoPage() {
     const orderDataForPayment = {
         items: cart.map(i => {
             const isItemDiscounted = i.isWholesale && isWholesaleEligible;
-            const finalPrice = isItemDiscounted ? i.price * 0.7 : i.price;
+            const finalPrice = isItemDiscounted ? i.price * 0.55 : i.price;
             return {
                 product_id: i.id,
                 product_name: isItemDiscounted ? `${i.name} (Atacado)` : i.name,
@@ -855,6 +856,22 @@ export default function CarrinhoPage() {
                 <div className={styles.mobileStepContent}>
                     {mobileStep === "cart" && (
                         <div className={styles.mobileCartStep}>
+                            {wholesaleCount > 0 && isWholesaleEligible && (
+                                <div className={styles.wholesaleAlertBox}>
+                                    <span className={styles.wholesaleAlertTag}>🔥 LOTE DE FÁBRICA ATIVADO</span>
+                                    <p className={styles.wholesaleAlertText}>
+                                        Você garantiu <strong>45% de desconto de atacado</strong> (condição por tempo limitado: de <span className={styles.wholesaleStrikethrough}>30%</span> por <strong>45% OFF</strong> nos itens de atacado).
+                                    </p>
+                                </div>
+                            )}
+                            {wholesaleCount > 0 && !isWholesaleEligible && (
+                                <div className={styles.wholesalePendingBox}>
+                                    <span className={styles.wholesalePendingTag}>⚡ OPORTUNIDADE DE ATACADO</span>
+                                    <p className={styles.wholesalePendingText}>
+                                        Faltam <strong>{10 - wholesaleCount} produtos</strong> de atacado para ativar <strong>45% OFF</strong> direto de fábrica (de <span className={styles.wholesaleStrikethrough}>30%</span> por <strong>45% OFF</strong>).
+                                    </p>
+                                </div>
+                            )}
                             {cart.map(item => (
                                 <div key={item.id} className={styles.mobileProductCard}>
                                     <div className={styles.mobileProductImgContainer}>
@@ -871,14 +888,18 @@ export default function CarrinhoPage() {
                                                 <Trash2 size={18} />
                                             </button>
                                         </div>
-                                        {item.isWholesale && <span className={styles.wholesaleBadgeSmall}>ATACADO</span>}
+                                        {item.isWholesale && (
+                                            <span className={styles.wholesaleBadgeSmall}>
+                                                {isWholesaleEligible ? "ATACADO • 45% OFF" : "ATACADO (MÍN. 10)"}
+                                            </span>
+                                        )}
                                         
                                         <div className={styles.mobileProductBottom}>
                                             <div className={styles.mobilePrices}>
                                                 {item.isWholesale && isWholesaleEligible ? (
                                                     <>
                                                         <span className={styles.oldPriceSmall}>R$ {item.price.toFixed(2)}</span>
-                                                        <span className={styles.newPriceSmall}>R$ {(item.price * 0.7).toFixed(2)}</span>
+                                                        <span className={styles.newPriceSmall}>R$ {(item.price * 0.55).toFixed(2)}</span>
                                                     </>
                                                 ) : (
                                                     <p className={styles.mobileSinglePrice}>R$ {item.price.toFixed(2)}</p>
@@ -1556,6 +1577,22 @@ export default function CarrinhoPage() {
                     <div className={styles.leftColumn}>
                         {step === "cart" && (
                             <div className={styles.itemsList}>
+                                {wholesaleCount > 0 && isWholesaleEligible && (
+                                    <div className={styles.wholesaleAlertBox}>
+                                        <span className={styles.wholesaleAlertTag}>🔥 LOTE DE FÁBRICA ATIVADO</span>
+                                        <p className={styles.wholesaleAlertText}>
+                                            Você garantiu <strong>45% de desconto de atacado</strong> (condição por tempo limitado: de <span className={styles.wholesaleStrikethrough}>30%</span> por <strong>45% OFF</strong> nos itens de atacado).
+                                        </p>
+                                    </div>
+                                )}
+                                {wholesaleCount > 0 && !isWholesaleEligible && (
+                                    <div className={styles.wholesalePendingBox}>
+                                        <span className={styles.wholesalePendingTag}>⚡ OPORTUNIDADE DE ATACADO</span>
+                                        <p className={styles.wholesalePendingText}>
+                                            Faltam <strong>{10 - wholesaleCount} produtos</strong> de atacado para ativar <strong>45% OFF</strong> direto de fábrica (de <span className={styles.wholesaleStrikethrough}>30%</span> por <strong>45% OFF</strong>).
+                                        </p>
+                                    </div>
+                                )}
                                 {cart.map(item => (
                                     <div key={item.id} className={styles.cartItem}>
                                         <div className={styles.itemMain}>
@@ -1569,13 +1606,17 @@ export default function CarrinhoPage() {
                                             <div>
                                                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                                     <h4>{item.name}</h4>
-                                                    {item.isWholesale && <span className={styles.wholesaleBadgeSmall}>ATACADO</span>}
+                                                    {item.isWholesale && (
+                                                        <span className={styles.wholesaleBadgeSmall}>
+                                                            {isWholesaleEligible ? "ATACADO • 45% OFF" : "ATACADO (MÍN. 10)"}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className={styles.itemPrices}>
                                                     {item.isWholesale && isWholesaleEligible ? (
                                                         <>
                                                             <span className={styles.oldPriceSmall}>R$ {item.price.toFixed(2)}</span>
-                                                            <span className={styles.newPriceSmall}>R$ {(item.price * 0.7).toFixed(2)}</span>
+                                                            <span className={styles.newPriceSmall}>R$ {(item.price * 0.55).toFixed(2)}</span>
                                                         </>
                                                     ) : (
                                                         <p>R$ {item.price.toFixed(2)}</p>
@@ -1925,7 +1966,7 @@ export default function CarrinhoPage() {
                                     <div className={styles.miniItemsList}>
                                         {cart.map(item => {
                                             const isItemDiscounted = item.isWholesale && isWholesaleEligible;
-                                            const itemPrice = isItemDiscounted ? item.price * 0.7 : item.price;
+                                            const itemPrice = isItemDiscounted ? item.price * 0.55 : item.price;
                                             return (
                                                 <div key={item.id} className={styles.miniItemRow}>
                                                     <img 

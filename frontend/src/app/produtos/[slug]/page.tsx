@@ -801,12 +801,12 @@ export default function ProductDetailPage() {
                 </div>
                 
                 <div className={styles.wholesalePromoCard}>
-                    <div className={styles.wholesaleBadge}>ECONOMIA REAL</div>
+                    <div className={styles.wholesaleBadge}>LOTE DIRETO DE FÁBRICA</div>
                     <div className={styles.wholesaleContent}>
-                        <h3>Atacado ECOSOPIS</h3>
-                        <p>Desbloqueie <strong>30% de desconto</strong> direto de fábrica ao montar seu kit com 10+ produtos.</p>
+                        <h3>Atacado ECOSOPIS • Lote Promocional</h3>
+                        <p>Condição especial de reposição: o desconto de fábrica subiu de <del style={{ textDecoration: 'line-through', color: '#ef4444', fontWeight: 700, opacity: 0.9 }}>30%</del> para <strong style={{ color: '#16a34a' }}>45% de desconto real</strong> montando seu kit com 10 ou mais unidades.</p>
                         <Link href="/atacado" className={styles.wholesaleBtn}>
-                            COMPRAR NO ATACADO
+                            COMPRAR NO ATACADO (45% OFF)
                         </Link>
                     </div>
                 </div>

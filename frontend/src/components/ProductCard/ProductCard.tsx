@@ -100,7 +100,7 @@ export default function ProductCard({ product, badge, isRecommended, showMarketp
 
     const staticData = PRODUCT_STATIC_DATA[product.slug];
     const activeIngredients = staticData?.ativos || product.ingredients || "";
-    const wholesaleEstimatePrice = (currentPrice * 0.7).toFixed(2).replace(".", ",");
+    const wholesaleEstimatePrice = (currentPrice * 0.55).toFixed(2).replace(".", ",");
 
     const getHumanCategoryLabel = (p: any) => {
         const tags = Array.isArray(p.tags) ? p.tags : [];

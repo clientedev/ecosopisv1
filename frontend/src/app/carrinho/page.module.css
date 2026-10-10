@@ -1946,3 +1946,69 @@ input:checked + .slider:before {
     gap: 8px;
     text-align: left;
 }
+
+/* Wholesale Promo Banners */
+.wholesaleAlertBox {
+    background: #f0fdf4;
+    border: 1.5px solid #86efac;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.wholesalePendingBox {
+    background: #fffbeb;
+    border: 1.5px solid #fde68a;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.wholesaleAlertTag {
+    background: #15803d;
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.wholesalePendingTag {
+    background: #d97706;
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.wholesaleAlertText {
+    font-size: 0.85rem;
+    color: #166534;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.wholesalePendingText {
+    font-size: 0.85rem;
+    color: #92400e;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.wholesaleStrikethrough {
+    text-decoration: line-through;
+    color: #ef4444;
+    font-weight: 700;
+    margin-right: 2px;
+}

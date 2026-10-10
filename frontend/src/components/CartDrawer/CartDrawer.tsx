@@ -7,7 +7,7 @@ import styles from "./CartDrawer.module.css";
 import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, Truck, CheckCircle2 } from "lucide-react";
 
 export default function CartDrawer() {
-    const { cart, isCartOpen, closeCart, removeFromCart, updateQuantity, cartCount, cartTotal } = useCart();
+    const { cart, isCartOpen, closeCart, removeFromCart, updateQuantity, cartCount, cartTotal, isWholesaleUnlocked } = useCart();
 
     const freeShippingThreshold = 150;
     const remainingForFreeShipping = freeShippingThreshold - cartTotal;
@@ -75,7 +75,8 @@ export default function CartDrawer() {
                     ) : (
                         <div className={styles.itemList}>
                             {cart.map((item, idx) => {
-                                const itemPrice = item.price || 0;
+                                const isItemDiscounted = item.isWholesale && isWholesaleUnlocked;
+                                const itemPrice = isItemDiscounted ? item.price * 0.55 : (item.price || 0);
                                 return (
                                     <div key={`${item.id}-${idx}`} className={styles.cartItem}>
                                         <div className={styles.itemImageWrapper}>
@@ -101,7 +102,9 @@ export default function CartDrawer() {
                                             </div>
 
                                             {item.isWholesale && (
-                                                <span className={styles.wholesaleItemBadge}>Item em Atacado</span>
+                                                <span className={styles.wholesaleItemBadge}>
+                                                    {isWholesaleUnlocked ? "Atacado • 45% OFF" : "Item em Atacado"}
+                                                </span>
                                             )}
 
                                             <div className={styles.itemBottomRow}>
@@ -126,7 +129,18 @@ export default function CartDrawer() {
 
                                                 {/* Price */}
                                                 <div className={styles.itemPrice}>
-                                                    R$ {(itemPrice * item.quantity).toFixed(2).replace(".", ",")}
+                                                    {isItemDiscounted ? (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.15 }}>
+                                                            <span style={{ textDecoration: 'line-through', color: '#ef4444', fontSize: '0.72rem', fontWeight: 600 }}>
+                                                                R$ {((item.price || 0) * item.quantity).toFixed(2).replace(".", ",")}
+                                                            </span>
+                                                            <span style={{ color: '#15803d', fontWeight: 800 }}>
+                                                                R$ {(itemPrice * item.quantity).toFixed(2).replace(".", ",")}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <>R$ {(itemPrice * item.quantity).toFixed(2).replace(".", ",")}</>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
