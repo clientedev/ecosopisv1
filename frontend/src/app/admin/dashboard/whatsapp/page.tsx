@@ -256,7 +256,7 @@ export default function AdminWhatsAppPage() {
       timer = setInterval(() => {
         setQrCountdown(prev => {
           if (prev <= 1) {
-            handleConnect(true);
+            handleConnect(false);
             return 60;
           }
           return prev - 1;

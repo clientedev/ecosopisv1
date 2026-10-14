@@ -50,11 +50,17 @@ export async function GET() {
       `SELECT id, status, phone, last_connection FROM whatsapp_accounts WHERE id = 'default'`
     );
 
+    const tablesRes = await pool.query(
+      `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`
+    );
+    const tables = tablesRes?.rows?.map(r => r.table_name) || [];
+
     return NextResponse.json({
       account: accountRes?.rows?.[0] || null,
       totalKeys: res?.rows?.length || 0,
       foundPhoneData,
-      credsInfo
+      credsInfo,
+      allTables: tables
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

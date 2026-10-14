@@ -214,7 +214,8 @@ export async function connectWhatsApp(
 
   try {
     let auth = await getPostgresAuthState(whatsappId);
-    if (force) {
+    // NUNCA apaga as credenciais salvas no banco automaticamente, a menos que o admin tenha clicado em Desconectar explicitamente
+    if (force && !auth.isRestoredSession) {
       await auth.clearState();
       auth = await getPostgresAuthState(whatsappId);
     }
