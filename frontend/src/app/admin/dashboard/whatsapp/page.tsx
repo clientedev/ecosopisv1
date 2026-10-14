@@ -169,6 +169,8 @@ export default function AdminWhatsAppPage() {
   // Logs
   const [logs, setLogs] = useState<MessageLogItem[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [retryingId, setRetryingId] = useState<number | null>(null);
+  const [retryingAll, setRetryingAll] = useState(false);
 
   // ── ABA USUÁRIOS ──
   const [usersList, setUsersList] = useState<UserItem[]>([]);
@@ -340,6 +342,102 @@ export default function AdminWhatsAppPage() {
     } finally {
       setLoadingLogs(false);
     }
+  };
+
+  const handleRetrySingleMessage = async (log: MessageLogItem) => {
+    setRetryingId(log.id);
+    setAlert(null);
+    try {
+      const res = await fetch('/api/whatsapp/retry', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          logId: log.id,
+          to: log.to_phone,
+          message: log.message,
+          recipientName: log.recipient_name,
+          triggerType: log.trigger_type
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Falha ao reenviar mensagem.');
+      }
+
+      setAlert({
+        type: 'success',
+        text: `✓ Mensagem para ${log.recipient_name || log.to_phone} reenviada com sucesso!`
+      });
+
+      // Atualização imediata do registro na tabela
+      setLogs(prev => prev.map(item => item.id === log.id ? { ...item, status: 'SENT', error: undefined } : item));
+      fetchLogs();
+    } catch (err: any) {
+      setAlert({
+        type: 'error',
+        text: `Erro ao reenviar para ${log.recipient_name || log.to_phone}: ${err.message}`
+      });
+    } finally {
+      setRetryingId(null);
+    }
+  };
+
+  const handleRetryAllFailed = async () => {
+    const failedLogs = logs.filter(l => l.status !== 'SENT');
+    if (failedLogs.length === 0) return;
+
+    if (!confirm(`Deseja tentar reenviar todas as ${failedLogs.length} mensagens com falha agora?`)) {
+      return;
+    }
+
+    setRetryingAll(true);
+    setAlert(null);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < failedLogs.length; i++) {
+      const log = failedLogs[i];
+      setRetryingId(log.id);
+      try {
+        const res = await fetch('/api/whatsapp/retry', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          },
+          body: JSON.stringify({
+            logId: log.id,
+            to: log.to_phone,
+            message: log.message,
+            recipientName: log.recipient_name,
+            triggerType: log.trigger_type
+          })
+        });
+
+        if (res.ok) {
+          successCount++;
+          setLogs(prev => prev.map(item => item.id === log.id ? { ...item, status: 'SENT', error: undefined } : item));
+        } else {
+          failCount++;
+        }
+      } catch (err) {
+        failCount++;
+      }
+      await new Promise(r => setTimeout(r, 800));
+    }
+
+    setRetryingId(null);
+    setRetryingAll(false);
+    fetchLogs();
+
+    setAlert({
+      type: successCount > 0 ? 'success' : 'error',
+      text: `Processo de reenvio finalizado: ${successCount} mensagem(ns) entregue(s) com sucesso${failCount > 0 ? `, ${failCount} com falha` : ''}.`
+    });
   };
 
   const fetchUsersList = async () => {
@@ -1551,18 +1649,38 @@ export default function AdminWhatsAppPage() {
         {/* ─── ABA 5: HISTÓRICO DE MENSAGENS ─── */}
         {activeTab === 'logs' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <p style={{ color: '#475569', fontSize: 14, margin: 0 }}>
-                Últimas mensagens processadas pelo serviço de WhatsApp da Ecosopis.
-              </p>
-              <button
-                onClick={fetchLogs}
-                disabled={loadingLogs}
-                className={`${styles.btn} ${styles.btnSecondary}`}
-              >
-                <RefreshCw size={14} className={loadingLogs ? styles.spinner : ''} />
-                Atualizar Lista
-              </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <p style={{ color: '#475569', fontSize: 14, margin: 0 }}>
+                  Últimas mensagens processadas pelo serviço de WhatsApp da Ecosopis.
+                </p>
+                {logs.some(l => l.status !== 'SENT') && (
+                  <p style={{ color: '#b91c1c', fontSize: 12, margin: '4px 0 0', fontWeight: 600 }}>
+                    ⚠️ {logs.filter(l => l.status !== 'SENT').length} mensagem(ns) pendente(s) de reenvio por falha anterior.
+                  </p>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                {logs.some(l => l.status !== 'SENT') && (
+                  <button
+                    onClick={handleRetryAllFailed}
+                    disabled={retryingAll || loadingLogs}
+                    className={styles.btnRetryAll}
+                    title="Tentar reenviar todas as mensagens que falharam sequencialmente"
+                  >
+                    <RefreshCw size={14} className={retryingAll ? styles.spinner : ''} />
+                    {retryingAll ? 'Reenviando em lote...' : `Tentar Todas com Falha (${logs.filter(l => l.status !== 'SENT').length})`}
+                  </button>
+                )}
+                <button
+                  onClick={fetchLogs}
+                  disabled={loadingLogs || retryingAll}
+                  className={`${styles.btn} ${styles.btnSecondary}`}
+                >
+                  <RefreshCw size={14} className={loadingLogs ? styles.spinner : ''} />
+                  Atualizar Lista
+                </button>
+              </div>
             </div>
 
             <div className={styles.tableWrapper}>
@@ -1575,18 +1693,19 @@ export default function AdminWhatsAppPage() {
                     <th>Gatilho</th>
                     <th>Mensagem</th>
                     <th>Status</th>
+                    <th style={{ textAlign: 'center', minWidth: 140 }}>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingLogs ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '24px' }}>
                         Carregando mensagens...
                       </td>
                     </tr>
                   ) : logs.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
                         Nenhuma mensagem disparada até o momento.
                       </td>
                     </tr>
@@ -1603,14 +1722,54 @@ export default function AdminWhatsAppPage() {
                             {log.trigger_type}
                           </span>
                         </td>
-                        <td style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={log.message}>
+                        <td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={log.message}>
                           {log.message}
                         </td>
                         <td>
                           {log.status === 'SENT' ? (
-                            <span className={styles.badgeSent}>Enviado</span>
+                            <span className={styles.badgeSent}>
+                              <CheckCircle size={12} />
+                              Enviado
+                            </span>
                           ) : (
-                            <span className={styles.badgeFailed} title={log.error}>Falha</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
+                              <span className={styles.badgeFailed} title={log.error || 'Falha no envio'}>
+                                <AlertCircle size={12} />
+                                Falha
+                              </span>
+                              {log.error && (
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    color: '#b91c1c',
+                                    maxWidth: 180,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                  title={log.error}
+                                >
+                                  {log.error}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          {log.status !== 'SENT' ? (
+                            <button
+                              onClick={() => handleRetrySingleMessage(log)}
+                              disabled={retryingId === log.id || retryingAll}
+                              className={styles.btnRetry}
+                              title="Tentar enviar esta mensagem novamente agora"
+                            >
+                              <RefreshCw size={12} className={retryingId === log.id ? styles.spinner : ''} />
+                              {retryingId === log.id ? 'Enviando...' : 'Tentar novamente'}
+                            </button>
+                          ) : (
+                            <span style={{ color: '#16a34a', fontSize: 12, fontWeight: 700 }}>
+                              —
+                            </span>
                           )}
                         </td>
                       </tr>
