@@ -24,6 +24,50 @@ MELHORENVIO_CLIENT_SECRET = os.getenv("MELHORENVIO_CLIENT_SECRET", os.getenv("ME
 STORE_CEP = re.sub(r"\D", "", os.getenv("MELHORENVIO_CEP_ORIGEM", os.getenv("STORE_CEP", "02969000"))).strip()
 
 
+def is_allowed_carrier(company_name: str = "", service_name: str = "", company_id=None, service_id=None) -> bool:
+    """
+    Filtro de transportadoras do Melhor Envio:
+    Permite apenas Correios, Loggi e J&T Express.
+    Remove explicitamente Jadlog e outras não permitidas.
+    """
+    comp_str = str(company_name or "").lower()
+    serv_str = str(service_name or "").lower()
+    full_str = f"{comp_str} {serv_str}".strip()
+
+    # 1. Jadlog explicitamente proibido
+    try:
+        cid = int(company_id) if company_id is not None else None
+    except Exception:
+        cid = None
+
+    try:
+        sid = int(service_id) if service_id is not None else None
+    except Exception:
+        sid = None
+
+    if "jadlog" in full_str or cid == 2 or sid in (3, 4, 27):
+        return False
+
+    # 2. IDs de empresas permitidas no Melhor Envio:
+    # 1: Correios, 14: Loggi, 15: J&T Express
+    if cid in (1, 14, 15):
+        return True
+
+    # 3. IDs de serviços conhecidos:
+    # Correios: 1 (PAC), 2 (SEDEX), 17 (Mini Envios)
+    # Loggi: 31 (Loggi Express), 32 (Loggi Coleta), 34 (Loggi Ponto)
+    # J&T: 33 (J&T Standard)
+    if sid in (1, 2, 17, 31, 32, 33, 34):
+        return True
+
+    # 4. Checagem por texto: Correios, Loggi ou J&T
+    allowed_terms = ("correio", "pac", "sedex", "loggi", "j&t", "j & t", "jt express", "j&t express")
+    if any(term in full_str for term in allowed_terms):
+        return True
+
+    return False
+
+
 class MelhorEnvioService:
     MELHORENVIO_URL = MELHORENVIO_URL
     MELHORENVIO_TOKEN = MELHORENVIO_TOKEN
@@ -170,16 +214,26 @@ class MelhorEnvioService:
                     options = []
                     for opt in data:
                         if "error" not in opt and opt.get("price"):
+                            comp = opt.get("company") or {}
+                            cname = comp.get("name") if isinstance(comp, dict) else str(comp or "")
+                            cid = comp.get("id") if isinstance(comp, dict) else None
+                            sname = opt.get("name") or ""
+                            sid = opt.get("id")
+
+                            # Filtro: Manter somente Correios, Loggi e J&T (remove Jadlog e outras)
+                            if not is_allowed_carrier(company_name=cname, service_name=sname, company_id=cid, service_id=sid):
+                                continue
+
                             options.append({
                                 "id": opt.get("id"),
                                 "name": opt.get("name"),
                                 "price": float(opt.get("price", 0)),
                                 "delivery_time": opt.get("delivery_time"),
-                                "company": opt.get("company", {}).get("name")
+                                "company": cname
                             })
                     if not options:
                         erros = [o.get("error", "") for o in data if "error" in o]
-                        msg = f"Nenhuma transportadora disponível para este CEP. Detalhes: {', '.join(erros[:3])}"
+                        msg = f"Nenhuma transportadora disponível para este CEP. Detalhes: {', '.join(erros[:3])}" if erros else "Nenhuma das transportadoras atendidas (Correios, Loggi e J&T) está disponível para este CEP."
                         return [], msg
                     return options, None
                 elif response.status_code == 401:

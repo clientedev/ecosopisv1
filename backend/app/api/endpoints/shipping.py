@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
-from app.core.melhorenvio_service import MelhorEnvioService
+from app.core.melhorenvio_service import MelhorEnvioService, is_allowed_carrier
 import os
 import time
 import logging
@@ -557,11 +557,20 @@ async def quote_order_shipping(
             options = []
             for opt in raw_options:
                 if not opt.get("error") and (opt.get("price") or opt.get("custom_price")):
+                    comp = opt.get("company") or {}
+                    cname = comp.get("name") if isinstance(comp, dict) else str(comp or "")
+                    cid = comp.get("id") if isinstance(comp, dict) else None
+                    sname = opt.get("name") or ""
+                    sid = opt.get("id")
+
+                    if not is_allowed_carrier(company_name=cname, service_name=sname, company_id=cid, service_id=sid):
+                        continue
+
                     price_val = float(opt.get("custom_price") or opt.get("price") or 0)
                     options.append({
                         "id": opt.get("id"),
                         "name": opt.get("name"),
-                        "company": (opt.get("company") or {}).get("name", ""),
+                        "company": cname,
                         "price": price_val,
                         "delivery_time": opt.get("custom_delivery_time") or opt.get("delivery_time"),
                         "currency": opt.get("currency", "R$"),

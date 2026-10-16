@@ -58,10 +58,12 @@ const CARRIER_SERVICES = [
     { id: 1, name: "Correios PAC", badge: "Econômico", company: "Correios", icon: "📦" },
     { id: 2, name: "Correios SEDEX", badge: "Expresso", company: "Correios", icon: "⚡" },
     { id: 17, name: "Correios Mini Envios", badge: "Pequenos Volumes", company: "Correios", icon: "✉️" },
-    { id: 3, name: "Jadlog .Package", badge: "Econômico Privado", company: "Jadlog", icon: "🚛" },
-    { id: 4, name: "Jadlog .Com", badge: "Expresso Privado", company: "Jadlog", icon: "🚀" },
     { id: 31, name: "Loggi Express", badge: "Logística Expressa", company: "Loggi", icon: "📦" },
-    { id: 15, name: "Azul Cargo Expresso", badge: "Aéreo Express", company: "Azul", icon: "✈️" },
+    { id: 33, name: "J&T Standard", badge: "Expresso J&T", company: "J&T", icon: "🚚" },
+    // Mantidos para compatibilidade retroativa com pedidos legados já salvos
+    { id: 3, name: "Jadlog .Package", badge: "Econômico Privado", company: "Jadlog", icon: "🚛", legacy: true },
+    { id: 4, name: "Jadlog .Com", badge: "Expresso Privado", company: "Jadlog", icon: "🚀", legacy: true },
+    { id: 15, name: "Azul Cargo Expresso", badge: "Aéreo Express", company: "Azul", icon: "✈️", legacy: true },
 ];
 
 const calculateEstimatedWeight = (items: any[]): number => {
@@ -130,6 +132,15 @@ const getDefaultPackageForOrder = (order: Order): PackageConfig => {
     } else if (sm.includes("mini")) {
         defaultServiceId = 17;
         defaultServiceName = "Correios Mini Envios";
+    } else if (sm.includes("j&t") || sm.includes("jt")) {
+        defaultServiceId = 33;
+        defaultServiceName = "J&T Standard";
+    } else if (sm.includes("loggi") || sm.includes("express")) {
+        defaultServiceId = 31;
+        defaultServiceName = "Loggi Express";
+    } else if (sm.includes("pac")) {
+        defaultServiceId = 1;
+        defaultServiceName = "Correios PAC";
     } else if (sm.includes(".com") || sm === "com" || (sm.includes("jadlog") && sm.includes("com"))) {
         defaultServiceId = 4;
         defaultServiceName = "Jadlog .Com";
@@ -139,12 +150,6 @@ const getDefaultPackageForOrder = (order: Order): PackageConfig => {
     } else if (sm.includes("azul")) {
         defaultServiceId = 15;
         defaultServiceName = "Azul Cargo Expresso";
-    } else if (sm.includes("loggi") || sm.includes("express")) {
-        defaultServiceId = 31;
-        defaultServiceName = "Loggi Express";
-    } else if (sm.includes("pac")) {
-        defaultServiceId = 1;
-        defaultServiceName = "Correios PAC";
     } else {
         const directFound = CARRIER_SERVICES.find(c => sm.includes(c.name.toLowerCase()) || sm.includes(c.company.toLowerCase()));
         if (directFound) {
@@ -1530,7 +1535,7 @@ export default function AdminPedidosPage() {
                                                                 }}
                                                                 style={{ width: "100%", padding: "4px 6px", fontSize: "0.8rem", border: "1px solid #cbd5e1", borderRadius: "4px", background: "#fff" }}
                                                             >
-                                                                {CARRIER_SERVICES.map(srv => {
+                                                                {CARRIER_SERVICES.filter(srv => !(srv as any).legacy || srv.id === pkg.serviceId).map(srv => {
                                                                     const quoteOpt = quotes[order.id]?.find((q: any) => q.id === srv.id);
                                                                     return (
                                                                         <option key={srv.id} value={srv.id}>
@@ -2081,7 +2086,7 @@ export default function AdminPedidosPage() {
                                         }}
                                         style={{ width: "100%", padding: "8px 10px", fontSize: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", boxSizing: "border-box" }}
                                     >
-                                        {CARRIER_SERVICES.map(srv => {
+                                        {CARRIER_SERVICES.filter(srv => !(srv as any).legacy || srv.id === modalPackage.serviceId).map(srv => {
                                             const quoteOpt = quotes[order.id]?.find((q: any) => q.id === srv.id);
                                             return (
                                                 <option key={srv.id} value={srv.id}>

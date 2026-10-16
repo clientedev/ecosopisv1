@@ -430,7 +430,13 @@ export async function connectWhatsApp(
     });
 
     // 3. Resposta automática oficial Ecosopis para mensagens recebidas
-    const autoReplyText = "Esse numero não recebe mensagens procure os canais de comunicação oficial ecosopis";
+    const autoReplyText = 
+      `🌿 *ECOSOPIS Cosméticos Naturais*\n\n` +
+      `Olá! Este número é utilizado exclusivamente para *notificações automáticas de pedidos* e não recebe nem responde mensagens.\n\n` +
+      `Para falar com nossa equipe de atendimento oficial, por favor nos chame pelo WhatsApp:\n` +
+      `📱 *WhatsApp Atendimento:* (11) 95155-9212\n` +
+      `👉 *Clique aqui para conversar:* https://wa.me/5511951559212\n\n` +
+      `Será um prazer te atender! ✨`;
 
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type !== 'notify' && type !== 'append') return;
@@ -480,6 +486,26 @@ export async function connectWhatsApp(
 
           console.log(`[WhatsApp Auto-Reply] Respondendo automaticamente para ${remoteJid}...`);
           await sock.sendMessage(remoteJid, { text: autoReplyText });
+
+          // Envia também o cartão de contato do WhatsApp de Atendimento Oficial
+          try {
+            const vcard =
+              'BEGIN:VCARD\n' +
+              'VERSION:3.0\n' +
+              'FN:Atendimento Ecosopis\n' +
+              'ORG:ECOSOPIS Cosméticos Naturais;\n' +
+              'TEL;type=CELL;type=VOICE;waid=5511951559212:+55 11 95155-9212\n' +
+              'END:VCARD';
+
+            await sock.sendMessage(remoteJid, {
+              contacts: {
+                displayName: 'Atendimento Ecosopis',
+                contacts: [{ vcard }]
+              }
+            });
+          } catch (vcardErr) {
+            // Silencioso se o formato vcard não for suportado pelo cliente remoto
+          }
         } catch (err: any) {
           console.error('[WhatsApp Auto-Reply Error]:', err?.message || err);
         }

@@ -1220,7 +1220,7 @@ export default function CarrinhoPage() {
                                             <Truck size={18} />
                                             <span>Frete disponível em produção</span>
                                         </div>
-                                        <p>As transportadoras (PAC, SEDEX e Jadlog) serão exibidas normalmente ao finalizar sua compra no site oficial publicado.</p>
+                                        <p>As transportadoras (Correios, Loggi e J&T) serão exibidas normalmente ao finalizar sua compra no site oficial publicado.</p>
                                     </div>
                                 ) : shippingError ? (
                                     <div className={styles.mobileShippingError}>

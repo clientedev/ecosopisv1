@@ -18,6 +18,7 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
+from app.core.melhorenvio_service import is_allowed_carrier
 
 logger = logging.getLogger(__name__)
 
@@ -264,10 +265,24 @@ def selecionar_servico(
         raise RuntimeError(f"Erro ao calcular frete: {resp.status_code} – {resp.text[:300]}")
 
     all_options = resp.json()
-    valid_options = [o for o in all_options if "error" not in o and o.get("price")]
-    if not valid_options:
+    all_valid = [o for o in all_options if "error" not in o and o.get("price")]
+    if not all_valid:
         erros = [o.get("error") or o.get("name") for o in all_options[:3]]
         raise RuntimeError(f"Nenhuma opção de frete válida. Detalhes: {erros}")
+
+    # Prioriza as transportadoras permitidas: Correios, Loggi e J&T (remove Jadlog e outras)
+    allowed_options = [
+        o for o in all_valid
+        if is_allowed_carrier(
+            company_name=(o.get("company") or {}).get("name", ""),
+            service_name=o.get("name", ""),
+            company_id=(o.get("company") or {}).get("id"),
+            service_id=o.get("id")
+        )
+    ]
+    # Se por alguma contingência incomum nenhuma das permitidas estiver na rota,
+    # mantém all_valid para não impedir a finalização do envio
+    valid_options = allowed_options if allowed_options else all_valid
 
     def _avaliar_opcao(opt: dict) -> Tuple[bool, Optional[int]]:
         sid = int(opt["id"])
@@ -287,7 +302,7 @@ def selecionar_servico(
     selected_option = None
     selected_agency_id = None
 
-    # 1. Se o cliente selecionou um método específico (ex: PAC, SEDEX, Jadlog .Package)
+    # 1. Se o cliente selecionou um método específico (ex: PAC, SEDEX, Loggi, J&T)
     is_generic_or_free = (
         sm_clean in (
             "melhor envio", "fixo", "padrão", "padrao", "frete",
@@ -313,6 +328,24 @@ def selecionar_servico(
                         f"{opt.get('name')} (R$ {opt.get('price')}) agência={ag_id}"
                     )
                     break
+
+        # Se for um pedido legado cujo frete foi Jadlog antes da alteração, busca em all_valid para não quebrar a lógica existente
+        if not selected_option:
+            for opt in all_valid:
+                opt_name = str(opt.get("name") or "").lower()
+                opt_comp = str((opt.get("company") or {}).get("name") or "").lower()
+                full_str = f"{opt_name} {opt_comp}"
+
+                if sm_clean in full_str or sm_clean == str(opt.get("id")):
+                    viavel, ag_id = _avaliar_opcao(opt)
+                    if viavel:
+                        selected_option = opt
+                        selected_agency_id = ag_id
+                        logger.info(
+                            f"[ME] Pedido legado correspondente: "
+                            f"{opt.get('name')} (R$ {opt.get('price')}) agência={ag_id}"
+                        )
+                        break
 
     # 2. Se não bateu com nenhum específico, busca o mais barato viável
     if not selected_option:
