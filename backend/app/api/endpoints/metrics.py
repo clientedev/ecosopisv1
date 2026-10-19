@@ -268,3 +268,14 @@ def trigger_distribute_metrics(db: Session = Depends(get_db)):
     from app.core.metrics_manager import redistribute_exact_metrics
     redistribute_exact_metrics(db)
     return {"status": "success", "message": "Métricas redistribuídas uniformemente nos últimos 7 dias com sucesso!"}
+
+@router.get("/inject-additional")
+@router.post("/inject-additional")
+def trigger_inject_additional_metrics(
+    shopee: int = 108,
+    site: int = 19,
+    visits: int = 708,
+    db: Session = Depends(get_db)
+):
+    from app.core.metrics_manager import inject_additional_metrics
+    return inject_additional_metrics(db, add_shopee=shopee, add_site_clicks=site, add_visits=visits)

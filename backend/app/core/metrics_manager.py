@@ -69,12 +69,12 @@ def redistribute_exact_metrics(db: Session):
     now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # Cotas diárias exatas para os últimos 7 dias (dias 6 até 0)
-    # Total visitas: 155 + 162 + 170 + 158 + 152 + 158 + 145 = 1100
-    visits_per_day = [155, 162, 170, 158, 152, 158, 145]
-    # Total shopee: 45 + 47 + 48 + 46 + 45 + 46 + 44 = 321
-    shopee_per_day = [45, 47, 48, 46, 45, 46, 44]
-    # Total site buy: 6 + 6 + 6 + 6 + 6 + 6 + 5 = 41
-    site_per_day   = [6, 6, 6, 6, 6, 6, 5]
+    # Total visitas: 256 + 263 + 272 + 259 + 253 + 259 + 246 = 1808 (1100 anteriores + 708 adicionais)
+    visits_per_day = [256, 263, 272, 259, 253, 259, 246]
+    # Total shopee: 61 + 62 + 63 + 62 + 60 + 62 + 59 = 429 (321 anteriores + 108 adicionais)
+    shopee_per_day = [61, 62, 63, 62, 60, 62, 59]
+    # Total site buy: 9 + 9 + 9 + 8 + 9 + 9 + 7 = 60 (41 anteriores + 19 adicionais)
+    site_per_day   = [9, 9, 9, 8, 9, 9, 7]
     # Total lia: 1 + 0 + 1 + 1 + 0 + 1 + 1 = 5
     lia_per_day    = [1, 0, 1, 1, 0, 1, 1]
 
@@ -188,3 +188,78 @@ def redistribute_exact_metrics(db: Session):
         print(f"Aviso sequence: {seq_err}", flush=True)
 
     print("[OK] Redistribuicao de metricas concluida com sucesso!", flush=True)
+
+
+def inject_additional_metrics(db: Session, add_shopee: int = 108, add_site_clicks: int = 19, add_visits: int = 708):
+    """
+    Injeta métricas adicionais distribuídas nos últimos 7 dias somadas ao que já tem no banco (sem deletar nada).
+    """
+    print(f"Iniciando injeção adicional (+{add_shopee} shopee, +{add_site_clicks} compras, +{add_visits} visitas)...", flush=True)
+    products = db.query(models.Product).all()
+    if products:
+        available_ids = [p.id for p in products]
+        weights = [PRODUCT_WEIGHTS.get(pid, 2) for pid in available_ids]
+    else:
+        available_ids = list(PRODUCT_WEIGHTS.keys())
+        weights = list(PRODUCT_WEIGHTS.values())
+
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    # Distribuição diária dos incrementos para 7 dias:
+    # 708 visitas: [101, 101, 102, 101, 101, 101, 101] -> soma 708
+    inc_visits = [101, 101, 102, 101, 101, 101, 101]
+    # 108 shopee: [16, 15, 15, 16, 15, 16, 15] -> soma 108
+    inc_shopee = [16, 15, 15, 16, 15, 16, 15]
+    # 19 site: [3, 3, 3, 2, 3, 3, 2] -> soma 19
+    inc_site   = [3, 3, 3, 2, 3, 3, 2]
+
+    visit_mappings = []
+    click_mappings = []
+
+    for i in range(7):
+        day_offset = 6 - i
+        base_day = now_utc - timedelta(days=day_offset)
+        max_hour = max(1, now_utc.hour) if day_offset == 0 else 23
+
+        for _ in range(inc_visits[i]):
+            h = random.randint(0, max_hour)
+            m = random.randint(0, 59)
+            s = random.randint(0, 59)
+            dt = base_day.replace(hour=h, minute=m, second=s, microsecond=0)
+            visit_mappings.append({"path": random.choice(PATHS), "created_at": dt})
+
+        for _ in range(inc_shopee[i]):
+            h = random.randint(0, max_hour)
+            m = random.randint(0, 59)
+            s = random.randint(0, 59)
+            dt = base_day.replace(hour=h, minute=m, second=s, microsecond=0)
+            pid = random.choices(available_ids, weights=weights, k=1)[0]
+            click_mappings.append({"product_id": pid, "click_type": "shopee", "created_at": dt})
+
+        for _ in range(inc_site[i]):
+            h = random.randint(0, max_hour)
+            m = random.randint(0, 59)
+            s = random.randint(0, 59)
+            dt = base_day.replace(hour=h, minute=m, second=s, microsecond=0)
+            pid = random.choices(available_ids, weights=weights, k=1)[0]
+            click_mappings.append({"product_id": pid, "click_type": "site", "created_at": dt})
+
+    db.bulk_insert_mappings(models.SiteVisit, visit_mappings)
+    db.bulk_insert_mappings(models.ProductClick, click_mappings)
+    db.commit()
+
+    try:
+        if "postgres" in str(db.bind.url):
+            db.execute(text("SELECT setval(pg_get_serial_sequence('site_visits', 'id'), COALESCE(MAX(id), 1)) FROM site_visits;"))
+            db.execute(text("SELECT setval(pg_get_serial_sequence('product_clicks', 'id'), COALESCE(MAX(id), 1)) FROM product_clicks;"))
+            db.commit()
+    except Exception as e:
+        print(f"Sequence sync warning: {e}", flush=True)
+
+    print(f"[OK] Injetados somando: +{len(visit_mappings)} visitas, +{len([c for c in click_mappings if c['click_type']=='shopee'])} shopee, +{len([c for c in click_mappings if c['click_type']=='site'])} compras site!", flush=True)
+    return {
+        "status": "success",
+        "added_visits": len(visit_mappings),
+        "added_shopee": len([c for c in click_mappings if c['click_type']=='shopee']),
+        "added_site_clicks": len([c for c in click_mappings if c['click_type']=='site']),
+    }
