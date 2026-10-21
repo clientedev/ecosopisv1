@@ -168,13 +168,21 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
 
     const isAnyActive = initialLoading || manualLoading;
 
-    // Body scroll lock during full screen loader to prevent scrolling before page is ready
+    // Body and document scroll lock during full screen loader to prevent scrolling before page is ready
     useEffect(() => {
         if (typeof document !== "undefined") {
+            const html = document.documentElement;
+            const body = document.body;
             if (isAnyActive) {
-                document.body.style.overflow = "hidden";
+                body.style.overflow = "hidden";
+                html.style.overflow = "hidden";
+                body.style.touchAction = "none";
+                html.style.touchAction = "none";
             } else {
-                document.body.style.overflow = "";
+                body.style.overflow = "";
+                html.style.overflow = "";
+                body.style.touchAction = "";
+                html.style.touchAction = "";
             }
         }
     }, [isAnyActive]);
