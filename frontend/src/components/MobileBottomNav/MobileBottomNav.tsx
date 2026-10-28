@@ -95,8 +95,8 @@ export default function MobileBottomNav() {
         return url;
     };
 
-    // Hide bottom navigation in the cart/checkout flow to avoid overlapping checkout buttons
-    if (pathname.startsWith("/carrinho")) {
+    // Hide bottom navigation in the cart/checkout flow and link-in-bio page
+    if (pathname.startsWith("/carrinho") || pathname.startsWith("/link")) {
         return null;
     }
 

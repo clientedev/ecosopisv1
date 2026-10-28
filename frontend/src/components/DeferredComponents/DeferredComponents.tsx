@@ -6,9 +6,12 @@ const ChatIA = dynamic(() => import("@/components/ChatIA/ChatIA"), { ssr: false 
 const ScratchCardModal = dynamic(() => import("@/components/ScratchCardModal/ScratchCardModal"), { ssr: false });
 const PromotionalPopup = dynamic(() => import("@/components/PromotionalPopup/PromotionalPopup"), { ssr: false });
 
+import { usePathname } from "next/navigation";
+
 let hasDeferredLoaded = false;
 
 export default function DeferredComponents() {
+    const pathname = usePathname();
     const [shouldLoad, setShouldLoad] = useState(hasDeferredLoaded);
 
     useEffect(() => {
@@ -21,7 +24,7 @@ export default function DeferredComponents() {
         return () => clearTimeout(timer);
     }, []);
 
-    if (!shouldLoad) return null;
+    if (!shouldLoad || pathname?.startsWith("/link")) return null;
 
     return (
         <>

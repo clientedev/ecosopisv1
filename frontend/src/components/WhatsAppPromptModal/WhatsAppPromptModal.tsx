@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Smartphone, Check, X, Loader2 } from 'lucide-react';
 import styles from './WhatsAppPromptModal.module.css';
@@ -14,6 +15,7 @@ export default function WhatsAppPromptModal({
   isOpen: controlledIsOpen,
   onClose: controlledOnClose,
 }: WhatsAppPromptModalProps = {}) {
+  const pathname = usePathname();
   const { user, token, refreshProfile } = useAuth();
   const [internalOpen, setInternalOpen] = useState(false);
   const [phone, setPhone] = useState('');
@@ -46,7 +48,7 @@ export default function WhatsAppPromptModal({
 
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalOpen;
 
-  if (!isOpen) return null;
+  if (pathname?.startsWith("/link") || !isOpen) return null;
 
   const handleClose = () => {
     if (controlledOnClose) {
