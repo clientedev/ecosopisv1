@@ -150,6 +150,15 @@ def add_missing_columns():
     for col_name, col_def in MISSING_REVIEWS_COLUMNS:
         add_col("reviews", col_name, col_def)
 
+    # Normalize and protect existing reviews so they are never lost, mixed up or overwritten
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("UPDATE reviews SET source = 'site' WHERE source IS NULL OR source = ''"))
+            conn.execute(text("UPDATE reviews SET author_title = 'Compra Verificada' WHERE author_title IS NULL AND (source = 'site' OR source IS NULL)"))
+        logger.info("✓ Existing reviews preserved and normalized as site reviews.")
+    except Exception as e:
+        logger.warning(f"Could not normalize existing reviews: {e}")
+
 
 def ensure_extra_tables():
     """Explicitly ensure tables exist on live PostgreSQL."""

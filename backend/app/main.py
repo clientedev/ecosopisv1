@@ -155,7 +155,13 @@ def _apply_startup_migrations():
         ("beneficios", "TEXT"),
     ]
     REVIEWS_COLS = [
-        ("images", "TEXT DEFAULT '[]'"),
+        ("images",            "TEXT DEFAULT '[]'"),
+        ("source",            "VARCHAR DEFAULT 'site'"),
+        ("author_photo",      "VARCHAR"),
+        ("author_title",      "VARCHAR DEFAULT 'Compra Verificada'"),
+        ("google_review_id",  "VARCHAR"),
+        ("google_review_url", "VARCHAR"),
+        ("relative_time",     "VARCHAR"),
     ]
     
     with engine.connect() as conn:
@@ -199,6 +205,16 @@ def _apply_startup_migrations():
             conn.commit()
         except Exception as e:
             logger.warning(f"Migration: Could not initialize products.original_price: {e}")
+            conn.rollback()
+
+        # Preserve and normalize all existing reviews so they are NEVER overwritten, mixed up or deleted
+        try:
+            conn.execute(text("UPDATE reviews SET source = 'site' WHERE source IS NULL OR source = ''"))
+            conn.execute(text("UPDATE reviews SET author_title = 'Compra Verificada' WHERE author_title IS NULL AND (source = 'site' OR source IS NULL)"))
+            conn.commit()
+            logger.info("✓ Existing reviews preserved and normalized as site reviews.")
+        except Exception as e:
+            logger.warning(f"Migration: Could not normalize existing reviews: {e}")
             conn.rollback()
 
         # === Product description fixes ===
