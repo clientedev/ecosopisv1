@@ -331,12 +331,18 @@ class Review(Base):
     __tablename__ = "reviews"
 
     id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"))
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
     user_name = Column(String, nullable=False)
     comment = Column(Text, nullable=False)
     rating = Column(Integer, default=5)
     images = Column(JSON, default=list) # List of image URLs
     is_approved = Column(Boolean, default=False)
+    source = Column(String, default="site") # site, google, shopee
+    author_photo = Column(String, nullable=True)
+    author_title = Column(String, default="Avaliação verificada")
+    google_review_id = Column(String, nullable=True)
+    google_review_url = Column(String, nullable=True)
+    relative_time = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     product = relationship("Product", back_populates="reviews")

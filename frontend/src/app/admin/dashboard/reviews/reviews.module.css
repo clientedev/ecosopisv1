@@ -789,3 +789,166 @@
   }
 }
 
+/* ── GOOGLE REVIEWS SYNC CARD ── */
+.googleSyncCard {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.4rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+.googleSyncHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.googleSyncTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.googleIconBox {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.googleSyncTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.googleSyncSubtitle {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.googleSyncActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.syncBtnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  background: #0f3820;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(15, 56, 32, 0.2);
+}
+
+.syncBtnPrimary:hover:not(:disabled) {
+  background: #185230;
+  transform: translateY(-1px);
+}
+
+.syncBtnPrimary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.syncBtnOutline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.syncBtnOutline:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.googleSyncFormGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .googleSyncFormGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.googleInputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.googleInputGroup label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.googleInputGroup input {
+  padding: 0.55rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  color: #1e293b;
+  background: #ffffff;
+  transition: border-color 0.15s ease;
+}
+
+.googleInputGroup input:focus {
+  outline: none;
+  border-color: #2d5a27;
+  box-shadow: 0 0 0 2px rgba(45, 90, 39, 0.15);
+}
+
+.googleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: #e8f0fe;
+  color: #1a73e8;
+  border: 1px solid #c2e7ff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+

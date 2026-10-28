@@ -32,8 +32,12 @@ import {
     Users,
     ShoppingBag,
     Globe,
-    Activity
+    Activity,
+    ExternalLink,
+    Copy,
+    Check
 } from "lucide-react";
+import GoogleIcon from "@/components/GoogleIcon/GoogleIcon";
 import { useCart } from "@/context/CartContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
@@ -56,6 +60,23 @@ export default function Home() {
     const [allProducts, setAllProducts] = useState<any[]>([]);
     const [activeGoal, setActiveGoal] = useState<string | null>(null);
     const [reviews, setReviews] = useState<any[]>([]);
+    const [googleSummary, setGoogleSummary] = useState({
+        googleRating: "5.0",
+        googleTotalReviews: 18,
+        googleReviewUrl: "https://www.google.com/search?q=ecosopis",
+        googlePlaceId: ""
+    });
+    const [reviewsFilter, setReviewsFilter] = useState<"all" | "google" | "site">("all");
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [reviewModalStep, setReviewModalStep] = useState<"form" | "success">("form");
+    const [copiedReviewText, setCopiedReviewText] = useState(false);
+    const [newReviewForm, setNewReviewForm] = useState({
+        user_name: "",
+        comment: "",
+        rating: 5,
+        product_id: null as number | null
+    });
+    const [submittingSiteReview, setSubmittingSiteReview] = useState(false);
     const [reviewPage, setReviewPage] = useState(1);
     const reviewsPerPage = 3;
     const [homeStories, setHomeStories] = useState<any[]>([]);
@@ -122,6 +143,18 @@ export default function Home() {
         };
 
         fetchReviews();
+        const fetchGoogleSummary = async () => {
+            try {
+                const res = await fetch('/api/reviews/google-summary');
+                if (res.ok) {
+                    const data = await res.json();
+                    setGoogleSummary(data);
+                }
+            } catch (err) {
+                console.error("Error fetching google summary", err);
+            }
+        };
+        fetchGoogleSummary();
         fetchHomeStories();
         logVisit();
     }, []);
@@ -425,6 +458,64 @@ export default function Home() {
         }
     };
 
+
+    const googleReviewsCount = reviews.filter((r: any) => r.source === 'google').length;
+    const siteReviewsCount = reviews.filter((r: any) => r.source !== 'google').length;
+
+    const filteredReviews = reviews.filter((r: any) => {
+        if (reviewsFilter === 'google') return r.source === 'google';
+        if (reviewsFilter === 'site') return r.source !== 'google';
+        return true;
+    });
+
+    const handleOpenReviewModal = () => {
+        setNewReviewForm({
+            user_name: user?.full_name || '',
+            comment: '',
+            rating: 5,
+            product_id: null
+        });
+        setReviewModalStep('form');
+        setCopiedReviewText(false);
+        setIsReviewModalOpen(true);
+    };
+
+    const handleSendSiteReview = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newReviewForm.comment.trim()) return;
+        setSubmittingSiteReview(true);
+        try {
+            const res = await fetch('/api/reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_name: newReviewForm.user_name.trim() || user?.full_name || 'Cliente Ecosopis',
+                    comment: newReviewForm.comment.trim(),
+                    rating: newReviewForm.rating,
+                    product_id: newReviewForm.product_id
+                })
+            });
+            if (res.ok) {
+                setReviewModalStep('success');
+            } else {
+                alert('Erro ao enviar avaliação. Tente novamente.');
+            }
+        } catch (err) {
+            console.error('Error submitting review', err);
+        } finally {
+            setSubmittingSiteReview(false);
+        }
+    };
+
+    const handleCopyAndGoToGoogle = () => {
+        if (newReviewForm.comment) {
+            navigator.clipboard.writeText(newReviewForm.comment);
+            setCopiedReviewText(true);
+            setTimeout(() => setCopiedReviewText(false), 3000);
+        }
+        window.open(googleSummary.googleReviewUrl, '_blank', 'noopener,noreferrer');
+    };
+
 return (
         <main>
             <Header />
@@ -562,7 +653,64 @@ return (
                         : (isMobile ? (slide.mobile_carousel_height || '380px') : (slide.carousel_height || '540px'));
                     const hasOverlayText = Boolean(slide.badge || slide.title || slide.description || slide.ctaPrimary || slide.ctaSecondary);
 
-                    return (
+                    const googleReviewsCount = reviews.filter((r: any) => r.source === 'google').length;
+    const siteReviewsCount = reviews.filter((r: any) => r.source !== 'google').length;
+
+    const filteredReviews = reviews.filter((r: any) => {
+        if (reviewsFilter === 'google') return r.source === 'google';
+        if (reviewsFilter === 'site') return r.source !== 'google';
+        return true;
+    });
+
+    const handleOpenReviewModal = () => {
+        setNewReviewForm({
+            user_name: user?.full_name || "",
+            comment: "",
+            rating: 5,
+            product_id: null
+        });
+        setReviewModalStep("form");
+        setCopiedReviewText(false);
+        setIsReviewModalOpen(true);
+    };
+
+    const handleSendSiteReview = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newReviewForm.comment.trim()) return;
+        setSubmittingSiteReview(true);
+        try {
+            const res = await fetch('/api/reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_name: newReviewForm.user_name.trim() || user?.full_name || "Cliente Ecosopis",
+                    comment: newReviewForm.comment.trim(),
+                    rating: newReviewForm.rating,
+                    product_id: newReviewForm.product_id
+                })
+            });
+            if (res.ok) {
+                setReviewModalStep('success');
+            } else {
+                alert("Erro ao enviar avaliação. Tente novamente.");
+            }
+        } catch (err) {
+            console.error("Error submitting review", err);
+        } finally {
+            setSubmittingSiteReview(false);
+        }
+    };
+
+    const handleCopyAndGoToGoogle = () => {
+        if (newReviewForm.comment) {
+            navigator.clipboard.writeText(newReviewForm.comment);
+            setCopiedReviewText(true);
+            setTimeout(() => setCopiedReviewText(false), 3000);
+        }
+        window.open(googleSummary.googleReviewUrl, "_blank", "noopener,noreferrer");
+    };
+
+    return (
                         <div
                             key={index}
                             className={`${styles.carouselSlide} ${index === currentSlide ? styles.activeSlide : ''}`}
@@ -939,93 +1087,208 @@ return (
             {/* Reviews Section - Moved up for Social Proof */}
             <section className={styles.reviewsSection}>
                 <div className="container">
-                    <h2 className={styles.sectionTitle} style={{ textAlign: 'center', marginBottom: '40px' }}>EXPERIÊNCIAS ECOSOPIS</h2>
+                    <h2 className={styles.sectionTitle} style={{ textAlign: 'center', marginBottom: '24px' }}>EXPERIÊNCIAS ECOSOPIS</h2>
 
-                    {reviews && reviews.length > 0 ? (
+                    {/* Google Trust Hero Card */}
+                    <div className={styles.googleTrustHero}>
+                        <div className={styles.googleHeroLeft}>
+                            <div className={styles.googleHeroLogoBox}>
+                                <GoogleIcon size={32} />
+                            </div>
+                            <div className={styles.googleHeroInfo}>
+                                <div className={styles.googleHeroScoreRow}>
+                                    <span className={styles.googleHeroScore}>{googleSummary.googleRating || "5.0"}</span>
+                                    <div className={styles.googleHeroStars}>
+                                        {"★".repeat(5)}
+                                    </div>
+                                </div>
+                                <span className={styles.googleHeroBadgeText}>
+                                    <CheckCircle2 size={16} />
+                                    Excelente no Google Reviews
+                                </span>
+                                <span className={styles.googleHeroCountText}>
+                                    {googleSummary.googleTotalReviews || 18} avaliações reais de clientes
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className={styles.googleHeroButtons}>
+                            <a
+                                href={googleSummary.googleReviewUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.googleBtnPrimary}
+                                title="Deixe sua avaliação no Google"
+                            >
+                                <GoogleIcon size={18} />
+                                <span>Avaliar no Google</span>
+                                <ExternalLink size={14} />
+                            </a>
+
+                            <button
+                                type="button"
+                                onClick={handleOpenReviewModal}
+                                className={styles.googleBtnOutline}
+                                title="Deixe sua avaliação no site"
+                            >
+                                <MessageSquare size={16} color="#2d5a27" />
+                                <span>Avaliar pelo Site</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Filter Tabs */}
+                    <div className={styles.reviewsFilterBar}>
+                        <div className={styles.filterChipsGroup}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginRight: '6px' }}>
+                                Filtrar:
+                            </span>
+
+                            <button
+                                type="button"
+                                className={`${styles.filterChipBtn} ${reviewsFilter === 'all' ? styles.filterChipBtnActive : ''}`}
+                                onClick={() => { setReviewsFilter('all'); setReviewPage(1); }}
+                            >
+                                Todas ({reviews.length})
+                            </button>
+
+                            <button
+                                type="button"
+                                className={`${styles.filterChipBtn} ${styles.filterChipBtnGoogle} ${reviewsFilter === 'google' ? styles.filterChipBtnGoogleActive : ''}`}
+                                onClick={() => { setReviewsFilter('google'); setReviewPage(1); }}
+                            >
+                                <GoogleIcon size={14} />
+                                Google Reviews ({googleReviewsCount})
+                            </button>
+
+                            <button
+                                type="button"
+                                className={`${styles.filterChipBtn} ${reviewsFilter === 'site' ? styles.filterChipBtnActive : ''}`}
+                                onClick={() => { setReviewsFilter('site'); setReviewPage(1); }}
+                            >
+                                No Site ({siteReviewsCount})
+                            </button>
+                        </div>
+
+                        <a
+                            href={googleSummary.googleReviewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1a73e8', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                        >
+                            <span>Ver perfil no Google</span>
+                            <ExternalLink size={13} />
+                        </a>
+                    </div>
+
+                    {filteredReviews && filteredReviews.length > 0 ? (
                         <>
                             <div className={styles.reviewsGrid}>
-                                {reviews
+                                {filteredReviews
                                     .slice((reviewPage - 1) * reviewsPerPage, reviewPage * reviewsPerPage)
-                                    .map((rev: any, index: number) => (
-                                        <div key={rev.id || index} className={styles.reviewCard}>
-                                            <div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                                    <div className={styles.reviewStars}>
-                                                        {"★".repeat(rev.rating || 5)}{"☆".repeat(5 - (rev.rating || 5))}
+                                    .map((rev: any, index: number) => {
+                                        const isGoogle = rev.source === 'google';
+                                        return (
+                                            <div key={rev.id || index} className={styles.reviewCard}>
+                                                <div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                                        <div className={styles.reviewStars}>
+                                                            {"★".repeat(rev.rating || 5)}{"☆".repeat(5 - (rev.rating || 5))}
+                                                        </div>
+
+                                                        {isGoogle ? (
+                                                            <span className={styles.googleBadgeCard}>
+                                                                <GoogleIcon size={12} />
+                                                                Avaliação Google
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{
+                                                                fontSize: '0.68rem',
+                                                                fontWeight: 700,
+                                                                color: '#166534',
+                                                                background: '#dcfce7',
+                                                                padding: '3px 8px',
+                                                                borderRadius: '20px',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px'
+                                                            }}>
+                                                                ✓ Compra Verificada
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                    <span style={{
-                                                        fontSize: '0.68rem',
-                                                        fontWeight: 700,
-                                                        color: '#166534',
-                                                        background: '#dcfce7',
-                                                        padding: '3px 8px',
-                                                        borderRadius: '20px',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px'
-                                                    }}>
-                                                        ✓ Compra Verificada
-                                                    </span>
+
+                                                    {rev.product_name && rev.product_name !== 'Geral' && rev.product_name !== 'Google Reviews' && (
+                                                        <span style={{
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: 700,
+                                                            color: 'var(--primary-green)',
+                                                            background: 'rgba(74,124,89,0.08)',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '20px',
+                                                            display: 'inline-block',
+                                                            marginBottom: '10px'
+                                                        }}>
+                                                            {rev.product_name}
+                                                        </span>
+                                                    )}
+
+                                                    <p className={styles.reviewComment}>&ldquo;{rev.comment}&rdquo;</p>
+
+                                                    {Array.isArray(rev.images) && rev.images.length > 0 && (
+                                                        <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                                                            {rev.images.map((img: string, i: number) => (
+                                                                <a key={i} href={img} target="_blank" rel="noopener noreferrer" style={{ width: '54px', height: '54px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', display: 'block' }}>
+                                                                    <img src={img} alt="Foto da avaliação" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                {rev.product_name && rev.product_name !== 'Geral' && (
-                                                    <span style={{
-                                                        fontSize: '0.72rem',
-                                                        fontWeight: 700,
-                                                        color: 'var(--primary-green)',
-                                                        background: 'rgba(74,124,89,0.08)',
-                                                        padding: '2px 8px',
-                                                        borderRadius: '20px',
-                                                        display: 'inline-block',
-                                                        marginBottom: '10px'
-                                                    }}>
-                                                        {rev.product_name}
-                                                    </span>
-                                                )}
-
-                                                <p className={styles.reviewComment}>&ldquo;{rev.comment}&rdquo;</p>
-
-                                                {Array.isArray(rev.images) && rev.images.length > 0 && (
-                                                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
-                                                        {rev.images.map((img: string, i: number) => (
-                                                            <a key={i} href={img} target="_blank" rel="noopener noreferrer" style={{ width: '54px', height: '54px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', display: 'block' }}>
-                                                                <img src={img} alt="Foto da avaliação" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                            </a>
-                                                        ))}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        {rev.author_photo ? (
+                                                            <img
+                                                                src={rev.author_photo}
+                                                                alt={rev.user_name}
+                                                                style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #e2e8f0' }}
+                                                            />
+                                                        ) : (
+                                                            <div style={{
+                                                                width: '32px',
+                                                                height: '32px',
+                                                                borderRadius: '50%',
+                                                                background: isGoogle ? '#e8f0fe' : 'linear-gradient(135deg, #d4a373 0%, #2d5a27 100%)',
+                                                                color: isGoogle ? '#1a73e8' : 'white',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                fontSize: '0.8rem',
+                                                                fontWeight: 800
+                                                            }}>
+                                                                {(rev.user_name || "C").charAt(0).toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <span className={styles.reviewAuthor} style={{ display: 'block' }}>{rev.user_name || "Cliente Verificada"}</span>
+                                                            {isGoogle && (
+                                                                <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Avaliação verificada</span>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                )}
-                                            </div>
 
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <div style={{
-                                                        width: '32px',
-                                                        height: '32px',
-                                                        borderRadius: '50%',
-                                                        background: 'linear-gradient(135deg, #d4a373 0%, #2d5a27 100%)',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        fontSize: '0.8rem',
-                                                        fontWeight: 800,
-                                                        color: 'white'
-                                                    }}>
-                                                        {(rev.user_name || "C").charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <span className={styles.reviewAuthor}>{rev.user_name || "Cliente Verificada"}</span>
-                                                </div>
-                                                {rev.created_at && (
                                                     <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-                                                        {new Date(rev.created_at).toLocaleDateString('pt-BR')}
+                                                        {rev.relative_time || (rev.created_at ? new Date(rev.created_at).toLocaleDateString('pt-BR') : '')}
                                                     </span>
-                                                )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                             </div>
 
                             {/* Controles de Paginação */}
-                            {Math.ceil(reviews.length / reviewsPerPage) > 1 && (
+                            {Math.ceil(filteredReviews.length / reviewsPerPage) > 1 && (
                                 <div className={styles.paginationWrapper}>
                                     <button
                                         type="button"
@@ -1038,7 +1301,7 @@ return (
                                         Anterior
                                     </button>
 
-                                    {Array.from({ length: Math.ceil(reviews.length / reviewsPerPage) }, (_, idx) => idx + 1).map(num => (
+                                    {Array.from({ length: Math.ceil(filteredReviews.length / reviewsPerPage) }, (_, idx) => idx + 1).map(num => (
                                         <button
                                             key={num}
                                             type="button"
@@ -1052,8 +1315,8 @@ return (
                                     <button
                                         type="button"
                                         className={styles.paginationBtn}
-                                        disabled={reviewPage === Math.ceil(reviews.length / reviewsPerPage)}
-                                        onClick={() => setReviewPage(p => Math.min(Math.ceil(reviews.length / reviewsPerPage), p + 1))}
+                                        disabled={reviewPage === Math.ceil(filteredReviews.length / reviewsPerPage)}
+                                        onClick={() => setReviewPage(p => Math.min(Math.ceil(filteredReviews.length / reviewsPerPage), p + 1))}
                                         aria-label="Próxima página"
                                     >
                                         Próxima
@@ -1066,14 +1329,172 @@ return (
                         <div className={styles.emptyReviewsCard}>
                             <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🌿</div>
                             <h3 style={{ fontSize: '1.15rem', color: '#2d5a27', marginBottom: '8px', fontWeight: 700 }}>
-                                Seja a primeira a avaliar!
+                                Nenhuma avaliação encontrada nesta categoria.
                             </h3>
-                            <p style={{ fontSize: '0.88rem', color: '#64748b', maxWidth: '420px', margin: '0 auto 16px', lineHeight: 1.5 }}>
-                                Compartilhe sua experiência real com a Ecosopis e ajude outras pessoas a descobrirem o poder da cosmética natural e consciente.
+                            <p style={{ color: '#64748b', fontSize: '0.88rem', marginBottom: '16px' }}>
+                                Seja a primeira a compartilhar sua experiência com a Ecosopis!
                             </p>
+                            <button type="button" onClick={handleOpenReviewModal} className={styles.googleBtnPrimary}>
+                                <MessageSquare size={16} />
+                                <span>Deixar Avaliação Agora</span>
+                            </button>
                         </div>
                     )}
                 </div>
+
+                {/* Modal de Avaliação no Site com convite para avaliar no Google */}
+                {isReviewModalOpen && (
+                    <div className={styles.reviewModalBackdrop} onClick={() => setIsReviewModalOpen(false)}>
+                        <div className={styles.reviewModalCard} onClick={(e) => e.stopPropagation()}>
+                            <button
+                                type="button"
+                                className={styles.modalCloseBtn}
+                                onClick={() => setIsReviewModalOpen(false)}
+                                aria-label="Fechar"
+                            >
+                                <X size={18} />
+                            </button>
+
+                            {reviewModalStep === 'form' ? (
+                                <form onSubmit={handleSendSiteReview} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#0f172a' }}>
+                                            Sua Opinião Faz a Diferença! 🌿
+                                        </h3>
+                                        <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                                            Conte para nós como foi sua experiência com os cosméticos Ecosopis.
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                                            SUA NOTA:
+                                        </label>
+                                        <div style={{ display: 'flex', gap: '8px', fontSize: '1.6rem', color: '#f59e0b', cursor: 'pointer' }}>
+                                            {[1, 2, 3, 4, 5].map((st) => (
+                                                <span
+                                                    key={st}
+                                                    onClick={() => setNewReviewForm({ ...newReviewForm, rating: st })}
+                                                    style={{ transition: 'transform 0.15s ease' }}
+                                                >
+                                                    {st <= newReviewForm.rating ? "★" : "☆"}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                                            SEU NOME:
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newReviewForm.user_name}
+                                            onChange={(e) => setNewReviewForm({ ...newReviewForm, user_name: e.target.value })}
+                                            placeholder="Ex: Ana Maria Silva"
+                                            style={{
+                                                width: '100%',
+                                                padding: '10px 14px',
+                                                borderRadius: '10px',
+                                                border: '1.5px solid #cbd5e1',
+                                                fontSize: '0.9rem'
+                                            }}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                                            SUA AVALIAÇÃO:
+                                        </label>
+                                        <textarea
+                                            value={newReviewForm.comment}
+                                            onChange={(e) => setNewReviewForm({ ...newReviewForm, comment: e.target.value })}
+                                            placeholder="Conte sobre os resultados na sua pele, aroma, textura, atendimento..."
+                                            rows={4}
+                                            style={{
+                                                width: '100%',
+                                                padding: '10px 14px',
+                                                borderRadius: '10px',
+                                                border: '1.5px solid #cbd5e1',
+                                                fontSize: '0.9rem',
+                                                resize: 'vertical'
+                                            }}
+                                            required
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={submittingSiteReview}
+                                        className={styles.googleBtnPrimary}
+                                        style={{ justifyContent: 'center', marginTop: '6px' }}
+                                    >
+                                        <Send size={16} />
+                                        <span>{submittingSiteReview ? "Enviando..." : "Enviar Avaliação"}</span>
+                                    </button>
+                                </form>
+                            ) : (
+                                <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <CheckCircle2 size={32} />
+                                    </div>
+
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>
+                                            Avaliação Enviada com Sucesso! 🎉
+                                        </h3>
+                                        <p style={{ margin: '6px 0 0', fontSize: '0.9rem', color: '#475569', lineHeight: 1.5 }}>
+                                            Muito obrigado pelo seu carinho! Sua opinião ajuda mais pessoas a conhecerem a beleza natural.
+                                        </p>
+                                    </div>
+
+                                    {/* Google Review Prompt Box */}
+                                    <div style={{ background: '#f8fafd', border: '1.5px solid #c2e7ff', borderRadius: '16px', padding: '16px', width: '100%', textAlign: 'left' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                                            <GoogleIcon size={22} />
+                                            <strong style={{ fontSize: '0.92rem', color: '#1e293b' }}>
+                                                Gostaria de avaliar também no Google?
+                                            </strong>
+                                        </div>
+                                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', lineHeight: 1.4 }}>
+                                            Leva apenas 10 segundos: nós copiamos sua avaliação para você colar no perfil oficial da Ecosopis no Google!
+                                        </p>
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: '6px' }}>
+                                        <button
+                                            type="button"
+                                            onClick={handleCopyAndGoToGoogle}
+                                            className={styles.googleBtnPrimary}
+                                            style={{ justifyContent: 'center', background: '#1a73e8', boxShadow: '0 4px 14px rgba(26,115,232,0.3)' }}
+                                        >
+                                            {copiedReviewText ? <Check size={16} /> : <Copy size={16} />}
+                                            <span>{copiedReviewText ? "Copiado! Abrindo Google..." : "Copiar Avaliação e Abrir Google"}</span>
+                                            <ExternalLink size={14} />
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsReviewModalOpen(false)}
+                                            style={{
+                                                background: 'transparent',
+                                                border: 'none',
+                                                color: '#64748b',
+                                                fontSize: '0.85rem',
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                                padding: '8px'
+                                            }}
+                                        >
+                                            Concluir e Fechar
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </section>
 
             {/* Diário ECOSOPIS Section (substituindo Consultoria Express) */}

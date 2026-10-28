@@ -93,6 +93,12 @@ MISSING_WORLD_CUP_MATCHES_COLUMNS = [
 
 MISSING_REVIEWS_COLUMNS = [
     ("images", "TEXT DEFAULT '[]'"),
+    ("source", "VARCHAR DEFAULT 'site'"),
+    ("author_photo", "TEXT"),
+    ("author_title", "VARCHAR DEFAULT 'Avaliação verificada'"),
+    ("google_review_id", "VARCHAR"),
+    ("google_review_url", "TEXT"),
+    ("relative_time", "VARCHAR"),
 ]
 
 

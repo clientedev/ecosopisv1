@@ -17,8 +17,11 @@ import {
     Edit2,
     Plus,
     Upload,
-    X
+    X,
+    ExternalLink,
+    Settings
 } from "lucide-react";
+import GoogleIcon from "@/components/GoogleIcon/GoogleIcon";
 import { fuzzySearch } from "@/utils/search";
 import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
@@ -32,6 +35,11 @@ interface ReviewItem {
     is_approved: boolean;
     product_id?: number | null;
     product_name?: string | null;
+    source?: string;
+    author_photo?: string | null;
+    author_title?: string | null;
+    relative_time?: string | null;
+    google_review_url?: string | null;
     created_at?: string;
 }
 
@@ -43,6 +51,20 @@ export default function AdminReviewsPage() {
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [actionMsg, setActionMsg] = useState<string>("");
     const router = useRouter();
+
+    // Estado do Google Reviews
+    const [googleSummary, setGoogleSummary] = useState({
+        googleRating: "5.0",
+        googleTotalReviews: 18,
+        googleReviewUrl: "https://www.google.com/search?q=ecosopis",
+        googlePlaceId: "",
+        googleReviewsCount: 5,
+        siteReviewsCount: 0
+    });
+    const [syncingGoogle, setSyncingGoogle] = useState(false);
+    const [showGoogleSettings, setShowGoogleSettings] = useState(false);
+    const [googleUrlInput, setGoogleUrlInput] = useState("https://www.google.com/search?q=ecosopis");
+    const [googlePlaceIdInput, setGooglePlaceIdInput] = useState("");
 
     // Estado para edição de avaliação
     const [editingReview, setEditingReview] = useState<ReviewItem | null>(null);
@@ -87,10 +109,29 @@ export default function AdminReviewsPage() {
                 images: imgs.filter((url: any) => typeof url === "string" && url.trim().length > 0),
                 is_approved: Boolean(r.is_approved),
                 product_id: r.product_id != null ? Number(r.product_id) : null,
-                product_name: r.product_name?.trim() || (r.product ? r.product.name : "Geral (Sem Produto)"),
+                product_name: r.product_name?.trim() || (r.source === 'google' ? "Google Reviews" : (r.product ? r.product.name : "Geral (Sem Produto)")),
+                source: r.source || "site",
+                author_photo: r.author_photo || null,
+                author_title: r.author_title || (r.source === 'google' ? "Avaliação verificada no Google" : "Compra Verificada"),
+                relative_time: r.relative_time || null,
+                google_review_url: r.google_review_url || null,
                 created_at: r.created_at || undefined,
             };
         });
+    };
+
+    const fetchGoogleSummary = async () => {
+        try {
+            const res = await fetch(`/api/reviews/google-summary`);
+            if (res.ok) {
+                const data = await res.json();
+                setGoogleSummary(data);
+                if (data.googleReviewUrl) setGoogleUrlInput(data.googleReviewUrl);
+                if (data.googlePlaceId) setGooglePlaceIdInput(data.googlePlaceId);
+            }
+        } catch (e) {
+            console.error("Error fetching google summary:", e);
+        }
     };
 
     const fetchReviews = async () => {
@@ -115,8 +156,44 @@ export default function AdminReviewsPage() {
         }
     };
 
+    const handleSyncGoogle = async () => {
+        setSyncingGoogle(true);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`/api/reviews/admin/sync-google`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    google_review_url: googleUrlInput,
+                    place_id: googlePlaceIdInput,
+                    google_rating: googleSummary.googleRating,
+                    google_total_reviews: googleSummary.googleTotalReviews
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setActionMsg("✅ " + (data.message || "Avaliações do Google sincronizadas com sucesso!"));
+                setTimeout(() => setActionMsg(""), 6000);
+                await Promise.all([fetchReviews(), fetchGoogleSummary()]);
+            } else {
+                setActionMsg("❌ " + (data.message || "Erro ao sincronizar com Google."));
+                setTimeout(() => setActionMsg(""), 6000);
+            }
+        } catch (err: any) {
+            console.error("Erro ao sincronizar:", err);
+            setActionMsg("❌ Falha de conexão ao sincronizar com Google.");
+            setTimeout(() => setActionMsg(""), 6000);
+        } finally {
+            setSyncingGoogle(false);
+        }
+    };
+
     useEffect(() => {
         fetchReviews();
+        fetchGoogleSummary();
     }, []);
 
     // Estatísticas por produto
@@ -161,10 +238,21 @@ export default function AdminReviewsPage() {
         return [...map.values()].sort((a, b) => b.pending - a.pending || b.total - a.total || a.name.localeCompare(b.name));
     }, [reviews]);
 
+    const googleCount = reviews.filter(r => r.source === 'google').length;
+    const siteCount = reviews.filter(r => r.source !== 'google').length;
+
     // Filtros aplicados
     const filteredReviews = useMemo(() => {
         const baseFiltered = reviews.filter((rev) => {
-            const matchesProduct = selectedProductTab === "all" || String(rev.product_id ?? 0) === selectedProductTab;
+            let matchesProduct = true;
+            if (selectedProductTab === "google") {
+                matchesProduct = rev.source === "google";
+            } else if (selectedProductTab === "site") {
+                matchesProduct = rev.source !== "google";
+            } else if (selectedProductTab !== "all") {
+                matchesProduct = String(rev.product_id ?? 0) === selectedProductTab;
+            }
+
             const matchesStatus = statusFilter === "all" || (statusFilter === "approved" ? rev.is_approved : !rev.is_approved);
             return matchesProduct && matchesStatus;
         });
@@ -502,15 +590,109 @@ export default function AdminReviewsPage() {
                             <strong className={reviewStyles.statValue}>{productStats.length}</strong>
                         </div>
                     </article>
+                    <article className={reviewStyles.statCard} style={{ borderColor: "#c2e7ff", background: "#f8fafd" }}>
+                        <GoogleIcon size={24} />
+                        <div>
+                            <p className={reviewStyles.statLabel} style={{ color: "#1a73e8" }}>Google Reviews</p>
+                            <strong className={reviewStyles.statValue} style={{ color: "#1a73e8" }}>
+                                {googleCount} <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "#f59e0b" }}>★ {googleSummary.googleRating}</span>
+                            </strong>
+                        </div>
+                    </article>
+                </section>
+
+                {/* Painel de Sincronização Google Reviews */}
+                <section className={reviewStyles.googleSyncCard}>
+                    <div className={reviewStyles.googleSyncHeader}>
+                        <div className={reviewStyles.googleSyncTitleWrap}>
+                            <div className={reviewStyles.googleIconBox}>
+                                <GoogleIcon size={24} />
+                            </div>
+                            <div>
+                                <h2 className={reviewStyles.googleSyncTitle}>Sincronização com o Google Reviews</h2>
+                                <p className={reviewStyles.googleSyncSubtitle}>
+                                    Gerencie a integração com o Google, sincronize as avaliações oficiais e ative o botão de avaliação no site.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className={reviewStyles.googleSyncActions}>
+                            <a
+                                href={googleUrlInput || googleSummary.googleReviewUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={reviewStyles.syncBtnOutline}
+                                title="Abrir página de avaliação no Google"
+                            >
+                                <ExternalLink size={14} />
+                                <span>Ver no Google</span>
+                            </a>
+
+                            <button
+                                type="button"
+                                className={reviewStyles.syncBtnOutline}
+                                onClick={() => setShowGoogleSettings(!showGoogleSettings)}
+                                title="Configurar URL ou Place ID do Google"
+                            >
+                                <Settings size={14} />
+                                <span>{showGoogleSettings ? "Ocultar Configurações" : "Configurar Link"}</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                className={reviewStyles.syncBtnPrimary}
+                                onClick={handleSyncGoogle}
+                                disabled={syncingGoogle}
+                            >
+                                <RefreshCw size={15} className={syncingGoogle ? styles.spinIcon : ""} />
+                                <span>{syncingGoogle ? "Sincronizando..." : "Sincronizar com o Google"}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {showGoogleSettings && (
+                        <div className={reviewStyles.googleSyncFormGrid}>
+                            <div className={reviewStyles.googleInputGroup}>
+                                <label>Link de Avaliação do Google</label>
+                                <input
+                                    type="text"
+                                    value={googleUrlInput}
+                                    onChange={(e) => setGoogleUrlInput(e.target.value)}
+                                    placeholder="https://www.google.com/search?q=ecosopis ou https://search.google.com/local/writereview?placeid=..."
+                                />
+                            </div>
+                            <div className={reviewStyles.googleInputGroup}>
+                                <label>Google Place ID (Opcional)</label>
+                                <input
+                                    type="text"
+                                    value={googlePlaceIdInput}
+                                    onChange={(e) => setGooglePlaceIdInput(e.target.value)}
+                                    placeholder="ChIJ... (Place ID)"
+                                />
+                            </div>
+                            <div className={reviewStyles.googleInputGroup}>
+                                <label>Salvar & Sincronizar</label>
+                                <button
+                                    type="button"
+                                    className={reviewStyles.syncBtnPrimary}
+                                    onClick={handleSyncGoogle}
+                                    disabled={syncingGoogle}
+                                    style={{ height: "38px", justifyContent: "center" }}
+                                >
+                                    Salvar Alterações
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </section>
 
                 {/* Barra de Navegação por Abas de Produto */}
                 <section className={reviewStyles.tabsContainer}>
                     <div className={reviewStyles.tabsHeader}>
-                        <span className={reviewStyles.tabsTitle}>Filtrar por Produto:</span>
+                        <span className={reviewStyles.tabsTitle}>Filtrar por Origem ou Produto:</span>
                         {productStats.length > 0 && (
                             <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                                Mostrando {selectedProductTab === "all" ? "todos os produtos" : productStats.find(p => p.id === selectedProductTab)?.name}
+                                Mostrando {selectedProductTab === "all" ? "todos os produtos" : selectedProductTab === "google" ? "apenas Google Reviews" : productStats.find(p => p.id === selectedProductTab)?.name}
                             </span>
                         )}
                     </div>
@@ -520,9 +702,32 @@ export default function AdminReviewsPage() {
                             className={`${reviewStyles.productTab} ${selectedProductTab === "all" ? reviewStyles.productTabActive : ""}`}
                             onClick={() => setSelectedProductTab("all")}
                         >
-                            Todos os Produtos
+                            Todas as Avaliações
                             <span className={reviewStyles.tabCountBadge}>{totalReviews}</span>
                             {pendingCount > 0 && <span className={reviewStyles.tabPendingAlert} title={`${pendingCount} pendente(s)`} />}
+                        </button>
+
+                        <button
+                            type="button"
+                            className={`${reviewStyles.productTab} ${selectedProductTab === "google" ? reviewStyles.productTabActive : ""}`}
+                            onClick={() => setSelectedProductTab("google")}
+                            style={{
+                                border: selectedProductTab === "google" ? "1.5px solid #1a73e8" : "1.5px solid #d2e3fc",
+                                background: selectedProductTab === "google" ? "#1a73e8" : "#f8fafd",
+                                color: selectedProductTab === "google" ? "#ffffff" : "#1a73e8"
+                            }}
+                        >
+                            <GoogleIcon size={14} />
+                            Google Reviews
+                            <span 
+                                className={reviewStyles.tabCountBadge} 
+                                style={{ 
+                                    background: selectedProductTab === "google" ? "rgba(255,255,255,0.25)" : "#e8f0fe", 
+                                    color: selectedProductTab === "google" ? "#fff" : "#1a73e8" 
+                                }}
+                            >
+                                {googleCount}
+                            </span>
                         </button>
 
                         {productStats.map((prod) => (
@@ -659,7 +864,38 @@ export default function AdminReviewsPage() {
                                                             </span>
                                                         </td>
                                                         <td data-label="Cliente">
-                                                            <strong>{rev.user_name}</strong>
+                                                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                                {rev.author_photo ? (
+                                                                    <img 
+                                                                        src={rev.author_photo} 
+                                                                        alt={rev.user_name} 
+                                                                        style={{ width: "24px", height: "24px", borderRadius: "50%", objectFit: "cover", border: "1px solid #cbd5e1" }} 
+                                                                    />
+                                                                ) : (
+                                                                    <div style={{ 
+                                                                        width: "24px", 
+                                                                        height: "24px", 
+                                                                        borderRadius: "50%", 
+                                                                        background: rev.source === "google" ? "#e8f0fe" : "#f1f5f9", 
+                                                                        color: rev.source === "google" ? "#1a73e8" : "#475569",
+                                                                        display: "flex", 
+                                                                        alignItems: "center", 
+                                                                        justifyContent: "center", 
+                                                                        fontSize: "0.72rem", 
+                                                                        fontWeight: 700 
+                                                                    }}>
+                                                                        {rev.user_name.charAt(0).toUpperCase()}
+                                                                    </div>
+                                                                )}
+                                                                <strong>{rev.user_name}</strong>
+                                                            </div>
+                                                            {rev.source === "google" && (
+                                                                <div style={{ marginTop: "4px" }}>
+                                                                    <span className={reviewStyles.googleBadge}>
+                                                                        <GoogleIcon size={12} /> Google
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                         </td>
                                                         <td data-label="Nota">
                                                             <div className={reviewStyles.stars}>

@@ -6,7 +6,7 @@ import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
 import styles from "./page.module.css";
 import Image from "next/image";
-import { QrCode, Plus, Minus, ShoppingBag, Leaf, ChevronDown, Sparkles, CreditCard } from "lucide-react";
+import { QrCode, Plus, Minus, ShoppingBag, Leaf, ChevronDown, Sparkles, CreditCard, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/Toast/Toast";
 import { useCart } from "@/context/CartContext";
 import { getStaticProductData } from "@/lib/productData";
@@ -14,6 +14,7 @@ import { getStaticProductData } from "@/lib/productData";
 import ProductStoryCircles from "@/components/ProductStory/ProductStoryCircles";
 import ProductStoryModal from "@/components/ProductStory/ProductStoryModal";
 import BrandLoader from "@/components/BrandLoader/BrandLoader";
+import GoogleIcon from "@/components/GoogleIcon/GoogleIcon";
 
 export default function ProductDetailPage() {
     const params = useParams();
@@ -814,9 +815,32 @@ export default function ProductDetailPage() {
                 <div className={styles.reviewsSection}>
                     <div className={styles.reviewsHeader}>
                         <h2>Avaliações dos Clientes</h2>
-                        <button className="btn-primary" onClick={() => setShowReviewForm(!showReviewForm)}>
-                            {showReviewForm ? 'Cancelar' : 'Deixar uma Avaliação'}
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                            <a 
+                                href="https://www.google.com/search?q=ecosopis" 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                style={{ 
+                                    display: 'inline-flex', 
+                                    alignItems: 'center', 
+                                    gap: '0.4rem', 
+                                    fontSize: '0.85rem', 
+                                    padding: '0.5rem 0.9rem', 
+                                    borderRadius: '8px', 
+                                    border: '1px solid #e2e8f0', 
+                                    background: '#ffffff', 
+                                    color: '#1e293b', 
+                                    textDecoration: 'none', 
+                                    fontWeight: 600,
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                                }}
+                            >
+                                <GoogleIcon size={16} /> Avaliar no Google <ExternalLink size={13} style={{ opacity: 0.6 }} />
+                            </a>
+                            <button className="btn-primary" onClick={() => setShowReviewForm(!showReviewForm)}>
+                                {showReviewForm ? 'Cancelar' : 'Deixar uma Avaliação'}
+                            </button>
+                        </div>
                     </div>
 
                     {showReviewForm && (
@@ -863,7 +887,17 @@ export default function ProductDetailPage() {
                                 .map((rev: any) => (
                                 <div key={rev.id} className={styles.reviewCard}>
                                     <div className={styles.reviewMeta}>
-                                        <span className={styles.reviewerName}>{rev.user_name}</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            {rev.source === 'google' && rev.author_photo && (
+                                                <img src={rev.author_photo} alt={rev.user_name} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                                            )}
+                                            <span className={styles.reviewerName}>{rev.user_name}</span>
+                                            {rev.source === 'google' && (
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', background: '#f1f5f9', padding: '2px 7px', borderRadius: '4px', color: '#334155', fontWeight: 600 }}>
+                                                    <GoogleIcon size={12} /> Google
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className={styles.reviewStars}>
                                             {Array(5).fill(0).map((_, i) => (
                                                 <span key={i} className={i < rev.rating ? styles.starActiveSmall : styles.starSmall}>★</span>
