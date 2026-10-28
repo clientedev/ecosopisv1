@@ -664,75 +664,10 @@ return (
                         : (isMobile ? (slide.mobile_carousel_height || '380px') : (slide.carousel_height || '540px'));
                     const hasOverlayText = Boolean(slide.badge || slide.title || slide.description || slide.ctaPrimary || slide.ctaSecondary);
 
-                    const googleReviewsCount = reviews.filter((r: any) => r.source === 'google').length;
-    const siteReviewsCount = reviews.filter((r: any) => r.source !== 'google').length;
-
-    const filteredReviews = reviews.filter((r: any) => {
-        if (reviewsFilter === 'google') return r.source === 'google';
-        if (reviewsFilter === 'site') return r.source !== 'google';
-        return true;
-    });
-
-    const handleOpenReviewModal = () => {
-        setNewReviewForm({
-            user_name: user?.full_name || "",
-            comment: "",
-            rating: 5,
-            product_id: null
-        });
-        setReviewModalStep("form");
-        setCopiedReviewText(false);
-        setIsReviewModalOpen(true);
-    };
-
-    const handleSendSiteReview = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newReviewForm.comment.trim()) return;
-        setSubmittingSiteReview(true);
-        try {
-            const res = await fetch('/api/reviews', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_name: newReviewForm.user_name.trim() || user?.full_name || "Cliente Ecosopis",
-                    comment: newReviewForm.comment.trim(),
-                    rating: newReviewForm.rating,
-                    product_id: newReviewForm.product_id
-                })
-            });
-            if (res.ok) {
-                setReviewModalStep('success');
-            } else {
-                alert("Erro ao enviar avaliação. Tente novamente.");
-            }
-        } catch (err) {
-            console.error("Error submitting review", err);
-        } finally {
-            setSubmittingSiteReview(false);
-        }
-    };
-
-    const handleCopyAndGoToGoogle = () => {
-        if (newReviewForm.comment) {
-            navigator.clipboard.writeText(newReviewForm.comment);
-            setCopiedReviewText(true);
-            setTimeout(() => setCopiedReviewText(false), 3000);
-        }
-        window.open(googleSummary.googleReviewUrl, "_blank", "noopener,noreferrer");
-    };
-
-    return (
+                    return (
                         <div
                             key={index}
                             className={`${styles.carouselSlide} ${index === currentSlide ? styles.activeSlide : ''}`}
-                            style={{
-                                display: index === currentSlide ? 'flex' : 'none',
-                                width: '100%',
-                                height: 'auto',
-                                position: 'relative',
-                                overflow: 'hidden',
-                                transition: 'opacity 0.4s ease-in-out'
-                            }}
                         >
                             {(activeImageUrl || slide.video_url || slide.mobile_video_url) && (
                                 <>

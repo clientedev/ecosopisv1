@@ -3,14 +3,22 @@
   width: 100%;
   position: relative;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  justify-items: stretch;
   min-height: unset;
   user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.heroCarousel:active {
+  cursor: grabbing;
 }
 
 .carouselSlide {
+  grid-area: 1 / 1 / 2 / 2;
   width: 100%;
   height: auto;
   position: relative;
@@ -18,11 +26,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.4s ease-in-out;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.75s ease;
+  will-change: opacity;
+  z-index: 1;
 }
 
 .activeSlide {
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 2;
 }
 
 /* Ambient blurred backdrop that matches banner colors on widescreen edges */
@@ -66,18 +82,7 @@
   object-fit: cover;
 }
 
-.heroCarousel {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-  user-select: none;
-  -webkit-user-select: none;
-  cursor: grab;
-}
-
-.heroCarousel:active {
-  cursor: grabbing;
-}
+/* heroCarousel styles consolidated above */
 
 /* Setas de navegação do Banner (removidas do desktop) */
 .carouselNavBtn {
@@ -2758,4 +2763,4 @@
   }
 }
 
-
+
