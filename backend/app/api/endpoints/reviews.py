@@ -327,7 +327,7 @@ def get_approved_reviews(
         "author_title": getattr(r, "author_title", None) or ("Avaliação verificada no Google" if getattr(r, "source", None) == "google" else "Compra Verificada"),
         "relative_time": getattr(r, "relative_time", None),
         "google_review_id": getattr(r, "google_review_id", None),
-        "google_review_url": getattr(r, "google_review_url", None) or "https://www.google.com/search?q=ecosopis",
+        "google_review_url": getattr(r, "google_review_url", None) or "https://maps.app.goo.gl/KU8KXgUpascbM3o6A",
         "created_at": r.created_at.isoformat() if r.created_at else None
     } for r in reviews]
 
@@ -373,7 +373,7 @@ def get_all_reviews(db: Session = Depends(get_db), admin: models.User = Depends(
         "author_title": getattr(r, "author_title", None) or ("Avaliação verificada no Google" if getattr(r, "source", None) == "google" else "Compra Verificada"),
         "relative_time": getattr(r, "relative_time", None),
         "google_review_id": getattr(r, "google_review_id", None),
-        "google_review_url": getattr(r, "google_review_url", None) or "https://www.google.com/search?q=ecosopis",
+        "google_review_url": getattr(r, "google_review_url", None) or "https://maps.app.goo.gl/KU8KXgUpascbM3o6A",
         "created_at": r.created_at.isoformat() if r.created_at else None
     } for r in reviews]
 
@@ -504,13 +504,51 @@ def _ensure_google_review_columns(db: Session):
             db.commit()
         except Exception:
             db.rollback()
+
+        # Garante que as 5 avaliações oficiais do Google existam no banco com o link do Maps
+        try:
+            google_count = db.query(models.Review).filter(models.Review.source == 'google').count()
+            if google_count == 0:
+                for g_rev in DEFAULT_GOOGLE_REVIEWS:
+                    rev = models.Review(
+                        user_name=g_rev["user_name"],
+                        comment=g_rev["comment"],
+                        rating=g_rev["rating"],
+                        product_id=None,
+                        images=[],
+                        is_approved=True,
+                        source="google",
+                        author_photo=g_rev["author_photo"],
+                        author_title=g_rev.get("author_title", "Avaliação verificada no Google"),
+                        google_review_id=g_rev["id"],
+                        google_review_url="https://maps.app.goo.gl/KU8KXgUpascbM3o6A",
+                        relative_time=g_rev.get("relative_time", "Recente")
+                    )
+                    db.add(rev)
+                db.commit()
+            else:
+                db.execute(text("UPDATE reviews SET google_review_url = 'https://maps.app.goo.gl/KU8KXgUpascbM3o6A' WHERE source = 'google'"))
+                db.commit()
+        except Exception:
+            db.rollback()
+
+        # Garante configuracao no system_settings
+        try:
+            row = db.query(models.SystemSetting).filter(models.SystemSetting.key == 'google_review_url').first()
+            if not row:
+                db.add(models.SystemSetting(key='google_review_url', value='https://maps.app.goo.gl/KU8KXgUpascbM3o6A'))
+            else:
+                row.value = 'https://maps.app.goo.gl/KU8KXgUpascbM3o6A'
+            db.commit()
+        except Exception:
+            db.rollback()
     except Exception:
         pass
 
 @router.get("/google-summary")
 def get_google_summary(db: Session = Depends(get_db)):
     """Public endpoint: Retorna o link de avaliação do Google, nota média e total de avaliações com fallback à prova de falhas."""
-    fallback_url = "https://www.google.com/search?q=ecosopis"
+    fallback_url = "https://maps.app.goo.gl/KU8KXgUpascbM3o6A"
     try:
         _ensure_google_review_columns(db)
         
@@ -561,7 +599,7 @@ def sync_google_reviews(
     as configurações do sistema (URL de avaliação, nota média e total de avaliações).
     IMPORTANTE: Preserva 100% de todas as avaliações já existentes no site, clientes ou Shopee.
     """
-    target_url = "https://www.google.com/search?q=ecosopis"
+    target_url = "https://maps.app.goo.gl/KU8KXgUpascbM3o6A"
     place_id = ""
 
     try:

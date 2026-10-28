@@ -56,14 +56,14 @@ export default function AdminReviewsPage() {
     const [googleSummary, setGoogleSummary] = useState({
         googleRating: "5.0",
         googleTotalReviews: 18,
-        googleReviewUrl: "https://www.google.com/search?q=ecosopis",
+        googleReviewUrl: "https://maps.app.goo.gl/KU8KXgUpascbM3o6A",
         googlePlaceId: "",
         googleReviewsCount: 5,
         siteReviewsCount: 0
     });
     const [syncingGoogle, setSyncingGoogle] = useState(false);
     const [showGoogleSettings, setShowGoogleSettings] = useState(false);
-    const [googleUrlInput, setGoogleUrlInput] = useState("https://www.google.com/search?q=ecosopis");
+    const [googleUrlInput, setGoogleUrlInput] = useState("https://maps.app.goo.gl/KU8KXgUpascbM3o6A");
     const [googlePlaceIdInput, setGooglePlaceIdInput] = useState("");
 
     // Estado para edição de avaliação
@@ -658,7 +658,7 @@ export default function AdminReviewsPage() {
                                     type="text"
                                     value={googleUrlInput}
                                     onChange={(e) => setGoogleUrlInput(e.target.value)}
-                                    placeholder="https://www.google.com/search?q=ecosopis ou https://search.google.com/local/writereview?placeid=..."
+                                    placeholder="https://maps.app.goo.gl/KU8KXgUpascbM3o6A ou https://search.google.com/local/writereview?placeid=..."
                                 />
                             </div>
                             <div className={reviewStyles.googleInputGroup}>

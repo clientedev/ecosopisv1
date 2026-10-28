@@ -817,7 +817,7 @@ export default function ProductDetailPage() {
                         <h2>Avaliações dos Clientes</h2>
                         <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                             <a 
-                                href="https://www.google.com/search?q=ecosopis" 
+                                href="https://maps.app.goo.gl/KU8KXgUpascbM3o6A" 
                                 target="_blank" 
                                 rel="noopener noreferrer" 
                                 style={{ 

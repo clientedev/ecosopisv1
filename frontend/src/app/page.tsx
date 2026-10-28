@@ -63,7 +63,7 @@ export default function Home() {
     const [googleSummary, setGoogleSummary] = useState({
         googleRating: "5.0",
         googleTotalReviews: 18,
-        googleReviewUrl: "https://www.google.com/search?q=ecosopis",
+        googleReviewUrl: "https://maps.app.goo.gl/KU8KXgUpascbM3o6A",
         googlePlaceId: ""
     });
     const [reviewsFilter, setReviewsFilter] = useState<"all" | "google" | "site">("all");
