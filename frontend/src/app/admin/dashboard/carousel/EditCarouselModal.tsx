@@ -9,6 +9,13 @@ interface ModalProps {
 }
 
 export default function EditCarouselModal({ item, onClose, onSave }: ModalProps) {
+
+    const isVideoMedia = (url?: string) => {
+        if (!url) return false;
+        const clean = url.toLowerCase().split('?')[0];
+        return clean.endsWith('.mp4') || clean.endsWith('.webm') || clean.endsWith('.mov') || clean.endsWith('.ogg') || clean.includes('/video') || clean.startsWith('data:video/');
+    };
+
     const [activeTab, setActiveTab] = useState("content");
     const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
 
@@ -18,6 +25,9 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
         description: item?.description || "",
         image_url: item?.image_url || "",
         mobile_image_url: item?.mobile_image_url || "",
+        video_url: item?.video_url || "",
+        mobile_video_url: item?.mobile_video_url || "",
+        media_type: item?.media_type || (item?.video_url ? "video" : "image"),
         cta_primary_text: item?.cta_primary_text || "",
         cta_primary_link: item?.cta_primary_link || "",
         cta_secondary_text: item?.cta_secondary_text || "",
@@ -128,8 +138,8 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
     };
 
     const currentPreviewUrl = previewDevice === "mobile"
-        ? (mobilePreviewUrl || desktopPreviewUrl)
-        : desktopPreviewUrl;
+        ? (mobilePreviewUrl || formData.mobile_video_url || desktopPreviewUrl || formData.video_url)
+        : (desktopPreviewUrl || formData.video_url);
 
     const currentHeight = previewDevice === "mobile"
         ? formData.mobile_carousel_height
@@ -241,45 +251,146 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                         />
                                     </div>
 
-                                    <div className={styles.formGroup}>
-                                        <label>🖥️ Imagem Desktop</label>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={e => {
-                                                const f = e.target.files?.[0] || null;
-                                                setSelectedFile(f);
-                                            }}
-                                        />
-                                        <p className={styles.helpText}>Recomendado: 1920×600px — exibida em telas &gt; 768px</p>
-                                        {desktopPreviewUrl ? (
-                                            <div style={{ marginTop: 8, position: 'relative' }}>
-                                                <img
-                                                    src={desktopPreviewUrl}
-                                                    alt="Preview desktop"
-                                                    style={{ width: '100%', maxHeight: 110, objectFit: 'cover', borderRadius: 8, border: '2px solid #10b981', display: 'block' }}
-                                                    onError={(e) => {
-                                                        (e.target as HTMLImageElement).style.display = 'none';
-                                                    }}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setDesktopPreviewUrl("");
-                                                        setFormData(f => ({ ...f, image_url: "" }));
-                                                        setSelectedFile(null);
-                                                    }}
-                                                    style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div style={{ marginTop: 8, padding: '16px', textAlign: 'center', background: '#f5f5f5', borderRadius: 8, color: '#999', fontSize: '0.82rem', border: '2px dashed #ddd' }}>
-                                                Clique acima para adicionar imagem desktop
-                                            </div>
-                                        )}
+                                    {/* Media Type Selector */}
+                                    <div className={styles.formGroup} style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                        <label style={{ fontWeight: 700, marginBottom: '8px', display: 'block' }}>🎬 Formato do Banner (Mídia)</label>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, media_type: 'image' })}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '8px 12px',
+                                                    borderRadius: '8px',
+                                                    border: formData.media_type !== 'video' ? '2px solid #10b981' : '1px solid #cbd5e1',
+                                                    background: formData.media_type !== 'video' ? '#ecfdf5' : '#ffffff',
+                                                    color: formData.media_type !== 'video' ? '#047857' : '#475569',
+                                                    fontWeight: 700,
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.82rem'
+                                                }}
+                                            >
+                                                🖼️ Imagem Estática
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, media_type: 'video' })}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '8px 12px',
+                                                    borderRadius: '8px',
+                                                    border: formData.media_type === 'video' ? '2px solid #10b981' : '1px solid #cbd5e1',
+                                                    background: formData.media_type === 'video' ? '#ecfdf5' : '#ffffff',
+                                                    color: formData.media_type === 'video' ? '#047857' : '#475569',
+                                                    fontWeight: 700,
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.82rem'
+                                                }}
+                                            >
+                                                🎬 Vídeo (Auto-play em Loop)
+                                            </button>
+                                        </div>
                                     </div>
+
+                                    {formData.media_type === 'video' ? (
+                                        <div className={styles.formGroup} style={{ background: '#f0fdf4', padding: '14px', borderRadius: '10px', border: '1px solid #86efac' }}>
+                                            <label style={{ color: '#166534', fontWeight: 700 }}>🎬 Vídeo Desktop (Auto-play)</label>
+                                            <input
+                                                type="file"
+                                                accept="video/mp4,video/webm,video/ogg,video/quicktime,video/*"
+                                                onChange={e => {
+                                                    const f = e.target.files?.[0] || null;
+                                                    setSelectedFile(f);
+                                                    setFormData(prev => ({ ...prev, media_type: 'video' }));
+                                                }}
+                                            />
+                                            <div style={{ marginTop: '8px' }}>
+                                                <label style={{ fontSize: '0.76rem', color: '#475569' }}>Ou digite/cole a URL direta do vídeo (MP4 ou WebM):</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="https://.../video.mp4 ou /api/images/..."
+                                                    value={formData.video_url}
+                                                    onChange={e => {
+                                                        const val = e.target.value;
+                                                        setFormData(prev => ({ ...prev, video_url: val, image_url: val, media_type: 'video' }));
+                                                        if (!selectedFile) setDesktopPreviewUrl(val);
+                                                    }}
+                                                    style={{ marginTop: '4px' }}
+                                                />
+                                            </div>
+                                            <p className={styles.helpText} style={{ color: '#15803d', marginTop: '6px' }}>
+                                                ✨ O vídeo será executado <strong>automaticamente (autoplay) em loop contínuo e sem som (muted)</strong>, garantindo reprodução instantânea em todos os dispositivos sem bloqueios do navegador.
+                                            </p>
+                                            {(desktopPreviewUrl || formData.video_url) ? (
+                                                <div style={{ marginTop: 8, position: 'relative' }}>
+                                                    <video
+                                                        src={desktopPreviewUrl || formData.video_url}
+                                                        autoPlay
+                                                        muted
+                                                        loop
+                                                        playsInline
+                                                        style={{ width: '100%', maxHeight: 130, objectFit: 'cover', borderRadius: 8, border: '2px solid #10b981', display: 'block' }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setDesktopPreviewUrl("");
+                                                            setFormData(f => ({ ...f, video_url: "", image_url: "" }));
+                                                            setSelectedFile(null);
+                                                        }}
+                                                        style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div style={{ marginTop: 8, padding: '16px', textAlign: 'center', background: '#fff', borderRadius: 8, color: '#166534', fontSize: '0.82rem', border: '2px dashed #86efac' }}>
+                                                    Selecione um arquivo de vídeo (MP4/WebM) ou cole a URL
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className={styles.formGroup}>
+                                            <label>🖥️ Imagem Desktop</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={e => {
+                                                    const f = e.target.files?.[0] || null;
+                                                    setSelectedFile(f);
+                                                    setFormData(prev => ({ ...prev, media_type: 'image' }));
+                                                }}
+                                            />
+                                            <p className={styles.helpText}>Recomendado: 1920×600px — exibida em telas &gt; 768px</p>
+                                            {desktopPreviewUrl ? (
+                                                <div style={{ marginTop: 8, position: 'relative' }}>
+                                                    <img
+                                                        src={desktopPreviewUrl}
+                                                        alt="Preview desktop"
+                                                        style={{ width: '100%', maxHeight: 110, objectFit: 'cover', borderRadius: 8, border: '2px solid #10b981', display: 'block' }}
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).style.display = 'none';
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setDesktopPreviewUrl("");
+                                                            setFormData(f => ({ ...f, image_url: "" }));
+                                                            setSelectedFile(null);
+                                                        }}
+                                                        style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div style={{ marginTop: 8, padding: '16px', textAlign: 'center', background: '#f5f5f5', borderRadius: 8, color: '#999', fontSize: '0.82rem', border: '2px dashed #ddd' }}>
+                                                    Clique acima para adicionar imagem desktop
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     <div className={styles.formGroup}>
                                         <label>Status</label>
@@ -326,15 +437,29 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                     </div>
 
                                     <div className={styles.formGroup}>
-                                        <label>📱 Imagem Mobile</label>
+                                        <label>📱 Imagem ou Vídeo Mobile</label>
                                         <input
                                             type="file"
-                                            accept="image/*"
+                                            accept="image/*,video/mp4,video/webm,video/*"
                                             onChange={e => {
                                                 const f = e.target.files?.[0] || null;
                                                 setSelectedMobileFile(f);
                                             }}
                                         />
+                                        <div style={{ marginTop: '8px' }}>
+                                            <label style={{ fontSize: '0.76rem', color: '#475569' }}>Ou digite/cole a URL de vídeo específica para mobile (opcional):</label>
+                                            <input
+                                                type="text"
+                                                placeholder="https://.../mobile_video.mp4"
+                                                value={formData.mobile_video_url}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setFormData(prev => ({ ...prev, mobile_video_url: val, mobile_image_url: val }));
+                                                    if (!selectedMobileFile) setMobilePreviewUrl(val);
+                                                }}
+                                                style={{ marginTop: '4px' }}
+                                            />
+                                        </div>
                                         <p className={styles.helpText}>Recomendado: 768×500px — exibida em telas ≤ 768px</p>
                                         {mobilePreviewUrl ? (
                                             <div style={{ marginTop: 8, position: 'relative' }}>
@@ -714,7 +839,7 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                         />
                                     )}
 
-                                    {/* Main banner image - 0% cut off, 0% stretched */}
+                                    {/* Main banner media (Video or Image) - 0% cut off, 0% stretched */}
                                     <div style={{
                                         position: 'relative',
                                         width: '100%',
@@ -724,19 +849,38 @@ export default function EditCarouselModal({ item, onClose, onSave }: ModalProps)
                                         justifyContent: 'center',
                                         zIndex: 1,
                                     }}>
-                                        <img
-                                            src={currentPreviewUrl}
-                                            alt="Preview"
-                                            style={{
-                                                maxWidth: '100%',
-                                                maxHeight: '100%',
-                                                width: formData.image_fit === 'auto' ? '100%' : 'auto',
-                                                height: formData.image_fit === 'auto' ? 'auto' : '100%',
-                                                objectFit: formData.image_fit === 'cover' ? 'cover' : 'contain',
-                                                display: 'block',
-                                                margin: '0 auto',
-                                            }}
-                                        />
+                                        {formData.media_type === 'video' || isVideoMedia(currentPreviewUrl) ? (
+                                            <video
+                                                src={currentPreviewUrl}
+                                                autoPlay
+                                                muted
+                                                loop
+                                                playsInline
+                                                style={{
+                                                    maxWidth: '100%',
+                                                    maxHeight: '100%',
+                                                    width: formData.image_fit === 'auto' ? '100%' : 'auto',
+                                                    height: formData.image_fit === 'auto' ? 'auto' : '100%',
+                                                    objectFit: formData.image_fit === 'cover' ? 'cover' : 'contain',
+                                                    display: 'block',
+                                                    margin: '0 auto',
+                                                }}
+                                            />
+                                        ) : (
+                                            <img
+                                                src={currentPreviewUrl}
+                                                alt="Preview"
+                                                style={{
+                                                    maxWidth: '100%',
+                                                    maxHeight: '100%',
+                                                    width: formData.image_fit === 'auto' ? '100%' : 'auto',
+                                                    height: formData.image_fit === 'auto' ? 'auto' : '100%',
+                                                    objectFit: formData.image_fit === 'cover' ? 'cover' : 'contain',
+                                                    display: 'block',
+                                                    margin: '0 auto',
+                                                }}
+                                            />
+                                        )}
                                     </div>
 
                                     {/* Color Overlay */}

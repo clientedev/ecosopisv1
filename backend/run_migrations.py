@@ -23,6 +23,9 @@ MISSING_CAROUSEL_COLUMNS = [
     ("cta_primary_color", "VARCHAR DEFAULT '#ffffff'"),
     ("cta_secondary_bg_color", "VARCHAR DEFAULT 'rgba(255,255,255,0.1)'"),
     ("cta_secondary_color", "VARCHAR DEFAULT '#ffffff'"),
+    ("video_url", "VARCHAR"),
+    ("mobile_video_url", "VARCHAR"),
+    ("media_type", "VARCHAR DEFAULT 'image'"),
 ]
 
 MISSING_ANNOUNCEMENT_COLUMNS = [

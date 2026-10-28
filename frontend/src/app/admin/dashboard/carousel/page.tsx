@@ -273,32 +273,50 @@ export default function CarouselAdmin() {
                                     }}>
                                         <GripVertical size={20} />
                                     </div>
-                                    {/* Image Thumbnail */}
-                                    <div className={styles.bannerThumbWrap}>
-                                        {(item.image_url || item.mobile_image_url) ? (
-                                            <img
-                                                src={item.image_url || item.mobile_image_url}
-                                                alt={item.title || 'Banner'}
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                                                onError={(e) => {
-                                                    const target = e.target as HTMLImageElement;
-                                                    target.style.display = 'none';
-                                                    const parent = target.parentElement;
-                                                    if (parent && !parent.querySelector('.no-img-fallback')) {
-                                                        const fallback = document.createElement('div');
-                                                        fallback.className = 'no-img-fallback';
-                                                        fallback.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;color:#cbd5e1;';
-                                                        fallback.textContent = '🖼️';
-                                                        parent.appendChild(fallback);
-                                                    }
-                                                }}
-                                            />
-                                        ) : (
-                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: '#cbd5e1' }}>🖼️</div>
+                                    {/* Media Thumbnail (Image or Video) */}
+                                    <div className={styles.bannerThumbWrap} style={{ position: 'relative' }}>
+                                        {(() => {
+                                            const isVid = item.media_type === "video" || Boolean(item.video_url) || (item.image_url && (item.image_url.endsWith(".mp4") || item.image_url.endsWith(".webm") || item.image_url.includes("/video")));
+                                            const mediaSrc = item.video_url || item.mobile_video_url || item.image_url || item.mobile_image_url;
+
+                                            if (!mediaSrc) {
+                                                return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: '#cbd5e1' }}>🖼️</div>;
+                                            }
+
+                                            if (isVid) {
+                                                return (
+                                                    <video
+                                                        src={mediaSrc}
+                                                        autoPlay
+                                                        muted
+                                                        loop
+                                                        playsInline
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                                    />
+                                                );
+                                            }
+
+                                            return (
+                                                <img
+                                                    src={mediaSrc}
+                                                    alt={item.title || 'Banner'}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                                    onError={(e) => {
+                                                        const target = e.target as HTMLImageElement;
+                                                        target.style.display = 'none';
+                                                    }}
+                                                />
+                                            );
+                                        })()}
+                                        {/* Video badge */}
+                                        {(item.media_type === "video" || Boolean(item.video_url) || (item.image_url && (item.image_url.endsWith(".mp4") || item.image_url.endsWith(".webm")))) && (
+                                            <div style={{ position: 'absolute', top: '4px', left: '4px', background: 'rgba(16, 185, 129, 0.9)', color: 'white', fontSize: '0.62rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '3px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                                                🎬 Vídeo
+                                            </div>
                                         )}
                                         {/* Mobile badge */}
-                                        {item.mobile_image_url && (
-                                            <div style={{ position: 'absolute', bottom: '4px', right: '4px', background: '#10b981', color: 'white', fontSize: '0.6rem', fontWeight: 700, padding: '2px 5px', borderRadius: '4px' }}>
+                                        {(item.mobile_image_url || item.mobile_video_url) && (
+                                            <div style={{ position: 'absolute', bottom: '4px', right: '4px', background: '#3b82f6', color: 'white', fontSize: '0.6rem', fontWeight: 700, padding: '2px 5px', borderRadius: '4px' }}>
                                                 📱
                                             </div>
                                         )}

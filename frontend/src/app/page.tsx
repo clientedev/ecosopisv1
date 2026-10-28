@@ -170,8 +170,8 @@ export default function Home() {
     //        desktop vê APENAS slides que tenham image_url preenchido
     //        slides com ambos aparecem em cada dispositivo usando a imagem correta
     const deviceSlides = isMobile
-        ? slides.filter(s => s.mobile_image_url)
-        : slides.filter(s => s.image_url);
+        ? slides.filter(s => s.mobile_image_url || s.mobile_video_url || s.image_url || s.video_url)
+        : slides.filter(s => s.image_url || s.video_url);
 
     const getImageUrl = (url: string) => {
         if (!url) return "";
@@ -193,14 +193,25 @@ export default function Home() {
                         const dbSlides = data
                           .filter((item: any) => item.is_active !== false)
                           .map((item: any) => {
+                            const isVideoStr = (u?: string) => {
+                                if (!u) return false;
+                                const c = u.toLowerCase().split('?')[0];
+                                return c.endsWith('.mp4') || c.endsWith('.webm') || c.endsWith('.mov') || c.endsWith('.ogg') || c.includes('/video');
+                            };
                             const desktopUrl = item.image_url ? getImageUrl(item.image_url) : "";
                             const mobileUrl = item.mobile_image_url ? getImageUrl(item.mobile_image_url) : "";
+                            const desktopVid = item.video_url ? getImageUrl(item.video_url) : (isVideoStr(desktopUrl) ? desktopUrl : "");
+                            const mobileVid = item.mobile_video_url ? getImageUrl(item.mobile_video_url) : (isVideoStr(mobileUrl) ? mobileUrl : "");
+                            const mType = item.media_type || ((desktopVid || mobileVid) ? "video" : "image");
                             return {
                             badge: item.badge && item.badge !== "-" ? item.badge : null,
                             title: item.title && item.title !== "-" ? item.title : null,
                             description: item.description && item.description !== "-" ? item.description : null,
                             image_url: desktopUrl,
                             mobile_image_url: mobileUrl,
+                            video_url: desktopVid,
+                            mobile_video_url: mobileVid,
+                            media_type: mType,
                             alignment: item.alignment || "center",
                             vertical_alignment: item.vertical_alignment || "center",
                             content_max_width: item.content_max_width || "500px",
@@ -237,8 +248,8 @@ export default function Home() {
 
     useEffect(() => {
         const currentDeviceSlides = isMobile
-            ? slides.filter(s => s.mobile_image_url)
-            : slides.filter(s => s.image_url);
+            ? slides.filter(s => s.mobile_image_url || s.mobile_video_url || s.image_url || s.video_url)
+            : slides.filter(s => s.image_url || s.video_url);
         if (currentDeviceSlides.length <= 1) return;
 
         const duration = currentDeviceSlides[currentSlide]?.slide_duration_ms ?? 8000;
@@ -723,48 +734,103 @@ return (
                                 transition: 'opacity 0.4s ease-in-out'
                             }}
                         >
-                            {activeImageUrl && (
+                            {(activeImageUrl || slide.video_url || slide.mobile_video_url) && (
                                 <>
                                     {/* Proportional banner image: adapts vertically without cropping or black borders */}
-                                    <div
-                                        className={styles.bannerImageContainer}
-                                        style={{
-                                            height: 'auto',
-                                            width: '100%',
-                                        }}
-                                    >
-                                        {slide.ctaPrimary?.link && !hasOverlayText ? (
-                                            <Link href={slide.ctaPrimary.link} style={{ display: 'block', width: '100%', height: 'auto' }}>
-                                                <img
-                                                    src={activeImageUrl}
-                                                    alt={slide.title || 'Banner'}
-                                                    className={styles.bannerImage}
-                                                    draggable={false}
-                                                    style={{
-                                                        width: '100%',
-                                                        height: 'auto',
-                                                        display: 'block',
-                                                        userSelect: 'none',
-                                                        ...({ WebkitUserDrag: 'none' } as any),
-                                                    }}
-                                                />
-                                            </Link>
-                                        ) : (
-                                            <img
-                                                src={activeImageUrl}
-                                                alt={slide.title || 'Banner'}
-                                                className={styles.bannerImage}
-                                                draggable={false}
+                                    {(() => {
+                                        const isVideoUrlCheck = (u?: string) => {
+                                            if (!u) return false;
+                                            const cl = u.toLowerCase().split('?')[0];
+                                            return cl.endsWith('.mp4') || cl.endsWith('.webm') || cl.endsWith('.mov') || cl.endsWith('.ogg') || cl.includes('/video');
+                                        };
+                                        const activeVideoSrc = isMobile ? (slide.mobile_video_url || slide.video_url) : (slide.video_url || (isVideoUrlCheck(activeImageUrl) ? activeImageUrl : ""));
+                                        const isSlideVideo = slide.media_type === "video" || Boolean(activeVideoSrc) || isVideoUrlCheck(activeImageUrl);
+                                        const mediaSrc = isSlideVideo ? (activeVideoSrc || activeImageUrl) : activeImageUrl;
+
+                                        return (
+                                            <div
+                                                className={styles.bannerImageContainer}
                                                 style={{
-                                                    width: '100%',
                                                     height: 'auto',
-                                                    display: 'block',
-                                                    userSelect: 'none',
-                                                    ...({ WebkitUserDrag: 'none' } as any),
+                                                    width: '100%',
+                                                    position: 'relative'
                                                 }}
-                                            />
-                                        )}
-                                    </div>
+                                            >
+                                                {isSlideVideo ? (
+                                                    slide.ctaPrimary?.link && !hasOverlayText ? (
+                                                        <Link href={slide.ctaPrimary.link} style={{ display: 'block', width: '100%', height: 'auto' }}>
+                                                            <video
+                                                                src={mediaSrc}
+                                                                autoPlay
+                                                                muted
+                                                                loop
+                                                                playsInline
+                                                                preload="auto"
+                                                                className={styles.bannerImage}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    height: 'auto',
+                                                                    display: 'block',
+                                                                    objectFit: isCover ? 'cover' : 'contain',
+                                                                    maxHeight: activeHeight !== 'auto' ? activeHeight : undefined,
+                                                                    pointerEvents: 'none'
+                                                                }}
+                                                            />
+                                                        </Link>
+                                                    ) : (
+                                                        <video
+                                                            src={mediaSrc}
+                                                            autoPlay
+                                                            muted
+                                                            loop
+                                                            playsInline
+                                                            preload="auto"
+                                                            className={styles.bannerImage}
+                                                            style={{
+                                                                width: '100%',
+                                                                height: 'auto',
+                                                                display: 'block',
+                                                                objectFit: isCover ? 'cover' : 'contain',
+                                                                maxHeight: activeHeight !== 'auto' ? activeHeight : undefined
+                                                            }}
+                                                        />
+                                                    )
+                                                ) : (
+                                                    slide.ctaPrimary?.link && !hasOverlayText ? (
+                                                        <Link href={slide.ctaPrimary.link} style={{ display: 'block', width: '100%', height: 'auto' }}>
+                                                            <img
+                                                                src={mediaSrc}
+                                                                alt={slide.title || 'Banner'}
+                                                                className={styles.bannerImage}
+                                                                draggable={false}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    height: 'auto',
+                                                                    display: 'block',
+                                                                    userSelect: 'none',
+                                                                    ...({ WebkitUserDrag: 'none' } as any),
+                                                                }}
+                                                            />
+                                                        </Link>
+                                                    ) : (
+                                                        <img
+                                                            src={mediaSrc}
+                                                            alt={slide.title || 'Banner'}
+                                                            className={styles.bannerImage}
+                                                            draggable={false}
+                                                            style={{
+                                                                width: '100%',
+                                                                height: 'auto',
+                                                                display: 'block',
+                                                                userSelect: 'none',
+                                                                ...({ WebkitUserDrag: 'none' } as any),
+                                                            }}
+                                                        />
+                                                    )
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
 
                                     {/* Normal overlay if requested */}
                                     {slide.overlay_opacity > 0 && hasOverlayText && (

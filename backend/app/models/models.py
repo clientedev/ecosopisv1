@@ -219,6 +219,10 @@ class CarouselItem(Base):
     cta_secondary_bg_color = Column(String, default="rgba(255,255,255,0.1)")
     cta_secondary_color = Column(String, default="#ffffff")
 
+    video_url = Column(String, nullable=True)
+    mobile_video_url = Column(String, nullable=True)
+    media_type = Column(String, default="image")
+
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

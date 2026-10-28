@@ -326,6 +326,9 @@ class CarouselItemBase(BaseModel):
     cta_primary_color: Optional[str] = "#ffffff"
     cta_secondary_bg_color: Optional[str] = "rgba(255,255,255,0.1)"
     cta_secondary_color: Optional[str] = "#ffffff"
+    video_url: Optional[str] = None
+    mobile_video_url: Optional[str] = None
+    media_type: Optional[str] = "image"
     is_active: bool = True
 
 class CarouselItemCreate(CarouselItemBase):

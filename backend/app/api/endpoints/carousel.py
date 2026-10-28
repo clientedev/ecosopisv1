@@ -12,6 +12,15 @@ import uuid
 
 router = APIRouter()
 
+def is_video_file(filename: Optional[str], content_type: Optional[str] = None) -> bool:
+    if content_type and content_type.lower().startswith("video/"):
+        return True
+    if filename:
+        fn = filename.lower()
+        return any(fn.endswith(ext) for ext in [".mp4", ".webm", ".mov", ".ogg", ".m4v", ".avi", ".mkv"])
+    return False
+
+
 @router.get("", response_model=List[schemas.CarouselItemResponse])
 def list_carousel_items(db: Session = Depends(get_db)):
     db.expire_all()
@@ -53,30 +62,56 @@ async def create_carousel_item(
     cta_primary_color: str = Form("#ffffff"),
     cta_secondary_bg_color: str = Form("rgba(255,255,255,0.1)"),
     cta_secondary_color: str = Form("#ffffff"),
+    video_url: Optional[str] = Form(None),
+    mobile_video_url: Optional[str] = Form(None),
+    media_type: Optional[str] = Form("image"),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
     final_image_url = image_url or None
+    final_video_url = video_url or None
+    effective_media_type = media_type or "image"
+
     if file and file.filename:
         content = await file.read()
-        fn = file.filename or f"carousel_{uuid.uuid4()}.jpg"
-        content_type = resolve_stored_image_content_type(filename=fn, declared=file.content_type, fallback="image/jpeg")
+        is_vid = is_video_file(file.filename, file.content_type)
+        fallback_mime = "video/mp4" if is_vid else "image/jpeg"
+        fn = file.filename or (f"carousel_{uuid.uuid4()}.mp4" if is_vid else f"carousel_{uuid.uuid4()}.jpg")
+        content_type = resolve_stored_image_content_type(filename=fn, declared=file.content_type, fallback=fallback_mime)
         stored_image = models.StoredImage(filename=fn, content_type=content_type, data=content)
         db.add(stored_image)
         db.commit()
         db.refresh(stored_image)
-        final_image_url = f"/api/images/{stored_image.id}"
+        media_endpoint_url = f"/api/images/{stored_image.id}"
+        if is_vid:
+            final_video_url = media_endpoint_url
+            final_image_url = media_endpoint_url
+            effective_media_type = "video"
+        else:
+            final_image_url = media_endpoint_url
 
     final_mobile_image_url = mobile_image_url or None
+    final_mobile_video_url = mobile_video_url or None
     if mobile_file and mobile_file.filename:
         content = await mobile_file.read()
-        fn = mobile_file.filename or f"carousel_mobile_{uuid.uuid4()}.jpg"
-        content_type = resolve_stored_image_content_type(filename=fn, declared=mobile_file.content_type, fallback="image/jpeg")
+        is_vid = is_video_file(mobile_file.filename, mobile_file.content_type)
+        fallback_mime = "video/mp4" if is_vid else "image/jpeg"
+        fn = mobile_file.filename or (f"carousel_mobile_{uuid.uuid4()}.mp4" if is_vid else f"carousel_mobile_{uuid.uuid4()}.jpg")
+        content_type = resolve_stored_image_content_type(filename=fn, declared=mobile_file.content_type, fallback=fallback_mime)
         stored_image = models.StoredImage(filename=fn, content_type=content_type, data=content)
         db.add(stored_image)
         db.commit()
         db.refresh(stored_image)
-        final_mobile_image_url = f"/api/images/{stored_image.id}"
+        media_endpoint_url = f"/api/images/{stored_image.id}"
+        if is_vid:
+            final_mobile_video_url = media_endpoint_url
+            final_mobile_image_url = media_endpoint_url
+            effective_media_type = "video"
+        else:
+            final_mobile_image_url = media_endpoint_url
+
+    if final_video_url or is_video_file(final_image_url):
+        effective_media_type = "video"
 
     # Detect GIF duration if file is a GIF and no explicit duration provided
     def detect_gif_duration(data: bytes, filename: str) -> int | None:
@@ -127,6 +162,9 @@ async def create_carousel_item(
         cta_primary_color=cta_primary_color,
         cta_secondary_bg_color=cta_secondary_bg_color,
         cta_secondary_color=cta_secondary_color,
+        video_url=final_video_url,
+        mobile_video_url=final_mobile_video_url,
+        media_type=effective_media_type,
     )
 
     if file and file.filename and file.filename.lower().endswith('.gif'):
@@ -176,6 +214,9 @@ async def update_carousel_item(
     cta_primary_color: str = Form("#ffffff"),
     cta_secondary_bg_color: str = Form("rgba(255,255,255,0.1)"),
     cta_secondary_color: str = Form("#ffffff"),
+    video_url: Optional[str] = Form(None),
+    mobile_video_url: Optional[str] = Form(None),
+    media_type: Optional[str] = Form("image"),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
@@ -184,15 +225,29 @@ async def update_carousel_item(
         raise HTTPException(status_code=404, detail="Item not found")
 
     final_image_url = (image_url if image_url else None) if image_url is not None else db_item.image_url
+    final_video_url = (video_url if video_url else None) if video_url is not None else getattr(db_item, "video_url", None)
+    effective_media_type = media_type if media_type is not None else getattr(db_item, "media_type", "image")
+
     if file and file.filename:
         content = await file.read()
-        fn = file.filename or f"carousel_{uuid.uuid4()}.jpg"
-        content_type = resolve_stored_image_content_type(filename=fn, declared=file.content_type, fallback="image/jpeg")
+        is_vid = is_video_file(file.filename, file.content_type)
+        fallback_mime = "video/mp4" if is_vid else "image/jpeg"
+        fn = file.filename or (f"carousel_{uuid.uuid4()}.mp4" if is_vid else f"carousel_{uuid.uuid4()}.jpg")
+        content_type = resolve_stored_image_content_type(filename=fn, declared=file.content_type, fallback=fallback_mime)
         stored_image = models.StoredImage(filename=fn, content_type=content_type, data=content)
         db.add(stored_image)
         db.commit()
         db.refresh(stored_image)
-        final_image_url = f"/api/images/{stored_image.id}"
+        media_endpoint_url = f"/api/images/{stored_image.id}"
+        if is_vid:
+            final_video_url = media_endpoint_url
+            final_image_url = media_endpoint_url
+            effective_media_type = "video"
+        else:
+            final_image_url = media_endpoint_url
+            if not video_url:
+                effective_media_type = "image"
+
         await file.seek(0)
         gif_content = await file.read()
         detected = detect_gif_duration(gif_content, file.filename)
@@ -200,21 +255,36 @@ async def update_carousel_item(
             db_item.slide_duration_ms = detected
 
     final_mobile_image_url = (mobile_image_url if mobile_image_url else None) if mobile_image_url is not None else db_item.mobile_image_url
+    final_mobile_video_url = (mobile_video_url if mobile_video_url else None) if mobile_video_url is not None else getattr(db_item, "mobile_video_url", None)
     if mobile_file and mobile_file.filename:
         content = await mobile_file.read()
-        fn = mobile_file.filename or f"carousel_mobile_{uuid.uuid4()}.jpg"
-        content_type = resolve_stored_image_content_type(filename=fn, declared=mobile_file.content_type, fallback="image/jpeg")
+        is_vid = is_video_file(mobile_file.filename, mobile_file.content_type)
+        fallback_mime = "video/mp4" if is_vid else "image/jpeg"
+        fn = mobile_file.filename or (f"carousel_mobile_{uuid.uuid4()}.mp4" if is_vid else f"carousel_mobile_{uuid.uuid4()}.jpg")
+        content_type = resolve_stored_image_content_type(filename=fn, declared=mobile_file.content_type, fallback=fallback_mime)
         stored_image = models.StoredImage(filename=fn, content_type=content_type, data=content)
         db.add(stored_image)
         db.commit()
         db.refresh(stored_image)
-        final_mobile_image_url = f"/api/images/{stored_image.id}"
+        media_endpoint_url = f"/api/images/{stored_image.id}"
+        if is_vid:
+            final_mobile_video_url = media_endpoint_url
+            final_mobile_image_url = media_endpoint_url
+            effective_media_type = "video"
+        else:
+            final_mobile_image_url = media_endpoint_url
+
+    if final_video_url or is_video_file(final_image_url):
+        effective_media_type = "video"
 
     if badge is not None: db_item.badge = str(badge)
     if title is not None: db_item.title = str(title)
     if description is not None: db_item.description = str(description)
     db_item.image_url = final_image_url
     db_item.mobile_image_url = final_mobile_image_url
+    db_item.video_url = final_video_url
+    db_item.mobile_video_url = final_mobile_video_url
+    db_item.media_type = effective_media_type
     if cta_primary_text is not None: db_item.cta_primary_text = str(cta_primary_text)
     if cta_primary_link is not None: db_item.cta_primary_link = str(cta_primary_link)
     if cta_secondary_text is not None: db_item.cta_secondary_text = str(cta_secondary_text)
