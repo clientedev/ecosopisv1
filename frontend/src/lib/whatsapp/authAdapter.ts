@@ -9,22 +9,57 @@ import {
 import { getDbPool } from './db';
 import crypto from 'crypto';
 
-// Armazenamento em memória para rápido acesso sem latência de I/O
-declare global {
-  var __memory_auth_store__: {
-    creds: AuthenticationCreds | null;
-    keys: { [key: string]: any };
-  } | undefined;
-}
+let tablesInitialized = false;
 
-if (!globalThis.__memory_auth_store__) {
-  globalThis.__memory_auth_store__ = {
-    creds: null,
-    keys: {}
-  };
-}
+/**
+ * Garante que todas as tabelas de autenticação e a conta padrão existam antes de qualquer operação
+ */
+async function ensureAuthTables(whatsappId: string = 'default'): Promise<void> {
+  const pool = getDbPool();
+  if (!pool) return;
+  try {
+    if (!tablesInitialized) {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS whatsapp_accounts (
+          id VARCHAR(64) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL DEFAULT 'WhatsApp Principal E-commerce',
+          status VARCHAR(64) NOT NULL DEFAULT 'DISCONNECTED',
+          phone VARCHAR(64),
+          qr_code TEXT,
+          last_connection TIMESTAMP WITH TIME ZONE,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
 
-const memoryStore = globalThis.__memory_auth_store__;
+        CREATE TABLE IF NOT EXISTS baileys_auth_state (
+          id VARCHAR(64) PRIMARY KEY,
+          whatsapp_id VARCHAR(64) NOT NULL REFERENCES whatsapp_accounts(id) ON DELETE CASCADE,
+          data_id VARCHAR(255) NOT NULL,
+          data TEXT NOT NULL,
+          CONSTRAINT uq_baileys_key UNIQUE (whatsapp_id, data_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS baileys_auth_state_backup (
+          id VARCHAR(64) PRIMARY KEY,
+          whatsapp_id VARCHAR(64) NOT NULL,
+          data_id VARCHAR(255) NOT NULL,
+          data TEXT NOT NULL,
+          CONSTRAINT uq_baileys_key_backup UNIQUE (whatsapp_id, data_id)
+        );
+      `);
+      tablesInitialized = true;
+    }
+
+    await pool.query(
+      `INSERT INTO whatsapp_accounts (id, name, status)
+       VALUES ($1, 'WhatsApp Principal E-commerce', 'CONNECTING')
+       ON CONFLICT (id) DO NOTHING`,
+      [whatsappId]
+    );
+  } catch (err: any) {
+    console.warn('[Baileys Auth] Aviso ao garantir tabelas:', err?.message || err);
+  }
+}
 
 /**
  * Verifica rapidamente se o PostgreSQL possui credenciais de pareamento salvas
@@ -41,7 +76,7 @@ export async function hasValidSavedSession(whatsappId: string = 'default'): Prom
     if (res?.rows?.length > 0 && res.rows[0].data) {
       try {
         const parsed = JSON.parse(res.rows[0].data, BufferJSON.reviver);
-        if (parsed?.registered || parsed?.me || parsed?.account) return true;
+        if (parsed?.registered || parsed?.me || parsed?.account || parsed?.noiseKey) return true;
       } catch (e) {}
     }
 
@@ -53,7 +88,7 @@ export async function hasValidSavedSession(whatsappId: string = 'default'): Prom
     if (backupRes?.rows?.length > 0 && backupRes.rows[0].data) {
       try {
         const parsedBackup = JSON.parse(backupRes.rows[0].data, BufferJSON.reviver);
-        if (parsedBackup?.registered || parsedBackup?.me || parsedBackup?.account) return true;
+        if (parsedBackup?.registered || parsedBackup?.me || parsedBackup?.account || parsedBackup?.noiseKey) return true;
       } catch (e) {}
     }
 
@@ -63,7 +98,14 @@ export async function hasValidSavedSession(whatsappId: string = 'default'): Prom
       [whatsappId]
     ).catch(() => null);
     const count = parseInt(countRes?.rows?.[0]?.count || '0', 10);
-    if (count > 0) return true;
+    if (count > 1) return true;
+
+    const backupCountRes = await pool.query(
+      `SELECT COUNT(*) FROM baileys_auth_state_backup WHERE whatsapp_id = $1`,
+      [whatsappId]
+    ).catch(() => null);
+    const backupCount = parseInt(backupCountRes?.rows?.[0]?.count || '0', 10);
+    if (backupCount > 1) return true;
 
     return false;
   } catch (err) {
@@ -72,8 +114,9 @@ export async function hasValidSavedSession(whatsappId: string = 'default'): Prom
 }
 
 /**
- * Adaptador transacional customizado de autenticação do Baileys com persistência direta no PostgreSQL.
- * Garante que a sessão persista entre deploys, reinicializações e atualizações do Next.js.
+ * Adaptador transacional de autenticação do Baileys com persistência direta no PostgreSQL (arquitetura idêntica ao wa-central).
+ * Sempre lê credenciais e chaves frescas do PostgreSQL ao abrir o socket (sem cache global obsoleto entre deploys),
+ * utilizando o makeCacheableSignalKeyStore do próprio Baileys por socket e espelhamento em tabela de backup.
  */
 export async function getPostgresAuthState(whatsappId: string = 'default'): Promise<{
   state: AuthenticationState;
@@ -82,12 +125,13 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
   isRestoredSession: boolean;
 }> {
   const pool = getDbPool();
+  await ensureAuthTables(whatsappId);
+
   let isRestoredSession = false;
+  let creds: AuthenticationCreds | null = null;
 
-  let creds: AuthenticationCreds | null = memoryStore.creds;
-
-  // Se ainda não estiver em memória, recupera do banco de dados PostgreSQL
-  if (!creds && pool) {
+  // Sempre busca credenciais frescas do PostgreSQL ao iniciar o socket (como no wa-central)
+  if (pool) {
     try {
       // 1. Tenta da tabela principal
       const credsRes = await pool.query(
@@ -96,13 +140,13 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
       );
       if (credsRes?.rows?.length > 0 && credsRes.rows[0].data) {
         creds = JSON.parse(credsRes.rows[0].data, BufferJSON.reviver);
-        if (creds?.registered || creds?.me) {
+        if (creds?.registered || creds?.me || creds?.account) {
           isRestoredSession = true;
           console.log(`[Baileys Auth] Sessão recuperada do PostgreSQL com sucesso para ${whatsappId}!`);
         }
       }
 
-      // 2. Fallback de emergência: se a tabela principal foi zerada, tenta recuperar do backup automático
+      // 2. Fallback de emergência: se a tabela principal não tinha sessão registrada, verifica o backup automático
       if (!isRestoredSession) {
         try {
           const backupRes = await pool.query(
@@ -111,7 +155,7 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
           );
           if (backupRes?.rows?.length > 0 && backupRes.rows[0].data) {
             const backupCreds = JSON.parse(backupRes.rows[0].data, BufferJSON.reviver);
-            if (backupCreds?.registered || backupCreds?.me) {
+            if (backupCreds?.registered || backupCreds?.me || backupCreds?.account) {
               creds = backupCreds;
               isRestoredSession = true;
               console.log(`[Baileys Auth] SESSÃO RECUPERADA DO BACKUP AUTOMÁTICO para ${whatsappId}! Restaurando chaves ativas...`);
@@ -121,15 +165,27 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
                  ON CONFLICT (whatsapp_id, data_id) DO UPDATE SET data = EXCLUDED.data`,
                 [whatsappId]
               ).catch(() => {});
+            } else if (!creds) {
+              creds = backupCreds;
             }
           }
         } catch (bkErr) {}
       }
+
+      // 3. Mesmo que creds.registered ainda não esteja true mas já existam chaves salvas no banco
+      if (!isRestoredSession && creds) {
+        const countRes = await pool.query(
+          `SELECT COUNT(*) FROM baileys_auth_state WHERE whatsapp_id = $1`,
+          [whatsappId]
+        ).catch(() => null);
+        const count = parseInt(countRes?.rows?.[0]?.count || '0', 10);
+        if (count > 1) {
+          isRestoredSession = true;
+        }
+      }
     } catch (e: any) {
       console.warn('[Baileys Auth Warning]: Falha ao ler credenciais do PostgreSQL:', e?.message || e);
     }
-  } else if (creds && (creds.registered || creds.me)) {
-    isRestoredSession = true;
   }
 
   // Apenas gera novas credenciais se NENHUMA existir salva no banco nem no backup
@@ -137,49 +193,58 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
     console.log('[Baileys Auth] Nenhuma credencial existente encontrada no PostgreSQL. Gerando novas credenciais para QR Code...');
     creds = initAuthCreds();
   }
-  memoryStore.creds = creds;
 
-  const saveCreds = async () => {
-    if (!creds) return;
-    memoryStore.creds = creds;
-    if (pool) {
-      try {
-        const serialized = JSON.stringify(creds, BufferJSON.replacer);
-        const keyId = crypto.randomUUID();
-        // Salva na tabela principal
-        await pool.query(
+  const writeData = async (dataId: string, data: any) => {
+    if (!pool) return;
+    try {
+      const serialized = JSON.stringify(data, BufferJSON.replacer);
+      const uid = crypto.randomUUID();
+      await Promise.all([
+        pool.query(
           `INSERT INTO baileys_auth_state (id, whatsapp_id, data_id, data) 
-           VALUES ($1, $2, 'creds', $3)
+           VALUES ($1, $2, $3, $4)
            ON CONFLICT (whatsapp_id, data_id) 
            DO UPDATE SET data = EXCLUDED.data`,
-          [keyId, whatsappId, serialized]
-        );
-        // Garante e salva na tabela de backup espelho
-        await pool.query(`
-          CREATE TABLE IF NOT EXISTS baileys_auth_state_backup (
-            id VARCHAR(64) PRIMARY KEY,
-            whatsapp_id VARCHAR(64) NOT NULL,
-            data_id VARCHAR(255) NOT NULL,
-            data TEXT NOT NULL,
-            CONSTRAINT uq_baileys_key_backup UNIQUE (whatsapp_id, data_id)
-          );
-        `).catch(() => {});
-        await pool.query(
+          [uid, whatsappId, dataId, serialized]
+        ),
+        pool.query(
           `INSERT INTO baileys_auth_state_backup (id, whatsapp_id, data_id, data) 
-           VALUES ($1, $2, 'creds', $3)
+           VALUES ($1, $2, $3, $4)
            ON CONFLICT (whatsapp_id, data_id) 
            DO UPDATE SET data = EXCLUDED.data`,
-          [keyId, whatsappId, serialized]
-        ).catch(() => {});
-      } catch (err: any) {
-        console.error('[Baileys Auth] Erro ao persistir creds no PostgreSQL:', err?.message || err);
-      }
+          [uid, whatsappId, dataId, serialized]
+        ).catch(() => {})
+      ]);
+    } catch (err: any) {
+      console.error(`[Baileys Auth] Erro ao persistir ${dataId} no PostgreSQL:`, err?.message || err);
     }
   };
 
+  const removeData = async (dataId: string) => {
+    if (!pool) return;
+    try {
+      await Promise.all([
+        pool.query(
+          `DELETE FROM baileys_auth_state WHERE whatsapp_id = $1 AND data_id = $2`,
+          [whatsappId, dataId]
+        ).catch(() => {}),
+        pool.query(
+          `DELETE FROM baileys_auth_state_backup WHERE whatsapp_id = $1 AND data_id = $2`,
+          [whatsappId, dataId]
+        ).catch(() => {})
+      ]);
+    } catch (err: any) {
+      console.error(`[Baileys Auth] Erro ao remover ${dataId} do PostgreSQL:`, err?.message || err);
+    }
+  };
+
+  const saveCreds = async () => {
+    if (!creds) return;
+    await writeData('creds', creds);
+  };
+
   const clearState = async () => {
-    memoryStore.creds = null;
-    memoryStore.keys = {};
+    console.warn(`[Baileys Auth] clearState() chamado explicitamente para ${whatsappId}`);
     if (pool) {
       try {
         await pool.query(`DELETE FROM baileys_auth_state WHERE whatsapp_id = $1`, [whatsappId]);
@@ -199,107 +264,75 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
       keys: {
         get: async (type, ids) => {
           const data: { [key: string]: any } = {};
-          if (ids.length === 0) return data;
+          if (ids.length === 0 || !pool) return data;
 
-          const missingIds: string[] = [];
-          for (const id of ids) {
-            const memKey = `${type}-${id}`;
-            const val = memoryStore.keys[memKey];
-            if (val !== undefined && val !== null) {
-              data[id] = type === 'app-state-sync-key' ? proto.Message.AppStateSyncKeyData.fromObject(val) : val;
-            } else {
-              missingIds.push(id);
+          try {
+            const dbKeys = ids.map(id => `${type}-${id}`);
+            const res = await pool.query(
+              `SELECT data_id, data FROM baileys_auth_state WHERE whatsapp_id = $1 AND data_id = ANY($2)`,
+              [whatsappId, dbKeys]
+            );
+
+            const foundKeys = new Set<string>();
+            if (res?.rows) {
+              for (const row of res.rows) {
+                if (row.data) {
+                  foundKeys.add(row.data_id);
+                  const rawVal = JSON.parse(row.data, BufferJSON.reviver);
+                  const cleanId = row.data_id.slice(`${type}-`.length);
+                  data[cleanId] = type === 'app-state-sync-key' && rawVal
+                    ? proto.Message.AppStateSyncKeyData.fromObject(rawVal)
+                    : rawVal;
+                }
+              }
             }
-          }
 
-          // Busca em lote no PostgreSQL para máxima velocidade
-          if (missingIds.length > 0 && pool) {
-            try {
-              const memKeys = missingIds.map(id => `${type}-${id}`);
-              const res = await pool.query(
-                `SELECT data_id, data FROM baileys_auth_state WHERE whatsapp_id = $1 AND data_id = ANY($2)`,
-                [whatsappId, memKeys]
-              );
+            // Fallback na tabela de backup caso alguma chave não tenha sido encontrada na principal
+            const missingDbKeys = dbKeys.filter(k => !foundKeys.has(k));
+            if (missingDbKeys.length > 0) {
+              const backupRes = await pool.query(
+                `SELECT data_id, data FROM baileys_auth_state_backup WHERE whatsapp_id = $1 AND data_id = ANY($2)`,
+                [whatsappId, missingDbKeys]
+              ).catch(() => null);
 
-              if (res?.rows) {
-                for (const row of res.rows) {
+              if (backupRes?.rows) {
+                for (const row of backupRes.rows) {
                   if (row.data) {
                     const rawVal = JSON.parse(row.data, BufferJSON.reviver);
-                    memoryStore.keys[row.data_id] = rawVal;
-                    const cleanId = row.data_id.replace(`${type}-`, '');
+                    const cleanId = row.data_id.slice(`${type}-`.length);
                     data[cleanId] = type === 'app-state-sync-key' && rawVal
                       ? proto.Message.AppStateSyncKeyData.fromObject(rawVal)
                       : rawVal;
                   }
                 }
               }
-            } catch (e: any) {
-              console.warn('[Baileys Auth] Erro ao recuperar chaves em lote:', e?.message || e);
             }
+          } catch (e: any) {
+            console.warn('[Baileys Auth] Erro ao recuperar chaves em lote:', e?.message || e);
           }
 
           return data;
         },
         set: async (dataset) => {
-          // Atualiza memória instantaneamente
+          if (!pool) return;
+          const tasks: Promise<any>[] = [];
+
           for (const category of Object.keys(dataset)) {
             const catData = dataset[category as keyof SignalDataTypeMap];
             if (!catData) continue;
+
             for (const [id, value] of Object.entries(catData)) {
               const dataId = `${category}-${id}`;
               if (value) {
-                memoryStore.keys[dataId] = value;
+                tasks.push(writeData(dataId, value));
               } else {
-                delete memoryStore.keys[dataId];
+                tasks.push(removeData(dataId));
               }
             }
           }
 
-          // Persiste no PostgreSQL com execução paralela (estilo wa-central)
-          if (pool) {
-            const tasks: Promise<any>[] = [];
-            for (const category of Object.keys(dataset)) {
-              const catData = dataset[category as keyof SignalDataTypeMap];
-              if (!catData) continue;
-
-              for (const [id, value] of Object.entries(catData)) {
-                const dataId = `${category}-${id}`;
-                if (value) {
-                  const serialized = JSON.stringify(value, BufferJSON.replacer);
-                  const uid = crypto.randomUUID();
-                  tasks.push(
-                    pool.query(
-                      `INSERT INTO baileys_auth_state (id, whatsapp_id, data_id, data) 
-                       VALUES ($1, $2, $3, $4)
-                       ON CONFLICT (whatsapp_id, data_id) 
-                       DO UPDATE SET data = EXCLUDED.data`,
-                      [uid, whatsappId, dataId, serialized]
-                    ).catch(err => {
-                      console.warn(`[Baileys Auth] Erro ao salvar chave ${dataId}:`, err?.message || err);
-                    })
-                  );
-                  tasks.push(
-                    pool.query(
-                      `INSERT INTO baileys_auth_state_backup (id, whatsapp_id, data_id, data) 
-                       VALUES ($1, $2, $3, $4)
-                       ON CONFLICT (whatsapp_id, data_id) 
-                       DO UPDATE SET data = EXCLUDED.data`,
-                      [uid, whatsappId, dataId, serialized]
-                    ).catch(() => {})
-                  );
-                } else {
-                  tasks.push(
-                    pool.query(
-                      `DELETE FROM baileys_auth_state WHERE whatsapp_id = $1 AND data_id = $2`,
-                      [whatsappId, dataId]
-                    ).catch(() => {})
-                  );
-                }
-              }
-            }
-            if (tasks.length > 0) {
-              await Promise.all(tasks);
-            }
+          if (tasks.length > 0) {
+            await Promise.all(tasks);
           }
         }
       }

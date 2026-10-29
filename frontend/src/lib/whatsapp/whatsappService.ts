@@ -58,6 +58,7 @@ interface GlobalWhatsAppState {
   events: WhatsAppEvents;
   isInitializing: boolean;
   isDestroying: boolean;
+  connectionGeneration: number;
 }
 
 // Persistência no escopo global do Node.js (sobrevive a HMR e reutilização de módulos)
@@ -76,14 +77,15 @@ if (!globalThis.__whatsapp_state__) {
     reconnectTimer: null,
     events: globalEvents,
     isInitializing: false,
-    isDestroying: false
+    isDestroying: false,
+    connectionGeneration: 0,
   };
 }
 
 const state = globalThis.__whatsapp_state__;
-
-// Logger silencioso estilo wa-central
-const logger = makeLogger();
+if (typeof state.connectionGeneration !== 'number') {
+  state.connectionGeneration = 0;
+}
 
 // Armazenamento em memória para controle de frequência de auto-resposta (anti-flood)
 const autoReplyCooldown = new Map<string, number>();
@@ -120,6 +122,37 @@ async function safeDbQuery(sql: string, params: any[] = []): Promise<any> {
 }
 
 /**
+ * Agenda reconexão automática com backoff exponencial (estilo wa-central)
+ */
+function scheduleReconnect(whatsappId: string = 'default', customDelayMs?: number) {
+  if (state.isDestroying) return;
+
+  if (state.reconnectTimer) {
+    clearTimeout(state.reconnectTimer);
+    state.reconnectTimer = null;
+  }
+
+  const attempts = state.reconnectAttempts + 1;
+  state.reconnectAttempts = attempts;
+  const delay = customDelayMs ?? Math.min(2500 * Math.pow(1.25, attempts - 1), 25000);
+
+  state.status = 'CONNECTING';
+  state.isInitializing = false;
+  state.events.emit('status', { status: 'CONNECTING' });
+
+  console.log(`[WhatsApp] Agendando reconexão (tentativa ${attempts}) em ${Math.round(delay / 1000)}s...`);
+
+  state.reconnectTimer = setTimeout(() => {
+    state.reconnectTimer = null;
+    if (!state.isDestroying) {
+      connectWhatsApp(whatsappId, false).catch(err => {
+        console.error('[WhatsApp Reconnect Error]:', err?.message || err);
+      });
+    }
+  }, delay);
+}
+
+/**
  * Retorna o status atual da conexão (leitura segura, nunca altera banco para DISCONNECTED)
  */
 export async function getWhatsAppStatus(whatsappId: string = 'default') {
@@ -128,6 +161,7 @@ export async function getWhatsAppStatus(whatsappId: string = 'default') {
       `SELECT status, phone, qr_code, last_connection FROM whatsapp_accounts WHERE id = $1`,
       [whatsappId]
     );
+    const hasSaved = await hasValidSavedSession(whatsappId);
 
     if (res && res.rows && res.rows.length > 0) {
       const dbRow = res.rows[0];
@@ -135,14 +169,16 @@ export async function getWhatsAppStatus(whatsappId: string = 'default') {
 
       // Se o processo reiniciou (deploy/redeploy) e não temos socket ativo na memória:
       if (!state.isDestroying && !state.socket && !state.isInitializing && !state.reconnectTimer) {
-        const hasSaved = await hasValidSavedSession(whatsappId);
         if (hasSaved || dbRow.status === 'CONNECTED') {
           console.log(`[WhatsApp Status] Detectado reinício/deploy com sessão salva no banco. Reconectando automaticamente...`);
           currentStatus = 'CONNECTING';
+          state.status = 'CONNECTING';
           connectWhatsApp(whatsappId, false).catch(err => {
             console.warn('[WhatsApp Auto-Connect Error]:', err?.message || err);
           });
         }
+      } else if (hasSaved && currentStatus === 'DISCONNECTED' && (state.reconnectTimer || state.isInitializing)) {
+        currentStatus = 'CONNECTING';
       }
 
       return {
@@ -152,12 +188,23 @@ export async function getWhatsAppStatus(whatsappId: string = 'default') {
         lastConnection: state.lastConnection || dbRow.last_connection,
       };
     }
+
+    if (hasSaved && !state.isDestroying && !state.socket && !state.isInitializing && !state.reconnectTimer) {
+      state.status = 'CONNECTING';
+      connectWhatsApp(whatsappId, false).catch(() => {});
+      return {
+        status: 'CONNECTING',
+        phone: state.phone,
+        qrCode: null,
+        lastConnection: state.lastConnection,
+      };
+    }
   } catch (err) {
     console.error('Erro ao consultar status no banco:', err);
   }
 
   let fallbackStatus = state.status;
-  if (!state.socket && !state.isInitializing && fallbackStatus !== 'CONNECTED' && fallbackStatus !== 'QR_CODE') {
+  if (!state.socket && !state.isInitializing && !state.reconnectTimer && fallbackStatus !== 'CONNECTED' && fallbackStatus !== 'QR_CODE') {
     fallbackStatus = 'DISCONNECTED';
   }
 
@@ -197,6 +244,10 @@ export async function connectWhatsApp(
     state.reconnectTimer = null;
   }
 
+  // Incrementa geração de conexão para invalidar eventos atrasados de sockets anteriores (estilo wa-central)
+  const generation = (state.connectionGeneration || 0) + 1;
+  state.connectionGeneration = generation;
+
   // Limpa socket anterior se houver para evitar conflitos de conexão
   if (state.socket) {
     try {
@@ -218,12 +269,10 @@ export async function connectWhatsApp(
   ).catch(() => {});
 
   try {
-    let auth = await getPostgresAuthState(whatsappId);
-    // NUNCA apaga as credenciais salvas no banco automaticamente, a menos que o admin tenha clicado em Desconectar explicitamente
-    if (force && !auth.isRestoredSession) {
-      await auth.clearState();
-      auth = await getPostgresAuthState(whatsappId);
-    }
+    const auth = await getPostgresAuthState(whatsappId);
+    // CRÍTICO: NUNCA chamamos auth.clearState() dentro de connectWhatsApp!
+    // No wa-central, as credenciais JAMAIS são apagadas em tentativas de conexão/reconexão.
+    // Somente disconnectWhatsApp(whatsappId, true) (botão manual Desconectar) pode apagar credenciais.
     const { state: authState, saveCreds, isRestoredSession } = auth;
     
     let version: [number, number, number] | undefined = undefined;
@@ -231,7 +280,7 @@ export async function connectWhatsApp(
       const v = await Promise.race([
         fetchLatestBaileysVersion(),
         new Promise<{ version: [number, number, number] }>((_, reject) =>
-          setTimeout(() => reject(new Error('timeout')), 2000)
+          setTimeout(() => reject(new Error('timeout')), 2500)
         )
       ]);
       version = v.version;
@@ -252,8 +301,9 @@ export async function connectWhatsApp(
       syncFullHistory: false, // CRÍTICO: Não sincroniza histórico antigo, evitando travamento
       shouldIgnoreJid: (jid: string) => !jid || jid.includes('@newsletter') || jid === 'status@broadcast' || false,
       connectTimeoutMs: 60000,
-      keepAliveIntervalMs: 15000,
+      keepAliveIntervalMs: 25000,
       defaultQueryTimeoutMs: 60000,
+      retryRequestDelayMs: 500,
       generateHighQualityLinkPreview: true,
       getMessage: async (key: WAMessageKey): Promise<proto.IMessage | undefined> => {
         return undefined;
@@ -272,7 +322,8 @@ export async function connectWhatsApp(
     (sock as any).resyncAppState = async () => {};
 
     state.socket = sock;
-    const isCurrentSocket = () => state.socket === sock;
+    const isCurrentSocket = () =>
+      !state.isDestroying && state.socket === sock && state.connectionGeneration === generation;
 
     // 1. Atualização e persistência contínua de credenciais
     sock.ev.on('creds.update', async () => {
@@ -319,19 +370,25 @@ export async function connectWhatsApp(
 
       // Conexão estabelecida com sucesso
       if (connection === 'open') {
+        if (!isCurrentSocket()) return;
+
+        // Salva credenciais imediatamente ao abrir para garantir que todas as chaves pós-handshake estejam no PostgreSQL
+        await saveCreds().catch(() => {});
+
         state.status = 'CONNECTED';
         state.qrCodeDataUrl = null;
         state.reconnectAttempts = 0;
         state.isInitializing = false;
         const phone = sock.user?.id ? sock.user.id.split(':')[0] : 'Conectado';
         state.phone = phone;
-        state.lastConnection = new Date();
+        const connectedAt = new Date();
+        state.lastConnection = connectedAt;
 
         await safeDbQuery(
           `UPDATE whatsapp_accounts 
-           SET status = 'CONNECTED', phone = $1, qr_code = NULL, last_connection = NOW() 
-           WHERE id = $2`,
-          [phone, whatsappId]
+           SET status = 'CONNECTED', phone = $1, qr_code = NULL, last_connection = $2 
+           WHERE id = $3`,
+          [phone, connectedAt.toISOString(), whatsappId]
         );
 
         state.events.emit('status', { 
@@ -370,72 +427,70 @@ export async function connectWhatsApp(
 
         // 1. QR Code escaneado com sucesso: Baileys envia 515 (restartRequired) para reiniciar o stream
         if (isRestartRequired) {
-          console.log(`[Baileys] Código 515 (restartRequired) recebido com sucesso! Reconectando para consolidar pareamento...`);
-          state.status = 'CONNECTING';
-          state.isInitializing = false;
-          state.events.emit('status', { status: 'CONNECTING' });
-
-          if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
-          state.reconnectTimer = setTimeout(() => {
-            connectWhatsApp(whatsappId, false).catch(console.error);
-          }, 800);
+          console.log(`[Baileys] Código 515 (restartRequired) recebido! Reconectando imediatamente...`);
+          state.reconnectAttempts = Math.max(0, state.reconnectAttempts - 1);
+          scheduleReconnect(whatsappId, 800);
           return;
         }
 
-        // 2. Conexão temporariamente sobreposta por deploy/container novo (código 440):
+        // 2. Conexão substituída por nova instância (código 440 - connectionReplaced):
+        // Durante um rolling deploy no Railway, o container NOVO conecta antes do container ANTIGO receber SIGTERM.
+        // O container ANTIGO recebe 440. Se o container ANTIGO reconectar, ele derruba o container NOVO!
+        // Portanto, aguardamos 20s e verificamos no PostgreSQL se outra instância já assumiu e atualizou last_connection.
         if (isConnectionReplaced) {
-          const attempts = Math.min(state.reconnectAttempts + 1, 15);
+          const myLastConn = state.lastConnection ? new Date(state.lastConnection).getTime() : 0;
+          const attempts = Math.min(state.reconnectAttempts + 1, 25);
           state.reconnectAttempts = attempts;
-          const delay = Math.min(15000 * attempts, 60000);
-          console.log(`[Baileys] Conexão sobreposta (código 440), provável redeploy em andamento. Reconectando em ${Math.round(delay / 1000)}s...`);
+          const delay = Math.min(20000 * attempts, 60000);
+
+          console.log(`[Baileys] Código 440 (connectionReplaced) recebido. Verificando handoff de deploy em ${Math.round(delay / 1000)}s...`);
           state.status = 'CONNECTING';
           state.isInitializing = false;
           state.events.emit('status', { status: 'CONNECTING' });
 
           if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
-          state.reconnectTimer = setTimeout(() => {
-            connectWhatsApp(whatsappId, false).catch(console.error);
+          state.reconnectTimer = setTimeout(async () => {
+            state.reconnectTimer = null;
+            if (state.isDestroying) return;
+
+            try {
+              const checkRes = await safeDbQuery(
+                `SELECT status, last_connection FROM whatsapp_accounts WHERE id = $1`,
+                [whatsappId]
+              );
+              const dbRow = checkRes?.rows?.[0];
+              const dbLastConn = dbRow?.last_connection ? new Date(dbRow.last_connection).getTime() : 0;
+
+              // Se o banco mostra CONNECTED com um timestamp mais recente que o deste processo,
+              // significa que o NOVO container do deploy já assumiu a sessão com sucesso!
+              if (dbRow?.status === 'CONNECTED' && myLastConn > 0 && dbLastConn > myLastConn + 1000) {
+                console.log('[WhatsApp] Novo container já assumiu a sessão no PostgreSQL. Encerrando instância antiga silenciosamente.');
+                state.isDestroying = true;
+                return;
+              }
+            } catch (e) {}
+
+            if (!state.isDestroying) {
+              connectWhatsApp(whatsappId, false).catch(console.error);
+            }
           }, delay);
           return;
         }
 
-        // 3. Durante deploy ou restart, o WhatsApp pode responder temporariamente com 401
-        // por causa do encerramento do processo anterior. SE as credenciais existem no banco
-        // e o limite de retentativas não expirou (15 tentativas), TENTA RECONECTAR antes de marcar deslogado.
-        // (Arquitetura testada e consolidada no wa-central)
+        // 3. Qualquer outro fechamento (incluindo 401 transitório em deploy, 408, 428, 500, 503):
+        // Se há credenciais salvas no PostgreSQL e não esgotou 25 tentativas, SEMPRE reconecta!
+        // (Idêntico ao wa-central: nunca desloga no primeiro erro de rede/deploy)
         const hasCreds = await hasValidSavedSession(whatsappId);
-        if (hasCreds && state.reconnectAttempts < 15) {
-          const attempts = state.reconnectAttempts + 1;
-          state.reconnectAttempts = attempts;
-          const delay = Math.min(2500 * Math.pow(1.3, attempts - 1), 30000);
-
-          console.log(`[Baileys] Sessão ativa no PostgreSQL (código ${statusCode}). Agendando reconexão ${attempts}/15 em ${Math.round(delay / 1000)}s...`);
-          state.status = 'CONNECTING';
-          state.isInitializing = false;
-          state.events.emit('status', { status: 'CONNECTING' });
-
-          if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
-          state.reconnectTimer = setTimeout(() => {
-            connectWhatsApp(whatsappId, false).catch(console.error);
-          }, delay);
+        if (hasCreds && state.reconnectAttempts < 25) {
+          scheduleReconnect(whatsappId);
           return;
-        } else if (!isLoggedOut && state.reconnectAttempts < 15) {
-          const attempts = state.reconnectAttempts + 1;
-          state.reconnectAttempts = attempts;
-          const delay = Math.min(3000 * Math.pow(1.3, attempts - 1), 30000);
-
-          state.status = 'CONNECTING';
-          state.isInitializing = false;
-          state.events.emit('status', { status: 'CONNECTING' });
-
-          if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
-          state.reconnectTimer = setTimeout(() => {
-            connectWhatsApp(whatsappId, false).catch(console.error);
-          }, delay);
+        } else if (!isLoggedOut && state.reconnectAttempts < 25) {
+          scheduleReconnect(whatsappId);
           return;
         }
 
-        // 4. Somente se não houver credenciais salvas no banco OU se esgotaram 15 tentativas:
+        // 4. Somente se não houver credenciais salvas no banco OU se esgotaram 25 tentativas:
+        // Nota: NUNCA chamamos clearState() aqui para não destruir o backup caso seja queda prolongada do WhatsApp.
         state.status = 'DISCONNECTED';
         state.phone = null;
         state.isInitializing = false;
@@ -448,7 +503,7 @@ export async function connectWhatsApp(
           [whatsappId]
         );
         state.events.emit('status', { status: 'DISCONNECTED' });
-        console.log(`[WhatsApp] Sessão encerrada: necessário novo QR Code`);
+        console.log(`[WhatsApp] Sessão desconectada após esgotar tentativas.`);
       }
     });
 
@@ -568,7 +623,6 @@ export async function connectWhatsApp(
     const currentStatus = (state as GlobalWhatsAppState).status;
     if (!state.qrCodeDataUrl && currentStatus !== 'CONNECTED') {
       // Se há sessão salva, NUNCA force 'DISCONNECTED' no banco após 15s de espera!
-      // O handshake de TLS/WebSocket pode demorar mais no arranque do container e continuará em background.
       const hasSaved = await hasValidSavedSession(whatsappId);
       if (hasSaved || isRestoredSession) {
         console.log('[WhatsApp] Sessão salva em restauração no background. Mantendo status CONNECTING...');
@@ -586,9 +640,11 @@ export async function connectWhatsApp(
 
   } catch (err: any) {
     state.isInitializing = false;
-    state.status = 'DISCONNECTED';
     console.error('Falha ao inicializar socket Baileys:', err);
-    state.events.emit('status', { status: 'DISCONNECTED', error: err.message });
+    if (!state.isDestroying) {
+      scheduleReconnect(whatsappId);
+      return { status: 'CONNECTING', qrCode: null };
+    }
     return { status: 'DISCONNECTED' };
   }
 }
@@ -598,6 +654,8 @@ export async function connectWhatsApp(
  */
 export async function disconnectWhatsApp(whatsappId: string = 'default', logout: boolean = true) {
   state.isDestroying = false;
+  state.connectionGeneration = (state.connectionGeneration || 0) + 1;
+
   if (state.reconnectTimer) {
     clearTimeout(state.reconnectTimer);
     state.reconnectTimer = null;
@@ -605,6 +663,7 @@ export async function disconnectWhatsApp(whatsappId: string = 'default', logout:
 
   if (state.socket) {
     try {
+      state.socket.ev.removeAllListeners();
       if (logout) {
         await state.socket.logout();
       } else {
@@ -637,11 +696,13 @@ export async function disconnectWhatsApp(whatsappId: string = 'default', logout:
 
 /**
  * Encerramento gracioso do socket ao receber SIGTERM do orquestrador (ex: deploy Railway)
- * Fecha o socket Baileys sem dar logout e sem alterar status para DISCONNECTED no banco.
+ * Fecha o socket Baileys e streams SSE sem dar logout e sem alterar status para DISCONNECTED no banco.
  */
 export async function gracefulShutdown() {
   state.isDestroying = true;
+  state.connectionGeneration = (state.connectionGeneration || 0) + 1;
   queueControl.stopped = true;
+
   if (queueControl.interval) {
     clearInterval(queueControl.interval);
     queueControl.interval = null;
@@ -650,9 +711,19 @@ export async function gracefulShutdown() {
     clearTimeout(state.reconnectTimer);
     state.reconnectTimer = null;
   }
+
+  // Notifica todos os streams SSE abertos (/api/whatsapp/events) para fecharem imediatamente,
+  // evitando que o servidor HTTP do container antigo fique preso aguardando conexões keep-alive!
+  try {
+    state.events.emit('shutdown');
+  } catch (e) {}
+
   if (state.socket) {
     try {
       state.socket.ev.removeAllListeners();
+      try {
+        state.socket.ws?.close();
+      } catch {}
       state.socket.end(undefined);
     } catch (e) {}
     state.socket = null;
@@ -673,8 +744,8 @@ export async function autoConnectIfSaved(whatsappId: string = 'default') {
   // Mensagens que ficaram "enviando" quando o container anterior foi encerrado voltam para a fila
   await safeDbQuery(`UPDATE whatsapp_message_logs SET status = 'QUEUED' WHERE status = 'SENDING'`);
 
-  for (let attempt = 0; attempt < 10; attempt++) {
-    if (state.socket || state.isInitializing || state.status === 'CONNECTED') break;
+  for (let attempt = 0; attempt < 12; attempt++) {
+    if (state.isDestroying || state.socket || state.isInitializing || state.status === 'CONNECTED') break;
     try {
       const hasSaved = await hasValidSavedSession(whatsappId);
       if (hasSaved) {
@@ -685,14 +756,14 @@ export async function autoConnectIfSaved(whatsappId: string = 'default') {
     } catch (err: any) {
       console.warn('[WhatsApp Auto-Boot Error]:', err?.message || err);
     }
-    await new Promise(r => setTimeout(r, 3500));
+    await new Promise(r => setTimeout(r, 3000));
   }
 
   processQueue().catch(() => {});
 }
 
 /**
- * Watchdog: a cada 45s garante que a sessão salva esteja conectada e que a fila seja processada.
+ * Watchdog: a cada 30s garante que a sessão salva esteja conectada e que a fila seja processada.
  */
 function startWatchdog(whatsappId: string) {
   if (queueControl.interval) return;
@@ -706,7 +777,7 @@ function startWatchdog(whatsappId: string) {
       }
       processQueue().catch(() => {});
     } catch (e) {}
-  }, 45000);
+  }, 30000);
 }
 
 // ---------------------------------------------------------------------------
@@ -730,7 +801,7 @@ async function processQueue() {
 
       // Aguarda conexão (a sessão salva é restaurada em segundo plano)
       if (!state.socket || state.status !== 'CONNECTED') {
-        if (!state.socket && !state.isInitializing && !state.reconnectTimer && (await hasValidSavedSession())) {
+        if (!state.isDestroying && !state.socket && !state.isInitializing && !state.reconnectTimer && (await hasValidSavedSession())) {
           connectWhatsApp('default', false).catch(() => {});
         }
         await sleep(5000);
@@ -820,7 +891,7 @@ export async function sendWhatsAppMessage(
     if (!logId) return { success: false, error: 'Banco de dados indisponível para enfileirar a mensagem.' };
   }
 
-  if (!state.socket && !state.isInitializing) {
+  if (!state.isDestroying && !state.socket && !state.isInitializing && !state.reconnectTimer) {
     hasValidSavedSession().then(ok => {
       if (ok) connectWhatsApp('default', false).catch(() => {});
     }).catch(() => {});
