@@ -5,10 +5,17 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    // CRÍTICO: Nunca executar durante a fase de compilação/build do Next.js (next build)
+    // CRÍTICO: Nunca executar durante a compilação do Next.js (next build / npm run build)
     // No Railway/Docker, o build executa em ambiente com nodejs. Se conectar aqui,
-    // concorre com a instância ativa em produção, causa conflito de sessão e derruba o WhatsApp!
-    if (process.env.NEXT_PHASE === 'phase-production-build') {
+    // concorre com a instância ativa em produção, causa conflito de sessão (código 440) e derruba o WhatsApp!
+    const isBuildPhase =
+      process.env.NEXT_PHASE === 'phase-production-build' ||
+      process.env.NEXT_PHASE === 'phase-development-build' ||
+      process.env.npm_lifecycle_event === 'build' ||
+      (Array.isArray(process.argv) && process.argv.some(arg => typeof arg === 'string' && (arg.includes('build') || arg.includes('next-build'))));
+
+    if (isBuildPhase) {
+      console.log('[WhatsApp Instrumentation] Fase de build detectada. Ignorando inicialização do WhatsApp.');
       return;
     }
 
@@ -30,12 +37,12 @@ export async function register() {
         process.once('SIGINT', () => handleShutdown('SIGINT'));
       }
 
-      // Aguarda 3s para estabilização do pool do banco no arranque do container
+      // Aguarda 2.5s para estabilização do pool do banco no arranque do container
       setTimeout(() => {
         autoConnectIfSaved('default').catch((err) => {
           console.warn('[WhatsApp Boot Reconnect]:', err?.message || err);
         });
-      }, 3000);
+      }, 2500);
     } catch (e: any) {
       console.warn('[Instrumentation] Erro ao carregar whatsappService:', e?.message || e);
     }

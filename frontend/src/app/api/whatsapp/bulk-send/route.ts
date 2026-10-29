@@ -91,10 +91,7 @@ export async function POST(req: Request) {
         });
       }
 
-      // Delay seguro entre mensagens para proteger o número (anti-spam Baileys)
-      if (i < recipients.length - 1 && delayMs > 0) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
+      // O intervalo de 30s entre mensagens é garantido pela fila central do WhatsApp (delayMs é ignorado)
     }
 
     return NextResponse.json({

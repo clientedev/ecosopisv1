@@ -35,7 +35,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       status: 'success',
       messageId: result.messageId,
-      message: 'Mensagem enviada com sucesso!'
+      queued: true,
+      message: 'Mensagem adicionada à fila de envio (1 a cada 30s).'
     });
 
   } catch (error: any) {

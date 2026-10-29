@@ -344,6 +344,20 @@ export default function AdminWhatsAppPage() {
     }
   };
 
+  // Atualiza o histórico automaticamente enquanto houver mensagens na fila
+  useEffect(() => {
+    if (activeTab !== 'logs') return;
+    if (!logs.some(l => l.status === 'QUEUED' || l.status === 'SENDING')) return;
+    const t = setInterval(() => {
+      fetch('/api/whatsapp/messages?limit=50', { headers: getAuthHeaders() })
+        .then(r => (r.ok ? r.json() : null))
+        .then(json => { if (json?.messages) setLogs(json.messages); })
+        .catch(() => {});
+    }, 10000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logs, activeTab]);
+
   const handleRetrySingleMessage = async (log: MessageLogItem) => {
     setRetryingId(log.id);
     setAlert(null);
@@ -374,7 +388,7 @@ export default function AdminWhatsAppPage() {
       });
 
       // Atualização imediata do registro na tabela
-      setLogs(prev => prev.map(item => item.id === log.id ? { ...item, status: 'SENT', error: undefined } : item));
+      setLogs(prev => prev.map(item => item.id === log.id ? { ...item, status: 'QUEUED', error: undefined } : item));
       fetchLogs();
     } catch (err: any) {
       setAlert({
@@ -387,7 +401,7 @@ export default function AdminWhatsAppPage() {
   };
 
   const handleRetryAllFailed = async () => {
-    const failedLogs = logs.filter(l => l.status !== 'SENT');
+    const failedLogs = logs.filter(l => l.status === 'FAILED');
     if (failedLogs.length === 0) return;
 
     if (!confirm(`Deseja tentar reenviar todas as ${failedLogs.length} mensagens com falha agora?`)) {
@@ -420,7 +434,7 @@ export default function AdminWhatsAppPage() {
 
         if (res.ok) {
           successCount++;
-          setLogs(prev => prev.map(item => item.id === log.id ? { ...item, status: 'SENT', error: undefined } : item));
+          setLogs(prev => prev.map(item => item.id === log.id ? { ...item, status: 'QUEUED', error: undefined } : item));
         } else {
           failCount++;
         }
@@ -1654,22 +1668,27 @@ export default function AdminWhatsAppPage() {
                 <p style={{ color: '#475569', fontSize: 14, margin: 0 }}>
                   Últimas mensagens processadas pelo serviço de WhatsApp da Ecosopis.
                 </p>
-                {logs.some(l => l.status !== 'SENT') && (
+                {logs.some(l => l.status === 'FAILED') && (
                   <p style={{ color: '#b91c1c', fontSize: 12, margin: '4px 0 0', fontWeight: 600 }}>
-                    ⚠️ {logs.filter(l => l.status !== 'SENT').length} mensagem(ns) pendente(s) de reenvio por falha anterior.
+                    ⚠️ {logs.filter(l => l.status === 'FAILED').length} mensagem(ns) pendente(s) de reenvio por falha anterior.
+                  </p>
+                )}
+                {logs.some(l => l.status === 'QUEUED' || l.status === 'SENDING') && (
+                  <p style={{ color: '#b45309', fontSize: 12, margin: '4px 0 0', fontWeight: 600 }}>
+                    ⏳ {logs.filter(l => l.status === 'QUEUED' || l.status === 'SENDING').length} mensagem(ns) na fila (envio de 1 a cada 30s).
                   </p>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                {logs.some(l => l.status !== 'SENT') && (
+                {logs.some(l => l.status === 'FAILED') && (
                   <button
                     onClick={handleRetryAllFailed}
                     disabled={retryingAll || loadingLogs}
                     className={styles.btnRetryAll}
-                    title="Tentar reenviar todas as mensagens que falharam sequencialmente"
+                    title="Recolocar na fila todas as mensagens que falharam"
                   >
                     <RefreshCw size={14} className={retryingAll ? styles.spinner : ''} />
-                    {retryingAll ? 'Reenviando em lote...' : `Tentar Todas com Falha (${logs.filter(l => l.status !== 'SENT').length})`}
+                    {retryingAll ? 'Enfileirando em lote...' : `Tentar Todas com Falha (${logs.filter(l => l.status === 'FAILED').length})`}
                   </button>
                 )}
                 <button
@@ -1731,6 +1750,14 @@ export default function AdminWhatsAppPage() {
                               <CheckCircle size={12} />
                               Enviado
                             </span>
+                          ) : log.status === 'QUEUED' || log.status === 'SENDING' ? (
+                            <span
+                              title="Na fila para envio (1 mensagem a cada 30s)"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '3px 8px', borderRadius: 999 }}
+                            >
+                              <span style={{ fontSize: 13 }}>⏳</span>
+                              {log.status === 'SENDING' ? 'Enviando' : 'Na fila'}
+                            </span>
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
                               <span className={styles.badgeFailed} title={log.error || 'Falha no envio'}>
@@ -1756,7 +1783,7 @@ export default function AdminWhatsAppPage() {
                           )}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          {log.status !== 'SENT' ? (
+                          {log.status === 'FAILED' ? (
                             <button
                               onClick={() => handleRetrySingleMessage(log)}
                               disabled={retryingId === log.id || retryingAll}

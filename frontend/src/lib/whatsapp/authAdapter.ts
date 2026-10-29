@@ -33,14 +33,38 @@ export async function hasValidSavedSession(whatsappId: string = 'default'): Prom
   const pool = getDbPool();
   if (!pool) return false;
   try {
+    // 1. Tenta credenciais na tabela principal
     const res = await pool.query(
       `SELECT data FROM baileys_auth_state WHERE whatsapp_id = $1 AND data_id = 'creds' LIMIT 1`,
       [whatsappId]
     );
     if (res?.rows?.length > 0 && res.rows[0].data) {
-      const parsed = JSON.parse(res.rows[0].data, BufferJSON.reviver);
-      return Boolean(parsed?.registered || parsed?.me);
+      try {
+        const parsed = JSON.parse(res.rows[0].data, BufferJSON.reviver);
+        if (parsed?.registered || parsed?.me || parsed?.account) return true;
+      } catch (e) {}
     }
+
+    // 2. Tenta credenciais na tabela de backup espelho
+    const backupRes = await pool.query(
+      `SELECT data FROM baileys_auth_state_backup WHERE whatsapp_id = $1 AND data_id = 'creds' LIMIT 1`,
+      [whatsappId]
+    ).catch(() => null);
+    if (backupRes?.rows?.length > 0 && backupRes.rows[0].data) {
+      try {
+        const parsedBackup = JSON.parse(backupRes.rows[0].data, BufferJSON.reviver);
+        if (parsedBackup?.registered || parsedBackup?.me || parsedBackup?.account) return true;
+      } catch (e) {}
+    }
+
+    // 3. Fallback seguro estilo wa-central: se houver chaves de autenticação salvas para esta conta
+    const countRes = await pool.query(
+      `SELECT COUNT(*) FROM baileys_auth_state WHERE whatsapp_id = $1`,
+      [whatsappId]
+    ).catch(() => null);
+    const count = parseInt(countRes?.rows?.[0]?.count || '0', 10);
+    if (count > 0) return true;
+
     return false;
   } catch (err) {
     return false;
@@ -159,6 +183,7 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
     if (pool) {
       try {
         await pool.query(`DELETE FROM baileys_auth_state WHERE whatsapp_id = $1`, [whatsappId]);
+        await pool.query(`DELETE FROM baileys_auth_state_backup WHERE whatsapp_id = $1`, [whatsappId]).catch(() => {});
         await pool.query(
           `UPDATE whatsapp_accounts SET status = 'DISCONNECTED', phone = NULL, qr_code = NULL, last_connection = NULL WHERE id = $1`,
           [whatsappId]
@@ -230,40 +255,50 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
             }
           }
 
-          // Persiste no PostgreSQL
+          // Persiste no PostgreSQL com execução paralela (estilo wa-central)
           if (pool) {
+            const tasks: Promise<any>[] = [];
             for (const category of Object.keys(dataset)) {
               const catData = dataset[category as keyof SignalDataTypeMap];
               if (!catData) continue;
 
               for (const [id, value] of Object.entries(catData)) {
                 const dataId = `${category}-${id}`;
-                try {
-                  if (value) {
-                    const serialized = JSON.stringify(value, BufferJSON.replacer);
-                    const uid = crypto.randomUUID();
-                    await pool.query(
+                if (value) {
+                  const serialized = JSON.stringify(value, BufferJSON.replacer);
+                  const uid = crypto.randomUUID();
+                  tasks.push(
+                    pool.query(
                       `INSERT INTO baileys_auth_state (id, whatsapp_id, data_id, data) 
                        VALUES ($1, $2, $3, $4)
                        ON CONFLICT (whatsapp_id, data_id) 
                        DO UPDATE SET data = EXCLUDED.data`,
                       [uid, whatsappId, dataId, serialized]
-                    );
-                    await pool.query(
+                    ).catch(err => {
+                      console.warn(`[Baileys Auth] Erro ao salvar chave ${dataId}:`, err?.message || err);
+                    })
+                  );
+                  tasks.push(
+                    pool.query(
                       `INSERT INTO baileys_auth_state_backup (id, whatsapp_id, data_id, data) 
                        VALUES ($1, $2, $3, $4)
                        ON CONFLICT (whatsapp_id, data_id) 
                        DO UPDATE SET data = EXCLUDED.data`,
                       [uid, whatsappId, dataId, serialized]
-                    ).catch(() => {});
-                  } else {
-                    await pool.query(
+                    ).catch(() => {})
+                  );
+                } else {
+                  tasks.push(
+                    pool.query(
                       `DELETE FROM baileys_auth_state WHERE whatsapp_id = $1 AND data_id = $2`,
                       [whatsappId, dataId]
-                    );
-                  }
-                } catch (err) {}
+                    ).catch(() => {})
+                  );
+                }
               }
+            }
+            if (tasks.length > 0) {
+              await Promise.all(tasks);
             }
           }
         }
