@@ -536,3 +536,90 @@ def send_promotional_campaign_email(
     </html>
     """
     return send_email(email, subject, html)
+
+
+def send_guest_account_activation_email(
+    email: str,
+    customer_name: str,
+    order_id: int,
+    total: float,
+    activation_token: str,
+    guest_access_token: Optional[str] = None,
+):
+    """
+    Envia e-mail para cliente que comprou como visitante informando que o pedido foi registrado,
+    sua conta foi criada automaticamente e fornecendo o link exclusivo e temporário de uso único
+    para definir sua própria senha e ativar o acesso completo ao histórico de pedidos.
+    """
+    activation_link = f"{FRONTEND_URL}/redefinir-senha?token={activation_token}&activate=1"
+    order_link = (
+        f"{FRONTEND_URL}/pedido/{order_id}?guest_token={guest_access_token}"
+        if guest_access_token
+        else f"{FRONTEND_URL}/pedido/{order_id}"
+    )
+    subject = f"🌿 Pedido #{order_id} registrado e sua conta foi criada - {STORE_NAME}"
+    html = f"""
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+        <div style="background-color: #2d5a27; color: white; padding: 28px 24px; text-align: center;">
+            <h1 style="margin: 0; font-size: 1.5rem;">🌿 Compra Registrada &amp; Conta Criada!</h1>
+            <p style="margin: 8px 0 0; opacity: 0.9; font-size: 0.95rem;">Pedido #{order_id} • {STORE_NAME}</p>
+        </div>
+        <div style="padding: 28px 24px; color: #1e293b; line-height: 1.6;">
+            <p style="margin-top: 0;">Olá, <strong>{customer_name or 'Cliente'}</strong>!</p>
+            <p>Sua compra <strong>#{order_id}</strong> (Total: <strong>R$ {total:.2f}</strong>) foi registrada com sucesso na <strong>{STORE_NAME}</strong>.</p>
+            <p>Para sua comodidade, criamos automaticamente o seu cadastro vinculado a este pedido. Assim você poderá acompanhar o status de pagamento, entrega, código de rastreio e todo o seu histórico de compras.</p>
+            <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px; margin: 22px 0; text-align: center;">
+                <p style="margin: 0 0 12px; color: #166534; font-weight: 600; font-size: 0.95rem;">
+                    🔐 Ative sua conta e defina sua senha de acesso
+                </p>
+                <a href="{activation_link}" style="background-color: #2d5a27; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 0.95rem;">
+                    Definir Minha Senha e Acessar Conta
+                </a>
+                <p style="margin: 12px 0 0; font-size: 0.78rem; color: #64748b;">
+                    Este link é individual, temporário (válido por 72 horas) e de uso único.
+                </p>
+            </div>
+            <p style="font-size: 0.9rem; color: #475569;">
+                Você também pode visualizar os detalhes imediatos do seu pedido clicando em:
+                <a href="{order_link}" style="color: #2d5a27; font-weight: 600;">Acompanhar Pedido #{order_id}</a>
+            </p>
+        </div>
+        <div style="background-color: #f8fafc; padding: 16px; text-align: center; font-size: 0.78rem; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+            Equipe {STORE_NAME} • Cosméticos Naturais e Veganos
+        </div>
+    </div>
+    """
+    return send_email(email, subject, html)
+
+
+def send_guest_order_existing_account_verification_email(
+    email: str,
+    customer_name: str,
+    order_id: int,
+    total: float,
+    link_token: str,
+):
+    """
+    Quando um visitante realiza um pedido informando e-mail/CPF que já possui conta ativa,
+    não sobrescreve dados existentes e envia um link seguro para o titular confirmar o vínculo.
+    """
+    verify_link = f"{FRONTEND_URL}/pedido/{order_id}?link_token={link_token}"
+    subject = f"🔒 Confirme o vínculo do Pedido #{order_id} à sua conta - {STORE_NAME}"
+    html = f"""
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+        <div style="background-color: #2d5a27; color: white; padding: 24px; text-align: center;">
+            <h1 style="margin: 0; font-size: 1.4rem;">🔒 Pedido #{order_id} Realizado como Visitante</h1>
+        </div>
+        <div style="padding: 24px; color: #1e293b; line-height: 1.6;">
+            <p>Olá, <strong>{customer_name or 'Cliente'}</strong>!</p>
+            <p>Um novo pedido <strong>#{order_id}</strong> (R$ {total:.2f}) foi registrado como visitante utilizando os seus dados de identificação.</p>
+            <p>Por segurança, nenhuma informação da sua conta existente foi alterada. Para vincular este pedido ao seu histórico de compras, faça login na sua conta ou clique no botão abaixo:</p>
+            <div style="text-align: center; margin: 24px 0;">
+                <a href="{verify_link}" style="background-color: #2d5a27; color: #ffffff; padding: 13px 26px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                    Confirmar e Vincular Pedido #{order_id}
+                </a>
+            </div>
+        </div>
+    </div>
+    """
+    return send_email(email, subject, html)

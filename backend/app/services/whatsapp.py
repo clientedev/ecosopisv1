@@ -275,3 +275,40 @@ def notify_customer_order_delivered(order: models.Order, db: Session) -> bool:
         logger.error(f"[WhatsApp Cliente] Erro ao notificar entrega do pedido #{order.id}: {e}")
         return False
 
+
+def notify_customer_guest_account_created(
+    phone: str,
+    customer_name: str,
+    order_id: int,
+    total: float,
+    activation_token: str,
+    db: Optional[Session] = None,
+) -> bool:
+    """
+    Envia comunicação automática via WhatsApp quando um cliente finaliza compra como visitante,
+    informando que o pedido foi registrado, que sua conta foi criada automaticamente e enviando
+    o link exclusivo e temporário de uso único para definir sua senha.
+    """
+    try:
+        if not phone:
+            return False
+        activation_link = f"{FRONTEND_URL}/redefinir-senha?token={activation_token}&activate=1"
+        client_name = customer_name or "Cliente"
+        msg = (
+            f"Olá, {client_name}! 🌿✨\n\n"
+            f"Sua compra *#{order_id}* (R$ {total:.2f}) foi registrada com sucesso na *ECOSOPIS*!\n\n"
+            f"Criamos automaticamente a sua conta para que você possa acompanhar seu pedido e histórico de compras.\n\n"
+            f"🔐 *Ative sua conta e defina sua senha através do link exclusivo abaixo:*\n"
+            f"{activation_link}\n\n"
+            f"_(Este link é individual, temporário e de uso único)_ 💚"
+        )
+        return send_whatsapp_notification(
+            phone=phone,
+            message=msg,
+            trigger_type="guest_account_created",
+            recipient_name=client_name,
+        )
+    except Exception as e:
+        logger.error(f"[WhatsApp Visitante] Erro ao enviar ativação de conta do pedido #{order_id}: {e}")
+        return False
+

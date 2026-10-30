@@ -10,19 +10,22 @@ function RedefinirSenhaForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const token = searchParams.get("token") || "";
+    const isActivate = searchParams.get("activate") === "1";
+    const isFirstAccess = searchParams.get("first_access") === "1";
 
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [autoLoggedIn, setAutoLoggedIn] = useState(false);
     const [error, setError] = useState("");
     const [showPass, setShowPass] = useState(false);
 
     useEffect(() => {
-        if (!token) {
-            setError("Link inválido. Solicite um novo link de recuperação.");
+        if (!token && !isFirstAccess) {
+            setError("Link inválido. Solicite um novo link de recuperação ou ativação.");
         }
-    }, [token]);
+    }, [token, isFirstAccess]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -39,15 +42,45 @@ function RedefinirSenhaForm() {
 
         setLoading(true);
         try {
-            const res = await fetch("/api/auth/reset-password", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token, new_password: password }),
-            });
+            let res: Response;
+            if (isFirstAccess && !token) {
+                const bearer = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+                res = await fetch("/api/auth/first-access-password", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
+                    },
+                    body: JSON.stringify({ new_password: password }),
+                });
+            } else {
+                res = await fetch("/api/auth/reset-password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token, new_password: password }),
+                });
+            }
 
             if (res.ok) {
-                setSuccess(true);
-                setTimeout(() => router.push("/conta"), 3000);
+                const data = await res.json().catch(() => ({}));
+                if (data.access_token && typeof window !== "undefined") {
+                    localStorage.setItem("token", data.access_token);
+                    sessionStorage.setItem("session_active", "true");
+                    setAutoLoggedIn(true);
+                    setSuccess(true);
+                    setTimeout(() => {
+                        window.location.href = "/perfil?tab=orders";
+                    }, 2200);
+                } else if (isFirstAccess) {
+                    setAutoLoggedIn(true);
+                    setSuccess(true);
+                    setTimeout(() => {
+                        window.location.href = "/perfil?tab=orders";
+                    }, 2000);
+                } else {
+                    setSuccess(true);
+                    setTimeout(() => router.push("/conta"), 3000);
+                }
             } else {
                 const data = await res.json().catch(() => ({}));
                 setError(data.detail || "Token inválido ou expirado. Solicite um novo link.");
@@ -68,13 +101,19 @@ function RedefinirSenhaForm() {
                         <div style={{ textAlign: "center", padding: "30px 10px" }}>
                             <div style={{ fontSize: "3.5rem", marginBottom: "16px" }}>✅</div>
                             <h1 style={{ color: "#2d5a27", fontSize: "1.4rem", marginBottom: "12px" }}>
-                                Senha redefinida com sucesso!
+                                {isActivate ? "Conta ativada com sucesso!" : "Senha definida com sucesso!"}
                             </h1>
                             <p style={{ color: "#4a7c59", lineHeight: "1.6", marginBottom: "24px" }}>
-                                Sua senha foi atualizada. Você será redirecionado para o login em instantes...
+                                {autoLoggedIn
+                                    ? "Sua senha foi salva e sua conta está ativa! Redirecionando para seus pedidos..."
+                                    : "Sua senha foi atualizada. Você será redirecionado para o login em instantes..."}
                             </p>
-                            <Link href="/conta" className="btn-primary" style={{ display: "inline-block", textDecoration: "none" }}>
-                                IR PARA O LOGIN
+                            <Link
+                                href={autoLoggedIn ? "/perfil?tab=orders" : "/conta"}
+                                className="btn-primary"
+                                style={{ display: "inline-block", textDecoration: "none" }}
+                            >
+                                {autoLoggedIn ? "VER MEUS PEDIDOS" : "IR PARA O LOGIN"}
                             </Link>
                         </div>
                     ) : (
@@ -82,10 +121,18 @@ function RedefinirSenhaForm() {
                             <div style={{ textAlign: "center", marginBottom: "28px" }}>
                                 <div style={{ fontSize: "2.5rem", marginBottom: "10px" }}>🔐</div>
                                 <h1 style={{ color: "#1a3a16", fontSize: "1.4rem", marginBottom: "8px" }}>
-                                    Criar nova senha
+                                    {isActivate
+                                        ? "Ativar Minha Conta & Definir Senha"
+                                        : isFirstAccess
+                                        ? "Definir Nova Senha dePrimeiro Acesso"
+                                        : "Criar nova senha"}
                                 </h1>
                                 <p style={{ color: "#64748b", fontSize: "0.9rem" }}>
-                                    Escolha uma senha segura para proteger sua conta.
+                                    {isActivate
+                                        ? "Defina sua senha pessoal para acessar sua conta e acompanhar seus pedidos na Ecosopis."
+                                        : isFirstAccess
+                                        ? "Por segurança, defina uma nova senha antes de acessar as funcionalidades da sua conta."
+                                        : "Escolha uma senha segura para proteger sua conta."}
                                 </p>
                             </div>
 
@@ -166,9 +213,9 @@ function RedefinirSenhaForm() {
                                     type="submit"
                                     className="btn-primary"
                                     style={{ width: "100%", marginTop: "4px" }}
-                                    disabled={loading || !token}
+                                    disabled={loading || (!token && !isFirstAccess)}
                                 >
-                                    {loading ? "SALVANDO..." : "SALVAR NOVA SENHA"}
+                                    {loading ? "SALVANDO..." : isActivate ? "ATIVAR CONTA E SALVAR SENHA" : "SALVAR NOVA SENHA"}
                                 </button>
                             </form>
 

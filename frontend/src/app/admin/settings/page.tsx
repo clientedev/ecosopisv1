@@ -115,9 +115,9 @@ export default function AdminSettings() {
                         {/* Payment Settings */}
                         <div style={{ background: "white", padding: "1.75rem", borderRadius: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #f0f0f0" }}>
                             <h3 style={{ fontWeight: 700, fontSize: "1.05rem", color: "#1a1a1a", marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "8px" }}>
-                                💳 Configurações de Pagamento
+                                💳 Configurações de Pagamento &amp; Checkout
                             </h3>
-                            <div>
+                            <div style={{ marginBottom: "1.25rem" }}>
                                 <label style={labelStyle}>Chave PIX (E-mail, CPF, Celular ou Chave Aleatória)</label>
                                 <input
                                     type="text"
@@ -126,6 +126,34 @@ export default function AdminSettings() {
                                     placeholder="Insira sua chave PIX"
                                     style={inputStyle}
                                 />
+                            </div>
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingTop: "12px", borderTop: "1px solid #f1f5f9" }}>
+                                <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", cursor: "pointer", padding: "10px 12px", background: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                                    <div>
+                                        <strong style={{ display: "block", fontSize: "0.92rem", color: "#1e293b" }}>👤 Compra como Visitante (Sem Login Prévio)</strong>
+                                        <span style={{ fontSize: "0.8rem", color: "#64748b" }}>Permite finalizar pedidos sem login prévio e cria o cadastro automaticamente com link de ativação.</span>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={settings.guest_checkout_enabled !== "false" && settings.guest_checkout_enabled !== false}
+                                        onChange={(e) => setSettings({ ...settings, guest_checkout_enabled: e.target.checked ? "true" : "false" })}
+                                        style={{ width: "20px", height: "20px", accentColor: "#15803d", cursor: "pointer" }}
+                                    />
+                                </label>
+
+                                <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", cursor: "pointer", padding: "10px 12px", background: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                                    <div>
+                                        <strong style={{ display: "block", fontSize: "0.92rem", color: "#1e293b" }}>💳+💠 Pagamento Combinado (PIX + Cartão de Crédito)</strong>
+                                        <span style={{ fontSize: "0.8rem", color: "#64748b" }}>Permite que o cliente divida o valor de um único pedido entre PIX e Cartão de Crédito no Checkout Transparente.</span>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={settings.split_payment_enabled !== "false" && settings.split_payment_enabled !== false}
+                                        onChange={(e) => setSettings({ ...settings, split_payment_enabled: e.target.checked ? "true" : "false" })}
+                                        style={{ width: "20px", height: "20px", accentColor: "#15803d", cursor: "pointer" }}
+                                    />
+                                </label>
                             </div>
                         </div>
 

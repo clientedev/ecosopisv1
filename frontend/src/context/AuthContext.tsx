@@ -7,6 +7,7 @@ interface User {
   email: string;
   full_name: string;
   phone?: string;
+  cpf?: string;
   auth_provider?: string;
   google_id?: string;
   role: string;
@@ -18,6 +19,8 @@ interface User {
   total_compras?: number;
   cart_json?: string | null;
   cart_updated_at?: string | null;
+  is_guest_created?: boolean;
+  must_change_password?: boolean;
 }
 
 interface AuthContextType {
@@ -163,6 +166,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userData = await userRes.json();
           setUser(userData);
           localStorage.setItem('user', JSON.stringify(userData));
+          if ((data.must_change_password || userData.must_change_password) && typeof window !== 'undefined' && !window.location.pathname.startsWith('/redefinir-senha')) {
+            setTimeout(() => {
+              window.location.href = '/redefinir-senha?first_access=1';
+            }, 300);
+          }
         }
         return { success: true };
       }

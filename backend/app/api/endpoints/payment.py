@@ -55,6 +55,8 @@ class CheckoutResponse(BaseModel):
     session_id: Optional[str] = None
     preference_id: Optional[str] = None
     order_id: int
+    guest_access_token: Optional[str] = None
+    is_guest_order: Optional[bool] = False
 
 
 class StatusUpdateIn(BaseModel):
@@ -68,6 +70,27 @@ class ProcessCardIn(BaseModel):
     payment_method_id: str
     issuer_id: Optional[str] = None
     device_id: Optional[str] = None
+
+
+class SplitPaymentInitIn(BaseModel):
+    order_data: CreateCheckoutIn
+    pix_amount: float
+    card_amount: float
+
+
+class SplitCardProcessIn(BaseModel):
+    order_id: int
+    token: str
+    installments: int = 1
+    payment_method_id: str
+    issuer_id: Optional[str] = None
+    device_id: Optional[str] = None
+    guest_access_token: Optional[str] = None
+
+
+class SplitRegeneratePixIn(BaseModel):
+    order_id: int
+    guest_access_token: Optional[str] = None
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -159,7 +182,7 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
     if data.coupon_code and not has_wholesale_items:
         code_clean = data.coupon_code.strip().upper()
         if code_clean == "PRIMEIRACOMPRA":
-            if (current_user.total_compras or 0) == 0:
+            if current_user is None or (current_user.total_compras or 0) == 0:
                 discount_amount = round(subtotal * 0.10, 2)
             else:
                 data.coupon_code = None
@@ -195,7 +218,7 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
 
     # 5. Cashback verification
     cashback_discount = 0.0
-    if (data.cashback_amount or 0) > 0:
+    if current_user and (data.cashback_amount or 0) > 0:
         from app.api.endpoints.cashback import _available_balance
         avail_cashback = _available_balance(db, current_user.id)
         max_possible = max(0.0, round(subtotal - discount_amount, 2))
@@ -228,6 +251,224 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
     }
 
 
+def _is_feature_enabled(db: Session, key: str, env_var: str, default: bool = True) -> bool:
+    try:
+        setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == key).first()
+        if setting and setting.value is not None and str(setting.value).strip() != "":
+            return str(setting.value).strip().lower() in ("true", "1", "yes", "on")
+    except Exception:
+        pass
+    default_str = "true" if default else "false"
+    return os.getenv(env_var, default_str).strip().lower() in ("true", "1", "yes", "on")
+
+
+def _ensure_user_default_address(user: models.User, address_data: Optional[Dict[str, Any]], db: Session):
+    if not user or not address_data or not isinstance(address_data, dict):
+        return
+    try:
+        existing_addr = db.query(models.Address).filter(models.Address.user_id == user.id).first()
+        if existing_addr:
+            return
+        street = (address_data.get("street") or "").strip()
+        city = (address_data.get("city") or "").strip()
+        state = (address_data.get("state") or "").strip()
+        postal_code = (address_data.get("postal_code") or address_data.get("zip") or "").strip()
+        if street and city and state and postal_code:
+            new_addr = models.Address(
+                user_id=user.id,
+                name="Principal",
+                street=street,
+                number=str(address_data.get("number") or "S/N"),
+                complement=address_data.get("complement") or "",
+                neighborhood=address_data.get("neighborhood") or "Centro",
+                city=city,
+                state=state,
+                postal_code=postal_code,
+                is_default=True,
+            )
+            db.add(new_addr)
+    except Exception as e:
+        logger.warning(f"Could not auto-save guest default address: {e}")
+
+
+def _resolve_or_create_guest_context(
+    data: CreateCheckoutIn,
+    current_user: Optional[models.User],
+    db: Session,
+) -> Dict[str, Any]:
+    import secrets
+    import hashlib
+    from datetime import timedelta
+    from sqlalchemy.sql import func
+    from app.core import security
+
+    clean_cpf = "".join(filter(str.isdigit, data.customer_cpf or ""))
+
+    if current_user:
+        if clean_cpf and len(clean_cpf) == 11 and not getattr(current_user, "cpf", None):
+            current_user.cpf = clean_cpf
+            db.commit()
+        return {
+            "user": current_user,
+            "is_guest_order": False,
+            "raw_activation_token": None,
+            "pending_link_user": None,
+            "raw_link_token": None,
+            "buyer_email": current_user.email,
+        }
+
+    if not _is_feature_enabled(db, "guest_checkout_enabled", "GUEST_CHECKOUT_ENABLED", True):
+        raise HTTPException(
+            status_code=403,
+            detail="A compra como visitante está desativada no momento. Por favor, faça login ou crie uma conta para finalizar seu pedido.",
+        )
+
+    buyer_email = (
+        data.customer_email
+        or (data.address or {}).get("email")
+        or (data.address or {}).get("customer_email")
+        or ""
+    ).strip().lower()
+
+    if not buyer_email or "@" not in buyer_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Por favor, informe um endereço de e-mail válido para continuar como visitante.",
+        )
+
+    user_by_email = db.query(models.User).filter(func.lower(models.User.email) == buyer_email).first()
+    user_by_cpf = None
+    if clean_cpf and len(clean_cpf) == 11:
+        user_by_cpf = db.query(models.User).filter(models.User.cpf == clean_cpf).first()
+
+    if user_by_email and user_by_cpf and user_by_email.id != user_by_cpf.id:
+        raise HTTPException(
+            status_code=400,
+            detail="O e-mail e o CPF informados pertencem a cadastros diferentes. Faça login na sua conta ou confira os dados informados.",
+        )
+
+    matched_user = user_by_email or user_by_cpf
+
+    if matched_user:
+        is_unactivated_guest = bool(
+            getattr(matched_user, "is_guest_created", False)
+            and getattr(matched_user, "must_change_password", False)
+        )
+        email_matches = matched_user.email.strip().lower() == buyer_email
+        cpf_matches = (not getattr(matched_user, "cpf", None)) or (matched_user.cpf == clean_cpf)
+
+        if is_unactivated_guest and email_matches and cpf_matches:
+            raw_token = secrets.token_urlsafe(32)
+            token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+            matched_user.account_activation_token = token_hash
+            matched_user.account_activation_expires = datetime.now(timezone.utc) + timedelta(hours=72)
+            if clean_cpf and not getattr(matched_user, "cpf", None):
+                matched_user.cpf = clean_cpf
+            _ensure_user_default_address(matched_user, data.address, db)
+            db.commit()
+            db.refresh(matched_user)
+            return {
+                "user": matched_user,
+                "is_guest_order": True,
+                "raw_activation_token": raw_token,
+                "pending_link_user": None,
+                "raw_link_token": None,
+                "buyer_email": buyer_email,
+            }
+
+        raw_link_token = secrets.token_urlsafe(32)
+        return {
+            "user": None,
+            "is_guest_order": True,
+            "raw_activation_token": None,
+            "pending_link_user": matched_user,
+            "raw_link_token": raw_link_token,
+            "buyer_email": buyer_email,
+        }
+
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    random_pwd_hash = security.get_password_hash(secrets.token_urlsafe(32))
+
+    new_user = models.User(
+        email=buyer_email,
+        full_name=(data.customer_name or "Cliente").strip(),
+        phone=(data.customer_phone or "").strip(),
+        cpf=clean_cpf if clean_cpf else None,
+        role="client",
+        is_verified=True,
+        hashed_password=random_pwd_hash,
+        is_guest_created=True,
+        must_change_password=True,
+        account_activation_token=token_hash,
+        account_activation_expires=datetime.now(timezone.utc) + timedelta(hours=72),
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    _ensure_user_default_address(new_user, data.address, db)
+    db.commit()
+
+    return {
+        "user": new_user,
+        "is_guest_order": True,
+        "raw_activation_token": raw_token,
+        "pending_link_user": None,
+        "raw_link_token": None,
+        "buyer_email": buyer_email,
+    }
+
+
+def _dispatch_guest_notifications_if_needed(order: models.Order, guest_ctx: Dict[str, Any], db: Session):
+    if not guest_ctx.get("is_guest_order"):
+        return
+
+    raw_activation = guest_ctx.get("raw_activation_token")
+    pending_user = guest_ctx.get("pending_link_user")
+    raw_link = guest_ctx.get("raw_link_token")
+    buyer_email = guest_ctx.get("buyer_email") or order.customer_email
+
+    if raw_activation and buyer_email:
+        try:
+            emails.send_guest_account_activation_email(
+                email=buyer_email,
+                customer_name=order.customer_name or "Cliente",
+                order_id=order.id,
+                total=order.total,
+                activation_token=raw_activation,
+                guest_access_token=getattr(order, "guest_access_token", None),
+            )
+        except Exception as e:
+            logger.warning(f"Could not send guest activation email for order {order.id}: {e}")
+
+        try:
+            from app.services.whatsapp import notify_customer_guest_account_created
+            if order.customer_phone:
+                notify_customer_guest_account_created(
+                    phone=order.customer_phone,
+                    customer_name=order.customer_name or "Cliente",
+                    order_id=order.id,
+                    total=order.total,
+                    activation_token=raw_activation,
+                    db=db,
+                )
+        except Exception as e:
+            logger.warning(f"Could not send guest activation WhatsApp for order {order.id}: {e}")
+
+    elif pending_user and raw_link:
+        try:
+            emails.send_guest_order_existing_account_verification_email(
+                email=pending_user.email,
+                customer_name=pending_user.full_name or order.customer_name or "Cliente",
+                order_id=order.id,
+                total=order.total,
+                link_token=raw_link,
+            )
+        except Exception as e:
+            logger.warning(f"Could not send existing account link verification email for order {order.id}: {e}")
+
+
 def _resolve_or_create_user(data: CreateCheckoutIn, current_user: Optional[models.User], db: Session) -> models.User:
     if current_user:
         return current_user
@@ -254,11 +495,28 @@ def _resolve_or_create_user(data: CreateCheckoutIn, current_user: Optional[model
     return user
 
 
-def _get_or_create_order(data: CreateCheckoutIn, current_user: models.User, db: Session, payment_method: str) -> models.Order:
+def _get_or_create_order(
+    data: CreateCheckoutIn,
+    current_user: Optional[models.User],
+    db: Session,
+    payment_method: str,
+    guest_ctx: Optional[Dict[str, Any]] = None,
+) -> models.Order:
+    import secrets
+    import hashlib
     repo = OrderRepository(db)
     if any("(Atacado)" in (item.product_name or "") for item in data.items):
         data.coupon_code = ""
         data.discount_amount = 0.0
+
+    is_new_order = not bool(data.order_id)
+    buyer_email = (
+        (guest_ctx or {}).get("buyer_email")
+        or data.customer_email
+        or (current_user.email if current_user else None)
+        or (data.address or {}).get("email")
+        or ""
+    ).strip().lower()
 
     if data.order_id:
         order = repo.get_order_by_id(data.order_id)
@@ -275,10 +533,12 @@ def _get_or_create_order(data: CreateCheckoutIn, current_user: models.User, db: 
         order.customer_cpf = data.customer_cpf
         if data.customer_name: order.customer_name = data.customer_name
         if data.customer_phone: order.customer_phone = data.customer_phone
+        if buyer_email: order.customer_email = buyer_email
         if data.address: order.address = data.address
+        order.remaining_amount = max(0.0, round(float(order.total or 0.0) - float(order.paid_amount or 0.0), 2))
     else:
         order = repo.create_order(
-            user_id=current_user.id,
+            user_id=current_user.id if current_user else None,
             total=data.total,
             shipping_price=data.shipping_price or 0.0,
             shipping_method=data.shipping_method or "fixo",
@@ -294,17 +554,255 @@ def _get_or_create_order(data: CreateCheckoutIn, current_user: models.User, db: 
         if data.shipping_service_id is not None:
             order.shipping_service_id = int(data.shipping_service_id)
         order.payment_method = payment_method
-        order.customer_name = data.customer_name or current_user.full_name or ""
-        order.customer_email = current_user.email
-        order.customer_phone = data.customer_phone or ""
-        
-        # Clear saved cart JSON upon checkout creation
-        current_user.cart_json = None
-        current_user.cart_updated_at = None
+        order.customer_name = data.customer_name or (current_user.full_name if current_user else "") or ""
+        order.customer_email = buyer_email
+        order.customer_phone = data.customer_phone or (current_user.phone if current_user else "") or ""
+        order.paid_amount = 0.0
+        order.remaining_amount = float(data.total or 0.0)
+
+        if guest_ctx and guest_ctx.get("is_guest_order"):
+            order.is_guest_order = True
+            order.guest_access_token = secrets.token_urlsafe(24)
+            if guest_ctx.get("pending_link_user"):
+                order.pending_link_user_id = guest_ctx["pending_link_user"].id
+            if guest_ctx.get("raw_link_token"):
+                order.account_link_token = hashlib.sha256(guest_ctx["raw_link_token"].encode("utf-8")).hexdigest()
+
+        if current_user:
+            current_user.cart_json = None
+            current_user.cart_updated_at = None
 
     db.commit()
     db.refresh(order)
+
+    if is_new_order and guest_ctx and guest_ctx.get("is_guest_order"):
+        _dispatch_guest_notifications_if_needed(order, guest_ctx, db)
+
     return order
+
+
+def _record_order_payment_slice(
+    order: models.Order,
+    db: Session,
+    part_number: int,
+    modality: str,
+    amount: float,
+    status: str = "pending",
+    status_detail: Optional[str] = None,
+    external_payment_id: Optional[str] = None,
+    installments: int = 1,
+    qr_code: Optional[str] = None,
+    qr_code_base64: Optional[str] = None,
+    ticket_url: Optional[str] = None,
+    source: str = "checkout",
+    notes: Optional[str] = None,
+) -> models.OrderPayment:
+    existing = db.query(models.OrderPayment).filter(
+        models.OrderPayment.order_id == order.id,
+        models.OrderPayment.part_number == part_number,
+    ).first()
+
+    prev_status = existing.status if existing else None
+
+    if existing:
+        existing.modality = modality
+        existing.amount = round(float(amount), 2)
+        existing.installments = int(installments or 1)
+        if external_payment_id is not None:
+            existing.external_payment_id = str(external_payment_id)
+        if qr_code is not None:
+            existing.qr_code = qr_code
+        if qr_code_base64 is not None:
+            existing.qr_code_base64 = qr_code_base64
+        if ticket_url is not None:
+            existing.ticket_url = ticket_url
+        if status_detail is not None:
+            existing.status_detail = status_detail
+        existing.status = status
+        if status in ("approved", "authorized") and not existing.paid_at:
+            existing.paid_at = datetime.now(timezone.utc)
+        payment_row = existing
+    else:
+        payment_row = models.OrderPayment(
+            order_id=order.id,
+            part_number=part_number,
+            modality=modality,
+            amount=round(float(amount), 2),
+            installments=int(installments or 1),
+            external_payment_id=str(external_payment_id) if external_payment_id else None,
+            status=status,
+            status_detail=status_detail,
+            qr_code=qr_code,
+            qr_code_base64=qr_code_base64,
+            ticket_url=ticket_url,
+            paid_at=datetime.now(timezone.utc) if status in ("approved", "authorized") else None,
+        )
+        db.add(payment_row)
+        db.flush()
+
+    if prev_status != status or notes:
+        hist = models.OrderPaymentHistory(
+            order_id=order.id,
+            order_payment_id=payment_row.id,
+            previous_status=prev_status,
+            new_status=status,
+            amount=round(float(amount), 2),
+            external_payment_id=str(external_payment_id) if external_payment_id else payment_row.external_payment_id,
+            source=source,
+            notes=notes,
+        )
+        db.add(hist)
+
+    return payment_row
+
+
+def _serialize_order_payments(order: models.Order, db: Session) -> List[Dict[str, Any]]:
+    rows = db.query(models.OrderPayment).filter(
+        models.OrderPayment.order_id == order.id
+    ).order_by(models.OrderPayment.part_number.asc(), models.OrderPayment.id.asc()).all()
+    return [
+        {
+            "id": r.id,
+            "order_id": r.order_id,
+            "part_number": r.part_number,
+            "modality": r.modality,
+            "amount": round(float(r.amount or 0.0), 2),
+            "installments": r.installments or 1,
+            "external_payment_id": r.external_payment_id,
+            "status": r.status,
+            "status_detail": r.status_detail,
+            "qr_code": r.qr_code,
+            "qr_code_base64": r.qr_code_base64,
+            "ticket_url": r.ticket_url,
+            "paid_at": r.paid_at.isoformat() if r.paid_at else None,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+        }
+        for r in rows
+    ]
+
+
+def _serialize_order_payment_history(order: models.Order, db: Session) -> List[Dict[str, Any]]:
+    rows = db.query(models.OrderPaymentHistory).filter(
+        models.OrderPaymentHistory.order_id == order.id
+    ).order_by(models.OrderPaymentHistory.created_at.asc(), models.OrderPaymentHistory.id.asc()).all()
+    return [
+        {
+            "id": h.id,
+            "order_id": h.order_id,
+            "order_payment_id": h.order_payment_id,
+            "previous_status": h.previous_status,
+            "new_status": h.new_status,
+            "amount": round(float(h.amount or 0.0), 2) if h.amount is not None else None,
+            "external_payment_id": h.external_payment_id,
+            "source": h.source,
+            "notes": h.notes,
+            "created_at": h.created_at.isoformat() if h.created_at else None,
+        }
+        for h in rows
+    ]
+
+
+def evaluate_and_finalize_split_order(
+    order: models.Order,
+    db: Session,
+    source: str = "webhook",
+    buyer_email: Optional[str] = None,
+) -> Dict[str, Any]:
+    import json as _json
+    slices = db.query(models.OrderPayment).filter(
+        models.OrderPayment.order_id == order.id
+    ).order_by(models.OrderPayment.part_number.asc()).all()
+
+    approved_sum = round(
+        sum(float(s.amount or 0.0) for s in slices if s.status in ("approved", "authorized")),
+        2,
+    )
+    order_total = round(float(order.total or 0.0), 2)
+    remaining = max(0.0, round(order_total - approved_sum, 2))
+
+    order.paid_amount = approved_sum
+    order.remaining_amount = remaining
+    try:
+        order.payment_summary = _json.dumps([
+            {
+                "part": s.part_number,
+                "modality": s.modality,
+                "amount": round(float(s.amount or 0.0), 2),
+                "status": s.status,
+                "payment_id": s.external_payment_id,
+            }
+            for s in slices
+        ])
+    except Exception:
+        pass
+
+    all_slices_approved = len(slices) > 0 and all(s.status in ("approved", "authorized") for s in slices)
+    full_amount_covered = approved_sum >= round(order_total - 0.05, 2)
+
+    if all_slices_approved and full_amount_covered:
+        order.paid_amount = order_total
+        order.remaining_amount = 0.0
+        db.commit()
+        primary_pid = next((s.external_payment_id for s in slices if s.external_payment_id), order.mercadopago_payment_id)
+        finalize_order_on_payment(
+            order=order,
+            db=db,
+            payment_id=primary_pid,
+            buyer_email=buyer_email or order.customer_email,
+            buyer_name=order.customer_name,
+        )
+        db.refresh(order)
+    else:
+        if order.status not in ("paid", "shipped", "delivered", "cancelled", "processando_envio", "erro_envio"):
+            if approved_sum > 0:
+                order.status = "partially_paid"
+            else:
+                order.status = "pending"
+        db.commit()
+        db.refresh(order)
+
+    return {
+        "order_id": order.id,
+        "status": order.status,
+        "total": order_total,
+        "paid_amount": round(float(order.paid_amount or 0.0), 2),
+        "remaining_amount": round(float(order.remaining_amount or 0.0), 2),
+        "all_approved": all_slices_approved and full_amount_covered,
+    }
+
+
+def sync_and_evaluate_split_order(order: models.Order, db: Session) -> Dict[str, Any]:
+    slices = db.query(models.OrderPayment).filter(
+        models.OrderPayment.order_id == order.id
+    ).order_by(models.OrderPayment.part_number.asc()).all()
+
+    for s in slices:
+        if s.status not in ("approved", "authorized") and s.external_payment_id:
+            try:
+                p_info = get_mp_payment_status(str(s.external_payment_id))
+                mp_st = p_info.get("status")
+                mp_det = p_info.get("status_detail", "")
+                if mp_st and mp_st != s.status:
+                    prev_st = s.status
+                    s.status = "approved" if mp_st in ("approved", "authorized") else mp_st
+                    s.status_detail = mp_det
+                    if s.status == "approved" and not s.paid_at:
+                        s.paid_at = datetime.now(timezone.utc)
+                    db.add(models.OrderPaymentHistory(
+                        order_id=order.id,
+                        order_payment_id=s.id,
+                        previous_status=prev_st,
+                        new_status=s.status,
+                        amount=s.amount,
+                        external_payment_id=s.external_payment_id,
+                        source="sync",
+                        notes=f"Sincronizado via Mercado Pago ({mp_det})",
+                    ))
+            except Exception as err:
+                logger.debug(f"Could not sync split slice {s.id} (MP {s.external_payment_id}): {err}")
+
+    return evaluate_and_finalize_split_order(order, db, source="sync")
 
 
 def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str = None, session_id: str = None, buyer_email: str = None, buyer_name: str = None):
@@ -341,12 +839,37 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
         "stripe_session_id": session_id or models.Order.stripe_session_id,
         "buyer_email": buyer_email or models.Order.buyer_email,
         "buyer_name": buyer_name or models.Order.buyer_name,
+        "paid_amount": models.Order.total,
+        "remaining_amount": 0.0,
     }, synchronize_session="fetch")
 
     if rows_updated == 0:
         db.refresh(order)
         logger.info(f"Order {order.id} was already finalized concurrently. Skipping duplicate.")
         return
+
+    try:
+        if not getattr(order, "is_split_payment", False):
+            single_slices = db.query(models.OrderPayment).filter(models.OrderPayment.order_id == order.id).all()
+            for sl in single_slices:
+                if sl.status != "approved":
+                    prev_st = sl.status
+                    sl.status = "approved"
+                    sl.paid_at = datetime.now(timezone.utc)
+                    if payment_id and not sl.external_payment_id:
+                        sl.external_payment_id = str(payment_id)
+                    db.add(models.OrderPaymentHistory(
+                        order_id=order.id,
+                        order_payment_id=sl.id,
+                        previous_status=prev_st,
+                        new_status="approved",
+                        amount=sl.amount,
+                        external_payment_id=sl.external_payment_id,
+                        source="finalize",
+                        notes="Pedido finalizado como pago",
+                    ))
+    except Exception as sl_err:
+        logger.debug(f"Could not sync single OrderPayment on finalize: {sl_err}")
 
     # Deduct product stock safely
     try:
@@ -518,28 +1041,46 @@ async def create_mp_payment(
     current_user: Optional[models.User] = Depends(get_current_user_optional),
 ):
     try:
-        current_user = _resolve_or_create_user(data, current_user, db)
-        order = _get_or_create_order(data, current_user, db, "mercadopago")
+        guest_ctx = _resolve_or_create_guest_context(data, current_user, db)
+        resolved_user = guest_ctx["user"]
+        _validate_and_calculate_order(data, resolved_user, db)
+        order = _get_or_create_order(data, resolved_user, db, "mercadopago", guest_ctx=guest_ctx)
         
         items_for_mp = [item.dict() for item in data.items]
         preference = create_checkout_pro_preference(
             order_id=order.id,
             items=items_for_mp,
             shipping_price=order.shipping_price,
-            customer_email=data.customer_email or current_user.email,
-            customer_name=data.customer_name or current_user.full_name or "Cliente",
+            customer_email=data.customer_email or order.customer_email or (resolved_user.email if resolved_user else "cliente@ecosopis.com.br"),
+            customer_name=data.customer_name or order.customer_name or (resolved_user.full_name if resolved_user else "Cliente") or "Cliente",
             customer_cpf=order.customer_cpf,
             discount_amount=(data.discount_amount or 0.0) + (data.cashback_amount or 0.0)
         )
         
         order.mercadopago_preference_id = preference["id"]
+        _record_order_payment_slice(
+            order=order,
+            db=db,
+            part_number=1,
+            modality="checkout_pro",
+            amount=order.total,
+            status="pending",
+            external_payment_id=preference["id"],
+            source="checkout",
+            notes="Preferência Checkout Pro gerada",
+        )
         db.commit()
 
         return CheckoutResponse(
             checkout_url=preference["init_point"],
             preference_id=preference["id"],
             order_id=order.id,
+            guest_access_token=getattr(order, "guest_access_token", None),
+            is_guest_order=bool(getattr(order, "is_guest_order", False)),
         )
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         logger.error(f"Erro no checkout Mercado Pago: {str(e)}", exc_info=True)
@@ -550,15 +1091,19 @@ async def create_mp_payment(
 
 
 @router.get("/config")
-async def get_payment_config():
+async def get_payment_config(db: Session = Depends(get_db)):
     """
     Returns public payment gateway configuration and feature flag status.
     """
-    transparent_enabled = os.getenv("MP_TRANSPARENT_CHECKOUT_ENABLED", "true").lower() in ("true", "1", "yes")
+    transparent_enabled = _is_feature_enabled(db, "transparent_checkout_enabled", "MP_TRANSPARENT_CHECKOUT_ENABLED", True)
+    guest_checkout_enabled = _is_feature_enabled(db, "guest_checkout_enabled", "GUEST_CHECKOUT_ENABLED", True)
+    split_payment_enabled = _is_feature_enabled(db, "split_payment_enabled", "SPLIT_PAYMENT_ENABLED", True)
     mp_public_key = (os.getenv("MP_PUBLIC_KEY") or os.getenv("NEXT_PUBLIC_MP_PUBLIC_KEY") or "").strip()
 
     return {
         "transparent_checkout_enabled": transparent_enabled,
+        "guest_checkout_enabled": guest_checkout_enabled,
+        "split_payment_enabled": split_payment_enabled,
         "mp_public_key": mp_public_key,
         "max_free_installments": int(os.getenv("MP_MAX_FREE_INSTALLMENTS", "3")),
     }
@@ -576,13 +1121,14 @@ async def process_transparent_pix(
     Validates items, stock, coupons, cashback, shipping, CPF, and strictly calculates final total.
     """
     try:
-        current_user = _resolve_or_create_user(data, current_user, db)
+        guest_ctx = _resolve_or_create_guest_context(data, current_user, db)
+        resolved_user = guest_ctx["user"]
 
         # Validate order and calculate authoritative server-side totals
-        _validate_and_calculate_order(data, current_user, db)
+        _validate_and_calculate_order(data, resolved_user, db)
 
         # Create or update order in DB
-        order = _get_or_create_order(data, current_user, db, payment_method="mercadopago_pix")
+        order = _get_or_create_order(data, resolved_user, db, payment_method="mercadopago_pix", guest_ctx=guest_ctx)
 
         # Invoke Mercado Pago PIX generation
         from app.core.mercadopago_service import create_pix_payment
@@ -591,13 +1137,28 @@ async def process_transparent_pix(
         pix_result = create_pix_payment(
             order_id=order.id,
             total=order.total,
-            customer_email=data.customer_email or current_user.email,
-            customer_name=data.customer_name or order.customer_name or current_user.full_name or "Cliente",
+            customer_email=data.customer_email or order.customer_email or (resolved_user.email if resolved_user else "cliente@ecosopis.com.br"),
+            customer_name=data.customer_name or order.customer_name or (resolved_user.full_name if resolved_user else "Cliente") or "Cliente",
             items=items_for_mp,
             customer_cpf=order.customer_cpf
         )
 
         order.mercadopago_payment_id = pix_result.get("payment_id")
+        _record_order_payment_slice(
+            order=order,
+            db=db,
+            part_number=1,
+            modality="pix",
+            amount=order.total,
+            status=pix_result.get("status", "pending"),
+            status_detail=pix_result.get("status_detail", ""),
+            external_payment_id=pix_result.get("payment_id"),
+            qr_code=pix_result.get("qr_code"),
+            qr_code_base64=pix_result.get("qr_code_base64"),
+            ticket_url=pix_result.get("ticket_url"),
+            source="checkout",
+            notes="PIX transparente gerado",
+        )
         db.commit()
         db.refresh(order)
 
@@ -610,6 +1171,8 @@ async def process_transparent_pix(
             "qr_code_base64": pix_result.get("qr_code_base64"),
             "ticket_url": pix_result.get("ticket_url"),
             "total": order.total,
+            "guest_access_token": getattr(order, "guest_access_token", None),
+            "is_guest_order": bool(getattr(order, "is_guest_order", False)),
         }
     except HTTPException:
         db.rollback()
@@ -633,28 +1196,30 @@ async def process_transparent_card(
     Supports Device ID for anti-fraud validation.
     """
     try:
-        current_user = _resolve_or_create_user(payload.order_data, current_user, db)
+        guest_ctx = _resolve_or_create_guest_context(payload.order_data, current_user, db)
+        resolved_user = guest_ctx["user"]
 
         # Validate token
         if not payload.token or not payload.token.strip():
             raise HTTPException(status_code=400, detail="Token do cartão não fornecido.")
 
         # Validate order and calculate authoritative server-side totals
-        _validate_and_calculate_order(payload.order_data, current_user, db)
+        _validate_and_calculate_order(payload.order_data, resolved_user, db)
 
         # Create or update order in DB
-        order = _get_or_create_order(payload.order_data, current_user, db, payment_method="mercadopago_card")
+        order = _get_or_create_order(payload.order_data, resolved_user, db, payment_method="mercadopago_card", guest_ctx=guest_ctx)
 
         from app.core.mercadopago_service import create_card_payment
 
+        buyer_email_addr = payload.order_data.customer_email or order.customer_email or (resolved_user.email if resolved_user else "cliente@ecosopis.com.br")
         card_result = create_card_payment(
             order_id=order.id,
             total=order.total,
             token=payload.token.strip(),
             installments=payload.installments,
             payment_method_id=payload.payment_method_id,
-            customer_email=payload.order_data.customer_email or current_user.email,
-            customer_name=payload.order_data.customer_name or order.customer_name or current_user.full_name or "Cliente",
+            customer_email=buyer_email_addr,
+            customer_name=payload.order_data.customer_name or order.customer_name or (resolved_user.full_name if resolved_user else "Cliente") or "Cliente",
             customer_cpf=order.customer_cpf,
             issuer_id=payload.issuer_id,
             device_id=payload.device_id,
@@ -663,13 +1228,28 @@ async def process_transparent_card(
         order.mercadopago_payment_id = card_result.get("payment_id")
         mp_status = card_result.get("status")
         mp_detail = card_result.get("status_detail", "")
+        normalized_status = "approved" if mp_status in ["approved", "authorized"] else ("in_process" if mp_status in ["in_process", "pending"] else (mp_status or "rejected"))
+
+        _record_order_payment_slice(
+            order=order,
+            db=db,
+            part_number=1,
+            modality="credit_card",
+            amount=order.total,
+            installments=payload.installments,
+            status=normalized_status,
+            status_detail=mp_detail,
+            external_payment_id=card_result.get("payment_id"),
+            source="checkout",
+            notes=f"Cartão processado ({normalized_status}: {mp_detail})",
+        )
 
         if mp_status in ["approved", "authorized"]:
             finalize_order_on_payment(
                 order=order,
                 db=db,
                 payment_id=card_result.get("payment_id"),
-                buyer_email=current_user.email,
+                buyer_email=buyer_email_addr,
                 buyer_name=order.customer_name
             )
             db.commit()
@@ -679,6 +1259,8 @@ async def process_transparent_card(
                 "status": "approved",
                 "status_detail": mp_detail,
                 "total": order.total,
+                "guest_access_token": getattr(order, "guest_access_token", None),
+                "is_guest_order": bool(getattr(order, "is_guest_order", False)),
             }
         elif mp_status in ["in_process", "pending"]:
             db.commit()
@@ -688,7 +1270,9 @@ async def process_transparent_card(
                 "status": "in_process",
                 "status_detail": mp_detail,
                 "total": order.total,
-                "message": "Pagamento em análise pelo Mercado Pago."
+                "message": "Pagamento em análise pelo Mercado Pago.",
+                "guest_access_token": getattr(order, "guest_access_token", None),
+                "is_guest_order": bool(getattr(order, "is_guest_order", False)),
             }
         else:
             db.commit()
@@ -699,6 +1283,8 @@ async def process_transparent_card(
                 "status": mp_status or "rejected",
                 "status_detail": mp_detail,
                 "detail": user_msg,
+                "guest_access_token": getattr(order, "guest_access_token", None),
+                "is_guest_order": bool(getattr(order, "is_guest_order", False)),
             }
     except HTTPException:
         db.rollback()
@@ -707,6 +1293,395 @@ async def process_transparent_card(
         db.rollback()
         logger.error(f"Erro ao processar cartão transparente: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erro ao processar pagamento com cartão: {str(e)}")
+
+
+# ── Split Payment (Pagamento Combinado PIX + Cartão) Endpoints ────────────────
+
+@router.post("/split/init")
+async def init_split_payment(
+    payload: SplitPaymentInitIn,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
+):
+    """
+    Inicializa ou recupera um Pagamento Combinado (PIX + Cartão de Crédito) para um único pedido.
+    1. Valida produtos, estoque, cupom, frete, CPF e calcula o total oficial no servidor.
+    2. Valida a divisão entre PIX (>= R$ 1,00) e Cartão (>= R$ 5,00) garantindo soma exata igual ao total.
+    3. Cria/atualiza o Pedido com is_split_payment=True e registra as 2 partes em order_payments.
+    4. Gera o PIX da Parte 1 com idempotência (reutiliza PIX pendente ativo se valor não mudou).
+    """
+    if not _is_feature_enabled(db, "split_payment_enabled", "SPLIT_PAYMENT_ENABLED", True):
+        raise HTTPException(
+            status_code=403,
+            detail="O pagamento combinado está temporariamente desativado. Utilize PIX ou Cartão individualmente.",
+        )
+
+    try:
+        guest_ctx = _resolve_or_create_guest_context(payload.order_data, current_user, db)
+        resolved_user = guest_ctx["user"]
+
+        # Authoritative server-side total calculation
+        _validate_and_calculate_order(payload.order_data, resolved_user, db)
+        server_total = round(float(payload.order_data.total), 2)
+
+        req_pix = round(float(payload.pix_amount or 0.0), 2)
+        req_card = round(float(payload.card_amount or 0.0), 2)
+
+        if req_pix < 1.00:
+            raise HTTPException(status_code=400, detail="O valor destinado ao PIX no pagamento combinado deve ser de pelo menos R$ 1,00.")
+        if req_card < 1.00:
+            raise HTTPException(status_code=400, detail="O valor destinado ao Cartão de Crédito no pagamento combinado deve ser de pelo menos R$ 1,00.")
+        if abs((req_pix + req_card) - server_total) > 0.05:
+            raise HTTPException(
+                status_code=400,
+                detail=f"A soma dos pagamentos (R$ {(req_pix + req_card):.2f}) não corresponde ao total calculado do pedido (R$ {server_total:.2f}).",
+            )
+
+        # Ensure exact cent-level equality on the server
+        pix_amount = req_pix
+        card_amount = round(server_total - pix_amount, 2)
+
+        order = _get_or_create_order(
+            payload.order_data,
+            resolved_user,
+            db,
+            payment_method="mercadopago_split",
+            guest_ctx=guest_ctx,
+        )
+        order.is_split_payment = True
+
+        # Check existing slices for idempotency / interrupted payment recovery
+        existing_pix = db.query(models.OrderPayment).filter(
+            models.OrderPayment.order_id == order.id,
+            models.OrderPayment.part_number == 1,
+        ).first()
+        existing_card = db.query(models.OrderPayment).filter(
+            models.OrderPayment.order_id == order.id,
+            models.OrderPayment.part_number == 2,
+        ).first()
+
+        if existing_pix and existing_pix.status in ("approved", "authorized"):
+            # PIX slice already paid! Lock pix_amount to what was actually paid
+            pix_amount = round(float(existing_pix.amount), 2)
+            card_amount = max(0.0, round(server_total - pix_amount, 2))
+            pix_slice = existing_pix
+        elif (
+            existing_pix
+            and existing_pix.status == "pending"
+            and abs(float(existing_pix.amount or 0.0) - pix_amount) < 0.01
+            and existing_pix.qr_code
+            and existing_pix.external_payment_id
+        ):
+            # Idempotent reuse of active pending PIX QR code with same amount
+            pix_slice = existing_pix
+        else:
+            from app.core.mercadopago_service import create_pix_payment
+            buyer_email_addr = (
+                payload.order_data.customer_email
+                or order.customer_email
+                or (resolved_user.email if resolved_user else "cliente@ecosopis.com.br")
+            )
+            pix_result = create_pix_payment(
+                order_id=order.id,
+                total=pix_amount,
+                customer_email=buyer_email_addr,
+                customer_name=payload.order_data.customer_name or order.customer_name or (resolved_user.full_name if resolved_user else "Cliente") or "Cliente",
+                items=[
+                    {
+                        "id": str(order.id),
+                        "title": f"Pedido #{order.id} Ecosopis - Parte 1 (PIX)",
+                        "quantity": 1,
+                        "unit_price": pix_amount,
+                    }
+                ],
+                customer_cpf=order.customer_cpf,
+            )
+            order.mercadopago_payment_id = pix_result.get("payment_id")
+            pix_slice = _record_order_payment_slice(
+                order=order,
+                db=db,
+                part_number=1,
+                modality="pix",
+                amount=pix_amount,
+                status=pix_result.get("status", "pending"),
+                status_detail=pix_result.get("status_detail", ""),
+                external_payment_id=pix_result.get("payment_id"),
+                qr_code=pix_result.get("qr_code"),
+                qr_code_base64=pix_result.get("qr_code_base64"),
+                ticket_url=pix_result.get("ticket_url"),
+                source="checkout",
+                notes=f"Parte 1 (PIX R$ {pix_amount:.2f}) gerada",
+            )
+
+        if existing_card and existing_card.status in ("approved", "authorized"):
+            card_slice = existing_card
+        else:
+            card_slice = _record_order_payment_slice(
+                order=order,
+                db=db,
+                part_number=2,
+                modality="credit_card",
+                amount=card_amount,
+                status=existing_card.status if (existing_card and existing_card.status == "in_process") else "pending",
+                status_detail=existing_card.status_detail if existing_card else None,
+                external_payment_id=existing_card.external_payment_id if existing_card else None,
+                source="checkout",
+                notes=f"Parte 2 (Cartão R$ {card_amount:.2f}) registrada",
+            )
+
+        eval_summary = evaluate_and_finalize_split_order(order, db, source="checkout")
+
+        return {
+            "order_id": order.id,
+            "status": order.status,
+            "is_split_payment": True,
+            "is_guest_order": bool(getattr(order, "is_guest_order", False)),
+            "guest_access_token": getattr(order, "guest_access_token", None),
+            "total": server_total,
+            "paid_amount": eval_summary["paid_amount"],
+            "remaining_amount": eval_summary["remaining_amount"],
+            "pix_slice": {
+                "id": pix_slice.id,
+                "part_number": 1,
+                "modality": "pix",
+                "amount": round(float(pix_slice.amount), 2),
+                "payment_id": pix_slice.external_payment_id,
+                "status": pix_slice.status,
+                "status_detail": pix_slice.status_detail,
+                "qr_code": pix_slice.qr_code,
+                "qr_code_base64": pix_slice.qr_code_base64,
+                "ticket_url": pix_slice.ticket_url,
+            },
+            "card_slice": {
+                "id": card_slice.id,
+                "part_number": 2,
+                "modality": "credit_card",
+                "amount": round(float(card_slice.amount), 2),
+                "payment_id": card_slice.external_payment_id,
+                "status": card_slice.status,
+                "status_detail": card_slice.status_detail,
+            },
+            "payment_transactions": _serialize_order_payments(order, db),
+        }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Erro ao inicializar pagamento combinado: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao inicializar pagamento combinado: {str(e)}")
+
+
+@router.post("/split/process-card")
+async def process_split_card_payment(
+    payload: SplitCardProcessIn,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
+):
+    """
+    Processa a parte do Cartão de Crédito de um pedido com Pagamento Combinado.
+    - Confere o valor devido da parte do cartão diretamente no banco de dados (order_payments).
+    - Previne cobrança duplicada se a parte do cartão já estiver aprovada.
+    - Permite nova tentativa se tentativa anterior foi recusada, mantendo a parte do PIX intacta.
+    - Só finaliza o pedido como 'paid' se TODAS as partes (PIX + Cartão) estiverem aprovadas.
+    """
+    order = db.query(models.Order).filter(models.Order.id == payload.order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+
+    if current_user and current_user.role != "admin" and order.user_id and order.user_id != current_user.id:
+        if not (payload.guest_access_token and payload.guest_access_token == getattr(order, "guest_access_token", None)):
+            raise HTTPException(status_code=403, detail="Acesso negado a este pedido.")
+
+    if not payload.token or not payload.token.strip():
+        raise HTTPException(status_code=400, detail="Token do cartão não fornecido.")
+
+    card_slice = db.query(models.OrderPayment).filter(
+        models.OrderPayment.order_id == order.id,
+        models.OrderPayment.modality == "credit_card",
+    ).order_by(models.OrderPayment.part_number.desc()).first()
+
+    if not card_slice:
+        raise HTTPException(status_code=400, detail="Nenhuma parcela de cartão pendente encontrada para este pedido combinado.")
+
+    # Idempotency / duplicate charge prevention
+    if card_slice.status in ("approved", "authorized"):
+        eval_summary = evaluate_and_finalize_split_order(order, db, source="checkout")
+        return {
+            "order_id": order.id,
+            "order_status": order.status,
+            "payment_id": card_slice.external_payment_id,
+            "slice_status": "approved",
+            "status_detail": card_slice.status_detail or "accredited",
+            "slice_amount": round(float(card_slice.amount), 2),
+            "total": round(float(order.total), 2),
+            "paid_amount": eval_summary["paid_amount"],
+            "remaining_amount": eval_summary["remaining_amount"],
+            "all_approved": eval_summary["all_approved"],
+            "payment_transactions": _serialize_order_payments(order, db),
+        }
+
+    slice_amount = round(float(card_slice.amount or 0.0), 2)
+    if slice_amount <= 0:
+        raise HTTPException(status_code=400, detail="Valor da parcela de cartão inválido.")
+
+    try:
+        from app.core.mercadopago_service import create_card_payment
+
+        buyer_email_addr = order.customer_email or (current_user.email if current_user else "cliente@ecosopis.com.br")
+        card_result = create_card_payment(
+            order_id=order.id,
+            total=slice_amount,
+            token=payload.token.strip(),
+            installments=payload.installments,
+            payment_method_id=payload.payment_method_id,
+            customer_email=buyer_email_addr,
+            customer_name=order.customer_name or (current_user.full_name if current_user else "Cliente") or "Cliente",
+            customer_cpf=order.customer_cpf,
+            issuer_id=payload.issuer_id,
+            device_id=payload.device_id,
+        )
+
+        mp_status = card_result.get("status")
+        mp_detail = card_result.get("status_detail", "")
+        normalized_status = (
+            "approved"
+            if mp_status in ["approved", "authorized"]
+            else ("in_process" if mp_status in ["in_process", "pending"] else (mp_status or "rejected"))
+        )
+
+        _record_order_payment_slice(
+            order=order,
+            db=db,
+            part_number=card_slice.part_number,
+            modality="credit_card",
+            amount=slice_amount,
+            installments=payload.installments,
+            status=normalized_status,
+            status_detail=mp_detail,
+            external_payment_id=card_result.get("payment_id"),
+            source="checkout",
+            notes=f"Tentativa cartão R$ {slice_amount:.2f} -> {normalized_status} ({mp_detail})",
+        )
+
+        # Also proactively sync the PIX slice before evaluating so if PIX was paid seconds ago we detect both!
+        eval_summary = sync_and_evaluate_split_order(order, db)
+
+        resp = {
+            "order_id": order.id,
+            "order_status": order.status,
+            "payment_id": card_result.get("payment_id"),
+            "slice_status": normalized_status,
+            "status_detail": mp_detail,
+            "slice_amount": slice_amount,
+            "total": round(float(order.total), 2),
+            "paid_amount": eval_summary["paid_amount"],
+            "remaining_amount": eval_summary["remaining_amount"],
+            "all_approved": eval_summary["all_approved"],
+            "guest_access_token": getattr(order, "guest_access_token", None),
+            "payment_transactions": _serialize_order_payments(order, db),
+        }
+        if normalized_status == "rejected":
+            resp["detail"] = _translate_mp_status_detail(mp_detail)
+        elif normalized_status == "in_process":
+            resp["message"] = "Pagamento do cartão em análise pelo Mercado Pago."
+        return resp
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Erro ao processar cartão no pagamento combinado (pedido #{order.id}): {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao processar parte do cartão: {str(e)}")
+
+
+@router.post("/split/regenerate-pix")
+async def regenerate_split_pix(
+    payload: SplitRegeneratePixIn,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
+):
+    """
+    Permite regenerar o QR Code PIX da parte 1 de um pagamento combinado caso tenha expirado
+    ou o cliente precise de um novo código para concluir o pagamento restante.
+    """
+    order = db.query(models.Order).filter(models.Order.id == payload.order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+
+    if current_user and current_user.role != "admin" and order.user_id and order.user_id != current_user.id:
+        if not (payload.guest_access_token and payload.guest_access_token == getattr(order, "guest_access_token", None)):
+            raise HTTPException(status_code=403, detail="Acesso negado a este pedido.")
+
+    pix_slice = db.query(models.OrderPayment).filter(
+        models.OrderPayment.order_id == order.id,
+        models.OrderPayment.modality == "pix",
+    ).order_by(models.OrderPayment.part_number.asc()).first()
+
+    if not pix_slice:
+        raise HTTPException(status_code=400, detail="Parcela PIX não encontrada para este pedido.")
+
+    if pix_slice.status in ("approved", "authorized"):
+        return {
+            "order_id": order.id,
+            "slice_status": "approved",
+            "message": "A parte do PIX já foi paga e confirmada.",
+            "payment_transactions": _serialize_order_payments(order, db),
+        }
+
+    from app.core.mercadopago_service import create_pix_payment
+    pix_amount = round(float(pix_slice.amount), 2)
+    pix_result = create_pix_payment(
+        order_id=order.id,
+        total=pix_amount,
+        customer_email=order.customer_email or "cliente@ecosopis.com.br",
+        customer_name=order.customer_name or "Cliente",
+        items=[
+            {
+                "id": str(order.id),
+                "title": f"Pedido #{order.id} Ecosopis - Parte 1 (PIX)",
+                "quantity": 1,
+                "unit_price": pix_amount,
+            }
+        ],
+        customer_cpf=order.customer_cpf,
+    )
+
+    updated_slice = _record_order_payment_slice(
+        order=order,
+        db=db,
+        part_number=pix_slice.part_number,
+        modality="pix",
+        amount=pix_amount,
+        status=pix_result.get("status", "pending"),
+        status_detail=pix_result.get("status_detail", ""),
+        external_payment_id=pix_result.get("payment_id"),
+        qr_code=pix_result.get("qr_code"),
+        qr_code_base64=pix_result.get("qr_code_base64"),
+        ticket_url=pix_result.get("ticket_url"),
+        source="checkout",
+        notes="QR Code PIX regenerado pelo cliente",
+    )
+    db.commit()
+
+    return {
+        "order_id": order.id,
+        "pix_slice": {
+            "id": updated_slice.id,
+            "part_number": updated_slice.part_number,
+            "modality": "pix",
+            "amount": pix_amount,
+            "payment_id": updated_slice.external_payment_id,
+            "status": updated_slice.status,
+            "qr_code": updated_slice.qr_code,
+            "qr_code_base64": updated_slice.qr_code_base64,
+            "ticket_url": updated_slice.ticket_url,
+        },
+        "payment_transactions": _serialize_order_payments(order, db),
+    }
 
 
 @router.post("/webhook/stripe")
@@ -919,22 +1894,75 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     if topic in ("payment", "collection") and resource_id:
         try:
             payment_info = get_mp_payment_status(str(resource_id))
-            if payment_info.get("status") in ["approved", "authorized"]:
-                pedido_id = payment_info.get("external_reference")
-                order = None
-                if pedido_id:
-                    try:
-                        order_id_int = int(pedido_id)
-                        order = db.query(models.Order).filter(models.Order.id == order_id_int).first()
-                    except ValueError:
-                        logger.error(f"Invalid external_reference (not an int): {pedido_id}")
-                
-                # Fallback: se não achou por external_reference, busca por payment_id ou preference_id
-                if not order and resource_id:
-                    order = db.query(models.Order).filter(models.Order.mercadopago_payment_id == str(resource_id)).first()
-                if not order and payment_info.get("preference_id"):
-                    order = db.query(models.Order).filter(models.Order.mercadopago_preference_id == str(payment_info["preference_id"])).first()
+            mp_status = payment_info.get("status")
+            mp_detail = payment_info.get("status_detail", "")
+            pedido_id = payment_info.get("external_reference")
+            order = None
 
+            matched_slice = db.query(models.OrderPayment).filter(
+                models.OrderPayment.external_payment_id == str(resource_id)
+            ).first()
+
+            if matched_slice:
+                order = db.query(models.Order).filter(models.Order.id == matched_slice.order_id).first()
+
+            if not order and pedido_id:
+                try:
+                    order_id_int = int(pedido_id)
+                    order = db.query(models.Order).filter(models.Order.id == order_id_int).first()
+                except ValueError:
+                    logger.error(f"Invalid external_reference (not an int): {pedido_id}")
+
+            # Fallback: se não achou por external_reference, busca por payment_id ou preference_id
+            if not order and resource_id:
+                order = db.query(models.Order).filter(models.Order.mercadopago_payment_id == str(resource_id)).first()
+            if not order and payment_info.get("preference_id"):
+                order = db.query(models.Order).filter(models.Order.mercadopago_preference_id == str(payment_info["preference_id"])).first()
+
+            if order and getattr(order, "is_split_payment", False):
+                # Split payment webhook handling: update specific slice & evaluate total
+                if not matched_slice:
+                    pay_type = str(payment_info.get("payment_type_id") or payment_info.get("payment_method_id") or "").lower()
+                    target_mod = "pix" if "pix" in pay_type or "bank_transfer" in pay_type else "credit_card"
+                    matched_slice = db.query(models.OrderPayment).filter(
+                        models.OrderPayment.order_id == order.id,
+                        models.OrderPayment.modality == target_mod,
+                    ).first()
+
+                if matched_slice:
+                    norm_status = (
+                        "approved"
+                        if mp_status in ["approved", "authorized"]
+                        else ("in_process" if mp_status in ["in_process", "pending"] else (mp_status or matched_slice.status))
+                    )
+                    prev_st = matched_slice.status
+                    matched_slice.external_payment_id = str(resource_id)
+                    matched_slice.status = norm_status
+                    matched_slice.status_detail = mp_detail
+                    if norm_status == "approved" and not matched_slice.paid_at:
+                        matched_slice.paid_at = datetime.now(timezone.utc)
+                    if prev_st != norm_status:
+                        db.add(models.OrderPaymentHistory(
+                            order_id=order.id,
+                            order_payment_id=matched_slice.id,
+                            previous_status=prev_st,
+                            new_status=norm_status,
+                            amount=matched_slice.amount,
+                            external_payment_id=str(resource_id),
+                            source="webhook",
+                            notes=f"Webhook MP: {prev_st} -> {norm_status} ({mp_detail})",
+                        ))
+                    db.flush()
+
+                evaluate_and_finalize_split_order(
+                    order=order,
+                    db=db,
+                    source="webhook",
+                    buyer_email=payment_info.get("payer", {}).get("email"),
+                )
+                logger.info(f"MP Split Payment {resource_id} processed for order {order.id} (status={order.status})")
+
+            elif mp_status in ["approved", "authorized"]:
                 if order:
                     finalize_order_on_payment(
                         order=order,
@@ -984,12 +2012,15 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                     if order:
                         payer_info = order_info.get("payer", {})
                         buyer_email = payer_info.get("email")
-                        finalize_order_on_payment(
-                            order=order,
-                            db=db,
-                            payment_id=approved_payment_id,
-                            buyer_email=buyer_email
-                        )
+                        if getattr(order, "is_split_payment", False):
+                            sync_and_evaluate_split_order(order, db)
+                        else:
+                            finalize_order_on_payment(
+                                order=order,
+                                db=db,
+                                payment_id=approved_payment_id,
+                                buyer_email=buyer_email
+                            )
                         logger.info(f"MP Merchant Order {resource_id} successfully processed for order {order.id}")
                     elif approved_payment_id:
                         try:
@@ -1064,9 +2095,11 @@ async def get_real_installments(
 
 
 @router.get("/status/{order_id}")
+@router.get("/split/status/{order_id}")
 async def get_payment_status(
     order_id: int,
     payment_id: Optional[str] = Query(None),
+    guest_token: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: Optional[models.User] = Depends(get_current_user_optional),
 ):
@@ -1074,43 +2107,49 @@ async def get_payment_status(
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
         
-    if current_user and current_user.role != "admin" and order.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Acesso negado")
+    if current_user and current_user.role != "admin" and order.user_id and order.user_id != current_user.id:
+        if not (guest_token and guest_token == getattr(order, "guest_access_token", None)):
+            raise HTTPException(status_code=403, detail="Acesso negado")
 
-    # If explicit payment_id provided, attempt immediate verification
-    if payment_id and order.status == "pending":
-        try:
-            payment_info = get_mp_payment_status(str(payment_id))
-            if payment_info.get("status") in ["approved", "authorized"]:
-                finalize_order_on_payment(
-                    order=order,
-                    db=db,
-                    payment_id=str(payment_id),
-                    buyer_email=payment_info.get("payer", {}).get("email")
-                )
+    if getattr(order, "is_split_payment", False):
+        if order.status in ("pending", "partially_paid"):
+            sync_and_evaluate_split_order(order, db)
+            db.refresh(order)
+    else:
+        # If explicit payment_id provided, attempt immediate verification
+        if payment_id and order.status == "pending":
+            try:
+                payment_info = get_mp_payment_status(str(payment_id))
+                if payment_info.get("status") in ["approved", "authorized"]:
+                    finalize_order_on_payment(
+                        order=order,
+                        db=db,
+                        payment_id=str(payment_id),
+                        buyer_email=payment_info.get("payer", {}).get("email")
+                    )
+                    db.commit()
+                    db.refresh(order)
+            except Exception as e:
+                logger.warning(f"Error checking explicit payment_id {payment_id} for order {order_id}: {e}")
+
+        # Proactive payment sync if still pending
+        if order.status == "pending":
+            from app.repositories.order_repository import OrderRepository
+            from app.services.order_service import OrderService
+            repo = OrderRepository(db)
+            service = OrderService(repo)
+            if getattr(order, "stripe_session_id", None):
+                service.sync_order_status(order.id)
                 db.commit()
                 db.refresh(order)
-        except Exception as e:
-            logger.warning(f"Error checking explicit payment_id {payment_id} for order {order_id}: {e}")
-
-    # Proactive payment sync if still pending
-    if order.status == "pending":
-        from app.repositories.order_repository import OrderRepository
-        from app.services.order_service import OrderService
-        repo = OrderRepository(db)
-        service = OrderService(repo)
-        if getattr(order, "stripe_session_id", None):
-            service.sync_order_status(order.id)
-            db.commit()
-            db.refresh(order)
-        if order.status == "pending" and (
-            getattr(order, "mercadopago_preference_id", None) 
-            or getattr(order, "mercadopago_payment_id", None) 
-            or order.payment_method in ("mercadopago", "mercadopago_pix", "mercadopago_card")
-        ):
-            service.sync_mp_order_status(order.id)
-            db.commit()
-            db.refresh(order)
+            if order.status == "pending" and (
+                getattr(order, "mercadopago_preference_id", None) 
+                or getattr(order, "mercadopago_payment_id", None) 
+                or order.payment_method in ("mercadopago", "mercadopago_pix", "mercadopago_card")
+            ):
+                service.sync_mp_order_status(order.id)
+                db.commit()
+                db.refresh(order)
 
     # Proactive shipping sync with Melhor Envio if paid or shipped
     if order.status in ("paid", "shipped", "processando_envio", "erro_envio") and getattr(order, "shipment_id", None):
@@ -1123,7 +2162,7 @@ async def get_payment_status(
 
 
     payment_details = {}
-    if order.status == "pending":
+    if order.status in ("pending", "partially_paid"):
         if order.payment_method == "stripe" and order.stripe_session_id:
             try:
                 session = get_session(order.stripe_session_id)
@@ -1137,7 +2176,7 @@ async def get_payment_status(
                         d = action["boleto_display_details"]
                         payment_details = {"method": "boleto", "url": d.get("hosted_voucher_url"), "number": d.get("number")}
             except: pass
-        elif order.payment_method in ("mercadopago_pix", "mercadopago") and getattr(order, "mercadopago_payment_id", None):
+        elif order.payment_method in ("mercadopago_pix", "mercadopago", "mercadopago_split") and getattr(order, "mercadopago_payment_id", None):
             try:
                 p_info = get_mp_payment_status(str(order.mercadopago_payment_id))
                 poi = p_info.get("point_of_interaction", {}) if isinstance(p_info, dict) else {}
@@ -1152,6 +2191,10 @@ async def get_payment_status(
             except Exception:
                 pass
 
+    is_paid_final = order.status in ("paid", "shipped", "delivered", "processando_envio")
+    paid_amt = round(float(order.total if is_paid_final else (order.paid_amount or 0.0)), 2)
+    rem_amt = 0.0 if is_paid_final else max(0.0, round(float(order.total or 0.0) - paid_amt, 2))
+
     return {
         "order_id": order.id,
         "status": order.status,
@@ -1159,7 +2202,13 @@ async def get_payment_status(
         "payment_method": order.payment_method,
         "payment_details": payment_details,
         "tracking_code": getattr(order, "codigo_rastreio", None),
-        "etiqueta_url": getattr(order, "etiqueta_url", None)
+        "etiqueta_url": getattr(order, "etiqueta_url", None),
+        "is_guest_order": bool(getattr(order, "is_guest_order", False)),
+        "is_split_payment": bool(getattr(order, "is_split_payment", False)),
+        "paid_amount": paid_amt,
+        "remaining_amount": rem_amt,
+        "payment_transactions": _serialize_order_payments(order, db),
+        "payment_history": _serialize_order_payment_history(order, db),
     }
 
 # Admin list and Patch status kept for backwards compat

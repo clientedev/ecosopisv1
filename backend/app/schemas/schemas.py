@@ -15,6 +15,7 @@ class UserProfileUpdate(BaseModel):
     full_name: Optional[str] = None
     profile_picture: Optional[str] = None
     phone: Optional[str] = None
+    cpf: Optional[str] = None
 
 class UserPasswordUpdate(BaseModel):
     current_password: str
@@ -38,6 +39,9 @@ class UserResponse(UserBase):
     scratch_reward_id: Optional[int] = None
     profile_picture: Optional[str] = None
     phone: Optional[str] = None
+    cpf: Optional[str] = None
+    is_guest_created: Optional[bool] = False
+    must_change_password: Optional[bool] = False
     auth_provider: Optional[str] = "local"
     google_id: Optional[str] = None
     cart_json: Optional[str] = None
@@ -129,6 +133,13 @@ class OrderResponse(BaseModel):
     # Additional fields
     customer_phone: Optional[str] = None
     customer_cpf: Optional[str] = None
+    # Guest Checkout & Split Payment additive fields
+    is_guest_order: Optional[bool] = False
+    is_split_payment: Optional[bool] = False
+    paid_amount: Optional[float] = 0.0
+    remaining_amount: Optional[float] = 0.0
+    payment_transactions: Optional[List[Dict[str, Any]]] = []
+    payment_history: Optional[List[Dict[str, Any]]] = []
     created_at: Optional[datetime] = None
 
     class Config:
@@ -145,6 +156,12 @@ class PaymentStatusResponse(BaseModel):
     total: float
     items: Optional[list] = None
     created_at: Optional[datetime] = None
+    # Additive fields for Split Payment & Guest Checkout
+    is_guest_order: Optional[bool] = False
+    is_split_payment: Optional[bool] = False
+    paid_amount: Optional[float] = 0.0
+    remaining_amount: Optional[float] = 0.0
+    payment_transactions: Optional[List[Dict[str, Any]]] = []
 
 class UserProfileResponse(UserResponse):
     orders: List[OrderResponse] = []
@@ -154,6 +171,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     role: str
+    must_change_password: Optional[bool] = False
 
 # Coupon Schemas
 class CouponBase(BaseModel):

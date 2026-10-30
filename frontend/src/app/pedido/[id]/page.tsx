@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback, Suspense } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
@@ -15,6 +15,7 @@ const STATUS_STEPS = [
 
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string; icon: string }> = {
     pending:            { label: "Aguardando pagamento",   color: "#b45309", bg: "#fef3c7", icon: "⏳" },
+    partially_paid:     { label: "Pago parcialmente",      color: "#c2410c", bg: "#ffedd5", icon: "💳" },
     paid:               { label: "Pagamento confirmado",   color: "#065f46", bg: "#d1fae5", icon: "💳" },
     processando_envio:  { label: "Preparando envio...",    color: "#1d4ed8", bg: "#dbeafe", icon: "📦" },
     shipped:            { label: "Em trânsito",            color: "#1d4ed8", bg: "#dbeafe", icon: "🚚" },
@@ -28,7 +29,7 @@ function getStepIndex(status: string) {
     if (["paid", "processando_envio"].includes(status)) return 1;
     if (["shipped"].includes(status)) return 2;
     if (["delivered"].includes(status)) return 3;
-    if (status === "pending") return 0;
+    if (["pending", "partially_paid"].includes(status)) return 0;
     return -1;
 }
 
@@ -65,21 +66,45 @@ function CopyButton({ text }: { text: string }) {
 
 function OrderContent() {
     const params = useParams();
+    const searchParams = useSearchParams();
     const orderId = params?.id;
+    const guestTokenParam = searchParams.get("guest_token") || "";
+    const linkTokenParam = searchParams.get("link_token") || "";
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [linkMessage, setLinkMessage] = useState<string | null>(null);
 
     const fetchOrder = useCallback(async () => {
-        const token = localStorage.getItem("token");
-        if (!token || !orderId) { setLoading(false); return; }
+        if (!orderId) { setLoading(false); return; }
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        const guestTok = typeof window !== "undefined"
+            ? (guestTokenParam || localStorage.getItem("guest_order_token_" + orderId) || localStorage.getItem("last_guest_order_token") || "")
+            : guestTokenParam;
+        if (!token && !guestTok) { setLoading(false); return; }
         try {
-            const res = await fetch(`/api/orders/${orderId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const headers: Record<string, string> = {};
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+            const qs = guestTok ? `?guest_token=${encodeURIComponent(guestTok)}` : "";
+            const res = await fetch(`/api/orders/${orderId}${qs}`, { headers });
             if (res.ok) setOrder(await res.json());
         } catch { }
         finally { setLoading(false); }
-    }, [orderId]);
+    }, [orderId, guestTokenParam]);
+
+    useEffect(() => {
+        if (linkTokenParam && orderId) {
+            fetch("/api/auth/link-guest-order", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ order_id: Number(orderId), link_token: linkTokenParam }),
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.message) setLinkMessage(data.message);
+                })
+                .catch(() => {});
+        }
+    }, [linkTokenParam, orderId]);
 
     useEffect(() => {
         fetchOrder();
@@ -87,7 +112,7 @@ function OrderContent() {
 
     useEffect(() => {
         if (!order) return;
-        if (["pending", "paid", "processando_envio"].includes(order.status)) {
+        if (["pending", "partially_paid", "paid", "processando_envio"].includes(order.status)) {
             const interval = setInterval(fetchOrder, 8000);
             return () => clearInterval(interval);
         }
@@ -127,6 +152,16 @@ function OrderContent() {
                         </div>
                     ) : (
                         <>
+                            {linkMessage && (
+                                <div style={{
+                                    background: "#f0fdf4", border: "1px solid #86efac",
+                                    borderRadius: 16, padding: "16px 20px", marginBottom: 16,
+                                    color: "#166534", fontSize: "0.9rem", fontWeight: 600
+                                }}>
+                                    ✅ {linkMessage}
+                                </div>
+                            )}
+
                             {/* Header Card */}
                             <div style={{
                                 background: "white", borderRadius: 20, padding: "28px 32px",
@@ -309,6 +344,56 @@ function OrderContent() {
                                         <p style={{ margin: 0, fontSize: "0.85rem", color: "#2563eb" }}>
                                             Estamos preparando sua etiqueta e logo seu pedido será despachado.
                                         </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Split Payment Breakdown */}
+                            {(order.is_split_payment || (order.payment_transactions && order.payment_transactions.length > 0)) && (
+                                <div style={{
+                                    background: "white", borderRadius: 20, padding: "24px 28px",
+                                    boxShadow: "0 4px 24px rgba(0,0,0,0.06)", marginBottom: 16
+                                }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+                                        <h3 style={{ margin: 0, color: "#1e293b", fontSize: "1rem", fontWeight: 700 }}>
+                                            💳 Detalhes do Pagamento {order.is_split_payment ? "(Combinado PIX + Cartão)" : ""}
+                                        </h3>
+                                        <div style={{ fontSize: "0.82rem", color: "#475569", fontWeight: 600 }}>
+                                            Pago: <span style={{ color: "#15803d" }}>R$ {Number(order.paid_amount || 0).toFixed(2).replace(".", ",")}</span>
+                                            {Number(order.remaining_amount || 0) > 0 && (
+                                                <> • Restante: <span style={{ color: "#d97706" }}>R$ {Number(order.remaining_amount || 0).toFixed(2).replace(".", ",")}</span></>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                        {(order.payment_transactions || []).map((tx: any) => (
+                                            <div key={tx.id} style={{
+                                                display: "flex", justifyContent: "space-between", alignItems: "center",
+                                                padding: "12px 14px", background: "#f8fafc", borderRadius: 12,
+                                                border: "1px solid #e2e8f0", flexWrap: "wrap", gap: 8
+                                            }}>
+                                                <div>
+                                                    <strong style={{ fontSize: "0.9rem", color: "#1e293b" }}>
+                                                        {tx.payment_method === "pix" ? "💠 PIX" : `💳 Cartão de Crédito (${tx.installments || 1}x)`}
+                                                    </strong>
+                                                    <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                                                        {tx.external_payment_id ? `Transação MP #${tx.external_payment_id}` : "Aguardando processamento"}
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                                    <strong style={{ fontSize: "0.95rem", color: "#1e293b" }}>
+                                                        R$ {Number(tx.amount || 0).toFixed(2).replace(".", ",")}
+                                                    </strong>
+                                                    <span style={{
+                                                        padding: "4px 10px", borderRadius: 99, fontSize: "0.75rem", fontWeight: 700,
+                                                        background: tx.status === "approved" ? "#dcfce7" : tx.status === "rejected" ? "#fee2e2" : "#fef3c7",
+                                                        color: tx.status === "approved" ? "#166534" : tx.status === "rejected" ? "#991b1b" : "#92400e"
+                                                    }}>
+                                                        {tx.status === "approved" ? "Aprovado" : tx.status === "rejected" ? "Recusado" : tx.status === "in_process" ? "Em análise" : "Pendente"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}

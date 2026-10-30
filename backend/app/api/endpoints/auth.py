@@ -253,6 +253,11 @@ def update_my_profile(
         current_user.profile_picture = profile_data.profile_picture
     if profile_data.phone is not None:
         current_user.phone = profile_data.phone
+    if getattr(profile_data, "cpf", None) is not None:
+        import re as _re
+        clean_cpf = _re.sub(r"\D", "", profile_data.cpf or "")
+        if clean_cpf:
+            current_user.cpf = clean_cpf
     
     db.commit()
     db.refresh(current_user)
@@ -354,6 +359,8 @@ def get_blog_permission(
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     print(f"DEBUG: Login attempt for {form_data.username}")
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
+    if not user and form_data.username:
+        user = db.query(models.User).filter(func.lower(models.User.email) == form_data.username.strip().lower()).first()
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -371,9 +378,30 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="E-mail não verificado. Por favor, verifique seu e-mail para acessar sua conta."
             )
+
+    # Link any guest orders pending verification for this authenticated user
+    try:
+        pending_orders = db.query(models.Order).filter(
+            models.Order.pending_link_user_id == user.id,
+            models.Order.user_id.is_(None)
+        ).all()
+        if pending_orders:
+            for po in pending_orders:
+                po.user_id = user.id
+                po.pending_link_user_id = None
+                po.account_link_token = None
+            db.commit()
+    except Exception as e:
+        logger.warning(f"Could not auto-link pending guest orders on login: {e}")
+        db.rollback()
     
     access_token = security.create_access_token(subject=user.id)
-    return {"access_token": access_token, "token_type": "bearer", "role": user.role}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": user.role,
+        "must_change_password": bool(getattr(user, "must_change_password", False)),
+    }
 @router.get("/verify-token")
 async def verify_token(current_user: models.User = Depends(get_current_user)):
     return {
@@ -421,26 +449,223 @@ def forgot_password(email_data: schemas.ForgotPassword, db: Session = Depends(ge
 @router.post("/reset-password")
 def reset_password(reset_data: schemas.ResetPassword, db: Session = Depends(get_db)):
     from datetime import datetime, timezone
+    import hashlib
 
+    raw_token = (reset_data.token or "").strip()
+    if not raw_token:
+        raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
+    # Check standard password_reset_token first, then guest account_activation_token (hashed or raw)
     user = db.query(models.User).filter(
-        models.User.password_reset_token == reset_data.token
+        models.User.password_reset_token == raw_token
     ).first()
+    is_activation = False
 
     if not user:
-        raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+        user = db.query(models.User).filter(
+            models.User.account_activation_token.in_([token_hash, raw_token])
+        ).first()
+        if user:
+            is_activation = True
 
-    # Check expiry
-    if user.password_reset_expires is None or datetime.now(timezone.utc) > user.password_reset_expires:
-        user.password_reset_token = None
-        user.password_reset_expires = None
-        db.commit()
-        raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+    if not user:
+        raise HTTPException(status_code=400, detail="Token inválido, expirado ou já utilizado.")
+
+    now_utc = datetime.now(timezone.utc)
+    if is_activation:
+        exp = user.account_activation_expires
+        if exp is not None and exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        if exp is None or now_utc > exp:
+            user.account_activation_token = None
+            user.account_activation_expires = None
+            db.commit()
+            raise HTTPException(status_code=400, detail="Link de ativação expirado. Solicite um novo link em 'Esqueci minha senha'.")
+    else:
+        exp = user.password_reset_expires
+        if exp is not None and exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        if exp is None or now_utc > exp:
+            user.password_reset_token = None
+            user.password_reset_expires = None
+            db.commit()
+            raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+
+    if len(reset_data.new_password or "") < 6:
+        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 6 caracteres.")
 
     user.hashed_password = security.get_password_hash(reset_data.new_password)
     user.password_reset_token = None
     user.password_reset_expires = None
+    user.account_activation_token = None
+    user.account_activation_expires = None
+    user.must_change_password = False
+    user.is_verified = True
+
+    # Link any pending guest orders for this user
+    pending_orders = db.query(models.Order).filter(
+        models.Order.pending_link_user_id == user.id,
+        models.Order.user_id.is_(None)
+    ).all()
+    for po in pending_orders:
+        po.user_id = user.id
+        po.pending_link_user_id = None
+        po.account_link_token = None
+
     db.commit()
-    return {"message": "Senha redefinida com sucesso! Você já pode fazer login."}
+    access_token = security.create_access_token(subject=user.id)
+    return {
+        "message": "Conta ativada e senha definida com sucesso!" if is_activation else "Senha redefinida com sucesso! Você já pode fazer login.",
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": user.role,
+        "is_activation": is_activation,
+    }
+
+
+@router.post("/activate-account")
+def activate_guest_account(reset_data: schemas.ResetPassword, db: Session = Depends(get_db)):
+    """
+    Endpoint dedicado para ativação de conta criada automaticamente via Compra como Visitante.
+    Valida o token temporário de uso único, define a senha definitiva, invalida o token
+    e retorna o access_token JWT para acesso imediato ao histórico de pedidos.
+    """
+    return reset_password(reset_data, db)
+
+
+class FirstAccessPasswordUpdate( schemas.BaseModel ):
+    new_password: str
+
+
+@router.post("/first-access-password")
+def set_first_access_password(
+    data: FirstAccessPasswordUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Permite que um cliente com must_change_password=True defina obrigatoriamente
+    sua nova senha no primeiro acesso antes de utilizar as demais funcionalidades.
+    """
+    if len(data.new_password or "") < 6:
+        raise HTTPException(status_code=400, detail="A nova senha deve ter pelo menos 6 caracteres.")
+    current_user.hashed_password = security.get_password_hash(data.new_password)
+    current_user.must_change_password = False
+    current_user.account_activation_token = None
+    current_user.account_activation_expires = None
+    db.commit()
+    return {"message": "Nova senha definida com sucesso!", "must_change_password": False}
+
+
+class GuestIdentityCheckRequest(schemas.BaseModel):
+    email: Optional[str] = None
+    cpf: Optional[str] = None
+
+
+@router.post("/check-guest-identity")
+def check_guest_identity(
+    data: GuestIdentityCheckRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Verifica com segurança se o e-mail ou CPF informado durante o checkout como visitante
+    já pertence a uma conta existente ativa, sem expor dados pessoais do titular.
+    """
+    import re as _re
+    email_clean = (data.email or "").strip().lower()
+    cpf_clean = _re.sub(r"\D", "", data.cpf or "")
+
+    user_by_email = None
+    user_by_cpf = None
+
+    if email_clean:
+        user_by_email = db.query(models.User).filter(func.lower(models.User.email) == email_clean).first()
+    if cpf_clean and len(cpf_clean) == 11:
+        user_by_cpf = db.query(models.User).filter(models.User.cpf == cpf_clean).first()
+
+    if (
+        (user_by_email and user_by_cpf and user_by_email.id != user_by_cpf.id)
+        or (user_by_email and getattr(user_by_email, "cpf", None) and cpf_clean and user_by_email.cpf != cpf_clean)
+        or (user_by_cpf and email_clean and (user_by_cpf.email or "").strip().lower() != email_clean)
+    ):
+        return {
+            "exists": True,
+            "conflict": True,
+            "requires_auth": True,
+            "message": "O e-mail e o CPF informados não coincidem com o mesmo cadastro. Faça login na sua conta ou verifique os dados informados.",
+        }
+
+    matched = user_by_email or user_by_cpf
+    if not matched:
+        return {"exists": False, "conflict": False, "requires_auth": False}
+
+    # Se for conta criada como visitante que ainda não definiu senha (não ativada)
+    if getattr(matched, "is_guest_created", False) and getattr(matched, "must_change_password", False):
+        return {
+            "exists": True,
+            "is_unactivated_guest": True,
+            "conflict": False,
+            "requires_auth": False,
+        }
+
+    return {
+        "exists": True,
+        "is_unactivated_guest": False,
+        "conflict": False,
+        "requires_auth": True,
+        "message": "Identificamos que você já possui cadastro na Ecosopis. Faça login para vincular o pedido imediatamente à sua conta, ou conclua como visitante e confirme o vínculo pelo link seguro enviado ao seu e-mail.",
+    }
+
+
+class LinkGuestOrderRequest(schemas.BaseModel):
+    order_id: int
+    link_token: Optional[str] = None
+
+
+@router.post("/link-guest-order")
+def link_guest_order(
+    data: LinkGuestOrderRequest,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
+):
+    """
+    Associa com segurança um pedido realizado como visitante a uma conta existente,
+    exigindo ou o token de verificação enviado por e-mail ao titular da conta,
+    ou autenticação ativa (JWT) do titular.
+    """
+    import hashlib
+    order = db.query(models.Order).filter(models.Order.id == data.order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+
+    if order.user_id is not None:
+        return {"message": "Este pedido já está vinculado à conta.", "order_id": order.id, "linked": True}
+
+    if data.link_token:
+        token_hash = hashlib.sha256(data.link_token.strip().encode("utf-8")).hexdigest()
+        if order.account_link_token and order.account_link_token in [token_hash, data.link_token.strip()]:
+            if order.pending_link_user_id:
+                order.user_id = order.pending_link_user_id
+                order.pending_link_user_id = None
+                order.account_link_token = None
+                db.commit()
+                return {"message": "Pedido vinculado com sucesso à sua conta!", "order_id": order.id, "linked": True}
+        raise HTTPException(status_code=400, detail="Token de vínculo inválido ou já utilizado.")
+
+    if current_user:
+        if order.pending_link_user_id == current_user.id or (
+            order.customer_email and order.customer_email.strip().lower() == current_user.email.strip().lower()
+        ):
+            order.user_id = current_user.id
+            order.pending_link_user_id = None
+            order.account_link_token = None
+            db.commit()
+            return {"message": "Pedido vinculado com sucesso à sua conta!", "order_id": order.id, "linked": True}
+        raise HTTPException(status_code=403, detail="Este pedido não corresponde à conta autenticada.")
+
+    raise HTTPException(status_code=401, detail="Autenticação ou token de verificação necessário para vincular o pedido.")
 
 
 # ==========================================

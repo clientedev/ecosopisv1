@@ -43,6 +43,12 @@ interface Order {
     coupon_code: string | null;
     discount_amount: number;
     created_at: string;
+    is_guest_order?: boolean;
+    is_split_payment?: boolean;
+    paid_amount?: number;
+    remaining_amount?: number;
+    payment_transactions?: any[];
+    payment_history?: any[];
 }
 
 interface PackageConfig {
@@ -173,6 +179,7 @@ const getDefaultPackageForOrder = (order: Order): PackageConfig => {
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }> = {
     pending:            { label: "No Carrinho",       color: "#d97706", icon: Clock },
+    partially_paid:     { label: "Pago Parcial",      color: "#ea580c", icon: Clock },
     paid:               { label: "Pago",              color: "#059669", icon: CheckCircle },
     shipped:            { label: "Enviado",           color: "#2563eb", icon: Truck },
     delivered:          { label: "Entregue",          color: "#7c3aed", icon: Package },
@@ -186,6 +193,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }>
 
 const NEXT_STATUS: Record<string, string[]> = {
     pending:            ["paid", "cancelled"],
+    partially_paid:     ["paid", "cancelled"],
     paid:               ["shipped", "cancelled"],
     shipped:            ["delivered", "paid"],
     delivered:          ["shipped"],
@@ -1102,7 +1110,7 @@ export default function AdminPedidosPage() {
                         />
                     </div>
                     <div className={pedidoStyles.filterTabs}>
-                        {["all","pending","paid","shipped","delivered","cancelled","erro_envio","processando_envio"].map(f => (
+                        {["all","pending","partially_paid","paid","shipped","delivered","cancelled","erro_envio","processando_envio"].map(f => (
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
@@ -1165,9 +1173,19 @@ export default function AdminPedidosPage() {
                                                     </span>
                                                 ) : order.payment_method ? (
                                                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: "0.7rem", backgroundColor: "#e2e8f0", padding: "2px 6px", borderRadius: "8px", color: "#475569", fontWeight: 700, marginTop: "2px", marginBottom: "2px" }}>
-                                                        🟢 Loja Virtual (Via {order.payment_method === 'mercadopago' ? 'Mercado Pago' : order.payment_method === 'mercadopago_pix' ? 'PIX' : order.payment_method === 'mercadopago_card' ? 'Cartão' : order.payment_method})
+                                                        🟢 Loja Virtual (Via {order.payment_method === 'mercadopago' ? 'Mercado Pago' : order.payment_method === 'mercadopago_pix' ? 'PIX' : order.payment_method === 'mercadopago_card' ? 'Cartão' : order.payment_method === 'mercadopago_split' ? 'PIX + Cartão' : order.payment_method})
                                                     </span>
                                                 ) : null}
+                                                {order.is_guest_order && (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: "0.7rem", backgroundColor: "#ede9fe", border: "1px solid #c4b5fd", padding: "2px 7px", borderRadius: "8px", color: "#5b21b6", fontWeight: 700, marginLeft: "4px", marginTop: "2px", marginBottom: "2px" }}>
+                                                        👤 Visitante
+                                                    </span>
+                                                )}
+                                                {order.is_split_payment && (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: "0.7rem", backgroundColor: "#fef3c7", border: "1px solid #fcd34d", padding: "2px 7px", borderRadius: "8px", color: "#92400e", fontWeight: 700, marginLeft: "4px", marginTop: "2px", marginBottom: "2px" }}>
+                                                        💳+💠 Combinado (Pago R$ {Number(order.paid_amount || 0).toFixed(2).replace(".", ",")})
+                                                    </span>
+                                                )}
                                                 {trackingCode && (
                                                     <p style={{ color: "#2563eb", fontSize: "0.75rem", marginTop: "2px" }}>
                                                         🔍 Rastreio: <strong>{trackingCode}</strong>
@@ -1334,6 +1352,45 @@ export default function AdminPedidosPage() {
                                                             <span>Total Final</span>
                                                             <span>R$ {Number(order.total || 0).toFixed(2)}</span>
                                                         </div>
+                                                        {(order.is_split_payment || (order.payment_transactions && order.payment_transactions.length > 0)) && (
+                                                            <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px dashed #cbd5e1" }}>
+                                                                <h5 className={pedidoStyles.miniSectionTitle} style={{ marginBottom: "8px" }}>
+                                                                    💳 Transações Individuais {order.is_split_payment ? "(Pagamento Combinado)" : ""}
+                                                                </h5>
+                                                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", marginBottom: "8px", color: "#475569", fontWeight: 600 }}>
+                                                                    <span>Pago: <strong style={{ color: "#059669" }}>R$ {Number(order.paid_amount || 0).toFixed(2)}</strong></span>
+                                                                    <span>Restante: <strong style={{ color: "#d97706" }}>R$ {Number(order.remaining_amount ?? Math.max(0, (order.total || 0) - (order.paid_amount || 0))).toFixed(2)}</strong></span>
+                                                                </div>
+                                                                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                                                    {(order.payment_transactions || []).map((tx: any) => (
+                                                                        <div key={tx.id} style={{
+                                                                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                                                                            padding: "8px 10px", background: "#f8fafc", borderRadius: "8px",
+                                                                            border: "1px solid #e2e8f0", fontSize: "0.78rem", gap: "8px", flexWrap: "wrap"
+                                                                        }}>
+                                                                            <div>
+                                                                                <strong>{tx.payment_method === "pix" ? "💠 PIX" : `💳 Cartão (${tx.installments || 1}x)`}</strong>
+                                                                                {tx.external_payment_id && (
+                                                                                    <span style={{ color: "#64748b", marginLeft: "6px", fontFamily: "monospace" }}>
+                                                                                        MP #{tx.external_payment_id}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                                                <strong>R$ {Number(tx.amount || 0).toFixed(2)}</strong>
+                                                                                <span style={{
+                                                                                    padding: "2px 8px", borderRadius: "99px", fontSize: "0.7rem", fontWeight: 700,
+                                                                                    background: tx.status === "approved" ? "#dcfce7" : tx.status === "rejected" ? "#fee2e2" : "#fef3c7",
+                                                                                    color: tx.status === "approved" ? "#166534" : tx.status === "rejected" ? "#991b1b" : "#92400e"
+                                                                                }}>
+                                                                                    {tx.status === "approved" ? "Aprovado" : tx.status === "rejected" ? "Recusado" : tx.status === "in_process" ? "Em Análise" : tx.status === "expired" ? "Expirado" : "Pendente"}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>

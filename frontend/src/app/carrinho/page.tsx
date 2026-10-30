@@ -56,6 +56,8 @@ export default function CarrinhoPage() {
     const [transparentEnabled, setTransparentEnabled] = useState(
         process.env.NEXT_PUBLIC_MP_TRANSPARENT_CHECKOUT_ENABLED === "true"
     );
+    const [guestCheckoutEnabled, setGuestCheckoutEnabled] = useState(true);
+    const [splitPaymentEnabled, setSplitPaymentEnabled] = useState(true);
 
     useEffect(() => {
         fetch("/api/payment/config")
@@ -63,6 +65,12 @@ export default function CarrinhoPage() {
             .then(data => {
                 if (typeof data.transparent_checkout_enabled === "boolean") {
                     setTransparentEnabled(data.transparent_checkout_enabled);
+                }
+                if (typeof data.guest_checkout_enabled === "boolean") {
+                    setGuestCheckoutEnabled(data.guest_checkout_enabled);
+                }
+                if (typeof data.split_payment_enabled === "boolean") {
+                    setSplitPaymentEnabled(data.split_payment_enabled);
                 }
             })
             .catch(() => {});
@@ -114,8 +122,10 @@ export default function CarrinhoPage() {
     // Form states
     const [cep, setCep] = useState("");
     const [customerName, setCustomerName] = useState("");
+    const [customerEmail, setCustomerEmail] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
     const [customerCpf, setCustomerCpf] = useState("");
+    const [existingAccountNotice, setExistingAccountNotice] = useState<string | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<"mercadopago">("mercadopago"); // Stripe desativado — sempre MP
 
     const formatCpf = (value: string) => {
@@ -166,7 +176,9 @@ export default function CarrinhoPage() {
     useEffect(() => {
         if (user) {
             if (!customerName) setCustomerName(user.full_name || "");
+            if (!customerEmail) setCustomerEmail(user.email || "");
             if (!customerPhone) setCustomerPhone(user.phone || "");
+            if (!customerCpf && (user as any).cpf) setCustomerCpf(formatCpf((user as any).cpf));
             
             // Auto select default address if available
             if (user.addresses && user.addresses.length > 0 && !cep) {
@@ -184,6 +196,8 @@ export default function CarrinhoPage() {
             } else if (!user.addresses || user.addresses.length === 0) {
                 setShowAddressForm(true);
             }
+        } else {
+            setShowAddressForm(true);
         }
     }, [user]);
 
@@ -562,10 +576,16 @@ export default function CarrinhoPage() {
 
     const handleCheckout = async () => {
         const nameToUse = customerName.trim() || (user?.full_name?.trim() ?? "");
+        const emailToUse = (user?.email || customerEmail || "").trim();
         const cepToUse = cep.trim();
 
         if (!nameToUse || !cepToUse) {
             alert("⚠️ Preencha seu nome e CEP.");
+            return;
+        }
+
+        if (!user && (!emailToUse || !emailToUse.includes("@") || !emailToUse.includes("."))) {
+            alert("⚠️ Informe um e-mail válido para receber a confirmação do seu pedido.");
             return;
         }
 
@@ -607,12 +627,16 @@ export default function CarrinhoPage() {
             const activeCouponCode = isWholesaleEligible ? null : (appliedCoupon?.code || null);
             const activeDiscountAmount = isWholesaleEligible ? 0.0 : discount;
 
+            const headers: Record<string, string> = {
+                "Content-Type": "application/json",
+            };
+            if (token) {
+                headers["Authorization"] = `Bearer ${token}`;
+            }
+
             const res = await fetch(endpoint, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
+                headers,
                 body: JSON.stringify({
                     items: cart.map(i => {
                         const isItemDiscounted = i.isWholesale && isWholesaleEligible;
@@ -629,10 +653,12 @@ export default function CarrinhoPage() {
                     shipping_method: selectedShipping ? `${selectedShipping.company ? `${selectedShipping.company} ` : ''}${selectedShipping.name}`.trim() : "Melhor Envio",
                     shipping_service_id: selectedShipping?.id ? Number(selectedShipping.id) : undefined,
                     customer_name: customerName.trim() || (user?.full_name?.trim() ?? ""),
+                    customer_email: emailToUse,
                     customer_phone: customerPhone,
                     customer_cpf: customerCpf.replace(/\D/g, ""),
                     address: {
                         ...address,
+                        email: emailToUse,
                         postal_code: cep.replace(/\D/g, ""),
                         zip: cep.replace(/\D/g, ""),
                     },
@@ -644,6 +670,10 @@ export default function CarrinhoPage() {
 
             if (res.ok) {
                 const data = await res.json();
+                if (data.guest_access_token && data.order_id && typeof window !== "undefined") {
+                    localStorage.setItem("guest_order_token_" + data.order_id, data.guest_access_token);
+                    localStorage.setItem("last_guest_order_token", data.guest_access_token);
+                }
                 // NÃO limpar o carrinho aqui — só limpar após confirmação de pagamento
                 // Isso evita perda de carrinho se o usuário cancelar no Stripe
 
@@ -668,10 +698,15 @@ export default function CarrinhoPage() {
 
     const validateCustomerData = () => {
         const nameToUse = customerName.trim() || (user?.full_name?.trim() ?? "");
+        const emailToUse = (user?.email || customerEmail || "").trim();
         const cepToUse = cep.trim();
 
         if (!nameToUse) {
             showToast("Por favor, preencha seu nome completo.", "error");
+            return false;
+        }
+        if (!user && (!emailToUse || !emailToUse.includes("@") || !emailToUse.includes("."))) {
+            showToast("Por favor, informe um e-mail válido para acompanharmos seu pedido.", "error");
             return false;
         }
         if (!customerPhone.trim() || customerPhone.replace(/\D/g, "").length < 10) {
@@ -724,11 +759,12 @@ export default function CarrinhoPage() {
         shippingServiceId: selectedShipping?.id ? Number(selectedShipping.id) : null,
         address: {
             ...address,
+            email: (user?.email || customerEmail || "").trim(),
             postal_code: cep.replace(/\D/g, ""),
             zip: cep.replace(/\D/g, ""),
         },
         customerName: customerName.trim() || (user?.full_name?.trim() ?? ""),
-        customerEmail: user?.email || (address as any)?.email || "",
+        customerEmail: (user?.email || customerEmail || (address as any)?.email || "").trim(),
         customerPhone: customerPhone,
         customerCpf: customerCpf.replace(/\D/g, ""),
         couponCode: activeCouponCode,
@@ -736,14 +772,24 @@ export default function CarrinhoPage() {
         cashbackAmount: cashbackDiscount,
     };
 
-    const handleTransparentPaymentSuccess = (orderId: number) => {
+    const handleTransparentPaymentSuccess = (orderId: number, guestAccessToken?: string | null) => {
+        if (guestAccessToken && typeof window !== "undefined") {
+            localStorage.setItem("guest_order_token_" + orderId, guestAccessToken);
+            localStorage.setItem("last_guest_order_token", guestAccessToken);
+        }
         clearCart();
-        window.location.href = `/pagamento?status=approved&order_id=${orderId}`;
+        const guestParam = guestAccessToken ? `&guest_token=${encodeURIComponent(guestAccessToken)}` : "";
+        window.location.href = `/pagamento?status=approved&order_id=${orderId}${guestParam}`;
     };
 
-    const handleAddressStepSubmit = () => {
+    const handleAddressStepSubmit = async () => {
+        const emailToUse = (user?.email || customerEmail || "").trim();
         if (!customerName.trim() && !(user?.full_name?.trim())) {
             showToast("Por favor, preencha seu nome completo.", "error");
+            return;
+        }
+        if (!user && (!emailToUse || !emailToUse.includes("@") || !emailToUse.includes("."))) {
+            showToast("Por favor, informe um e-mail válido para acompanhamento do pedido.", "error");
             return;
         }
         if (!customerPhone.trim() || customerPhone.replace(/\D/g, "").length < 10) {
@@ -751,7 +797,7 @@ export default function CarrinhoPage() {
             return;
         }
         const cleanCpf = customerCpf.replace(/\D/g, "");
-        if (!cleanCpf || cleanCpf.length !== 11) {
+        if (!cleanCpf || cleanCpf.length !== 11 || !isCpfValid(cleanCpf)) {
             showToast("Por favor, informe um CPF válido com 11 dígitos.", "error");
             return;
         }
@@ -773,6 +819,32 @@ export default function CarrinhoPage() {
             showToast("Por favor, selecione uma opção de frete para continuar.", "error");
             return;
         }
+
+        // Check guest identity against existing accounts before proceeding
+        if (!user && !token) {
+            try {
+                const res = await fetch("/api/auth/check-guest-identity", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: emailToUse, cpf: cleanCpf }),
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.conflict) {
+                        showToast(data.message || "O e-mail e o CPF pertencem a cadastros diferentes.", "error");
+                        return;
+                    }
+                    if (data.requires_auth) {
+                        setExistingAccountNotice(data.message);
+                    } else {
+                        setExistingAccountNotice(null);
+                    }
+                }
+            } catch {
+                // Non-blocking fallback
+            }
+        }
+
         setStep("payment");
         setMobileStep("payment");
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -995,7 +1067,7 @@ export default function CarrinhoPage() {
                                     className="btn-primary" 
                                     style={{ flex: 1, height: '48px', fontSize: '0.95rem' }}
                                     onClick={() => {
-                                        if (!token) {
+                                        if (!token && !guestCheckoutEnabled) {
                                             window.location.href = `/conta?redirect=${encodeURIComponent('/carrinho?step=address')}`;
                                         } else {
                                             changeMobileStep("address");
@@ -1013,6 +1085,27 @@ export default function CarrinhoPage() {
                             <div className={styles.mobileFormSection}>
                                 <h3 className={styles.mobileSectionTitle}>1. Quem está comprando?</h3>
                                 <p className={styles.mobileSectionSubtitle}>Preencha seus dados para prosseguir com o pedido de forma segura.</p>
+                                {!user && (
+                                    <div style={{
+                                        background: '#f0fdf4',
+                                        border: '1px solid #bbf7d0',
+                                        borderRadius: '10px',
+                                        padding: '10px 12px',
+                                        marginBottom: '12px',
+                                        fontSize: '0.8rem',
+                                        color: '#166534',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        flexWrap: 'wrap'
+                                    }}>
+                                        <span>✨ Comprando como visitante (sua conta será criada automaticamente após a compra).</span>
+                                        <Link href={`/conta?redirect=${encodeURIComponent('/carrinho?step=address')}`} style={{ color: '#15803d', fontWeight: 700, textDecoration: 'underline' }}>
+                                            Já tem conta? Fazer Login
+                                        </Link>
+                                    </div>
+                                )}
                                 
                                 <div className={styles.mobileInputGroup}>
                                     <label className={styles.mobileLabel}>Nome Completo</label>
@@ -1024,6 +1117,19 @@ export default function CarrinhoPage() {
                                         onChange={(e) => setCustomerName(e.target.value)}
                                     />
                                 </div>
+                                {!user && (
+                                    <div className={styles.mobileInputGroup}>
+                                        <label className={styles.mobileLabel}>E-mail</label>
+                                        <input 
+                                            type="email" 
+                                            placeholder="seuemail@exemplo.com" 
+                                            className={styles.mobileInputField} 
+                                            value={customerEmail} 
+                                            onChange={(e) => setCustomerEmail(e.target.value)}
+                                        />
+                                        <span className={styles.mobileInputHelper}>Enviaremos a confirmação do pedido e o link seguro para acessar sua conta.</span>
+                                    </div>
+                                )}
                                 <div className={styles.mobileInputGroup}>
                                     <label className={styles.mobileLabel}>WhatsApp / Telefone</label>
                                     <input 
@@ -1469,12 +1575,31 @@ export default function CarrinhoPage() {
                                 )}
                             </div>
 
+                            {existingAccountNotice && !user && (
+                                <div style={{
+                                    marginTop: "12px",
+                                    padding: "12px 14px",
+                                    background: "#fffbeb",
+                                    border: "1px solid #fde68a",
+                                    borderRadius: "10px",
+                                    fontSize: "0.8rem",
+                                    color: "#92400e"
+                                }}>
+                                    <strong>🔒 Conta existente identificada:</strong> {existingAccountNotice}{" "}
+                                    <Link href={`/conta?redirect=${encodeURIComponent('/carrinho?step=payment')}`} style={{ color: "#b45309", fontWeight: 700, textDecoration: "underline" }}>
+                                        Fazer login agora
+                                    </Link>{" "}
+                                    ou conclua o pagamento abaixo e confirme o vínculo pelo seu e-mail.
+                                </div>
+                            )}
+
                             {transparentEnabled ? (
                                 <div style={{ marginTop: "16px", marginBottom: "40px" }}>
                                     <CheckoutTransparente
                                         orderData={orderDataForPayment}
-                                        userEmail={user?.email || ""}
+                                        userEmail={(user?.email || customerEmail || "").trim()}
                                         token={token}
+                                        splitPaymentEnabled={splitPaymentEnabled}
                                         onPaymentSuccess={handleTransparentPaymentSuccess}
                                         onFallbackToCheckoutPro={handleCheckout}
                                         validateCustomerData={validateCustomerData}
@@ -1655,7 +1780,7 @@ export default function CarrinhoPage() {
                                             boxShadow: "0 4px 12px rgba(45, 90, 39, 0.2)"
                                         }}
                                         onClick={() => {
-                                            if (!token) {
+                                            if (!token && !guestCheckoutEnabled) {
                                                 window.location.href = `/conta?redirect=${encodeURIComponent('/carrinho?step=address')}`;
                                             } else {
                                                 setStep("address");
@@ -1683,11 +1808,35 @@ export default function CarrinhoPage() {
 
                                 <div className={styles.detailSection}>
                                     <h3>👤 SEUS DADOS</h3>
+                                    {!user && (
+                                        <div style={{
+                                            background: '#f0fdf4',
+                                            border: '1px solid #bbf7d0',
+                                            borderRadius: '10px',
+                                            padding: '12px 14px',
+                                            marginBottom: '14px',
+                                            fontSize: '0.85rem',
+                                            color: '#166534',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            flexWrap: 'wrap'
+                                        }}>
+                                            <span>✨ <strong>Compra como Visitante:</strong> Não precisa de login! Sua conta será criada automaticamente após finalizar o pedido.</span>
+                                            <Link href={`/conta?redirect=${encodeURIComponent('/carrinho?step=address')}`} style={{ color: '#15803d', fontWeight: 700, textDecoration: 'underline' }}>
+                                                Já possui conta? Fazer Login
+                                            </Link>
+                                        </div>
+                                    )}
                                     <div className={styles.inputGroup}>
                                         <input type="text" placeholder="Nome Completo" className={styles.inputField} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                                        {!user && (
+                                            <input type="email" placeholder="Seu melhor E-mail (ex: nome@email.com)" className={styles.inputField} value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
+                                        )}
                                         <input type="text" placeholder="WhatsApp / Telefone" className={styles.inputField} value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
                                         <input type="text" placeholder="CPF (Ex: 000.000.000-00)" className={styles.inputField} value={customerCpf} onChange={(e) => setCustomerCpf(formatCpf(e.target.value))} maxLength={14} inputMode="numeric" />
-                                        <small style={{ color: "#888", fontSize: "0.78rem", marginTop: "-4px" }}>Necessário para emissão da etiqueta de envio</small>
+                                        <small style={{ color: "#888", fontSize: "0.78rem", marginTop: "-4px" }}>Necessário para emissão da etiqueta de envio e acompanhamento do pedido</small>
                                     </div>
                                 </div>
 
@@ -1916,12 +2065,31 @@ export default function CarrinhoPage() {
                                     </div>
                                 </div>
 
+                                {existingAccountNotice && !user && (
+                                    <div style={{
+                                        marginTop: "12px",
+                                        padding: "14px 16px",
+                                        background: "#fffbeb",
+                                        border: "1px solid #fde68a",
+                                        borderRadius: "12px",
+                                        fontSize: "0.86rem",
+                                        color: "#92400e"
+                                    }}>
+                                        <strong>🔒 Conta existente identificada:</strong> {existingAccountNotice}{" "}
+                                        <Link href={`/conta?redirect=${encodeURIComponent('/carrinho?step=payment')}`} style={{ color: "#b45309", fontWeight: 700, textDecoration: "underline" }}>
+                                            Fazer login agora
+                                        </Link>{" "}
+                                        ou conclua o pagamento abaixo e confirme o vínculo pelo link enviado ao seu e-mail.
+                                    </div>
+                                )}
+
                                 {transparentEnabled ? (
                                     <div style={{ marginTop: "10px" }}>
                                         <CheckoutTransparente
                                             orderData={orderDataForPayment}
-                                            userEmail={user?.email || ""}
+                                            userEmail={(user?.email || customerEmail || "").trim()}
                                             token={token}
+                                            splitPaymentEnabled={splitPaymentEnabled}
                                             onPaymentSuccess={handleTransparentPaymentSuccess}
                                             onFallbackToCheckoutPro={handleCheckout}
                                             validateCustomerData={validateCustomerData}
@@ -2165,7 +2333,7 @@ export default function CarrinhoPage() {
                                     className={`btn-primary ${styles.desktopCheckoutBtn}`} 
                                     style={{ width: "100%", marginTop: "24px", height: "56px" }} 
                                     onClick={() => {
-                                        if (!token) {
+                                        if (!token && !guestCheckoutEnabled) {
                                             window.location.href = `/conta?redirect=${encodeURIComponent('/carrinho?step=address')}`;
                                         } else {
                                             setStep("address");
@@ -2196,7 +2364,7 @@ export default function CarrinhoPage() {
                                 }}>
                                     <strong>💳 Pagamento Direto no Site</strong>
                                     <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "#15803d" }}>
-                                        Selecione PIX ou Cartão ao lado para concluir sua compra com segurança total.
+                                        Selecione PIX, Cartão ou PIX + Cartão ao lado para concluir sua compra com segurança total.
                                     </p>
                                 </div>
                             ) : null}
@@ -2221,7 +2389,7 @@ export default function CarrinhoPage() {
                 </div>
                 {step === "cart" ? (
                     <button className="btn-primary" onClick={() => {
-                        if (!token) {
+                        if (!token && !guestCheckoutEnabled) {
                             window.location.href = `/conta?redirect=${encodeURIComponent('/carrinho?step=address')}`;
                         } else {
                             setStep("address");

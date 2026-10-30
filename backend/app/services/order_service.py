@@ -131,6 +131,14 @@ class OrderService:
         if not order or order.status in ("paid", "shipped", "delivered", "cancelled"):
             return order
 
+        if getattr(order, "is_split_payment", False):
+            try:
+                from app.api.endpoints.payment import sync_and_evaluate_split_order
+                sync_and_evaluate_split_order(order, self.repo.db)
+            except Exception as sp_err:
+                print(f"Erro ao sincronizar pagamento combinado do pedido {order_id}: {sp_err}")
+            return order
+
         try:
             from app.core.mercadopago_service import sdk as mp_sdk, get_payment_status as get_mp_payment_status
             

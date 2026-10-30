@@ -47,8 +47,13 @@ def _apply_startup_migrations():
         ("scratch_reward_id",        "INTEGER"),
         ("profile_picture",          "VARCHAR"),
         ("phone",                    "VARCHAR"),
+        ("cpf",                      "VARCHAR"),
         ("google_id",                "VARCHAR"),
-        ("auth_provider",            "VARCHAR DEFAULT 'local'")
+        ("auth_provider",            "VARCHAR DEFAULT 'local'"),
+        ("is_guest_created",         "BOOLEAN DEFAULT FALSE"),
+        ("must_change_password",     "BOOLEAN DEFAULT FALSE"),
+        ("account_activation_token", "VARCHAR"),
+        ("account_activation_expires", "TIMESTAMP WITH TIME ZONE")
     ]
     ORDER_COLS = [
         ("mercadopago_preference_id", "VARCHAR"),
@@ -74,7 +79,15 @@ def _apply_startup_migrations():
         ("package_height",           "DOUBLE PRECISION DEFAULT 12.0"),
         ("package_length",           "DOUBLE PRECISION DEFAULT 20.0"),
         ("package_weight",           "DOUBLE PRECISION DEFAULT 0.3"),
-        ("shipping_service_id",      "INTEGER")
+        ("shipping_service_id",      "INTEGER"),
+        ("is_guest_order",           "BOOLEAN DEFAULT FALSE"),
+        ("is_split_payment",         "BOOLEAN DEFAULT FALSE"),
+        ("paid_amount",              "DOUBLE PRECISION DEFAULT 0"),
+        ("remaining_amount",         "DOUBLE PRECISION DEFAULT 0"),
+        ("payment_summary",          "TEXT"),
+        ("guest_access_token",       "VARCHAR"),
+        ("pending_link_user_id",     "INTEGER"),
+        ("account_link_token",       "VARCHAR")
     ]
     
     ADDRESS_COLS = [
@@ -446,6 +459,22 @@ def _ensure_extra_tables():
         logger.info("✓ campaign_dispatch_logs table ensured.")
     except Exception as e:
         logger.warning(f"campaign_dispatch_logs ensure: {e}")
+
+    # order_payments & order_payment_history
+    try:
+        with engine.begin() as conn:
+            if is_sqlite:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS order_payments (id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE, part_number INTEGER DEFAULT 1, modality VARCHAR(64) NOT NULL, amount REAL NOT NULL, installments INTEGER DEFAULT 1, external_payment_id VARCHAR(128), idempotency_key VARCHAR(128), status VARCHAR(64) DEFAULT 'pending', status_detail VARCHAR(255), qr_code TEXT, qr_code_base64 TEXT, ticket_url TEXT, metadata_json TEXT, paid_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS order_payment_history (id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE, order_payment_id INTEGER REFERENCES order_payments(id) ON DELETE CASCADE, previous_status VARCHAR(64), new_status VARCHAR(64) NOT NULL, amount REAL, external_payment_id VARCHAR(128), source VARCHAR(64) DEFAULT 'checkout', notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+            else:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS order_payments (id SERIAL PRIMARY KEY, order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE, part_number INTEGER DEFAULT 1, modality VARCHAR(64) NOT NULL, amount DOUBLE PRECISION NOT NULL, installments INTEGER DEFAULT 1, external_payment_id VARCHAR(128), idempotency_key VARCHAR(128), status VARCHAR(64) DEFAULT 'pending', status_detail VARCHAR(255), qr_code TEXT, qr_code_base64 TEXT, ticket_url TEXT, metadata_json TEXT, paid_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now())"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS order_payment_history (id SERIAL PRIMARY KEY, order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE, order_payment_id INTEGER REFERENCES order_payments(id) ON DELETE CASCADE, previous_status VARCHAR(64), new_status VARCHAR(64) NOT NULL, amount DOUBLE PRECISION, external_payment_id VARCHAR(128), source VARCHAR(64) DEFAULT 'checkout', notes TEXT, created_at TIMESTAMPTZ DEFAULT now())"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_order_payments_order_id ON order_payments(order_id)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_order_payments_ext_id ON order_payments(external_payment_id)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_order_payment_history_order_id ON order_payment_history(order_id)"))
+        logger.info("✓ order_payments & order_payment_history tables ensured.")
+    except Exception as e:
+        logger.warning(f"order_payments ensure: {e}")
 
     logger.info("Extra tables ensured successfully.")
 

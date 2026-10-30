@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.models import models
 from app.schemas import schemas
-from app.api.endpoints.auth import get_current_user
+from app.api.endpoints.auth import get_current_user, get_current_user_optional
 from app.core import pdf_service, emails
 from app.repositories.order_repository import OrderRepository
 from app.services.order_service import OrderService
@@ -201,13 +201,13 @@ def update_order_status(
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
 
-    valid_statuses = {"pending", "paid", "shipped", "delivered", "cancelled", "erro_envio", "ERRO_ENVIO", "processando_envio", "PROCESSANDO_ENVIO"}
+    valid_statuses = {"pending", "partially_paid", "paid", "shipped", "delivered", "cancelled", "erro_envio", "ERRO_ENVIO", "processando_envio", "PROCESSANDO_ENVIO"}
     new_status = body.get("status", order.status)
     if new_status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Status inválido. Use: {', '.join(valid_statuses)}")
 
     if new_status == "paid" and order.status != "paid":
-        if order.status == "pending":
+        if order.status in ("pending", "partially_paid"):
             # Manual payment confirmation must execute the complete shared
             # post-payment flow (metrics, cashback, shipping and emails).
             from app.api.endpoints.payment import finalize_order_on_payment
@@ -399,28 +399,30 @@ def list_orders(
 @router.get("/{order_id}", response_model=schemas.OrderResponse)
 def get_order(
     order_id: int,
+    guest_token: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
 ):
-    if current_user.role == "admin":
-        order = db.query(models.Order).options(joinedload(models.Order.user)).filter(models.Order.id == order_id).first()
-    else:
-        order = db.query(models.Order).options(joinedload(models.Order.user)).filter(
-            models.Order.id == order_id,
-            models.Order.user_id == current_user.id
-        ).first()
+    order = db.query(models.Order).options(joinedload(models.Order.user)).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+    has_guest_access = bool(guest_token and getattr(order, "guest_access_token", None) and guest_token == order.guest_access_token)
+    if not has_guest_access:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Could not validate credentials")
+        if current_user.role != "admin" and order.user_id != current_user.id:
+            raise HTTPException(status_code=404, detail="Pedido não encontrado")
     
     # Proactive payment sync
-    if order.status == "pending":
+    if order.status in ("pending", "partially_paid"):
         repo = OrderRepository(db)
         service = OrderService(repo)
         if getattr(order, "stripe_session_id", None):
             service.sync_order_status(order.id)
             db.commit()
             db.refresh(order)
-        elif getattr(order, "mercadopago_preference_id", None):
+        elif getattr(order, "mercadopago_preference_id", None) or getattr(order, "is_split_payment", False):
             service.sync_mp_order_status(order.id)
             db.commit()
             db.refresh(order)
@@ -504,6 +506,20 @@ def _order_to_response(o: models.Order, db: Session = None) -> dict:
             if not buyer_email:
                 buyer_email = user.email or ""
 
+    is_paid_final = (o.status or "") in ("paid", "shipped", "delivered", "processando_envio", "PROCESSANDO_ENVIO")
+    paid_amt = round(float(o.total or 0.0) if is_paid_final else float(getattr(o, "paid_amount", 0.0) or 0.0), 2)
+    rem_amt = 0.0 if is_paid_final else max(0.0, round(float(o.total or 0.0) - paid_amt, 2))
+
+    payment_transactions = []
+    payment_history = []
+    if db is not None:
+        try:
+            from app.api.endpoints.payment import _serialize_order_payments, _serialize_order_payment_history
+            payment_transactions = _serialize_order_payments(o, db)
+            payment_history = _serialize_order_payment_history(o, db)
+        except Exception:
+            pass
+
     return {
         "id": o.id,
         "status": o.status or "pending",
@@ -537,5 +553,11 @@ def _order_to_response(o: models.Order, db: Session = None) -> dict:
         "package_length": getattr(o, "package_length", None),
         "package_weight": getattr(o, "package_weight", None),
         "shipping_service_id": getattr(o, "shipping_service_id", None),
+        "is_guest_order": bool(getattr(o, "is_guest_order", False)),
+        "is_split_payment": bool(getattr(o, "is_split_payment", False)),
+        "paid_amount": paid_amt,
+        "remaining_amount": rem_amt,
+        "payment_transactions": payment_transactions,
+        "payment_history": payment_history,
         "created_at": o.created_at,
     }

@@ -71,6 +71,13 @@ class User(Base):
     
     profile_picture = Column(String, nullable=True)
     phone = Column(String, nullable=True)
+    cpf = Column(String, index=True, nullable=True)
+
+    # Guest checkout & secure activation fields
+    is_guest_created = Column(Boolean, default=False)
+    must_change_password = Column(Boolean, default=False)
+    account_activation_token = Column(String, nullable=True)
+    account_activation_expires = Column(DateTime(timezone=True), nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -266,10 +273,66 @@ class Order(Base):
     package_length = Column(Float, nullable=True, default=20.0)
     package_weight = Column(Float, nullable=True, default=0.3)
     shipping_service_id = Column(Integer, nullable=True)
+
+    # Guest Checkout & Split Payment additive fields
+    is_guest_order = Column(Boolean, default=False)
+    is_split_payment = Column(Boolean, default=False)
+    paid_amount = Column(Float, default=0.0)
+    remaining_amount = Column(Float, default=0.0)
+    payment_summary = Column(Text, nullable=True)
+    guest_access_token = Column(String, nullable=True)
+    pending_link_user_id = Column(Integer, nullable=True)
+    account_link_token = Column(String, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="orders")
     order_items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    payments = relationship("OrderPayment", back_populates="order", cascade="all, delete-orphan", order_by="OrderPayment.part_number")
+    payment_history = relationship("OrderPaymentHistory", back_populates="order", cascade="all, delete-orphan", order_by="OrderPaymentHistory.created_at")
+
+
+class OrderPayment(Base):
+    __tablename__ = "order_payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    part_number = Column(Integer, default=1)
+    modality = Column(String(64), nullable=False)  # pix, credit_card, checkout_pro, stripe
+    amount = Column(Float, nullable=False)
+    installments = Column(Integer, default=1)
+    external_payment_id = Column(String(128), nullable=True, index=True)
+    idempotency_key = Column(String(128), nullable=True, index=True)
+    status = Column(String(64), default="pending")  # pending, approved, in_process, rejected, cancelled, expired
+    status_detail = Column(String(255), nullable=True)
+    qr_code = Column(Text, nullable=True)
+    qr_code_base64 = Column(Text, nullable=True)
+    ticket_url = Column(Text, nullable=True)
+    metadata_json = Column(Text, nullable=True)
+    paid_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    order = relationship("Order", back_populates="payments")
+    history = relationship("OrderPaymentHistory", back_populates="order_payment", cascade="all, delete-orphan")
+
+
+class OrderPaymentHistory(Base):
+    __tablename__ = "order_payment_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    order_payment_id = Column(Integer, ForeignKey("order_payments.id", ondelete="CASCADE"), nullable=True, index=True)
+    previous_status = Column(String(64), nullable=True)
+    new_status = Column(String(64), nullable=False)
+    amount = Column(Float, nullable=True)
+    external_payment_id = Column(String(128), nullable=True)
+    source = Column(String(64), default="checkout")  # checkout, webhook, sync, admin
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    order = relationship("Order", back_populates="payment_history")
+    order_payment = relationship("OrderPayment", back_populates="history")
 
 class OrderItem(Base):
     __tablename__ = "order_items"

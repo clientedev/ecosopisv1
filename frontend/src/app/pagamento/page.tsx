@@ -13,6 +13,7 @@ function PaymentContent() {
     const statusParam = searchParams.get("status") || searchParams.get("collection_status") || "pending";
     const orderId = searchParams.get("order_id") || searchParams.get("external_reference");
     const paymentId = searchParams.get("payment_id") || searchParams.get("collection_id");
+    const guestTokenParam = searchParams.get("guest_token") || "";
     const { clearCart } = useCart();
     const cartClearedRef = useRef(false);
 
@@ -20,9 +21,21 @@ function PaymentContent() {
         statusParam === "approved" || statusParam === "paid" ? "approved" : statusParam
     );
     const [paymentDetails, setPaymentDetails] = useState<any>(null);
+    const [isGuestOrder, setIsGuestOrder] = useState<boolean>(!!guestTokenParam);
+    const [resolvedGuestToken, setResolvedGuestToken] = useState<string>(guestTokenParam);
     const [polling, setPolling] = useState(true);
     const [attempts, setAttempts] = useState(0);
     const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== "undefined" && orderId) {
+            const storedGuest = guestTokenParam || localStorage.getItem("guest_order_token_" + orderId) || localStorage.getItem("last_guest_order_token") || "";
+            if (storedGuest) {
+                setResolvedGuestToken(storedGuest);
+                setIsGuestOrder(true);
+            }
+        }
+    }, [orderId, guestTokenParam]);
 
     useEffect(() => {
         if (!orderId || statusParam === "failure" || statusParam === "rejected") {
@@ -34,14 +47,20 @@ function PaymentContent() {
         const checkStatus = async () => {
             try {
                 const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+                const guestTok = typeof window !== "undefined"
+                    ? (guestTokenParam || localStorage.getItem("guest_order_token_" + orderId) || localStorage.getItem("last_guest_order_token") || "")
+                    : guestTokenParam;
                 const headers: Record<string, string> = {};
                 if (token) {
                     headers["Authorization"] = `Bearer ${token}`;
                 }
 
                 const apiUrl = "/api";
-                const queryPaymentId = paymentId ? `?payment_id=${paymentId}` : "";
-                const res = await fetch(`${apiUrl}/payment/status/${orderId}${queryPaymentId}`, { headers });
+                const params = new URLSearchParams();
+                if (paymentId) params.set("payment_id", paymentId);
+                if (guestTok) params.set("guest_token", guestTok);
+                const qs = params.toString() ? `?${params.toString()}` : "";
+                const res = await fetch(`${apiUrl}/payment/status/${orderId}${qs}`, { headers });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.status === "paid") {
@@ -112,12 +131,28 @@ function PaymentContent() {
                         <p style={{ color: "#555", fontSize: "1.1rem", marginBottom: "8px" }}>
                             Seu pedido #{orderId} foi recebido e o pagamento aprovado.
                         </p>
-                        <p style={{ color: "#888", fontSize: "0.9rem", marginBottom: "32px" }}>
+                        <p style={{ color: "#888", fontSize: "0.9rem", marginBottom: isGuestOrder ? "16px" : "32px" }}>
                             Em breve você receberá uma confirmação por e-mail e acompanhará o envio.
                         </p>
+                        {isGuestOrder && (
+                            <div style={{
+                                maxWidth: "520px",
+                                margin: "0 auto 28px",
+                                padding: "16px 20px",
+                                background: "#f0fdf4",
+                                border: "1px solid #bbf7d0",
+                                borderRadius: "12px",
+                                color: "#166534",
+                                fontSize: "0.88rem",
+                                lineHeight: 1.5
+                            }}>
+                                <strong>🔐 Sua conta foi criada automaticamente!</strong><br />
+                                Enviamos um link exclusivo de ativação por <strong>e-mail e WhatsApp</strong> para você definir sua senha e acompanhar seus pedidos a qualquer momento.
+                            </div>
+                        )}
                         <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}>
                             {orderId && (
-                                <Link href={`/pedido/${orderId}`} style={{
+                                <Link href={`/pedido/${orderId}${resolvedGuestToken ? `?guest_token=${encodeURIComponent(resolvedGuestToken)}` : ""}`} style={{
                                     background: "#2d5a27", color: "white", padding: "14px 28px",
                                     borderRadius: "10px", textDecoration: "none", fontWeight: 700, fontSize: "1rem"
                                 }}>
