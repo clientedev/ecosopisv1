@@ -147,8 +147,18 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
         raise HTTPException(status_code=400, detail="O CPF informado é inválido. Por favor, confira os números digitados.")
     data.customer_cpf = clean_cpf
 
-    # 2. Wholesale detection
-    has_wholesale_items = any("(Atacado)" in (item.product_name or "") for item in data.items)
+    # 2. Wholesale threshold detection
+    # A customer is ONLY eligible for wholesale discount (45% OFF = price * 0.55)
+    # when the cart contains at least 10 units of wholesale-eligible items,
+    # matching the business rule in CartContext.tsx: wholesaleItemsCount >= 10.
+    total_wholesale_quantity = 0
+    for item in data.items:
+        prod = db.query(models.Product).filter(models.Product.id == item.product_id).first()
+        if prod and (bool(prod.is_wholesale) or "(Atacado)" in (item.product_name or "")):
+            total_wholesale_quantity += int(item.quantity or 1)
+
+    is_wholesale_unlocked = total_wholesale_quantity >= 10
+    has_wholesale_items = False
 
     # 3. Item & Stock verification
     subtotal = 0.0
@@ -164,10 +174,19 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
                 detail=f"Estoque insuficiente para '{prod.name}'. Disponível: {prod.stock}, solicitado: {item.quantity}."
             )
 
-        is_item_wholesale = "(Atacado)" in (item.product_name or "") or bool(prod.is_wholesale)
+        # An item receives wholesale pricing only if the 10-unit minimum threshold is met
+        # AND it was purchased under wholesale conditions (either tagged '(Atacado)' or client price matches wholesale)
+        item_is_wholesale_eligible = bool(prod.is_wholesale) or "(Atacado)" in (item.product_name or "")
+        client_requested_wholesale = (
+            "(Atacado)" in (item.product_name or "") or 
+            (item.price is not None and abs(float(item.price) - round(float(prod.price or 0.0) * 0.55, 2)) < 0.05)
+        )
+        is_item_wholesale = is_wholesale_unlocked and item_is_wholesale_eligible and client_requested_wholesale
+
         if is_item_wholesale:
+            has_wholesale_items = True
             verified_price = round(float(prod.price or 0.0) * 0.55, 2)
-        elif prod.is_on_sale and prod.sale_price:
+        elif prod.is_on_sale and prod.sale_price and float(prod.sale_price) > 0:
             verified_price = round(float(prod.sale_price), 2)
         else:
             verified_price = round(float(prod.price or 0.0), 2)
@@ -225,18 +244,17 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
         cashback_discount = min(avail_cashback, max_possible, float(data.cashback_amount))
     data.cashback_amount = round(cashback_discount, 2)
 
-    # 6. Shipping verification & Free Shipping threshold check
-    shipping_price = float(data.shipping_price or 0.0)
-    addr_zip = (data.address or {}).get("postal_code", "") or (data.address or {}).get("zip", "")
-    clean_cep = "".join(filter(str.isdigit, addr_zip))
-    if len(clean_cep) == 8:
-        prefix = int(clean_cep[:2])
-        is_sul_sudeste = (1 <= prefix <= 39) or (80 <= prefix <= 99)
-        threshold = 148.90 if is_sul_sudeste else 248.90
-        is_free_coupon = (data.coupon_code and db.query(models.Coupon).filter(models.Coupon.code == data.coupon_code.upper(), models.Coupon.discount_type == "free_shipping").first())
-        if subtotal >= threshold or is_free_coupon:
-            shipping_price = 0.0
-    data.shipping_price = round(shipping_price, 2)
+    # 6. Shipping verification & Free Shipping check
+    shipping_price = max(0.0, round(float(data.shipping_price or 0.0), 2))
+    is_free_coupon = bool(
+        data.coupon_code and db.query(models.Coupon).filter(
+            models.Coupon.code == data.coupon_code.upper(),
+            models.Coupon.discount_type == "free_shipping"
+        ).first()
+    )
+    if is_free_coupon:
+        shipping_price = 0.0
+    data.shipping_price = shipping_price
 
     # 7. Final total server calculation
     final_total = max(0.01, round(subtotal + shipping_price - discount_amount - cashback_discount, 2))
@@ -1332,14 +1350,14 @@ async def init_split_payment(
             raise HTTPException(status_code=400, detail="O valor destinado ao PIX no pagamento combinado deve ser de pelo menos R$ 1,00.")
         if req_card < 1.00:
             raise HTTPException(status_code=400, detail="O valor destinado ao Cartão de Crédito no pagamento combinado deve ser de pelo menos R$ 1,00.")
-        if abs((req_pix + req_card) - server_total) > 0.05:
+        if abs((req_pix + req_card) - server_total) > 0.50:
             raise HTTPException(
                 status_code=400,
                 detail=f"A soma dos pagamentos (R$ {(req_pix + req_card):.2f}) não corresponde ao total calculado do pedido (R$ {server_total:.2f}).",
             )
 
         # Ensure exact cent-level equality on the server
-        pix_amount = req_pix
+        pix_amount = min(max(1.00, req_pix), round(server_total - 1.00, 2))
         card_amount = round(server_total - pix_amount, 2)
 
         order = _get_or_create_order(
