@@ -5,6 +5,16 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 
+const WHATSAPP_NUMBER = "+55 11 95155-9212";
+const WHATSAPP_LINK = "https://wa.me/5511951559212?text=Ol%C3%A1!%20Gostaria%20de%20atendimento%20humano%20na%20Ecosopis.";
+
+const SUGGESTIONS = [
+    { label: "🌿 Foliculite & Pelos", prompt: "O que posso usar para foliculite e pelos encravados?" },
+    { label: "✨ Clarear Manchas", prompt: "Como clarear manchas e melasma de forma natural?" },
+    { label: "🍃 Acne & Oleosidade", prompt: "Qual o melhor tratamento para acne e pele oleosa?" },
+    { label: "💬 Atendimento Humano", isWhatsApp: true },
+];
+
 interface ChatIAProps {
     isOpen?: boolean;
     onToggle?: () => void;
@@ -59,6 +69,23 @@ const getMentionedProducts = (content: string, products: any[]) => {
     return matches;
 };
 
+function renderFormattedText(text: string) {
+    if (!text) return null;
+    return text.split("\n").map((line, lineIdx) => {
+        const parts = line.split(/(\*\*[^*]+\*\*)/g);
+        return (
+            <span key={lineIdx} style={{ display: "block", minHeight: line ? "auto" : "8px" }}>
+                {parts.map((part, pIdx) => {
+                    if (part.startsWith("**") && part.endsWith("**")) {
+                        return <strong key={pIdx}>{part.slice(2, -2)}</strong>;
+                    }
+                    return part;
+                })}
+            </span>
+        );
+    });
+}
+
 export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps = {}) {
     const { addToCart } = useCart();
     const [products, setProducts] = useState<any[]>([]);
@@ -74,9 +101,11 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
     const pathname = usePathname();
     const isHomePage = pathname === "/";
 
-
     const [messages, setMessages] = useState([
-        { role: "assistant", content: "Olá! Eu sou a Lia 🌿 Sua consultora de beleza natural da Ecosopis. Pode me contar qual é o seu maior desafio com a pele agora?" }
+        {
+            role: "assistant",
+            content: "Olá! Eu sou a Lia 🌿 Sua consultora de beleza natural da Ecosopis. Pode me contar qual é o seu maior desafio com a pele agora?\n\n💬 Deseja atendimento humano? Nos chame no WhatsApp +55 11 95155-9212."
+        }
     ]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -96,19 +125,20 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
         }
     };
 
-    const sendMessage = async () => {
-        if (!input.trim() || isLoading) return;
+    const sendMessage = async (textToSend?: string) => {
+        const text = (textToSend || input).trim();
+        if (!text || isLoading) return;
 
-        const userMsg = { role: "user", content: input };
+        const userMsg = { role: "user", content: text };
         setMessages(prev => [...prev, userMsg]);
-        setInput("");
+        if (!textToSend) setInput("");
         setIsLoading(true);
 
         try {
             const res = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: input })
+                body: JSON.stringify({ message: text })
             });
 
             if (res.ok) {
@@ -121,7 +151,7 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
             console.error("Chat error:", error);
             setMessages(prev => [...prev, {
                 role: "assistant",
-                content: "Desculpe, tive um probleminha de conexão. Pode tentar novamente? 🌿"
+                content: "Desculpe, tive uma instabilidade momentânea na conexão. Pode tentar novamente? Se preferir, nos chame no WhatsApp +55 11 95155-9212! 🌿"
             }]);
         } finally {
             setIsLoading(false);
@@ -183,7 +213,38 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                                 <span>Consultora ECOSOPIS • online agora</span>
                             </div>
                         </div>
-                        <button className={styles.closeBtn} onClick={handleToggle}>✕</button>
+                        <div className={styles.headerActions}>
+                            <a
+                                href={WHATSAPP_LINK}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.headerWhatsappBtn}
+                                title="Falar no WhatsApp com Atendente Humano"
+                            >
+                                <span className={styles.pulseDot}></span>
+                                WhatsApp Humano
+                            </a>
+                            <button className={styles.closeBtn} onClick={handleToggle} aria-label="Fechar chat">✕</button>
+                        </div>
+                    </div>
+
+                    <div className={styles.suggestionsBar}>
+                        {SUGGESTIONS.map((item, sIdx) => (
+                            <button
+                                key={sIdx}
+                                className={styles.suggestionChip}
+                                onClick={() => {
+                                    if (item.isWhatsApp) {
+                                        window.open(WHATSAPP_LINK, "_blank");
+                                    } else if (item.prompt) {
+                                        sendMessage(item.prompt);
+                                    }
+                                }}
+                                disabled={isLoading}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
                     </div>
 
                     <div className={styles.chatMessages} ref={scrollRef}>
@@ -191,6 +252,11 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                             const mentionedProducts = msg.role === 'assistant'
                                 ? getMentionedProducts(msg.content, products)
                                 : [];
+                            const hasWhatsAppMention = msg.role === 'assistant' && (
+                                msg.content.includes("95155-9212") ||
+                                msg.content.toLowerCase().includes("whatsapp") ||
+                                msg.content.toLowerCase().includes("atendimento humano")
+                            );
                             return (
                                 <div
                                     key={idx}
@@ -201,7 +267,27 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                                             <Image src="/lia.jpg" alt="Lia" width={22} height={22} style={{ borderRadius: '50%', objectFit: 'cover' }} />
                                         </div>
                                     )}
-                                    <span>{msg.content}</span>
+                                    <div className={styles.msgText}>
+                                        {renderFormattedText(msg.content)}
+                                    </div>
+
+                                    {hasWhatsAppMention && (
+                                        <div className={styles.whatsappCard}>
+                                            <span className={styles.whatsappCardTitle}>💬 Prefere falar diretamente com uma pessoa?</span>
+                                            <a
+                                                href={WHATSAPP_LINK}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={styles.whatsappActionBtn}
+                                            >
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.174.086.275.072.376-.043.101-.116.433-.506.549-.68.116-.173.231-.144.39-.086s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z" />
+                                                </svg>
+                                                <span>Falar no WhatsApp: <strong>{WHATSAPP_NUMBER}</strong></span>
+                                            </a>
+                                        </div>
+                                    )}
+
                                     {mentionedProducts.length > 0 && (
                                         <div className={styles.productCards}>
                                             {mentionedProducts.map(p => (
@@ -244,7 +330,7 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                             disabled={isLoading}
                         />
                         <button
-                            onClick={sendMessage}
+                            onClick={() => sendMessage()}
                             disabled={isLoading}
                             className={isLoading ? styles.loadingBtn : ""}
                         >
