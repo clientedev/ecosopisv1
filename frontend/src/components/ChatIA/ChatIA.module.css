@@ -542,44 +542,35 @@
     border-color: var(--primary-green);
 }
 
-/* WhatsApp Message Action Card */
-.whatsappCard {
+/* WhatsApp Message Action Button (Clean) */
+.cleanWhatsappWrapper {
     margin-top: 10px;
-    padding: 10px 12px;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    margin-bottom: 2px;
 }
 
-.whatsappCardTitle {
-    font-size: 0.8rem;
-    color: #166534;
-    font-weight: 600;
-}
-
-.whatsappActionBtn {
+.cleanWhatsappBtn {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: 8px;
     background: #25d366;
-    color: white !important;
-    font-size: 0.82rem;
+    color: #ffffff !important;
+    font-size: 0.85rem;
     font-weight: 700;
-    padding: 8px 12px;
-    border-radius: 8px;
+    padding: 9px 18px;
+    border-radius: 22px;
     text-decoration: none;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 6px rgba(37, 211, 102, 0.3);
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
 }
 
-.whatsappActionBtn:hover {
+.cleanWhatsappBtn:hover {
     background: #1eb954;
     transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(37, 211, 102, 0.45);
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.45);
+}
+
+.cleanWhatsappBtn svg {
+    flex-shrink: 0;
 }
 
 .msgText {

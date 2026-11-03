@@ -5,7 +5,6 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 
-const WHATSAPP_NUMBER = "+55 11 95155-9212";
 const WHATSAPP_LINK = "https://wa.me/5511951559212?text=Ol%C3%A1!%20Gostaria%20de%20atendimento%20humano%20na%20Ecosopis.";
 
 const SUGGESTIONS = [
@@ -71,7 +70,15 @@ const getMentionedProducts = (content: string, products: any[]) => {
 
 function renderFormattedText(text: string) {
     if (!text) return null;
-    return text.split("\n").map((line, lineIdx) => {
+    // Remove qualquer menção de número de telefone do texto exibido
+    const sanitized = text
+        .replace(/(\+?55\s*)?\(?11\)?\s*9?5155[-.\s]?9212/g, "")
+        .replace(/\+?55\s*11\s*\d{4,5}[-.\s]?\d{4}/g, "")
+        .replace(/WhatsApp\s*[:]\s*/g, "WhatsApp. ")
+        .replace(/[ \t]{2,}/g, " ")
+        .trim();
+
+    return sanitized.split("\n").map((line, lineIdx) => {
         const parts = line.split(/(\*\*[^*]+\*\*)/g);
         return (
             <span key={lineIdx} style={{ display: "block", minHeight: line ? "auto" : "8px" }}>
@@ -104,7 +111,7 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
     const [messages, setMessages] = useState([
         {
             role: "assistant",
-            content: "Olá! Eu sou a Lia 🌿 Sua consultora de beleza natural da Ecosopis. Pode me contar qual é o seu maior desafio com a pele agora?\n\n💬 Deseja atendimento humano? Nos chame no WhatsApp +55 11 95155-9212."
+            content: "Olá! Eu sou a Lia 🌿 Sua consultora de beleza natural da Ecosopis. Pode me contar qual é o seu maior desafio com a pele agora?\n\n💬 Deseja atendimento humano? Fale com a nossa equipe pelo WhatsApp."
         }
     ]);
     const [input, setInput] = useState("");
@@ -151,7 +158,7 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
             console.error("Chat error:", error);
             setMessages(prev => [...prev, {
                 role: "assistant",
-                content: "Desculpe, tive uma instabilidade momentânea na conexão. Pode tentar novamente? Se preferir, nos chame no WhatsApp +55 11 95155-9212! 🌿"
+                content: "Desculpe, tive uma instabilidade momentânea na conexão. Pode tentar novamente? Se preferir, fale com nossa equipe pelo WhatsApp! 🌿"
             }]);
         } finally {
             setIsLoading(false);
@@ -222,7 +229,7 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                                 title="Falar no WhatsApp com Atendente Humano"
                             >
                                 <span className={styles.pulseDot}></span>
-                                WhatsApp Humano
+                                WhatsApp
                             </a>
                             <button className={styles.closeBtn} onClick={handleToggle} aria-label="Fechar chat">✕</button>
                         </div>
@@ -253,7 +260,6 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                                 ? getMentionedProducts(msg.content, products)
                                 : [];
                             const hasWhatsAppMention = msg.role === 'assistant' && (
-                                msg.content.includes("95155-9212") ||
                                 msg.content.toLowerCase().includes("whatsapp") ||
                                 msg.content.toLowerCase().includes("atendimento humano")
                             );
@@ -272,18 +278,17 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                                     </div>
 
                                     {hasWhatsAppMention && (
-                                        <div className={styles.whatsappCard}>
-                                            <span className={styles.whatsappCardTitle}>💬 Prefere falar diretamente com uma pessoa?</span>
+                                        <div className={styles.cleanWhatsappWrapper}>
                                             <a
                                                 href={WHATSAPP_LINK}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className={styles.whatsappActionBtn}
+                                                className={styles.cleanWhatsappBtn}
                                             >
                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                                                     <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.174.086.275.072.376-.043.101-.116.433-.506.549-.68.116-.173.231-.144.39-.086s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z" />
                                                 </svg>
-                                                <span>Falar no WhatsApp: <strong>{WHATSAPP_NUMBER}</strong></span>
+                                                <span>Falar com Atendente Humano</span>
                                             </a>
                                         </div>
                                     )}

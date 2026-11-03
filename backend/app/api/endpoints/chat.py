@@ -10,8 +10,7 @@ from openai import OpenAI
 
 router = APIRouter()
 
-HUMAN_SUPPORT_CTA = "Deseja atendimento humano? Nos chame no WhatsApp +55 11 95155-9212."
-WHATSAPP_NUMBER = "+55 11 95155-9212"
+HUMAN_SUPPORT_CTA = "Deseja atendimento humano? Fale com a nossa equipe pelo WhatsApp."
 
 class ChatRequest(BaseModel):
     message: str
@@ -160,8 +159,9 @@ def get_product_context(db: Session) -> str:
         "- **Formas de Pagamento**: PIX (aprovação imediata), Cartão de Crédito em até 3x sem juros (ou até 12x), e o exclusivo **Pagamento Combinado (PIX + Cartão de Crédito na mesma compra)**.\n"
         "- **Compra como Visitante**: O cliente pode finalizar compras tranquilamente sem precisar criar conta antes.\n\n"
         "## REGRA PADRÃO OBRIGATÓRIA DE ENCERRAMENTO:\n"
-        "Toda resposta sua deve terminar obrigatoriamente com a oferta de atendimento humano no seguinte padrão:\n"
-        "Deseja atendimento humano? Nos chame no WhatsApp +55 11 95155-9212.\n\n"
+        "Toda resposta sua deve terminar obrigatoriamente convidando para atendimento humano no seguinte padrão:\n"
+        "Deseja atendimento humano? Fale com a nossa equipe pelo WhatsApp.\n"
+        "IMPORTANTE: NUNCA escreva números de telefone ou dígitos no texto da mensagem, pois um botão clean de redirecionamento já é exibido automaticamente na tela para o cliente.\n\n"
         "## CATÁLOGO DE PRODUTOS DISPONÍVEIS NA LOJA:\n"
     )
 
@@ -178,7 +178,7 @@ def get_product_context(db: Session) -> str:
         "\n## COMO RECOMENDAR:\n"
         "Mencione os produtos pelos seus nomes exatos em negrito. "
         "Oriente sempre o modo correto de aplicação e lembre que o cliente pode adicionar ao carrinho no site. "
-        "E NUNCA se esqueça de fechar com: 'Deseja atendimento humano? Nos chame no WhatsApp +55 11 95155-9212.'"
+        "E NUNCA se esqueça de fechar com: 'Deseja atendimento humano? Fale com a nossa equipe pelo WhatsApp.' (sem números de telefone)."
     )
     return context
 
@@ -581,11 +581,21 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
             print("Using Intelligent Local Catalog Fallback for Lia.")
             bot_reply = generate_fallback_response(request.message, db)
 
-        # Regra de ouro incondicional: Garante que o número de WhatsApp e atendimento humano constem na resposta
+        # Sanitização e Regra de Ouro: NUNCA exibe o número de telefone no texto da Lia; apenas convite clean para atendimento humano
         if bot_reply:
             clean_reply = bot_reply.strip()
-            if "95155-9212" not in clean_reply:
+            # Remove qualquer ocorrência explícita do número de telefone no texto
+            clean_reply = re.sub(r'(\+?55\s*)?\(?11\)?\s*9?5155[-.\s]?9212', '', clean_reply)
+            clean_reply = re.sub(r'\+?55\s*11\s*\d{4,5}[-.\s]?\d{4}', '', clean_reply)
+            clean_reply = re.sub(r'WhatsApp\s*[:]\s*', 'WhatsApp. ', clean_reply)
+            clean_reply = re.sub(r'[ \t]{2,}', ' ', clean_reply)
+            clean_reply = clean_reply.strip()
+
+            # Garante que haja o convite clean de atendimento humano para ativar o botão de redirecionamento
+            if "atendimento humano" not in clean_reply.lower() and "whatsapp" not in clean_reply.lower():
                 bot_reply = f"{clean_reply}\n\n💬 {HUMAN_SUPPORT_CTA}"
+            else:
+                bot_reply = clean_reply
 
         # Registra interação no banco para histórico e analytics
         try:
