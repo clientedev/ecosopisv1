@@ -945,9 +945,18 @@ export default function AdminPedidosPage() {
         localStorage.setItem("me_banner_dismissed", "1");
     };
 
-    const filteredOrders = searchTerm 
-        ? fuzzySearch(orders.filter(o => filter === "all" || o.status === filter), searchTerm, ["id", "buyer_name", "customer_name", "buyer_email", "customer_email", "codigo_rastreio", "shipment_id"])
-        : orders.filter(o => filter === "all" || o.status === filter);
+    // Quando há termo de busca, pesquisa em TODOS os pedidos cadastrados para nunca ocultar pedidos por status.
+    const hasSearch = searchTerm.trim().length > 0;
+    const searchBaseOrders = hasSearch ? orders : (filter === "all" ? orders : orders.filter(o => o.status === filter));
+    const searchKeys = [
+        "id", "buyer_name", "customer_name", "buyer_email", "customer_email",
+        "customer_cpf", "customer_phone", "codigo_rastreio", "shipment_id",
+        "payment_method", "mercadopago_payment_id"
+    ];
+
+    const filteredOrders = hasSearch
+        ? fuzzySearch(searchBaseOrders, searchTerm.trim(), searchKeys)
+        : searchBaseOrders;
 
     const stats = {
         total:    orders.length,
@@ -1110,17 +1119,33 @@ export default function AdminPedidosPage() {
                         />
                     </div>
                     <div className={pedidoStyles.filterTabs}>
-                        {["all","pending","partially_paid","paid","shipped","delivered","cancelled","erro_envio","processando_envio"].map(f => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={`${pedidoStyles.filterBtn} ${filter === f ? pedidoStyles.filterBtnActive : pedidoStyles.filterBtnInactive}`}
-                            >
-                                {f === "all" ? "Todos" : (STATUS_LABELS[f]?.label || f)}
-                            </button>
-                        ))}
+                        {["all","pending","partially_paid","paid","shipped","delivered","cancelled","erro_envio","processando_envio"].map(f => {
+                            const count = f === "all" 
+                                ? orders.length 
+                                : orders.filter(o => o.status === f).length;
+                            const label = f === "all" ? "Todos" : (STATUS_LABELS[f]?.label || f);
+                            return (
+                                <button
+                                    key={f}
+                                    onClick={() => {
+                                        setFilter(f);
+                                        if (searchTerm) setSearchTerm("");
+                                    }}
+                                    className={`${pedidoStyles.filterBtn} ${filter === f ? pedidoStyles.filterBtnActive : pedidoStyles.filterBtnInactive}`}
+                                >
+                                    {label} <span style={{ opacity: 0.85, fontSize: "0.75rem", marginLeft: "4px", padding: "1px 6px", borderRadius: "8px", background: filter === f ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.07)" }}>{count}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
+
+                {hasSearch && (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "8px 14px", borderRadius: "10px", margin: "0.5rem 0 1rem", fontSize: "0.85rem", color: "#166534" }}>
+                        <span>🔍 Mostrando <strong>{filteredOrders.length}</strong> resultado(s) para &quot;{searchTerm}&quot; em todos os status de pedidos.</span>
+                        <button onClick={() => setSearchTerm("")} style={{ background: "none", border: "none", color: "#15803d", fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}>✕ Limpar busca</button>
+                    </div>
+                )}
 
                 {loading ? (
                     <div style={{ textAlign: "center", padding: "4rem", color: "#6b7280" }}>

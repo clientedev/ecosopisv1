@@ -400,6 +400,8 @@ def list_orders(
 def get_order(
     order_id: int,
     guest_token: Optional[str] = Query(None),
+    email: Optional[str] = Query(None),
+    cpf: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: Optional[models.User] = Depends(get_current_user_optional),
 ):
@@ -408,6 +410,20 @@ def get_order(
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
 
     has_guest_access = bool(guest_token and getattr(order, "guest_access_token", None) and guest_token == order.guest_access_token)
+    
+    # Suporte a consulta para clientes visitantes via e-mail ou CPF
+    if not has_guest_access and email:
+        clean_email = email.strip().lower()
+        order_email = (getattr(order, "customer_email", "") or getattr(order, "buyer_email", "") or "").strip().lower()
+        if clean_email and clean_email == order_email:
+            has_guest_access = True
+
+    if not has_guest_access and cpf:
+        clean_cpf_req = "".join(filter(str.isdigit, cpf or ""))
+        order_cpf = "".join(filter(str.isdigit, getattr(order, "customer_cpf", "") or ""))
+        if clean_cpf_req and len(clean_cpf_req) >= 11 and clean_cpf_req == order_cpf:
+            has_guest_access = True
+
     if not has_guest_access:
         if not current_user:
             raise HTTPException(status_code=401, detail="Could not validate credentials")

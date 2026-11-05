@@ -73,23 +73,63 @@ function OrderContent() {
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [linkMessage, setLinkMessage] = useState<string | null>(null);
+    const [lookupValue, setLookupValue] = useState("");
+    const [lookupError, setLookupError] = useState("");
+    const [isLookingUp, setIsLookingUp] = useState(false);
 
-    const fetchOrder = useCallback(async () => {
+    const fetchOrder = useCallback(async (customIdentifier?: string) => {
         if (!orderId) { setLoading(false); return; }
         const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
         const guestTok = typeof window !== "undefined"
             ? (guestTokenParam || localStorage.getItem("guest_order_token_" + orderId) || localStorage.getItem("last_guest_order_token") || "")
             : guestTokenParam;
-        if (!token && !guestTok) { setLoading(false); return; }
+        
+        if (!token && !guestTok && !customIdentifier) {
+            setLoading(false);
+            return;
+        }
+
         try {
             const headers: Record<string, string> = {};
             if (token) headers["Authorization"] = `Bearer ${token}`;
-            const qs = guestTok ? `?guest_token=${encodeURIComponent(guestTok)}` : "";
+            let qs = "";
+            if (customIdentifier) {
+                const isEmail = customIdentifier.includes("@");
+                qs = isEmail 
+                    ? `?email=${encodeURIComponent(customIdentifier.trim())}` 
+                    : `?cpf=${encodeURIComponent(customIdentifier.replace(/\D/g, ""))}`;
+            } else if (guestTok) {
+                qs = `?guest_token=${encodeURIComponent(guestTok)}`;
+            }
+
             const res = await fetch(`/api/orders/${orderId}${qs}`, { headers });
-            if (res.ok) setOrder(await res.json());
-        } catch { }
-        finally { setLoading(false); }
+            if (res.ok) {
+                const data = await res.json();
+                setOrder(data);
+                if (data.guest_access_token && typeof window !== "undefined") {
+                    localStorage.setItem("guest_order_token_" + orderId, data.guest_access_token);
+                }
+            } else if (customIdentifier) {
+                setLookupError("Não encontramos este pedido com o e-mail/CPF informado. Verifique os dados digitados.");
+            }
+        } catch { 
+            if (customIdentifier) setLookupError("Falha na conexão ao buscar pedido.");
+        } finally { 
+            setLoading(false); 
+            setIsLookingUp(false);
+        }
     }, [orderId, guestTokenParam]);
+
+    const handleLookupSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setLookupError("");
+        if (!lookupValue.trim()) {
+            setLookupError("Informe seu e-mail ou CPF para consultar.");
+            return;
+        }
+        setIsLookingUp(true);
+        fetchOrder(lookupValue.trim());
+    };
 
     useEffect(() => {
         if (linkTokenParam && orderId) {
@@ -140,15 +180,55 @@ function OrderContent() {
                             size="md" 
                         />
                     ) : !order ? (
-                        <div style={{ textAlign: "center", background: "white", borderRadius: 20, padding: "60px 32px", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
-                            <div style={{ fontSize: "3rem", marginBottom: 16 }}>🔍</div>
-                            <h2 style={{ color: "#1e293b", marginBottom: 8 }}>Pedido não encontrado</h2>
-                            <p style={{ color: "#64748b", marginBottom: 24 }}>Verifique se você está logado na conta correta.</p>
-                            <Link href="/perfil?tab=orders" style={{
-                                display: "inline-block", padding: "12px 28px",
-                                background: "#2d5a27", color: "white", borderRadius: 10,
-                                textDecoration: "none", fontWeight: 700
-                            }}>Meus Pedidos</Link>
+                        <div style={{ textAlign: "center", background: "white", borderRadius: 20, padding: "48px 32px", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+                            <div style={{ fontSize: "2.8rem", marginBottom: 12 }}>📦</div>
+                            <h2 style={{ color: "#1e293b", marginBottom: 8, fontSize: "1.4rem" }}>Consultar Pedido #{orderId}</h2>
+                            <p style={{ color: "#64748b", marginBottom: 24, fontSize: "0.9rem", lineHeight: 1.5 }}>
+                                Se você comprou como visitante ou acessou de outro dispositivo, confirme seu <strong>e-mail</strong> ou <strong>CPF</strong> cadastrado na compra para visualizar o status e o rastreio.
+                            </p>
+
+                            <form onSubmit={handleLookupSubmit} style={{ maxWidth: 380, margin: "0 auto 24px", display: "flex", flexDirection: "column", gap: 10 }}>
+                                <input
+                                    type="text"
+                                    placeholder="Digite seu e-mail ou CPF..."
+                                    value={lookupValue}
+                                    onChange={(e) => setLookupValue(e.target.value)}
+                                    style={{
+                                        width: "100%", padding: "12px 16px", borderRadius: 10,
+                                        border: "1.5px solid #cbd5e1", fontSize: "0.95rem",
+                                        boxSizing: "border-box"
+                                    }}
+                                />
+                                {lookupError && (
+                                    <p style={{ color: "#dc2626", fontSize: "0.82rem", margin: "2px 0", textAlign: "left" }}>
+                                        ⚠️ {lookupError}
+                                    </p>
+                                )}
+                                <button
+                                    type="submit"
+                                    disabled={isLookingUp}
+                                    style={{
+                                        padding: "12px 20px", background: "#2d5a27", color: "white",
+                                        border: "none", borderRadius: 10, fontWeight: 700,
+                                        fontSize: "0.95rem", cursor: "pointer", transition: "all 0.2s"
+                                    }}
+                                >
+                                    {isLookingUp ? "Consultando..." : "Localizar Meu Pedido"}
+                                </button>
+                            </form>
+
+                            <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 20, marginTop: 10 }}>
+                                <p style={{ color: "#94a3b8", fontSize: "0.85rem", marginBottom: 12 }}>
+                                    Já possui cadastro na loja?
+                                </p>
+                                <Link href="/conta" style={{
+                                    display: "inline-block", padding: "10px 22px",
+                                    background: "#f1f5f9", color: "#334155", borderRadius: 8,
+                                    textDecoration: "none", fontWeight: 600, fontSize: "0.88rem"
+                                }}>
+                                    Fazer Login / Acessar Minha Conta
+                                </Link>
+                            </div>
                         </div>
                     ) : (
                         <>
