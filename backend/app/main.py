@@ -529,114 +529,25 @@ async def startup_event():
             logger.error(f"Failed to seed World Cup matches: {seed_err}")
             db.rollback()
 
-        # Garantir persistência e integridade do pedido Carlos Split Visitante (Melhor Envio)
+        # Garantir limpeza de eventual registro de teste automatizado (Carlos Split Visitante)
         try:
-            carlos_shipment_id = "a31afad1-6065-4597-aa97-dd79e4c336cf"
-            existing_carlos = db.query(models.Order).filter(
-                (models.Order.shipment_id == carlos_shipment_id) |
+            carlos_orders = db.query(models.Order).filter(
+                (models.Order.shipment_id == "a31afad1-6065-4597-aa97-dd79e4c336cf") |
                 (models.Order.customer_email == "split.visitante.8223d352@ecosopis.com.br")
+            ).all()
+            for co in carlos_orders:
+                db.query(models.OrderPaymentHistory).filter(models.OrderPaymentHistory.order_id == co.id).delete()
+                db.query(models.OrderPayment).filter(models.OrderPayment.order_id == co.id).delete()
+                db.query(models.OrderItem).filter(models.OrderItem.order_id == co.id).delete()
+                db.delete(co)
+            carlos_user = db.query(models.User).filter(
+                models.User.email == "split.visitante.8223d352@ecosopis.com.br"
             ).first()
-            if not existing_carlos:
-                logger.info(f"[ECOSOPIS] Sincronizando pedido Melhor Envio {carlos_shipment_id} (Carlos Split Visitante)...")
-                carlos_user = db.query(models.User).filter(
-                    models.User.email == "split.visitante.8223d352@ecosopis.com.br"
-                ).first()
-                if not carlos_user:
-                    from app.core import security
-                    import secrets
-                    carlos_user = models.User(
-                        email="split.visitante.8223d352@ecosopis.com.br",
-                        full_name="Carlos Split Visitante",
-                        phone="11977776666",
-                        cpf="55672081541",
-                        role="client",
-                        is_verified=True,
-                        hashed_password=security.get_password_hash(secrets.token_urlsafe(32)),
-                        is_guest_created=True,
-                        must_change_password=True,
-                    )
-                    db.add(carlos_user)
-                    db.commit()
-                    db.refresh(carlos_user)
-
-                carlos_order = models.Order(
-                    user_id=carlos_user.id,
-                    status="shipped",
-                    total=70.0,
-                    shipping_price=20.0,
-                    shipping_method="Loggi (Melhor Envio)",
-                    shipping_service_id=31,
-                    shipment_id=carlos_shipment_id,
-                    codigo_rastreio="LGI-ME262FFRMB0BR",
-                    correios_label_url="https://me-0047-prod.s3.amazonaws.com/pdf/a31afad1-6065-4597-aa97-dd79e4c336cf-1.pdf",
-                    etiqueta_url="https://me-0047-prod.s3.amazonaws.com/pdf/a31afad1-6065-4597-aa97-dd79e4c336cf-1.pdf",
-                    customer_name="Carlos Split Visitante",
-                    customer_email="split.visitante.8223d352@ecosopis.com.br",
-                    customer_phone="11977776666",
-                    customer_cpf="55672081541",
-                    buyer_name="Carlos Split Visitante",
-                    buyer_email="split.visitante.8223d352@ecosopis.com.br",
-                    payment_method="mercadopago_split",
-                    is_split_payment=True,
-                    is_guest_order=True,
-                    paid_amount=70.0,
-                    remaining_amount=0.0,
-                    guest_access_token="split_carlos_8223d352",
-                    address={
-                        "name": "Carlos Split Visitante",
-                        "phone": "11977776666",
-                        "email": "split.visitante.8223d352@ecosopis.com.br",
-                        "document": "55672081541",
-                        "postal_code": "01310-100",
-                        "street": "Av Paulista",
-                        "number": "1000",
-                        "district": "Bela Vista",
-                        "city": "São Paulo",
-                        "state": "SP"
-                    },
-                    items=[{
-                        "product_id": 1,
-                        "product_name": "Sabonete de Açafrão & Dolomita",
-                        "quantity": 2,
-                        "price": 25.0
-                    }]
-                )
-                db.add(carlos_order)
-                db.commit()
-                db.refresh(carlos_order)
-
-                db.add(models.OrderItem(
-                    order_id=carlos_order.id,
-                    product_id=1,
-                    quantity=2,
-                    price=25.0
-                ))
-
-                db.add(models.OrderPayment(
-                    order_id=carlos_order.id,
-                    part_number=1,
-                    modality="pix",
-                    amount=35.0,
-                    status="approved",
-                    external_payment_id="split_pix_carlos_01",
-                ))
-                db.add(models.OrderPayment(
-                    order_id=carlos_order.id,
-                    part_number=2,
-                    modality="credit_card",
-                    amount=35.0,
-                    status="approved",
-                    external_payment_id="split_card_carlos_02",
-                ))
-                db.commit()
-                logger.info(f"[ECOSOPIS] Pedido #{carlos_order.id} (Carlos Split Visitante) sincronizado com sucesso.")
-            elif existing_carlos and not existing_carlos.shipment_id:
-                existing_carlos.shipment_id = carlos_shipment_id
-                existing_carlos.codigo_rastreio = "LGI-ME262FFRMB0BR"
-                existing_carlos.status = "shipped"
-                db.commit()
-        except Exception as carlos_err:
-            logger.warning(f"Sincronizacao Carlos: {carlos_err}")
+            if carlos_user:
+                db.delete(carlos_user)
+            db.commit()
+        except Exception as clean_err:
+            logger.debug(f"Cleanup test order check: {clean_err}")
             db.rollback()
         finally:
             db.close()
