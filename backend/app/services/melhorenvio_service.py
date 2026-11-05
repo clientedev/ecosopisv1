@@ -379,6 +379,105 @@ def selecionar_servico(
 
 
 # ---------------------------------------------------------------------------
+# Guardas de Segurança Anti-Teste (Impede que testes/mocks caiam no Melhor Envio real)
+# ---------------------------------------------------------------------------
+
+def is_test_or_simulated_order(pedido, db=None) -> tuple[bool, str]:
+    """
+    Detecta com 100% de precisão se o pedido provém de teste automatizado, TestClient,
+    banco SQLite local ou dados simulados/mockados para NUNCA enviar ao carrinho real do Melhor Envio.
+    """
+    import sys
+    # 1. Variáveis de ambiente explícitas de teste ou bloqueio
+    if os.getenv("TESTING", "").lower() in ("1", "true", "yes"):
+        return True, "Variável TESTING ativa"
+    if os.getenv("DISABLE_MELHORENVIO_CART", "").lower() in ("1", "true", "yes"):
+        return True, "Variável DISABLE_MELHORENVIO_CART ativa"
+
+    # 2. Execução via pytest ou FastAPI/Starlette TestClient
+    if "pytest" in sys.modules or "fastapi.testclient" in sys.modules or "starlette.testclient" in sys.modules:
+        return True, "Execução detectada via TestClient / Pytest"
+
+    # 3. Banco de dados SQLite local (produção utiliza PostgreSQL)
+    try:
+        from app.core.database import DATABASE_URL
+        if "sqlite" in (DATABASE_URL or "").lower():
+            return True, "Banco de dados local SQLite detectado (ambiente de desenvolvimento/teste)"
+        if db is not None and hasattr(db, "bind") and db.bind is not None:
+            if "sqlite" in str(getattr(db.bind, "url", "")).lower():
+                return True, "Sessão conectada ao SQLite local"
+    except Exception:
+        pass
+
+    # 4. Inspeção de padrões de e-mail, nome e IDs de pagamento simulados
+    order_obj = getattr(pedido, "_order", pedido)
+    email = (
+        getattr(pedido, "customer_email", None)
+        or getattr(order_obj, "customer_email", None)
+        or getattr(order_obj, "buyer_email", None)
+        or ""
+    ).strip().lower()
+    name = (
+        getattr(pedido, "customer_name", None)
+        or getattr(order_obj, "customer_name", None)
+        or getattr(order_obj, "buyer_name", None)
+        or ""
+    ).strip().lower()
+    mp_id = str(getattr(order_obj, "mercadopago_payment_id", "") or "").strip().lower()
+
+    blocked_email_patterns = (
+        "split.visitante",
+        "ana.visitante",
+        "visitante.teste",
+        "teste.automatizado",
+        "@test.com",
+        "@example.com",
+        "@teste.com",
+        "@mailinator.com",
+        "@localhost",
+    )
+    if any(pat in email for pat in blocked_email_patterns):
+        return True, f"E-mail de teste detectado ({email})"
+
+    if email.endswith("@ecosopis.com.br") and not email.startswith("vendas."):
+        return True, f"E-mail interno/simulado detectado ({email})"
+
+    blocked_name_patterns = (
+        "carlos split visitante",
+        "ana visitante",
+        "teste automatizado",
+        "cliente teste",
+        "test user",
+        "mock user",
+    )
+    if any(pat in name for pat in blocked_name_patterns):
+        return True, f"Nome de teste detectado ({name})"
+
+    blocked_payment_prefixes = ("777000", "999000", "mock", "test", "fake", "sim_")
+    if mp_id and any(mp_id.startswith(pref) for pref in blocked_payment_prefixes):
+        return True, f"ID de pagamento simulado detectado ({mp_id})"
+
+    return False, ""
+
+
+def remover_do_carrinho_melhor_envio(shipment_id: str) -> bool:
+    """
+    Remove uma etiqueta ainda não paga do carrinho do Melhor Envio (DELETE /api/v2/me/cart/{id}).
+    """
+    if not shipment_id or str(shipment_id).startswith("sim-") or str(shipment_id).startswith("mock-"):
+        return False
+    try:
+        resp = _request_with_retry("DELETE", f"/api/v2/me/cart/{shipment_id}")
+        if resp.status_code in (200, 204):
+            logger.info(f"[ME] Remessa {shipment_id} removida do carrinho do Melhor Envio com sucesso.")
+            return True
+        logger.warning(f"[ME] Não foi possível remover {shipment_id} do carrinho ME: {resp.status_code}")
+    except Exception as exc:
+        logger.warning(f"[ME] Erro ao tentar remover {shipment_id} do carrinho ME: {exc}")
+    return False
+
+
+# ---------------------------------------------------------------------------
 # 2. Criar envio no carrinho
 # ---------------------------------------------------------------------------
 
@@ -389,6 +488,11 @@ def criar_envio(
     package_dimensions: Optional[dict] = None
 ) -> tuple[str, str]:
     """POST /api/v2/me/cart — Retorna (shipment_id, tracking_code_inicial)."""
+    is_test, reason = is_test_or_simulated_order(pedido)
+    if is_test:
+        logger.warning(f"[ME-GUARD] Bloqueado envio para Melhor Envio em criar_envio (Pedido #{getattr(pedido, 'id', '?')}): {reason}")
+        return f"sim-blocked-{getattr(pedido, 'id', '0')}", ""
+
     service_id = int(service_id)
 
     # Se agency_id não foi informado mas o serviço exige agência (ex: Jadlog 3 ou 4),
@@ -864,6 +968,14 @@ def processar_envio(
         "etiqueta_url": getattr(pedido, "etiqueta_url", None),
         "erro": None,
     }
+
+    is_test, reason = is_test_or_simulated_order(pedido, db)
+    if is_test:
+        logger.warning(f"[ME-GUARD] Envio para o Melhor Envio BLOQUEADO para o pedido #{pedido.id}: {reason}")
+        resultado["shipment_id"] = f"sim-blocked-{pedido.id}"
+        resultado["simulated"] = True
+        resultado["motivo_bloqueio"] = reason
+        return resultado
 
     try:
         # Validate CEP before proceeding

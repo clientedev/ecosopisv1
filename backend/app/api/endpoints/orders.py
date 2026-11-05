@@ -354,9 +354,16 @@ def clear_all_orders(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    # Delete all orders. Relational order_items should cascade delete if configured, 
-    # but we can also do it explicitly to be safe if needed.
-    # Base on models.py, order_items has cascade="all, delete-orphan".
+    try:
+        from app.services.melhorenvio_service import remover_do_carrinho_melhor_envio
+        orders_with_shipment = db.query(models.Order).filter(models.Order.shipment_id.isnot(None)).all()
+        for o in orders_with_shipment:
+            remover_do_carrinho_melhor_envio(o.shipment_id)
+    except Exception:
+        pass
+
+    db.query(models.OrderPaymentHistory).delete()
+    db.query(models.OrderPayment).delete()
     db.query(models.OrderItem).delete()
     db.query(models.Order).delete()
     db.commit()
@@ -375,6 +382,15 @@ def delete_order(
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
     
+    if getattr(order, "shipment_id", None):
+        try:
+            from app.services.melhorenvio_service import remover_do_carrinho_melhor_envio
+            remover_do_carrinho_melhor_envio(order.shipment_id)
+        except Exception:
+            pass
+
+    db.query(models.OrderPaymentHistory).filter(models.OrderPaymentHistory.order_id == order_id).delete()
+    db.query(models.OrderPayment).filter(models.OrderPayment.order_id == order_id).delete()
     db.query(models.OrderItem).filter(models.OrderItem.order_id == order_id).delete()
     db.delete(order)
     db.commit()
