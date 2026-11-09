@@ -1,35 +1,32 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { useParams } from "next/navigation";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import CheckoutTransparente from "@/components/CheckoutTransparente/CheckoutTransparente";
-import BrandLoader from "@/components/BrandLoader/BrandLoader";
-import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import styles from "./page.module.css";
 import {
   ShoppingBag,
-  Truck,
-  ShieldCheck,
-  MapPin,
-  User,
+  Trash2,
   Plus,
   Minus,
-  Trash2,
-  Check,
+  Truck,
+  ShieldCheck,
   Tag,
-  CreditCard,
-  Loader2,
-  Sparkles,
-  ExternalLink,
+  MapPin,
+  User,
+  CheckCircle2,
   AlertCircle,
+  Loader2,
+  Lock,
+  ExternalLink,
+  RefreshCw,
+  ChevronRight,
+  Search,
 } from "lucide-react";
-
-const BRAZILIAN_STATES = [
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
-  "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
-  "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
-];
 
 interface ReviewItem {
   id: number;
@@ -41,25 +38,117 @@ interface ReviewItem {
   isWholesale?: boolean;
 }
 
+interface CatalogItem {
+  id: number;
+  name: string;
+  slug: string;
+  price: number;
+  sale_price: number | null;
+  is_on_sale: boolean;
+  image_url: string;
+  is_wholesale: boolean;
+  stock: number;
+}
+
+const BRAZILIAN_STATES = [
+  { uf: "AC", name: "Acre" },
+  { uf: "AL", name: "Alagoas" },
+  { uf: "AP", name: "Amapá" },
+  { uf: "AM", name: "Amazonas" },
+  { uf: "BA", name: "Bahia" },
+  { uf: "CE", name: "Ceará" },
+  { uf: "DF", name: "Distrito Federal" },
+  { uf: "ES", name: "Espírito Santo" },
+  { uf: "GO", name: "Goiás" },
+  { uf: "MA", name: "Maranhão" },
+  { uf: "MT", name: "Mato Grosso" },
+  { uf: "MS", name: "Mato Grosso do Sul" },
+  { uf: "MG", name: "Minas Gerais" },
+  { uf: "PA", name: "Pará" },
+  { uf: "PB", name: "Paraíba" },
+  { uf: "PR", name: "Paraná" },
+  { uf: "PE", name: "Pernambuco" },
+  { uf: "PI", name: "Piauí" },
+  { uf: "RJ", name: "Rio de Janeiro" },
+  { uf: "RN", name: "Rio Grande do Norte" },
+  { uf: "RS", name: "Rio Grande do Sul" },
+  { uf: "RO", name: "Rondônia" },
+  { uf: "RR", name: "Roraima" },
+  { uf: "SC", name: "Santa Catarina" },
+  { uf: "SP", name: "São Paulo" },
+  { uf: "SE", name: "Sergipe" },
+  { uf: "TO", name: "Tocantins" },
+];
+
+const SOUTH_SOUTHEAST_UFS = ["SP", "RJ", "MG", "ES", "PR", "SC", "RS"];
+
+function resolveProductImageUrl(url?: string): string {
+  if (!url) return "/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png";
+  if (url.startsWith("http")) return url;
+  if (url.startsWith("/api/")) return url;
+  if (url.startsWith("/static/")) return url;
+  if (url.startsWith("/images/")) return `/api${url}`;
+  if (url.startsWith("images/")) return `/api/${url}`;
+  if (url.startsWith("/attached_assets/")) return `/static${url}`;
+  if (url.startsWith("attached_assets/")) return `/static/${url}`;
+  if (url.startsWith("/uploads/")) return `/static${url}`;
+  if (url.startsWith("uploads/")) return `/static/${url}`;
+  return url;
+}
+
+function isValidCPF(cpf: string): boolean {
+  const clean = (cpf || "").replace(/\D/g, "");
+  if (clean.length !== 11 || /^(\d)\1{10}$/.test(clean)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(clean.charAt(i), 10) * (10 - i);
+  let rest = (sum * 10) % 11;
+  if (rest === 10 || rest === 11) rest = 0;
+  if (rest !== parseInt(clean.charAt(9), 10)) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(clean.charAt(i), 10) * (11 - i);
+  rest = (sum * 10) % 11;
+  if (rest === 10 || rest === 11) rest = 0;
+  return rest === parseInt(clean.charAt(10), 10);
+}
+
+function formatCpf(val: string): string {
+  const digits = (val || "").replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
+}
+
+function formatCep(val: string): string {
+  const digits = (val || "").replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5, 8)}`;
+}
+
 export default function FinalizarCompraWhatsAppPage() {
   const params = useParams();
+  const router = useRouter();
+  const { token: authToken, refreshProfile } = useAuth();
   const checkoutToken = String(params?.token || "");
 
-  const [loadingPage, setLoadingPage] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [notFoundError, setNotFoundError] = useState<string | null>(null);
+  const [savingChanges, setSavingChanges] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
 
-  // Itens e Catálogo para adição rápida
+  // Dados do Pedido e Catálogo
   const [items, setItems] = useState<ReviewItem[]>([]);
-  const [catalog, setCatalog] = useState<any[]>([]);
-  const [showAddCatalogModal, setShowAddCatalogModal] = useState(false);
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [showAddCatalog, setShowAddCatalog] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState("");
 
-  // Dados do cliente
+  // Dados Pessoais
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
   const [customerCpf, setCustomerCpf] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
 
-  // Endereço e CEP
+  // Endereço
   const [cep, setCep] = useState("");
   const [address, setAddress] = useState({
     street: "",
@@ -74,80 +163,48 @@ export default function FinalizarCompraWhatsAppPage() {
   const [shippingOptions, setShippingOptions] = useState<any[]>([]);
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
   const [loadingShipping, setLoadingShipping] = useState(false);
-  const [shippingError, setShippingError] = useState<string | null>(null);
 
   // Cupom
-  const [couponCode, setCouponCode] = useState("");
+  const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
     type: string;
     value: number;
   } | null>(null);
-  const [couponError, setCouponError] = useState("");
+  const [couponMessage, setCouponMessage] = useState<{ text: string; isError: boolean } | null>(null);
 
-  // Estado do pedido caso já finalizado
-  const [completedOrderId, setCompletedOrderId] = useState<number | null>(null);
-  const [completedGuestToken, setCompletedGuestToken] = useState<string | null>(null);
-  const [savingReview, setSavingReview] = useState(false);
-  const [savedFeedback, setSavedFeedback] = useState(false);
-  const [checkoutProLoading, setCheckoutProLoading] = useState(false);
+  // Ordem & Pagamento
+  const [orderCreated, setOrderCreated] = useState<any>(null);
+  const [guestAccessToken, setGuestAccessToken] = useState<string | null>(null);
+  const [paymentTab, setPaymentTab] = useState<"transparente" | "mercadopago_pro">("transparente");
+  const [creatingOrderForPro, setCreatingOrderForPro] = useState(false);
+  const [orderCompleted, setOrderCompleted] = useState(false);
 
-  const formatCpf = (value: string) => {
-    const digits = (value || "").replace(/\D/g, "").slice(0, 11);
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-  };
-
-  const formatPhone = (value: string) => {
-    const digits = (value || "").replace(/\D/g, "");
-    const local = digits.startsWith("55") && digits.length >= 12 ? digits.slice(2, 13) : digits.slice(0, 11);
-    if (local.length <= 2) return local;
-    if (local.length <= 7) return `(${local.slice(0, 2)}) ${local.slice(2)}`;
-    return `(${local.slice(0, 2)}) ${local.slice(2, 7)}-${local.slice(7)}`;
-  };
-
-  const formatCep = (value: string) => {
-    const digits = (value || "").replace(/\D/g, "").slice(0, 8);
-    if (digits.length <= 5) return digits;
-    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
-  };
-
-  const isCpfValid = (cpf: string): boolean => {
-    const clean = (cpf || "").replace(/\D/g, "");
-    if (clean.length !== 11 || /^(\d)\1{10}$/.test(clean)) return false;
-    let sum = 0;
-    for (let i = 0; i < 9; i++) sum += parseInt(clean.charAt(i), 10) * (10 - i);
-    let rest = (sum * 10) % 11;
-    if (rest === 10 || rest === 11) rest = 0;
-    if (rest !== parseInt(clean.charAt(9), 10)) return false;
-    sum = 0;
-    for (let i = 0; i < 10; i++) sum += parseInt(clean.charAt(i), 10) * (11 - i);
-    rest = (sum * 10) % 11;
-    if (rest === 10 || rest === 11) rest = 0;
-    return rest === parseInt(clean.charAt(10), 10);
-  };
-
-  // Carrega os dados do pré-pedido gerado pelo WhatsApp
+  // Carrega dados da sessão de checkout do WhatsApp
   useEffect(() => {
     if (!checkoutToken) return;
-    setLoadingPage(true);
-    fetch(`/api/whatsapp/catalog-checkout/${encodeURIComponent(checkoutToken)}`)
-      .then(async res => {
+    let active = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/whatsapp/catalog-checkout/${encodeURIComponent(checkoutToken)}`);
+        const data = await res.json();
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || "Link de compra não encontrado.");
+          if (active) setNotFoundError(data?.error || "Link de compra não encontrado.");
+          return;
         }
-        return res.json();
-      })
-      .then(data => {
+        if (!active) return;
+
+        setItems(Array.isArray(data.items) ? data.items : []);
+        setCatalog(Array.isArray(data.catalog) ? data.catalog : []);
         setCustomerName(data.customer_name || "");
         setCustomerEmail(data.customer_email || "");
-        setCustomerPhone(formatPhone(data.phone || ""));
         setCustomerCpf(formatCpf(data.customer_cpf || ""));
-        const initialCep = data.cep || data.address?.postal_code || data.address?.cep || "";
-        setCep(formatCep(initialCep));
+        setCustomerPhone(data.phone || "");
+
+        const rawCep = data.cep || data.address?.postal_code || data.address?.cep || "";
+        setCep(formatCep(rawCep));
         setAddress({
           street: data.address?.street || "",
           number: data.address?.number || "",
@@ -156,166 +213,126 @@ export default function FinalizarCompraWhatsAppPage() {
           city: data.address?.city || "",
           state: data.address?.state || "SP",
         });
-        setItems(Array.isArray(data.items) ? data.items : []);
-        setCatalog(Array.isArray(data.catalog) ? data.catalog : []);
+
         if (data.coupon_code) {
-          setCouponCode(data.coupon_code);
+          setCouponInput(data.coupon_code);
         }
-        if (data.order_id && data.status === "paid") {
-          setCompletedOrderId(Number(data.order_id));
-          setCompletedGuestToken(data.guest_access_token || null);
+        if (data.guest_access_token) {
+          setGuestAccessToken(data.guest_access_token);
         }
-      })
-      .catch(err => {
-        setNotFoundError(err.message || "Não foi possível carregar este link de compra.");
-      })
-      .finally(() => {
-        setLoadingPage(false);
-      });
+        if (data.status === "paid" && data.order_id) {
+          setOrderCompleted(true);
+        }
+      } catch {
+        if (active) setNotFoundError("Não foi possível carregar os dados do seu pedido.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
   }, [checkoutToken]);
 
-  // Cálculo de Atacado (10+ unidades elegíveis = 45% OFF) e Subtotal
-  const wholesaleItemsCount = useMemo(() => {
-    return items
-      .filter(i => i.isWholesale)
-      .reduce((acc, i) => acc + (i.quantity || 1), 0);
-  }, [items]);
-
-  const isWholesaleEligible = wholesaleItemsCount >= 10;
+  // Cálculos de Atacado (10+ itens elegíveis = 45% OFF) e Subtotal
+  const wholesaleCount = useMemo(
+    () => items.filter((i) => i.isWholesale).reduce((acc, i) => acc + i.quantity, 0),
+    [items]
+  );
+  const isWholesaleEligible = wholesaleCount >= 10;
 
   const subtotal = useMemo(() => {
-    return items.reduce((acc, item) => {
+    let sum = 0;
+    for (const item of items) {
       const unitPrice =
         isWholesaleEligible && item.isWholesale
           ? Math.round(item.price * 0.55 * 100) / 100
           : item.price;
-      return acc + unitPrice * item.quantity;
-    }, 0);
+      sum += unitPrice * item.quantity;
+    }
+    return Math.round(sum * 100) / 100;
   }, [items, isWholesaleEligible]);
 
-  // Regra oficial de Frete Grátis Ecosopis
-  const getFreeShippingThreshold = (cepValue: string) => {
-    const clean = (cepValue || "").replace(/\D/g, "");
-    if (clean.length !== 8) return null;
-    const prefix = parseInt(clean.substring(0, 2), 10);
-    if ((prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99)) {
-      return 148.9;
-    }
-    return 248.9;
-  };
-
-  const freeShippingThreshold = getFreeShippingThreshold(cep);
-  const appliesFreeShipping =
-    freeShippingThreshold !== null && subtotal >= freeShippingThreshold;
-
-  const cheapestShippingOption = useMemo(() => {
-    if (shippingOptions.length === 0) return null;
-    return [...shippingOptions].sort((a, b) => a.price - b.price)[0];
-  }, [shippingOptions]);
-
-  const isOptionFree = useCallback(
-    (opt: any) => {
-      if (!opt) return false;
-      if (appliedCoupon?.type === "free_shipping") return true;
-      if (
-        appliesFreeShipping &&
-        cheapestShippingOption &&
-        opt.id === cheapestShippingOption.id
-      ) {
-        return true;
-      }
-      return false;
-    },
-    [appliedCoupon, appliesFreeShipping, cheapestShippingOption]
+  const rawTotalBeforeWholesale = useMemo(
+    () => items.reduce((acc, i) => acc + i.price * i.quantity, 0),
+    [items]
+  );
+  const wholesaleSavings = Math.max(
+    0,
+    Math.round((rawTotalBeforeWholesale - subtotal) * 100) / 100
   );
 
-  const shippingPrice = useMemo(() => {
-    if (!selectedShipping) return 0;
-    if (isOptionFree(selectedShipping)) return 0;
-    return Number(selectedShipping.price || 0);
-  }, [selectedShipping, isOptionFree]);
+  // Barra de Progresso de Frete Grátis igual ao /carrinho
+  const freeShippingThreshold = useMemo(() => {
+    const uf = (address.state || "SP").toUpperCase();
+    return SOUTH_SOUTHEAST_UFS.includes(uf) ? 148.9 : 248.9;
+  }, [address.state]);
 
-  // Cálculo de Desconto de Cupom
-  const discountAmount = useMemo(() => {
-    if (!appliedCoupon || isWholesaleEligible) return 0;
-    if (appliedCoupon.type === "percentage") {
-      return Math.round(subtotal * (appliedCoupon.value / 100) * 100) / 100;
-    }
-    if (appliedCoupon.type === "fixed") {
-      return Math.min(subtotal, Number(appliedCoupon.value || 0));
-    }
-    return 0;
-  }, [appliedCoupon, subtotal, isWholesaleEligible]);
+  const missingForFreeShipping = useMemo(() => {
+    return Math.max(0, Math.round((freeShippingThreshold - subtotal) * 100) / 100);
+  }, [freeShippingThreshold, subtotal]);
 
-  const finalTotal = useMemo(() => {
-    return Math.max(0.01, Math.round((subtotal + shippingPrice - discountAmount) * 100) / 100);
-  }, [subtotal, shippingPrice, discountAmount]);
+  // Cálculo de Frete automático ao ter CEP válido e itens
+  const calculateShippingForCep = useCallback(
+    async (cepValue: string, currentSubtotal: number) => {
+      const cleanCep = (cepValue || "").replace(/\D/g, "");
+      if (cleanCep.length !== 8 || items.length === 0) return;
 
-  // Cálculo automático de frete via /api/shipping/calculate sempre que CEP ou itens mudarem
-  useEffect(() => {
-    const cleanCep = cep.replace(/\D/g, "");
-    if (cleanCep.length !== 8 || items.length === 0) {
-      setShippingOptions([]);
-      setSelectedShipping(null);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
       setLoadingShipping(true);
-      setShippingError(null);
       try {
-        const reqBody = {
-          dest_cep: cleanCep,
-          items: items.map(item => {
-            const name = (item.name || "").toLowerCase();
-            const unitWeight =
-              name.includes("sabonete") &&
-              (name.includes("líquido") || name.includes("liquido"))
-                ? 0.3
-                : 0.1;
-            return {
-              id: String(item.id),
-              name: item.name,
-              width: 16,
-              height: 12,
-              length: 20,
-              weight: unitWeight,
-              price: item.price,
-              quantity: item.quantity,
-            };
-          }),
-        };
-
         const res = await fetch("/api/shipping/calculate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(reqBody),
+          body: JSON.stringify({
+            cep: cleanCep,
+            cart_total: currentSubtotal,
+            items: items.map((i) => ({
+              id: String(i.id),
+              quantity: i.quantity,
+              price: i.price,
+            })),
+          }),
         });
-
         if (res.ok) {
           const data = await res.json();
-          setShippingOptions(data);
-          if (data.length > 0) {
-            const sorted = [...data].sort((a: any, b: any) => a.price - b.price);
-            setSelectedShipping(sorted[0]);
-          } else {
-            setSelectedShipping(null);
+          const list = Array.isArray(data) ? data : [];
+          setShippingOptions(list);
+          if (list.length > 0) {
+            const cheapest = [...list].sort(
+              (a, b) => Number(a.price || 0) - Number(b.price || 0)
+            )[0];
+            setSelectedShipping((prev: any) => {
+              if (prev) {
+                const stillExists = list.find(
+                  (o: any) => o.id === prev.id || o.name === prev.name
+                );
+                if (stillExists) return stillExists;
+              }
+              return cheapest;
+            });
           }
-        } else {
-          const err = await res.json().catch(() => ({}));
-          setShippingError(err.detail || "Não foi possível calcular o frete para este CEP.");
         }
-      } catch {
-        setShippingError("Erro de conexão ao consultar opções de frete.");
+      } catch (err) {
+        console.error("Erro ao calcular frete:", err);
       } finally {
         setLoadingShipping(false);
       }
-    }, 400);
+    },
+    [items]
+  );
 
-    return () => clearTimeout(timer);
-  }, [cep, items]);
+  useEffect(() => {
+    const cleanCep = cep.replace(/\D/g, "");
+    if (cleanCep.length === 8 && items.length > 0 && !loading) {
+      const timer = setTimeout(() => {
+        calculateShippingForCep(cleanCep, subtotal);
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [cep, subtotal, items.length, loading, calculateShippingForCep]);
 
-  // Busca automática de rua/bairro/cidade ao alterar CEP
+  // Busca endereço automático ao digitar CEP
   const handleCepBlur = async () => {
     const cleanCep = cep.replace(/\D/g, "");
     if (cleanCep.length !== 8) return;
@@ -324,10 +341,10 @@ export default function FinalizarCompraWhatsAppPage() {
       if (res.ok) {
         const data = await res.json();
         if (!data.erro) {
-          setAddress(prev => ({
+          setAddress((prev) => ({
             ...prev,
             street: data.logradouro || prev.street,
-            neighborhood: data.bairro || prev.neighborhood,
+            neighborhood: data.bairro || prev.neighborhood || "Centro",
             city: data.localidade || prev.city,
             state: data.uf || prev.state,
           }));
@@ -336,29 +353,85 @@ export default function FinalizarCompraWhatsAppPage() {
     } catch {}
   };
 
-  // Manipulação de itens na revisão
+  // Salva alterações da revisão no banco
+  const persistReviewState = useCallback(
+    async (overrideFields?: Record<string, any>) => {
+      if (!checkoutToken) return;
+      setSavingChanges(true);
+      try {
+        await fetch(`/api/whatsapp/catalog-checkout/${encodeURIComponent(checkoutToken)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customer_name: customerName,
+            customer_email: customerEmail,
+            customer_cpf: customerCpf.replace(/\D/g, ""),
+            phone: customerPhone,
+            cep: cep.replace(/\D/g, ""),
+            address: {
+              ...address,
+              postal_code: cep.replace(/\D/g, ""),
+              cep: cep.replace(/\D/g, ""),
+              email: customerEmail,
+            },
+            items,
+            coupon_code: appliedCoupon?.code || "",
+            shipping_method: selectedShipping
+              ? `${selectedShipping.company || ""} - ${selectedShipping.name || ""}`
+              : "",
+            shipping_service_id: selectedShipping?.id ? Number(selectedShipping.id) : null,
+            shipping_price: selectedShipping ? Number(selectedShipping.price || 0) : 0,
+            ...overrideFields,
+          }),
+        });
+        setOrderCreated(null);
+        setSaveFeedback("Alterações salvas!");
+        setTimeout(() => setSaveFeedback(null), 2500);
+      } catch {
+      } finally {
+        setSavingChanges(false);
+      }
+    },
+    [
+      checkoutToken,
+      customerName,
+      customerEmail,
+      customerCpf,
+      customerPhone,
+      cep,
+      address,
+      items,
+      appliedCoupon,
+      selectedShipping,
+    ]
+  );
+
+  // Manipulação de Itens do Pedido
   const updateItemQty = (id: number, delta: number) => {
-    setItems(prev =>
-      prev
-        .map(item =>
+    setItems((prev) => {
+      const next = prev
+        .map((item) =>
           item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item
         )
-        .filter(item => item.quantity > 0)
-    );
+        .filter((item) => item.quantity > 0);
+      return next;
+    });
+    setOrderCreated(null);
   };
 
   const removeItem = (id: number) => {
-    setItems(prev => prev.filter(item => item.id !== id));
+    setItems((prev) => prev.filter((item) => item.id !== id));
+    setOrderCreated(null);
   };
 
-  const addProductFromCatalog = (prod: any) => {
-    const effectivePrice =
+  const addProductFromCatalog = (prod: CatalogItem) => {
+    const unitPrice =
       prod.is_on_sale && prod.sale_price && prod.sale_price > 0
-        ? Number(prod.sale_price)
-        : Number(prod.price || 0);
+        ? prod.sale_price
+        : prod.price;
 
-    setItems(prev => {
-      const idx = prev.findIndex(i => i.id === prod.id);
+    setItems((prev) => {
+      const idx = prev.findIndex((i) => i.id === prod.id);
       if (idx >= 0) {
         const copy = [...prev];
         copy[idx] = { ...copy[idx], quantity: copy[idx].quantity + 1 };
@@ -370,914 +443,1281 @@ export default function FinalizarCompraWhatsAppPage() {
           id: prod.id,
           name: prod.name,
           slug: prod.slug,
-          price: effectivePrice,
+          price: unitPrice,
           quantity: 1,
           image_url: prod.image_url,
-          isWholesale: Boolean(prod.is_wholesale),
+          isWholesale: prod.is_wholesale,
         },
       ];
     });
-    setShowAddCatalogModal(false);
+    setOrderCreated(null);
   };
 
+  // Aplicação de Cupom
   const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
-    setCouponError("");
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setCouponMessage(null);
+
     if (isWholesaleEligible) {
-      setCouponError("Cupons não são acumulativos com o desconto de Atacado (45% OFF).");
+      setCouponMessage({
+        text: "Cupons não são cumulativos com o desconto de 45% de atacado.",
+        isError: true,
+      });
       return;
     }
-    try {
-      const res = await fetch(`/api/coupons/validate/${encodeURIComponent(couponCode.trim())}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.min_purchase_value && subtotal < data.min_purchase_value) {
-          setCouponError(`Compra mínima de R$ ${Number(data.min_purchase_value).toFixed(2)} necessária.`);
-          return;
-        }
-        setAppliedCoupon({
-          code: data.code,
-          type: data.discount_type,
-          value: data.discount_value,
-        });
-      } else {
-        const err = await res.json().catch(() => ({}));
-        setCouponError(err.detail || "Cupom inválido ou expirado.");
-        setAppliedCoupon(null);
-      }
-    } catch {
-      setCouponError("Erro ao validar cupom.");
-    }
-  };
 
-  // Salva revisão no banco do WhatsApp Checkout
-  const persistReviewChanges = async (extraFields: Record<string, any> = {}) => {
-    if (!checkoutToken) return;
-    setSavingReview(true);
     try {
-      await fetch(`/api/whatsapp/catalog-checkout/${encodeURIComponent(checkoutToken)}`, {
-        method: "PUT",
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customer_name: customerName.trim(),
-          customer_email: customerEmail.trim(),
-          customer_cpf: customerCpf.replace(/\D/g, ""),
-          phone: customerPhone.replace(/\D/g, ""),
-          cep: cep.replace(/\D/g, ""),
-          address: {
-            ...address,
-            postal_code: cep.replace(/\D/g, ""),
-            cep: cep.replace(/\D/g, ""),
-            email: customerEmail.trim(),
-          },
-          items,
-          coupon_code: appliedCoupon?.code || null,
-          shipping_method: selectedShipping
-            ? `${selectedShipping.company ? `${selectedShipping.company} ` : ""}${selectedShipping.name}`.trim()
-            : "PAC",
-          shipping_service_id: selectedShipping?.id ? Number(selectedShipping.id) : null,
-          shipping_price: shippingPrice,
-          ...extraFields,
+          code,
+          email: customerEmail.trim() || undefined,
+          cpf: customerCpf.replace(/\D/g, "") || undefined,
         }),
       });
-      setSavedFeedback(true);
-      setTimeout(() => setSavedFeedback(false), 2500);
-    } catch {} finally {
-      setSavingReview(false);
+      const data = await res.json();
+      if (!res.ok) {
+        setCouponMessage({
+          text: data?.detail || "Cupom inválido ou expirado.",
+          isError: true,
+        });
+        return;
+      }
+      setAppliedCoupon({
+        code: data.code,
+        type: data.discount_type,
+        value: Number(data.discount_value || 0),
+      });
+      setCouponMessage({
+        text: `Cupom ${data.code} aplicado com sucesso!`,
+        isError: false,
+      });
+      setOrderCreated(null);
+    } catch {
+      setCouponMessage({
+        text: "Erro ao validar cupom. Tente novamente.",
+        isError: true,
+      });
     }
   };
 
-  const validateCustomerData = () => {
-    if (items.length === 0) {
-      alert("⚠️ Seu pedido está vazio. Adicione ao menos 1 produto do catálogo.");
-      return false;
+  // Cálculo de Desconto e Total Final
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon || isWholesaleEligible) return 0;
+    if (appliedCoupon.type === "percentage") {
+      return Math.round(((subtotal * appliedCoupon.value) / 100) * 100) / 100;
     }
-    if (!customerName.trim() || customerName.trim().length < 3) {
-      alert("⚠️ Por favor, preencha seu Nome Completo.");
-      return false;
+    if (appliedCoupon.type === "fixed") {
+      return Math.min(subtotal, appliedCoupon.value);
     }
-    if (!customerEmail.trim() || !customerEmail.includes("@")) {
-      alert("⚠️ Por favor, informe um E-mail válido para receber o comprovante e rastreio.");
-      return false;
+    return 0;
+  }, [appliedCoupon, subtotal, isWholesaleEligible]);
+
+  const isFreeShippingCoupon = appliedCoupon?.type === "free_shipping";
+  const shippingCost = isFreeShippingCoupon
+    ? 0
+    : selectedShipping
+    ? Number(selectedShipping.price || 0)
+    : 0;
+
+  const finalTotal = Math.max(
+    0,
+    Math.round((subtotal - discountAmount + shippingCost) * 100) / 100
+  );
+
+  // Validação dos campos obrigatórios antes de liberar pagamento
+  const validationErrors = useMemo(() => {
+    const errs: string[] = [];
+    if (items.length === 0) errs.push("Adicione pelo menos 1 produto ao pedido.");
+    if (!customerName || customerName.trim().length < 3) errs.push("Informe seu Nome Completo.");
+    if (!customerEmail || !customerEmail.includes("@")) errs.push("Informe um E-mail válido.");
+    if (!isValidCPF(customerCpf)) errs.push("Informe um CPF válido (11 dígitos).");
+    if (cep.replace(/\D/g, "").length !== 8) errs.push("Informe um CEP válido de 8 dígitos.");
+    if (!address.street.trim()) errs.push("Informe a Rua / Logradouro de entrega.");
+    if (!address.number.trim()) errs.push("Informe o Número do endereço.");
+    if (!address.city.trim() || !address.state.trim()) errs.push("Informe a Cidade e Estado (UF).");
+    if (!selectedShipping) errs.push("Selecione uma opção de Frete.");
+    return errs;
+  }, [items, customerName, customerEmail, customerCpf, cep, address, selectedShipping]);
+
+  const isFormValid = validationErrors.length === 0;
+
+  // Criação do Pedido Oficial no Backend (/api/orders)
+  const ensureBackendOrder = useCallback(async (): Promise<any> => {
+    if (orderCreated && orderCreated.id) {
+      return orderCreated;
     }
+
+    if (!isFormValid) {
+      throw new Error(validationErrors[0] || "Preencha todos os dados obrigatórios.");
+    }
+
     const cleanCpf = customerCpf.replace(/\D/g, "");
-    if (cleanCpf.length !== 11 || !isCpfValid(cleanCpf)) {
-      alert("⚠️ Por favor, informe um CPF válido com 11 dígitos.");
-      return false;
-    }
     const cleanCep = cep.replace(/\D/g, "");
-    if (cleanCep.length !== 8) {
-      alert("⚠️ Por favor, informe um CEP válido com 8 dígitos.");
-      return false;
-    }
-    if (!address.street.trim() || !address.number.trim() || !address.neighborhood.trim() || !address.city.trim() || !address.state.trim()) {
-      alert("⚠️ Preencha todos os campos do endereço de entrega (Rua, Número, Bairro, Cidade e UF).");
-      return false;
-    }
-    if (!selectedShipping) {
-      alert("⚠️ Aguarde o cálculo ou selecione uma opção de frete.");
-      return false;
-    }
-    return true;
-  };
 
-  // Monta o objeto compatível com o CheckoutTransparente e Checkout Pro oficiais da Ecosopis
-  const checkoutOrderData = useMemo(() => {
-    const cleanCep = cep.replace(/\D/g, "");
-    return {
-      items: items.map(i => {
-        const isDiscounted = Boolean(i.isWholesale && isWholesaleEligible);
-        const unitPrice = isDiscounted ? Math.round(i.price * 0.55 * 100) / 100 : i.price;
-        return {
-          product_id: i.id,
-          product_name: isDiscounted ? `${i.name} (Atacado)` : i.name,
-          quantity: i.quantity,
-          price: unitPrice,
-        };
-      }),
-      total: finalTotal,
-      shippingPrice,
-      shippingMethod: selectedShipping
-        ? `${selectedShipping.company ? `${selectedShipping.company} ` : ""}${selectedShipping.name}`.trim()
-        : "Melhor Envio",
-      shippingServiceId: selectedShipping?.id ? Number(selectedShipping.id) : null,
-      address: {
-        ...address,
-        email: customerEmail.trim(),
+    const orderPayload = {
+      items: items.map((item) => ({
+        product_id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price:
+          isWholesaleEligible && item.isWholesale
+            ? Math.round(item.price * 0.55 * 100) / 100
+            : item.price,
+      })),
+      total_amount: finalTotal,
+      shipping_price: shippingCost,
+      shipping_method: selectedShipping
+        ? `${selectedShipping.company || ""} - ${selectedShipping.name || ""}`
+        : "Correios",
+      shipping_service_id: selectedShipping?.id ? Number(selectedShipping.id) : null,
+      shipping_address: {
+        street: address.street.trim(),
+        number: address.number.trim(),
+        complement: address.complement.trim(),
+        neighborhood: address.neighborhood.trim() || "Centro",
+        city: address.city.trim(),
+        state: address.state.trim().toUpperCase(),
         postal_code: cleanCep,
-        zip: cleanCep,
         cep: cleanCep,
+        email: customerEmail.trim().toLowerCase(),
       },
-      customerName: customerName.trim(),
-      customerEmail: customerEmail.trim(),
-      customerPhone: customerPhone.replace(/\D/g, ""),
-      customerCpf: customerCpf.replace(/\D/g, ""),
-      couponCode: isWholesaleEligible ? null : appliedCoupon?.code || null,
-      discountAmount: isWholesaleEligible ? 0 : discountAmount,
-      cashbackAmount: 0,
+      customer_name: customerName.trim(),
+      customer_email: customerEmail.trim().toLowerCase(),
+      customer_phone: customerPhone.trim(),
+      customer_cpf: cleanCpf,
+      coupon_code: appliedCoupon?.code || null,
+      discount_amount: discountAmount,
+      cashback_used: 0,
     };
+
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const effectiveToken = authToken || guestAccessToken;
+    if (effectiveToken) {
+      headers["Authorization"] = `Bearer ${effectiveToken}`;
+    }
+
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(orderPayload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.detail || "Não foi possível registrar o pedido.");
+    }
+
+    if (data.guest_access_token) {
+      setGuestAccessToken(data.guest_access_token);
+      if (typeof window !== "undefined" && !authToken) {
+        localStorage.setItem("token", data.guest_access_token);
+        refreshProfile().catch(() => {});
+      }
+    }
+
+    setOrderCreated(data);
+
+    await persistReviewState({
+      order_id: data.id,
+      guest_access_token: data.guest_access_token || guestAccessToken,
+      status: "order_created",
+    });
+
+    return data;
   }, [
+    orderCreated,
+    isFormValid,
+    validationErrors,
+    customerCpf,
+    cep,
     items,
     isWholesaleEligible,
     finalTotal,
-    shippingPrice,
+    shippingCost,
     selectedShipping,
     address,
     customerEmail,
     customerName,
     customerPhone,
-    customerCpf,
-    cep,
     appliedCoupon,
     discountAmount,
+    authToken,
+    guestAccessToken,
+    refreshProfile,
+    persistReviewState,
   ]);
 
-  const handleCheckoutProRedirect = async () => {
-    if (!validateCustomerData()) return;
-    setCheckoutProLoading(true);
+  // Redirecionamento para Mercado Pago Checkout Pro (inclui Boleto, Saldo MP, etc.)
+  const handleMercadoPagoProCheckout = async () => {
     try {
-      await persistReviewChanges();
-      const res = await fetch("/api/payment/create-mercadopago-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: checkoutOrderData.items,
-          total: checkoutOrderData.total,
-          shipping_price: checkoutOrderData.shippingPrice,
-          shipping_method: checkoutOrderData.shippingMethod,
-          shipping_service_id: checkoutOrderData.shippingServiceId,
-          customer_name: checkoutOrderData.customerName,
-          customer_email: checkoutOrderData.customerEmail,
-          customer_phone: checkoutOrderData.customerPhone,
-          customer_cpf: checkoutOrderData.customerCpf,
-          address: checkoutOrderData.address,
-          coupon_code: checkoutOrderData.couponCode,
-          discount_amount: checkoutOrderData.discountAmount,
-          cashback_amount: 0,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.checkout_url) {
-        if (data.guest_access_token && data.order_id && typeof window !== "undefined") {
-          localStorage.setItem("guest_order_token_" + data.order_id, data.guest_access_token);
-          localStorage.setItem("last_guest_order_token", data.guest_access_token);
-        }
-        await persistReviewChanges({
-          order_id: data.order_id,
-          guest_access_token: data.guest_access_token,
-          status: "payment_initiated",
-        });
-        window.location.href = data.checkout_url;
-      } else {
-        alert(data.detail || "Não foi possível abrir o Checkout Pro do Mercado Pago.");
+      setCreatingOrderForPro(true);
+      const order = await ensureBackendOrder();
+      const effectiveToken = authToken || order?.guest_access_token || guestAccessToken;
+
+      const prefHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      if (effectiveToken) {
+        prefHeaders["Authorization"] = `Bearer ${effectiveToken}`;
       }
-    } catch {
-      alert("Erro de comunicação ao iniciar o pagamento.");
+
+      const prefRes = await fetch("/api/payment/preference", {
+        method: "POST",
+        headers: prefHeaders,
+        body: JSON.stringify({ order_id: order.id }),
+      });
+      const prefData = await prefRes.json();
+      if (!prefRes.ok || !prefData.init_point) {
+        throw new Error(prefData?.detail || "Erro ao gerar link do Mercado Pago.");
+      }
+
+      window.location.href = prefData.init_point;
+    } catch (err: any) {
+      alert(err?.message || "Erro ao iniciar pagamento externo.");
     } finally {
-      setCheckoutProLoading(false);
+      setCreatingOrderForPro(false);
     }
   };
 
-  const handlePaymentSuccess = async (orderId: number, guestAccessToken?: string | null) => {
-    if (typeof window !== "undefined" && orderId && guestAccessToken) {
-      localStorage.setItem(`guest_order_token_${orderId}`, guestAccessToken);
-      localStorage.setItem("last_guest_order_token", guestAccessToken);
-    }
-    await persistReviewChanges({
-      order_id: orderId,
-      guest_access_token: guestAccessToken || null,
-      status: "paid",
-    });
-    setCompletedOrderId(orderId);
-    setCompletedGuestToken(guestAccessToken || null);
-    const gt = guestAccessToken ? `&guest_token=${encodeURIComponent(guestAccessToken)}` : "";
-    window.location.href = `/pagamento?status=approved&order_id=${orderId}${gt}`;
-  };
+  const filteredCatalog = useMemo(() => {
+    const q = catalogSearch.trim().toLowerCase();
+    if (!q) return catalog;
+    return catalog.filter((p) => p.name.toLowerCase().includes(q));
+  }, [catalog, catalogSearch]);
 
-  if (loadingPage) {
-    return <BrandLoader fullScreen />;
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <div
+          className={styles.pageWrapper}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "70vh",
+          }}
+        >
+          <Loader2 size={42} color="#2d5a27" className="animate-spin" />
+          <p style={{ marginTop: "14px", color: "#2d5a27", fontWeight: 700, fontSize: "1.05rem" }}>
+            Carregando seu pedido exclusivo da Ecosopis...
+          </p>
+        </div>
+        <Footer />
+      </>
+    );
   }
 
   if (notFoundError) {
     return (
-      <main>
+      <>
         <Header />
-        <div style={{ minHeight: "65vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 20px", textAlign: "center" }}>
-          <AlertCircle size={56} color="#dc2626" style={{ marginBottom: 16 }} />
-          <h1 style={{ fontSize: "1.6rem", color: "#1e293b", marginBottom: 8 }}>Link de Compra Não Encontrado</h1>
-          <p style={{ color: "#64748b", maxWidth: 460, marginBottom: 24 }}>{notFoundError}</p>
-          <Link href="/produtos" style={{ background: "#2d5a27", color: "white", padding: "14px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 700 }}>
-            Ver Catálogo da Loja
-          </Link>
+        <div
+          className={styles.pageWrapper}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "70vh",
+            padding: "24px",
+          }}
+        >
+          <div
+            className={styles.sectionCard}
+            style={{ maxWidth: "480px", textAlign: "center", padding: "36px 28px" }}
+          >
+            <AlertCircle size={48} color="#dc2626" style={{ margin: "0 auto 14px" }} />
+            <h2
+              style={{
+                fontFamily: "var(--font-header)",
+                fontSize: "1.35rem",
+                fontWeight: 800,
+                color: "#1a3a16",
+                marginBottom: "8px",
+              }}
+            >
+              Link de Compra Indisponível
+            </h2>
+            <p style={{ color: "#64748b", marginBottom: "24px", fontSize: "0.95rem" }}>
+              {notFoundError}
+            </p>
+            <Link
+              href="/produtos"
+              className="btn-primary"
+              style={{
+                display: "inline-block",
+                padding: "13px 26px",
+                borderRadius: "12px",
+                textDecoration: "none",
+                fontWeight: 800,
+              }}
+            >
+              Ir para a Loja Ecosopis
+            </Link>
+          </div>
         </div>
         <Footer />
-      </main>
+      </>
+    );
+  }
+
+  if (orderCompleted) {
+    return (
+      <>
+        <Header />
+        <div
+          className={styles.pageWrapper}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "75vh",
+            padding: "24px",
+          }}
+        >
+          <div
+            className={styles.sectionCard}
+            style={{ maxWidth: "540px", textAlign: "center", padding: "40px 32px" }}
+          >
+            <CheckCircle2 size={60} color="#16a34a" style={{ margin: "0 auto 16px" }} />
+            <h1
+              style={{
+                fontFamily: "var(--font-header)",
+                fontSize: "1.6rem",
+                fontWeight: 800,
+                color: "#1a3a16",
+                marginBottom: "10px",
+              }}
+            >
+              Pedido Confirmado com Sucesso! 🌿
+            </h1>
+            <p
+              style={{
+                color: "#475569",
+                fontSize: "0.98rem",
+                lineHeight: 1.6,
+                marginBottom: "24px",
+              }}
+            >
+              Muito obrigado pela sua compra, <strong>{customerName}</strong>! Você receberá as
+              atualizações e o código de rastreio diretamente em seu <strong>WhatsApp</strong> e por{" "}
+              <strong>E-mail</strong>.
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+              <button
+                onClick={() => router.push("/conta?order_success=true")}
+                className="btn-primary"
+                style={{
+                  padding: "13px 24px",
+                  borderRadius: "12px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Acompanhar Meu Pedido
+              </button>
+              <Link
+                href="/"
+                style={{
+                  padding: "13px 24px",
+                  background: "#f8fafc",
+                  color: "#1a3a16",
+                  border: "1.5px solid #cbd5e1",
+                  borderRadius: "12px",
+                  fontWeight: 700,
+                  textDecoration: "none",
+                }}
+              >
+                Voltar à Loja
+              </Link>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </>
     );
   }
 
   return (
-    <main style={{ background: "#f8fafc", minHeight: "100vh" }}>
+    <>
       <Header />
-
-      <div style={{ maxWidth: 1120, margin: "0 auto", padding: "32px 16px 72px" }}>
-        {/* Banner Topo */}
-        <div
-          style={{
-            background: "linear-gradient(135deg, #1b4332 0%, #2d5a27 100%)",
-            color: "white",
-            borderRadius: 20,
-            padding: "24px 28px",
-            marginBottom: 28,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 16,
-            boxShadow: "0 10px 30px rgba(45,90,39,0.2)",
-          }}
-        >
-          <div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.16)", padding: "4px 12px", borderRadius: 99, fontSize: "0.78rem", fontWeight: 700, marginBottom: 8 }}>
-              <Sparkles size={14} /> COMPRA ASSISTIDA PELO WHATSAPP ECOSOPIS
+      <div className={styles.pageWrapper}>
+        <div className={styles.container}>
+          {/* Barra de etapas idêntica ao restante do site (/carrinho) */}
+          <div className={styles.stepsHeader}>
+            <div className={`${styles.stepIndicator} ${styles.stepDone}`}>
+              <span className={styles.stepNum}>✓</span> Atendimento WhatsApp
             </div>
-            <h1 style={{ margin: 0, fontSize: "1.55rem", fontWeight: 800 }}>
-              Revise seu Pedido & Finalize o Pagamento
-            </h1>
-            <p style={{ margin: "6px 0 0", color: "rgba(255,255,255,0.85)", fontSize: "0.92rem" }}>
-              Confira seus produtos, endereço e escolha como prefere pagar: PIX imediato, Cartão em até 12x, PIX + Cartão ou Boleto.
-            </p>
+            <ChevronRight size={16} color="#94a3b8" />
+            <div className={`${styles.stepIndicator} ${styles.stepActive}`}>
+              <span className={styles.stepNum}>2</span> Revisão & Entrega
+            </div>
+            <ChevronRight size={16} color="#94a3b8" />
+            <div className={`${styles.stepIndicator} ${isFormValid ? styles.stepActive : ""}`}>
+              <span className={styles.stepNum}>3</span> Pagamento Seguro
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.12)", padding: "10px 16px", borderRadius: 12, fontSize: "0.85rem" }}>
-            <ShieldCheck size={20} color="#86efac" />
-            <span>Ambiente 100% Seguro</span>
-          </div>
-        </div>
 
-        {completedOrderId ? (
-          <div style={{ background: "white", borderRadius: 20, padding: "40px 28px", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
-            <div style={{ fontSize: "3.5rem", marginBottom: 12 }}>🎉</div>
-            <h2 style={{ color: "#15803d", fontSize: "1.8rem", marginBottom: 8 }}>Pedido #{completedOrderId} Confirmado!</h2>
-            <p style={{ color: "#475569", marginBottom: 24 }}>
-              Seu pagamento já foi processado com sucesso. Acompanhe o status e o código de rastreio do seu pedido abaixo:
-            </p>
-            <Link
-              href={`/pedido/${completedOrderId}${completedGuestToken ? `?guest_token=${encodeURIComponent(completedGuestToken)}` : ""}`}
-              style={{ display: "inline-block", background: "#2d5a27", color: "white", padding: "14px 28px", borderRadius: 12, textDecoration: "none", fontWeight: 700 }}
-            >
-              Acompanhar Meu Pedido #{completedOrderId}
-            </Link>
+          {/* Cabeçalho Clean da Página */}
+          <div className={styles.heroBanner}>
+            <div className={styles.heroBannerLeft}>
+              <span className={styles.whatsappBadge}>
+                🌿 Pedido via WhatsApp • Checkout Oficial Ecosopis
+              </span>
+              <h1 className={styles.heroTitle}>Revise e Finalize seu Pedido</h1>
+              <p className={styles.heroSubtitle}>
+                Confira seus produtos, confirme o endereço de entrega e escolha como prefere pagar.
+              </p>
+            </div>
+            <div className={styles.heroTrustPills}>
+              <div className={styles.trustPill}>
+                <ShieldCheck size={18} color="#2d5a27" />
+                <span>Ambiente 100% Seguro</span>
+              </div>
+              <div className={styles.trustPill}>
+                <Truck size={18} color="#2d5a27" />
+                <span>Envio com Rastreio</span>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
-              gap: 24,
-              alignItems: "start",
-            }}
-          >
-            {/* COLUNA ESQUERDA: REVISÃO DE ITENS, DADOS E ENDEREÇO */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              {/* 1. ITENS DO PEDIDO */}
-              <div style={{ background: "white", borderRadius: 18, padding: "24px", boxShadow: "0 4px 18px rgba(0,0,0,0.05)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-                  <h2 style={{ margin: 0, fontSize: "1.1rem", color: "#1e293b", display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}>
-                    <ShoppingBag size={20} color="#2d5a27" />
-                    1. Seus Produtos ({items.reduce((acc, i) => acc + i.quantity, 0)})
-                  </h2>
+
+          {/* Grid Principal: Coluna Esquerda (Produtos, Dados, Endereço, Frete) + Coluna Direita (Resumo & Pagamento) */}
+          <div className={styles.checkoutGrid}>
+            <div className={styles.leftColumn}>
+              {/* 1. SACOLA DE PRODUTOS */}
+              <section className={styles.sectionCard}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleGroup}>
+                    <div className={styles.sectionIcon}>
+                      <ShoppingBag size={20} />
+                    </div>
+                    <div>
+                      <h2 className={styles.sectionTitle}>
+                        1. Produtos do seu Pedido ({items.reduce((a, b) => a + b.quantity, 0)})
+                      </h2>
+                      <p className={styles.sectionSubtitle}>
+                        Ajuste as quantidades ou adicione mais produtos se desejar
+                      </p>
+                    </div>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => setShowAddCatalogModal(true)}
-                    style={{
-                      background: "#f0fdf4",
-                      color: "#166534",
-                      border: "1px solid #bbf7d0",
-                      borderRadius: 10,
-                      padding: "8px 14px",
-                      fontSize: "0.82rem",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
+                    className={styles.addCatalogToggleBtn}
+                    onClick={() => setShowAddCatalog((prev) => !prev)}
                   >
-                    <Plus size={15} /> Adicionar Mais Produtos
+                    <Plus size={15} />
+                    {showAddCatalog ? "Fechar Catálogo" : "Adicionar mais produtos"}
                   </button>
                 </div>
 
-                {items.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "24px 12px", color: "#64748b" }}>
-                    Nenhum produto selecionado. Clique em <strong>Adicionar Mais Produtos</strong> acima.
+                {/* Barra de Progresso de Frete Grátis igual ao /carrinho */}
+                {missingForFreeShipping > 0 && !isFreeShippingCoupon ? (
+                  <div className={styles.freeShippingCard}>
+                    <p className={styles.freeShippingText}>
+                      Faltam <strong>R$ {missingForFreeShipping.toFixed(2).replace(".", ",")}</strong>{" "}
+                      para você ganhar <strong>FRETE GRÁTIS</strong>!
+                    </p>
+                    <div className={styles.freeShippingBarTrack}>
+                      <div
+                        className={styles.freeShippingBarFill}
+                        style={{
+                          width: `${Math.min(100, (subtotal / freeShippingThreshold) * 100)}%`,
+                        }}
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {items.map(item => {
+                  <div className={styles.freeShippingEarned}>
+                    <Truck size={20} />
+                    <span>
+                      🎉 Parabéns! Você conquistou <strong>FRETE GRÁTIS</strong> neste pedido!
+                    </span>
+                  </div>
+                )}
+
+                {/* Alerta de Atacado igual ao /carrinho */}
+                {wholesaleCount > 0 && isWholesaleEligible && (
+                  <div className={`${styles.wholesaleBanner} ${styles.wholesaleBannerActive}`}>
+                    <span className={styles.wholesaleTag}>🔥 Lote de Fábrica Ativado (45% OFF)</span>
+                    <p className={styles.wholesaleText}>
+                      Você garantiu <strong>45% de desconto de atacado</strong> (economia de{" "}
+                      <strong>R$ {wholesaleSavings.toFixed(2).replace(".", ",")}</strong>)!
+                    </p>
+                  </div>
+                )}
+                {wholesaleCount > 0 && !isWholesaleEligible && (
+                  <div className={styles.wholesaleBanner}>
+                    <span className={styles.wholesaleTag}>⚡ Oportunidade de Atacado</span>
+                    <p className={styles.wholesaleText}>
+                      Adicione mais <strong>{10 - wholesaleCount} unidades</strong> elegíveis para
+                      ativar <strong>45% OFF direto de fábrica</strong>!
+                    </p>
+                  </div>
+                )}
+
+                {/* Lista de Produtos com Fotos */}
+                {items.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "28px",
+                      textAlign: "center",
+                      color: "#64748b",
+                      background: "#f8fafc",
+                      borderRadius: "14px",
+                    }}
+                  >
+                    Seu carrinho está vazio. Clique em <strong>Adicionar mais produtos</strong> acima
+                    para escolher.
+                  </div>
+                ) : (
+                  <div className={styles.itemsList}>
+                    {items.map((item) => {
+                      const catalogMatch = catalog.find((c) => c.id === item.id);
+                      const imgSrc = resolveProductImageUrl(
+                        item.image_url || catalogMatch?.image_url
+                      );
                       const unitPrice =
                         isWholesaleEligible && item.isWholesale
                           ? Math.round(item.price * 0.55 * 100) / 100
                           : item.price;
+
                       return (
-                        <div
-                          key={item.id}
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            padding: "12px 14px",
-                            background: "#f8fafc",
-                            borderRadius: 12,
-                            border: "1px solid #e2e8f0",
-                            gap: 12,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 180 }}>
-                            {item.image_url ? (
-                              <img
-                                src={item.image_url}
-                                alt={item.name}
-                                style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover", border: "1px solid #e2e8f0" }}
-                              />
-                            ) : (
-                              <div style={{ width: 48, height: 48, borderRadius: 10, background: "#e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                🌿
+                        <div key={item.id} className={styles.cartItem}>
+                          <div className={styles.itemMain}>
+                            <div className={styles.itemThumbWrapper}>
+                              <img src={imgSrc} alt={item.name} className={styles.itemThumb} />
+                            </div>
+                            <div className={styles.itemDetails}>
+                              <div className={styles.itemTitleRow}>
+                                <h4 className={styles.itemName}>{item.name}</h4>
+                                {item.isWholesale && (
+                                  <span
+                                    className={`${styles.wholesaleBadge} ${
+                                      isWholesaleEligible ? styles.wholesaleBadgeUnlocked : ""
+                                    }`}
+                                  >
+                                    {isWholesaleEligible ? "ATACADO • 45% OFF" : "ATACADO (MÍN. 10)"}
+                                  </span>
+                                )}
                               </div>
-                            )}
-                            <div>
-                              <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "0.92rem" }}>
-                                {item.name}
-                              </div>
-                              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                                R$ {unitPrice.toFixed(2).replace(".", ",")} / un.
-                                {isWholesaleEligible && item.isWholesale && (
-                                  <span style={{ marginLeft: 6, color: "#15803d", fontWeight: 700 }}>(Atacado 45% OFF)</span>
+                              <div className={styles.itemPriceRow}>
+                                {isWholesaleEligible && item.isWholesale ? (
+                                  <>
+                                    <span className={styles.unitPriceOld}>
+                                      R$ {item.price.toFixed(2).replace(".", ",")}
+                                    </span>
+                                    <span className={styles.unitPrice}>
+                                      R$ {unitPrice.toFixed(2).replace(".", ",")} / un.
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className={styles.unitPrice}>
+                                    R$ {unitPrice.toFixed(2).replace(".", ",")} / un.
+                                  </span>
                                 )}
                               </div>
                             </div>
                           </div>
 
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <button
-                              type="button"
-                              onClick={() => updateItemQty(item.id, -1)}
-                              style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid #cbd5e1", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-                            >
-                              <Minus size={14} />
-                            </button>
-                            <span style={{ minWidth: 24, textAlign: "center", fontWeight: 700, fontSize: "0.95rem" }}>
-                              {item.quantity}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => updateItemQty(item.id, 1)}
-                              style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid #cbd5e1", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-                            >
-                              <Plus size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => removeItem(item.id)}
-                              title="Remover item"
-                              style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: "#fee2e2", color: "#dc2626", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", marginLeft: 4 }}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
+                          <div className={styles.itemControls}>
+                            <div className={styles.quantityPill}>
+                              <button
+                                type="button"
+                                className={styles.qtyBtn}
+                                onClick={() => updateItemQty(item.id, -1)}
+                                aria-label="Diminuir quantidade"
+                              >
+                                <Minus size={14} />
+                              </button>
+                              <span className={styles.qtyValue}>{item.quantity}</span>
+                              <button
+                                type="button"
+                                className={styles.qtyBtn}
+                                onClick={() => updateItemQty(item.id, 1)}
+                                aria-label="Aumentar quantidade"
+                              >
+                                <Plus size={14} />
+                              </button>
+                            </div>
 
-                          <div style={{ fontWeight: 800, color: "#2d5a27", fontSize: "0.95rem", minWidth: 85, textAlign: "right" }}>
-                            R$ {(unitPrice * item.quantity).toFixed(2).replace(".", ",")}
+                            <div className={styles.lineTotal}>
+                              R$ {(unitPrice * item.quantity).toFixed(2).replace(".", ",")}
+                            </div>
+
+                            <button
+                              type="button"
+                              className={styles.removeItemBtn}
+                              onClick={() => removeItem(item.id)}
+                              title="Remover produto"
+                            >
+                              <Trash2 size={18} />
+                            </button>
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 )}
-              </div>
 
-              {/* 2. DADOS DO CLIENTE */}
-              <div style={{ background: "white", borderRadius: 18, padding: "24px", boxShadow: "0 4px 18px rgba(0,0,0,0.05)" }}>
-                <h2 style={{ margin: "0 0 16px", fontSize: "1.1rem", color: "#1e293b", display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}>
-                  <User size={20} color="#2d5a27" />
-                  2. Dados Pessoais para Nota & Rastreio
-                </h2>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: 4 }}>
-                      Nome Completo *
-                    </label>
+                {/* Gaveta para adicionar mais produtos do catálogo com fotos e busca */}
+                {showAddCatalog && (
+                  <div className={styles.catalogDrawer}>
+                    <div style={{ position: "relative" }}>
+                      <Search
+                        size={16}
+                        color="#94a3b8"
+                        style={{ position: "absolute", left: "12px", top: "13px" }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Buscar outro produto da Ecosopis..."
+                        className={styles.catalogSearchInput}
+                        style={{ paddingLeft: "36px" }}
+                        value={catalogSearch}
+                        onChange={(e) => setCatalogSearch(e.target.value)}
+                      />
+                    </div>
+                    <div className={styles.catalogMiniGrid}>
+                      {filteredCatalog.map((prod) => {
+                        const pPrice =
+                          prod.is_on_sale && prod.sale_price ? prod.sale_price : prod.price;
+                        return (
+                          <div key={prod.id} className={styles.catalogMiniCard}>
+                            <img
+                              src={resolveProductImageUrl(prod.image_url)}
+                              alt={prod.name}
+                              className={styles.catalogMiniImg}
+                            />
+                            <div className={styles.catalogMiniInfo}>
+                              <div className={styles.catalogMiniName} title={prod.name}>
+                                {prod.name}
+                              </div>
+                              <div className={styles.catalogMiniPrice}>
+                                R$ {Number(pPrice).toFixed(2).replace(".", ",")}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className={styles.catalogMiniAddBtn}
+                              onClick={() => addProductFromCatalog(prod)}
+                            >
+                              + Adicionar
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              {/* 2. DADOS PESSOAIS */}
+              <section className={styles.sectionCard}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleGroup}>
+                    <div className={styles.sectionIcon}>
+                      <User size={20} />
+                    </div>
+                    <div>
+                      <h2 className={styles.sectionTitle}>2. Seus Dados Pessoais</h2>
+                      <p className={styles.sectionSubtitle}>
+                        Utilizados para emissão da nota, etiqueta de envio e envio do rastreio
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.formGrid}>
+                  <div className={styles.formFieldFull}>
+                    <label className={styles.fieldLabel}>Nome Completo *</label>
                     <input
                       type="text"
                       value={customerName}
-                      onChange={e => setCustomerName(e.target.value)}
-                      placeholder="Seu nome completo"
-                      style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: "0.9rem", boxSizing: "border-box" }}
+                      onChange={(e) => {
+                        setCustomerName(e.target.value);
+                        setOrderCreated(null);
+                      }}
+                      placeholder="Ex: Maria da Silva"
+                      className={styles.inputField}
                     />
                   </div>
+
                   <div>
-                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: 4 }}>
-                      CPF *
-                    </label>
+                    <label className={styles.fieldLabel}>CPF (11 dígitos) *</label>
                     <input
                       type="text"
                       value={customerCpf}
-                      onChange={e => setCustomerCpf(formatCpf(e.target.value))}
+                      onChange={(e) => {
+                        setCustomerCpf(formatCpf(e.target.value));
+                        setOrderCreated(null);
+                      }}
                       placeholder="000.000.000-00"
-                      style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: "0.9rem", boxSizing: "border-box" }}
+                      maxLength={14}
+                      inputMode="numeric"
+                      className={`${styles.inputField} ${
+                        customerCpf && !isValidCPF(customerCpf) ? styles.inputError : ""
+                      }`}
                     />
                   </div>
+
                   <div>
-                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: 4 }}>
-                      E-mail *
-                    </label>
-                    <input
-                      type="email"
-                      value={customerEmail}
-                      onChange={e => setCustomerEmail(e.target.value)}
-                      placeholder="seu@email.com"
-                      style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: "0.9rem", boxSizing: "border-box" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: 4 }}>
-                      WhatsApp / Telefone *
-                    </label>
+                    <label className={styles.fieldLabel}>WhatsApp / Telefone *</label>
                     <input
                       type="text"
                       value={customerPhone}
-                      onChange={e => setCustomerPhone(formatPhone(e.target.value))}
+                      onChange={(e) => {
+                        setCustomerPhone(e.target.value);
+                        setOrderCreated(null);
+                      }}
                       placeholder="(11) 99999-9999"
-                      style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: "0.9rem", boxSizing: "border-box" }}
+                      className={styles.inputField}
+                    />
+                  </div>
+
+                  <div className={styles.formFieldFull}>
+                    <label className={styles.fieldLabel}>Seu melhor E-mail *</label>
+                    <input
+                      type="email"
+                      value={customerEmail}
+                      onChange={(e) => {
+                        setCustomerEmail(e.target.value);
+                        setOrderCreated(null);
+                      }}
+                      placeholder="seuemail@exemplo.com"
+                      className={styles.inputField}
                     />
                   </div>
                 </div>
-              </div>
+              </section>
 
-              {/* 3. ENDEREÇO E FRETE */}
-              <div style={{ background: "white", borderRadius: 18, padding: "24px", boxShadow: "0 4px 18px rgba(0,0,0,0.05)" }}>
-                <h2 style={{ margin: "0 0 16px", fontSize: "1.1rem", color: "#1e293b", display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}>
-                  <MapPin size={20} color="#2d5a27" />
-                  3. Endereço de Entrega & Frete
-                </h2>
+              {/* 3. ENDEREÇO DE ENTREGA */}
+              <section className={styles.sectionCard}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleGroup}>
+                    <div className={styles.sectionIcon}>
+                      <MapPin size={20} />
+                    </div>
+                    <div>
+                      <h2 className={styles.sectionTitle}>3. Endereço de Entrega</h2>
+                      <p className={styles.sectionSubtitle}>
+                        Confira ou edite onde você deseja receber sua encomenda Ecosopis
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
+                <div className={styles.formGrid}>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: 4 }}>
-                      CEP *
-                    </label>
-                    <input
-                      type="text"
-                      value={cep}
-                      onChange={e => setCep(formatCep(e.target.value))}
-                      onBlur={handleCepBlur}
-                      placeholder="00000-000"
-                      style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: "0.9rem", boxSizing: "border-box" }}
-                    />
+                    <label className={styles.fieldLabel}>CEP *</label>
+                    <div className={styles.cepRow}>
+                      <input
+                        type="text"
+                        value={cep}
+                        onChange={(e) => {
+                          setCep(formatCep(e.target.value));
+                          setOrderCreated(null);
+                        }}
+                        onBlur={handleCepBlur}
+                        placeholder="00000-000"
+                        maxLength={9}
+                        inputMode="numeric"
+                        className={styles.inputField}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCepBlur}
+                        className={styles.secondaryBtn}
+                      >
+                        Buscar
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ gridColumn: "span 2" }}>
-                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: 4 }}>
-                      Rua / Logradouro *
-                    </label>
-                    <input
-                      type="text"
-                      value={address.street}
-                      onChange={e => setAddress({ ...address, street: e.target.value })}
-                      placeholder="Rua, Avenida..."
-                      style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: "0.9rem", boxSizing: "border-box" }}
-                    />
-                  </div>
+
                   <div>
-                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: 4 }}>
-                      Número *
-                    </label>
-                    <input
-                      type="text"
-                      value={address.number}
-                      onChange={e => setAddress({ ...address, number: e.target.value })}
-                      placeholder="Nº"
-                      style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: "0.9rem", boxSizing: "border-box" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: 4 }}>
-                      Complemento
-                    </label>
-                    <input
-                      type="text"
-                      value={address.complement}
-                      onChange={e => setAddress({ ...address, complement: e.target.value })}
-                      placeholder="Apto, Bloco..."
-                      style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: "0.9rem", boxSizing: "border-box" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: 4 }}>
-                      Bairro *
-                    </label>
+                    <label className={styles.fieldLabel}>Bairro *</label>
                     <input
                       type="text"
                       value={address.neighborhood}
-                      onChange={e => setAddress({ ...address, neighborhood: e.target.value })}
-                      placeholder="Bairro"
-                      style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: "0.9rem", boxSizing: "border-box" }}
+                      onChange={(e) => {
+                        setAddress({ ...address, neighborhood: e.target.value });
+                        setOrderCreated(null);
+                      }}
+                      placeholder="Centro"
+                      className={styles.inputField}
                     />
                   </div>
+
+                  <div className={styles.formFieldFull}>
+                    <label className={styles.fieldLabel}>Rua / Logradouro *</label>
+                    <input
+                      type="text"
+                      value={address.street}
+                      onChange={(e) => {
+                        setAddress({ ...address, street: e.target.value });
+                        setOrderCreated(null);
+                      }}
+                      placeholder="Rua, Avenida, Alameda..."
+                      className={styles.inputField}
+                    />
+                  </div>
+
                   <div>
-                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: 4 }}>
-                      Cidade *
-                    </label>
+                    <label className={styles.fieldLabel}>Número *</label>
+                    <input
+                      type="text"
+                      value={address.number}
+                      onChange={(e) => {
+                        setAddress({ ...address, number: e.target.value });
+                        setOrderCreated(null);
+                      }}
+                      placeholder="Ex: 120"
+                      className={styles.inputField}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={styles.fieldLabel}>Complemento (Opcional)</label>
+                    <input
+                      type="text"
+                      value={address.complement}
+                      onChange={(e) => {
+                        setAddress({ ...address, complement: e.target.value });
+                        setOrderCreated(null);
+                      }}
+                      placeholder="Apto, Bloco, Casa..."
+                      className={styles.inputField}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={styles.fieldLabel}>Cidade *</label>
                     <input
                       type="text"
                       value={address.city}
-                      onChange={e => setAddress({ ...address, city: e.target.value })}
-                      placeholder="Cidade"
-                      style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: "0.9rem", boxSizing: "border-box" }}
+                      onChange={(e) => {
+                        setAddress({ ...address, city: e.target.value });
+                        setOrderCreated(null);
+                      }}
+                      placeholder="Sua Cidade"
+                      className={styles.inputField}
                     />
                   </div>
+
                   <div>
-                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: 4 }}>
-                      Estado (UF) *
-                    </label>
+                    <label className={styles.fieldLabel}>Estado (UF) *</label>
                     <select
                       value={address.state}
-                      onChange={e => setAddress({ ...address, state: e.target.value })}
-                      style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: "0.9rem", background: "white", boxSizing: "border-box" }}
+                      onChange={(e) => {
+                        setAddress({ ...address, state: e.target.value });
+                        setOrderCreated(null);
+                      }}
+                      className={styles.inputField}
                     >
-                      {BRAZILIAN_STATES.map(uf => (
-                        <option key={uf} value={uf}>
-                          {uf}
+                      {BRAZILIAN_STATES.map((st) => (
+                        <option key={st.uf} value={st.uf}>
+                          {st.uf} - {st.name}
                         </option>
                       ))}
                     </select>
                   </div>
                 </div>
 
-                {/* Opções de Frete */}
-                <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 14 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.85rem", fontWeight: 700, color: "#334155", marginBottom: 10 }}>
-                    <Truck size={17} color="#2d5a27" />
-                    Opções de Envio (Melhor Envio / Correios):
-                  </div>
-
-                  {loadingShipping ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#64748b", fontSize: "0.88rem", padding: "8px 0" }}>
-                      <Loader2 size={16} className="animate-spin" /> Calculando opções de frete para o CEP {cep}...
-                    </div>
-                  ) : shippingError ? (
-                    <div style={{ color: "#dc2626", fontSize: "0.85rem", padding: "8px 0" }}>⚠️ {shippingError}</div>
-                  ) : shippingOptions.length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {shippingOptions.map((opt: any) => {
-                        const free = isOptionFree(opt);
-                        const selected = selectedShipping?.id === opt.id;
-                        return (
-                          <label
-                            key={opt.id}
-                            onClick={() => setSelectedShipping(opt)}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: "12px 14px",
-                              borderRadius: 12,
-                              border: selected ? "2px solid #2d5a27" : "1px solid #cbd5e1",
-                              background: selected ? "#f0fdf4" : "#fff",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <input
-                                type="radio"
-                                checked={selected}
-                                onChange={() => setSelectedShipping(opt)}
-                                style={{ accentColor: "#2d5a27" }}
-                              />
-                              <div>
-                                <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#1e293b" }}>
-                                  {opt.company ? `${opt.company} - ` : ""}
-                                  {opt.name}
-                                </div>
-                                <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
-                                  Prazo estimado: até {opt.delivery_time || opt.custom_delivery_time || 7} dias úteis
-                                </div>
-                              </div>
-                            </div>
-                            <div style={{ fontWeight: 800, color: free ? "#15803d" : "#1e293b", fontSize: "0.95rem" }}>
-                              {free ? "GRÁTIS" : `R$ ${Number(opt.price).toFixed(2).replace(".", ",")}`}
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: "0.85rem", color: "#64748b" }}>
-                      Preencha o CEP com 8 dígitos para visualizar as opções de entrega.
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+                <div className={styles.saveRow}>
                   <button
                     type="button"
-                    onClick={() => persistReviewChanges()}
-                    disabled={savingReview}
+                    onClick={() => persistReviewState()}
+                    disabled={savingChanges}
+                    className={styles.saveBtn}
+                  >
+                    <RefreshCw size={14} />
+                    {savingChanges ? "Salvando..." : "Salvar alterações dos dados"}
+                  </button>
+                  {saveFeedback && <span className={styles.savedToast}>✓ {saveFeedback}</span>}
+                </div>
+              </section>
+
+              {/* 4. OPÇÕES DE FRETE E ENTREGA */}
+              <section className={styles.sectionCard}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleGroup}>
+                    <div className={styles.sectionIcon}>
+                      <Truck size={20} />
+                    </div>
+                    <div>
+                      <h2 className={styles.sectionTitle}>4. Opção de Frete e Entrega</h2>
+                      <p className={styles.sectionSubtitle}>
+                        Selecione a modalidade de envio para o CEP {cep || "informado"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {loadingShipping ? (
+                  <div
                     style={{
-                      background: savedFeedback ? "#15803d" : "#f1f5f9",
-                      color: savedFeedback ? "white" : "#334155",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: 10,
-                      padding: "8px 16px",
-                      fontSize: "0.82rem",
-                      fontWeight: 700,
-                      cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
-                      gap: 6,
+                      gap: "10px",
+                      color: "#64748b",
+                      padding: "14px 4px",
                     }}
                   >
-                    {savedFeedback ? (
-                      <>
-                        <Check size={15} /> Alterações Salvas!
-                      </>
-                    ) : savingReview ? (
-                      "Salvando..."
-                    ) : (
-                      "Salvar Revisão dos Dados"
-                    )}
-                  </button>
-                </div>
-              </div>
+                    <Loader2 size={20} className="animate-spin" color="#2d5a27" />
+                    <span>Calculando melhores opções de entrega para o seu CEP...</span>
+                  </div>
+                ) : shippingOptions.length === 0 ? (
+                  <div
+                    style={{
+                      color: "#64748b",
+                      fontSize: "0.9rem",
+                      padding: "14px",
+                      background: "#f8fafc",
+                      borderRadius: "12px",
+                    }}
+                  >
+                    Informe um CEP válido de 8 dígitos acima para calcular as opções de entrega.
+                  </div>
+                ) : (
+                  <div className={styles.shippingList}>
+                    {shippingOptions.map((opt, idx) => {
+                      const isSelected =
+                        selectedShipping &&
+                        (selectedShipping.id === opt.id || selectedShipping.name === opt.name);
+                      const optPrice = isFreeShippingCoupon ? 0 : Number(opt.price || 0);
+
+                      return (
+                        <div
+                          key={opt.id || idx}
+                          onClick={() => {
+                            setSelectedShipping(opt);
+                            setOrderCreated(null);
+                          }}
+                          className={`${styles.shippingOption} ${
+                            isSelected ? styles.shippingOptionSelected : ""
+                          }`}
+                        >
+                          <div className={styles.shippingOptionLeft}>
+                            <div className={styles.radioCircle}>
+                              {isSelected && <div className={styles.radioDot} />}
+                            </div>
+                            <div>
+                              <span className={styles.carrierBadge}>
+                                {opt.company || "Transportadora"}
+                              </span>
+                              <div className={styles.shippingName}>{opt.name}</div>
+                              <div className={styles.shippingEta}>
+                                {opt.delivery_time
+                                  ? `Entrega estimada: até ${opt.delivery_time} dias úteis`
+                                  : "Envio rápido com código de rastreio"}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div>
+                            {optPrice === 0 ? (
+                              <span className={styles.shippingPriceFree}>FRETE GRÁTIS</span>
+                            ) : (
+                              <span className={styles.shippingPrice}>
+                                R$ {optPrice.toFixed(2).replace(".", ",")}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
             </div>
 
-            {/* COLUNA DIREITA: RESUMO DE VALORES, CUPOM E TODOS OS MÉTODOS DE PAGAMENTO */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              {/* RESUMO + CUPOM */}
-              <div style={{ background: "white", borderRadius: 18, padding: "24px", boxShadow: "0 4px 18px rgba(0,0,0,0.05)" }}>
-                <h2 style={{ margin: "0 0 16px", fontSize: "1.1rem", color: "#1e293b", fontWeight: 800 }}>
-                  Resumo do Pedido
-                </h2>
+            {/* COLUNA DIREITA: RESUMO DO PEDIDO, CUPOM & PAGAMENTO */}
+            <aside className={styles.rightColumn}>
+              <div className={styles.summaryCard}>
+                <h3 className={styles.summaryTitle}>
+                  <span>Resumo do Pedido</span>
+                  <Lock size={18} color="#2d5a27" />
+                </h3>
 
-                {/* Cupom */}
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: 6 }}>
-                    <Tag size={13} style={{ verticalAlign: "middle", marginRight: 4 }} />
-                    Cupom de Desconto
-                  </label>
-                  <div style={{ display: "flex", gap: 8 }}>
+                {/* Campo de Cupom de Desconto igual ao /carrinho */}
+                {appliedCoupon ? (
+                  <div className={styles.appliedCouponBox}>
+                    <span>
+                      🏷️ Cupom <strong>{appliedCoupon.code}</strong> ativo
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.removeCouponBtn}
+                      onClick={() => {
+                        setAppliedCoupon(null);
+                        setCouponMessage(null);
+                        setOrderCreated(null);
+                      }}
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ) : (
+                  <div className={styles.promoCodeBox}>
+                    <Tag size={16} color="#64748b" />
                     <input
                       type="text"
-                      value={couponCode}
-                      onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                      placeholder="Ex: PRIMEIRACOMPRA"
-                      style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: "0.88rem" }}
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                      placeholder="CUPOM (ex: PRIMEIRACOMPRA)"
+                      className={styles.couponInput}
                     />
                     <button
                       type="button"
                       onClick={handleApplyCoupon}
-                      style={{ background: "#2d5a27", color: "white", border: "none", borderRadius: 10, padding: "0 16px", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}
+                      className={styles.couponApplyBtn}
                     >
                       Aplicar
                     </button>
                   </div>
-                  {couponError && (
-                    <div style={{ color: "#dc2626", fontSize: "0.78rem", marginTop: 4 }}>{couponError}</div>
-                  )}
-                  {appliedCoupon && (
-                    <div style={{ color: "#15803d", fontSize: "0.8rem", fontWeight: 700, marginTop: 4 }}>
-                      ✓ Cupom {appliedCoupon.code} aplicado!
-                    </div>
-                  )}
-                </div>
+                )}
 
-                <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem", color: "#475569" }}>
-                    <span>Subtotal dos produtos</span>
-                    <strong>R$ {subtotal.toFixed(2).replace(".", ",")}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem", color: "#475569" }}>
-                    <span>Frete ({selectedShipping ? selectedShipping.name : "A calcular"})</span>
-                    <strong style={{ color: shippingPrice === 0 && selectedShipping ? "#15803d" : "#1e293b" }}>
-                      {selectedShipping
-                        ? shippingPrice === 0
-                          ? "Grátis"
-                          : `R$ ${shippingPrice.toFixed(2).replace(".", ",")}`
-                        : "—"}
-                    </strong>
-                  </div>
-                  {discountAmount > 0 && (
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem", color: "#15803d" }}>
-                      <span>Desconto ({appliedCoupon?.code})</span>
-                      <strong>- R$ {discountAmount.toFixed(2).replace(".", ",")}</strong>
-                    </div>
-                  )}
-                  <div
+                {couponMessage && (
+                  <p
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      borderTop: "2px solid #e2e8f0",
-                      paddingTop: 12,
-                      marginTop: 4,
-                    }}
-                  >
-                    <span style={{ fontSize: "1.08rem", fontWeight: 800, color: "#1e293b" }}>Total a Pagar</span>
-                    <span style={{ fontSize: "1.35rem", fontWeight: 900, color: "#2d5a27" }}>
-                      R$ {finalTotal.toFixed(2).replace(".", ",")}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* PAGAMENTO: CHECKOUT TRANSPARENTE (PIX, CARTÃO, PIX+CARTÃO) + CHECKOUT PRO / BOLETO */}
-              <div style={{ background: "white", borderRadius: 18, padding: "24px", boxShadow: "0 4px 18px rgba(0,0,0,0.05)" }}>
-                <h2 style={{ margin: "0 0 14px", fontSize: "1.1rem", color: "#1e293b", display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}>
-                  <CreditCard size={20} color="#2d5a27" />
-                  4. Escolha a Forma de Pagamento
-                </h2>
-
-                <CheckoutTransparente
-                  orderData={checkoutOrderData}
-                  userEmail={customerEmail.trim()}
-                  token={typeof window !== "undefined" ? localStorage.getItem("token") : null}
-                  splitPaymentEnabled={true}
-                  onPaymentSuccess={handlePaymentSuccess}
-                  onFallbackToCheckoutPro={handleCheckoutProRedirect}
-                  validateCustomerData={validateCustomerData}
-                />
-
-                {/* Opção adicional para Boleto / Saldo Mercado Pago via Checkout Pro */}
-                <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px dashed #e2e8f0", textAlign: "center" }}>
-                  <p style={{ margin: "0 0 10px", fontSize: "0.82rem", color: "#64748b" }}>
-                    Prefere pagar com <strong>Boleto Bancário</strong> ou <strong>Saldo da Conta Mercado Pago</strong>?
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleCheckoutProRedirect}
-                    disabled={checkoutProLoading}
-                    style={{
-                      width: "100%",
-                      padding: "12px 18px",
-                      borderRadius: 12,
-                      border: "1.5px solid #009ee3",
-                      background: "#f0f9ff",
-                      color: "#0284c7",
+                      margin: "-8px 0 14px",
+                      fontSize: "0.8rem",
                       fontWeight: 700,
-                      fontSize: "0.9rem",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
+                      color: couponMessage.isError ? "#dc2626" : "#15803d",
                     }}
                   >
-                    <ExternalLink size={16} />
-                    {checkoutProLoading
-                      ? "Abrindo Ambiente Mercado Pago..."
-                      : "Pagar via Mercado Pago (Boleto / Cartão / PIX)"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+                    {couponMessage.text}
+                  </p>
+                )}
 
-      {/* Modal para adicionar mais produtos do catálogo durante a revisão */}
-      {showAddCatalogModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15,23,42,0.6)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-          }}
-          onClick={() => setShowAddCatalogModal(false)}
-        >
-          <div
-            style={{
-              background: "white",
-              borderRadius: 20,
-              maxWidth: 620,
-              width: "100%",
-              maxHeight: "82vh",
-              overflowY: "auto",
-              padding: 24,
-              boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: "1.15rem", color: "#1e293b" }}>🌿 Catálogo de Produtos Ecosopis</h3>
-              <button
-                type="button"
-                onClick={() => setShowAddCatalogModal(false)}
-                style={{ border: "none", background: "#f1f5f9", borderRadius: 8, padding: "6px 12px", fontWeight: 700, cursor: "pointer" }}
-              >
-                Fechar ✕
-              </button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {catalog.map(prod => {
-                const pPrice =
-                  prod.is_on_sale && prod.sale_price && prod.sale_price > 0
-                    ? Number(prod.sale_price)
-                    : Number(prod.price || 0);
-                return (
+                {/* Linhas de Valores */}
+                <div className={styles.summaryRow}>
+                  <span>Subtotal ({items.reduce((a, b) => a + b.quantity, 0)} itens)</span>
+                  <strong style={{ color: "#1e293b" }}>
+                    R$ {subtotal.toFixed(2).replace(".", ",")}
+                  </strong>
+                </div>
+
+                {isWholesaleEligible && wholesaleSavings > 0 && (
+                  <div className={`${styles.summaryRow} ${styles.summaryRowDiscount}`}>
+                    <span>Desconto Atacado (45% OFF)</span>
+                    <span>Applied (-R$ {wholesaleSavings.toFixed(2).replace(".", ",")})</span>
+                  </div>
+                )}
+
+                {discountAmount > 0 && (
+                  <div className={`${styles.summaryRow} ${styles.summaryRowDiscount}`}>
+                    <span>Desconto Cupom ({appliedCoupon?.code})</span>
+                    <span>- R$ {discountAmount.toFixed(2).replace(".", ",")}</span>
+                  </div>
+                )}
+
+                <div className={styles.summaryRow}>
+                  <span>Frete ({selectedShipping ? selectedShipping.name : "A selecionar"})</span>
+                  <strong style={{ color: shippingCost === 0 ? "#15803d" : "#1e293b" }}>
+                    {selectedShipping
+                      ? shippingCost === 0
+                        ? "GRÁTIS"
+                        : `R$ ${shippingCost.toFixed(2).replace(".", ",")}`
+                      : "—"}
+                  </strong>
+                </div>
+
+                <div className={styles.totalRow}>
+                  <span>Total</span>
+                  <span>R$ {finalTotal.toFixed(2).replace(".", ",")}</span>
+                </div>
+
+                {/* SEÇÃO DE PAGAMENTO INTEGRADA */}
+                <div className={styles.paymentSection}>
                   <div
-                    key={prod.id}
                     style={{
                       display: "flex",
-                      justifyContent: "space-between",
                       alignItems: "center",
-                      padding: "10px 14px",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 12,
-                      gap: 12,
+                      gap: "8px",
+                      marginBottom: "12px",
+                      fontFamily: "var(--font-header)",
+                      fontWeight: 800,
+                      fontSize: "0.95rem",
+                      color: "#1a3a16",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      {prod.image_url ? (
-                        <img src={prod.image_url} alt={prod.name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover" }} />
-                      ) : (
-                        <div style={{ width: 44, height: 44, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>🌿</div>
-                      )}
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#1e293b" }}>{prod.name}</div>
-                        <div style={{ fontSize: "0.8rem", color: "#2d5a27", fontWeight: 700 }}>
-                          R$ {pPrice.toFixed(2).replace(".", ",")}
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => addProductFromCatalog(prod)}
-                      style={{
-                        background: "#2d5a27",
-                        color: "white",
-                        border: "none",
-                        borderRadius: 8,
-                        padding: "8px 14px",
-                        fontSize: "0.82rem",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      + Adicionar
-                    </button>
+                    <ShieldCheck size={18} color="#2d5a27" />
+                    <span>ESCOLHA COMO PAGAR</span>
                   </div>
-                );
-              })}
-            </div>
+
+                  {!isFormValid ? (
+                    <div className={styles.pendingChecklistBox}>
+                      <p className={styles.pendingChecklistTitle}>
+                        ⚠️ Complete os dados ao lado para liberar o pagamento:
+                      </p>
+                      <ul className={styles.pendingChecklistItems}>
+                        {validationErrors.map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <>
+                      <div className={styles.paymentTabs}>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentTab("transparente")}
+                          className={`${styles.paymentTab} ${
+                            paymentTab === "transparente" ? styles.paymentTabActive : ""
+                          }`}
+                        >
+                          PIX, Cartão (até 12x) ou PIX + Cartão
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentTab("mercadopago_pro")}
+                          className={`${styles.paymentTab} ${
+                            paymentTab === "mercadopago_pro" ? styles.paymentTabActive : ""
+                          }`}
+                        >
+                          Mercado Pago / Boleto
+                        </button>
+                      </div>
+
+                      {paymentTab === "transparente" ? (
+                        <CheckoutTransparente
+                          orderData={{
+                            orderId: orderCreated?.id || null,
+                            items: items.map((item) => ({
+                              id: item.id,
+                              name: item.name,
+                              quantity: item.quantity,
+                              price:
+                                isWholesaleEligible && item.isWholesale
+                                  ? Math.round(item.price * 0.55 * 100) / 100
+                                  : item.price,
+                            })),
+                            total: finalTotal,
+                            shippingPrice: shippingCost,
+                            shippingMethod: selectedShipping
+                              ? `${selectedShipping.company || ""} - ${selectedShipping.name || ""}`
+                              : "Correios",
+                            shippingServiceId: selectedShipping?.id
+                              ? Number(selectedShipping.id)
+                              : null,
+                            address: {
+                              street: address.street.trim(),
+                              number: address.number.trim(),
+                              complement: address.complement.trim(),
+                              neighborhood: address.neighborhood.trim() || "Centro",
+                              city: address.city.trim(),
+                              state: address.state.trim().toUpperCase(),
+                              postal_code: cep.replace(/\D/g, ""),
+                              cep: cep.replace(/\D/g, ""),
+                              email: customerEmail.trim().toLowerCase(),
+                            },
+                            customerName: customerName.trim(),
+                            customerEmail: customerEmail.trim().toLowerCase(),
+                            customerPhone: customerPhone.trim(),
+                            customerCpf: customerCpf.replace(/\D/g, ""),
+                            couponCode: appliedCoupon?.code || null,
+                            discountAmount,
+                            cashbackAmount: 0,
+                          }}
+                          userEmail={customerEmail.trim().toLowerCase()}
+                          token={authToken || orderCreated?.guest_access_token || guestAccessToken}
+                          splitPaymentEnabled={true}
+                          validateCustomerData={() => isFormValid}
+                          onFallbackToCheckoutPro={() => setPaymentTab("mercadopago_pro")}
+                          onPaymentSuccess={async (paidOrderId, newGuestToken) => {
+                            if (newGuestToken) {
+                              setGuestAccessToken(newGuestToken);
+                              if (typeof window !== "undefined" && !authToken) {
+                                localStorage.setItem("token", newGuestToken);
+                                refreshProfile().catch(() => {});
+                              }
+                            }
+                            await persistReviewState({
+                              order_id: paidOrderId,
+                              guest_access_token: newGuestToken || guestAccessToken,
+                              status: "paid",
+                            });
+                            setOrderCompleted(true);
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            padding: "18px",
+                            background: "#f8fafc",
+                            borderRadius: "14px",
+                            border: "1px solid #e2e8f0",
+                            textAlign: "center",
+                          }}
+                        >
+                          <p
+                            style={{
+                              color: "#334155",
+                              fontSize: "0.88rem",
+                              marginBottom: "14px",
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            Pague com <strong>Boleto Bancário</strong>,{" "}
+                            <strong>Saldo Mercado Pago</strong>, <strong>PIX</strong> ou{" "}
+                            <strong>Cartão</strong> diretamente no ambiente seguro do Mercado Pago:
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleMercadoPagoProCheckout}
+                            disabled={creatingOrderForPro}
+                            style={{
+                              width: "100%",
+                              padding: "14px 18px",
+                              background: "#009ee3",
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: "12px",
+                              fontWeight: 800,
+                              fontSize: "0.95rem",
+                              cursor: creatingOrderForPro ? "wait" : "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "8px",
+                              boxShadow: "0 4px 12px rgba(0, 158, 227, 0.25)",
+                            }}
+                          >
+                            {creatingOrderForPro ? (
+                              <>
+                                <Loader2 size={18} className="animate-spin" />
+                                Redirecionando ao Mercado Pago...
+                              </>
+                            ) : (
+                              <>
+                                <ExternalLink size={18} />
+                                Pagar no Mercado Pago / Boleto
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Selo de Segurança igual ao /carrinho */}
+                <div className={styles.securityBadge}>
+                  <ShieldCheck size={28} color="#2d5a27" />
+                  <div>
+                    <strong>Compra 100% Segura • Ecosopis</strong>
+                    <p>Seus dados estão protegidos com criptografia SSL de 256 bits.</p>
+                  </div>
+                </div>
+              </div>
+            </aside>
           </div>
         </div>
-      )}
-
+      </div>
       <Footer />
-    </main>
+    </>
   );
 }
-

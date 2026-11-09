@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import { getDbPool } from './db';
+import { generateCatalogPdfBuffer } from './catalogPdfGenerator';
+import { PRODUCT_STATIC_DATA } from '@/lib/productData';
 
 export interface CatalogProduct {
   id: number;
@@ -190,6 +192,90 @@ function enqueueSafeCommerceReply(
 }
 
 /**
+ * Enfileira o envio do Catálogo Oficial em PDF (com prints dos cards e fotos de todos os produtos)
+ * mantendo a mesma cadência humanizada anti-ban.
+ */
+function enqueueSafeCommerceCatalogPdf(
+  sock: any,
+  remoteJid: string,
+  products: CatalogProduct[],
+  customerName: string = 'Cliente WhatsApp'
+) {
+  replyQueue.tasks.push(async () => {
+    try {
+      const elapsed = Date.now() - replyQueue.lastSentAt;
+      const minGapMs = 5500 + Math.floor(Math.random() * 2000);
+      if (elapsed < minGapMs) {
+        await sleep(minGapMs - elapsed);
+      }
+
+      try {
+        await sock.sendPresenceUpdate('composing', remoteJid);
+      } catch {}
+
+      const pdfBuffer = await generateCatalogPdfBuffer(products);
+
+      const typingDuration = 1800 + Math.floor(Math.random() * 1000);
+      await sleep(typingDuration);
+
+      try {
+        await sock.sendPresenceUpdate('paused', remoteJid);
+      } catch {}
+
+      const caption =
+        `📗 *CATÁLOGO OFICIAL ECOSOPIS (PDF)*\n` +
+        `_Abra o PDF acima para ver as fotos, benefícios e valores de todos os nossos produtos!_ ✨\n\n` +
+        `🛍️ *Gostou de algum produto?*\n` +
+        `👉 Basta digitar aqui na conversa o *NOME DO PRODUTO* que você deseja comprar (ex: *Sabonete de Açafrão*, *Óleo de Rosa Mosqueta*, *Kit Clareamento*...)!\n\n` +
+        `💬 _Ou, se preferir, me conte o que você procura tratar na sua pele ou cabelo que eu te indico as melhores opções!_`;
+
+      try {
+        await sock.sendMessage(remoteJid, {
+          document: pdfBuffer,
+          mimetype: 'application/pdf',
+          fileName: 'Catalogo-Ecosopis-Cosmeticos-Naturais.pdf',
+          caption,
+        });
+      } catch (docErr) {
+        console.warn('[WhatsApp Commerce] Falha ao enviar PDF como documento, enviando catálogo em texto:', docErr);
+        const fallbackText = buildCatalogMessage(products);
+        await sock.sendMessage(remoteJid, { text: fallbackText });
+      }
+
+      replyQueue.lastSentAt = Date.now();
+
+      const pool = getDbPool();
+      if (pool) {
+        const cleanPhone = remoteJid.split('@')[0].replace(/\D/g, '');
+        pool
+          .query(
+            `INSERT INTO whatsapp_message_logs (whatsapp_id, to_phone, recipient_name, message, trigger_type, status)
+             VALUES ('default', $1, $2, $3, 'whatsapp_commerce', 'SENT')`,
+            [cleanPhone, customerName, `[PDF Catálogo Ecosopis enviado] ${caption}`]
+          )
+          .catch(() => {});
+      }
+    } catch (err: any) {
+      console.error('[WhatsApp Commerce PDF Reply Error]:', err?.message || err);
+    }
+  });
+
+  if (!replyQueue.running) {
+    replyQueue.running = true;
+    (async () => {
+      try {
+        while (replyQueue.tasks.length > 0) {
+          const task = replyQueue.tasks.shift();
+          if (task) await task();
+        }
+      } finally {
+        replyQueue.running = false;
+      }
+    })();
+  }
+}
+
+/**
  * Busca os produtos ativos no PostgreSQL para montar o catálogo
  */
 export async function getActiveCatalogProducts(): Promise<CatalogProduct[]> {
@@ -325,6 +411,23 @@ async function saveSession(session: CommerceSession): Promise<void> {
 }
 
 /**
+ * Saudação consultiva inicial da IA (Lia) quando o cliente inicia uma compra.
+ * Em vez de despejar a lista completa, pergunta o que a pessoa procura e oferece a opção VER CATÁLOGO (PDF).
+ */
+export function buildConsultativeGreetingMessage(customerName?: string): string {
+  const firstName = customerName ? customerName.trim().split(/\s+/)[0] : '';
+  const greetingName = firstName && firstName.length >= 2 ? `, *${firstName}*` : '';
+
+  let msg = `🌿 Olá${greetingName}! Que alegria ter você na *ECOSOPIS Cosméticos Naturais*! ✨\n`;
+  msg += `Eu sou a *Lia*, sua consultora de beleza natural.\n\n`;
+  msg += `Me conta: *o que você procura hoje?* 😊\n`;
+  msg += `Você pode me falar o que gostaria de cuidar na sua pele ou cabelo (ex: *manchas, foliculite, acne e oleosidade, pele seca, queda capilar, cuidados íntimos, pés rachados, relaxamento...*) que eu te sugiro os produtos ideais!\n\n`;
+  msg += `📖 *Prefere ver todos os produtos com fotos?*\n`;
+  msg += `👉 Digite *VER CATÁLOGO* que eu envio agora mesmo aqui na conversa um *PDF com prints de todos os nossos produtos* e valores!`;
+  return msg;
+}
+
+/**
  * Monta o texto consolidado do Catálogo Ecosopis em uma única mensagem (evitando múltiplos disparos)
  */
 export function buildCatalogMessage(products: CatalogProduct[]): string {
@@ -339,7 +442,8 @@ export function buildCatalogMessage(products: CatalogProduct[]): string {
   });
 
   msg += `\n🛍️ *Qual produto você deseja conhecer ou comprar?*\n`;
-  msg += `👉 Responda com o *número* (ex: *1*, *2*...) ou digite o *nome* do produto.\n`;
+  msg += `👉 Responda com o *nome do produto* (ou o *número* de 1 a ${products.length}).\n`;
+  msg += `📖 _Para receber o PDF com fotos de todos os produtos, digite *VER CATÁLOGO*._\n`;
   msg += `_(A qualquer momento digite *CANCELAR* para sair ou *ATENDIMENTO* para falar com nossa equipe)_`;
   return msg;
 }
@@ -349,16 +453,23 @@ export function buildCatalogMessage(products: CatalogProduct[]): string {
  */
 function buildProductExplanationMessage(product: CatalogProduct): string {
   const price = getEffectivePrice(product);
+  const staticInfo = PRODUCT_STATIC_DATA[product.slug];
   const cleanDesc = (product.description || 'Cosmético natural formulado com ativos vegetais puros.')
     .replace(/<[^>]+>/g, '')
     .trim();
-  const cleanBenefits = (product.benefits || '')
+  const cleanBenefits = (staticInfo?.beneficios || product.benefits || '')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+  const cleanActives = (staticInfo?.ativos || product.ingredients || '')
     .replace(/<[^>]+>/g, '')
     .trim();
 
   let msg = `✨ *${product.name}*\n`;
   if (product.category) {
     msg += `🏷️ _Categoria: ${product.category}_\n`;
+  }
+  if (cleanActives && cleanActives.length > 3) {
+    msg += `🧪 *Ativos:* ${cleanActives}\n`;
   }
   msg += `\n📖 *Sobre o Produto:*\n${cleanDesc}\n`;
 
@@ -373,7 +484,7 @@ function buildProductExplanationMessage(product: CatalogProduct): string {
     msg += `\n📦 _Atacado (a partir de 10 un. no pedido): ${formatBRL(wholesalePrice)}/un._`;
   }
   msg += `\n\n🔢 *Quantas unidades de "${product.name}" você deseja comprar?*\n`;
-  msg += `👉 Digite apenas a *quantidade* (ex: *1*, *2*, *3*...) ou digite *CATALOGO* para ver outro produto.`;
+  msg += `👉 Digite apenas a *quantidade* (ex: *1*, *2*, *3*...) ou digite *VER CATÁLOGO* para ver outros produtos.`;
   return msg;
 }
 
@@ -607,6 +718,533 @@ function normalizeStr(s: string): string {
     .trim();
 }
 
+function isCatalogPdfRequest(norm: string): boolean {
+  return (
+    norm === 'ver catalogo' ||
+    norm === 'catalogo' ||
+    norm === 'pdf' ||
+    norm === 'catalogo pdf' ||
+    norm === 'ver todos' ||
+    norm === 'todos os produtos' ||
+    norm.includes('ver catalogo') ||
+    norm.includes('mandar catalogo') ||
+    norm.includes('enviar catalogo') ||
+    norm.includes('mostrar catalogo') ||
+    norm.includes('catalogo em pdf')
+  );
+}
+
+/**
+ * Identifica se o cliente digitou diretamente o NOME de um produto específico (ou seu número),
+ * diferenciando de quando ele descreve um sintoma, necessidade ou categoria ampla ("manchas", "foliculite", "sabonetes").
+ */
+function matchSpecificProductByName(
+  rawText: string,
+  products: CatalogProduct[]
+): CatalogProduct | undefined {
+  const norm = normalizeStr(rawText);
+  if (!norm) return undefined;
+
+  // 1. Número direto do item no catálogo ("1", "2"...)
+  const numMatch = norm.match(/^(\d+)$/);
+  if (numMatch) {
+    const idx = parseInt(numMatch[1], 10) - 1;
+    if (idx >= 0 && idx < products.length) {
+      return products[idx];
+    }
+  }
+
+  // Remove prefixos conversacionais de escolha ("quero o ", "vou levar o ", "escolho ", etc.)
+  const cleaned = norm
+    .replace(
+      /^(?:eu\s+)?(?:quero\s+comprar\s+|quero\s+levar\s+|quero\s+|gostaria\s+de\s+comprar\s+|gostaria\s+do\s+|gostaria\s+da\s+|me\s+ve\s+|escolho\s+|vou\s+querer\s+|prefiro\s+)?(?:o\s+|a\s+|os\s+|as\s+|um\s+|uma\s+)?/i,
+      ''
+    )
+    .replace(/[?.!]+$/g, '')
+    .trim();
+
+  // 2. Match exato pelo nome ou slug do produto
+  const exact = products.find(
+    (p) =>
+      normalizeStr(p.name) === norm ||
+      normalizeStr(p.name) === cleaned ||
+      normalizeStr(p.slug) === norm ||
+      normalizeStr(p.slug) === cleaned
+  );
+  if (exact) return exact;
+
+  // 3. Se a frase tem estrutura de dúvida/necessidade ("o que tem para...", "tenho manchas", "algo para acne")
+  // ou é apenas um termo genérico de sintoma/categoria, tratamos como busca consultiva (retorna undefined aqui)
+  const isConsultativeQuestion =
+    /\b(o que|qual|quais|algum|alguma|algo para|algo pra|bom para|bom pra|serve para|indica|indicar|sugere|sugestao|tenho|estou com|minha pele|meu cabelo|tratamento|como clarear|preciso de algo|procuro|ajuda para|cuidar)\b/.test(
+      norm
+    );
+
+  const genericNeedOrCategoryTerms = new Set([
+    'mancha',
+    'manchas',
+    'melasma',
+    'clarear',
+    'clareamento',
+    'foliculite',
+    'pelo encravado',
+    'pelos encravados',
+    'acne',
+    'espinha',
+    'espinhas',
+    'cravo',
+    'cravos',
+    'oleosidade',
+    'pele oleosa',
+    'pele seca',
+    'pele ressecada',
+    'pele sensivel',
+    'pele madura',
+    'hidratacao',
+    'hidratar',
+    'hidratante',
+    'cabelo',
+    'cabelos',
+    'queda de cabelo',
+    'queda capilar',
+    'crescimento capilar',
+    'frizz',
+    'intimo',
+    'cuidado intimo',
+    'higiene intima',
+    'corrimento',
+    'pes',
+    'pe rachado',
+    'pes rachados',
+    'rachadura',
+    'rachaduras',
+    'calcanhar',
+    'ansiedade',
+    'sono',
+    'insonia',
+    'dormir',
+    'relaxar',
+    'relaxamento',
+    'aromaterapia',
+    'estrias',
+    'cicatriz',
+    'rugas',
+    'sabonete',
+    'sabonetes',
+    'sabonete natural',
+    'sabonetes naturais',
+    'oleo',
+    'oleos',
+    'oleo vegetal',
+    'oleos vegetais',
+    'oleo essencial',
+    'oleos essenciais',
+    'creme',
+    'cremes',
+    'kit',
+    'kits',
+    'atacado',
+    'revenda',
+  ]);
+
+  if (genericNeedOrCategoryTerms.has(cleaned) || genericNeedOrCategoryTerms.has(norm)) {
+    return undefined;
+  }
+
+  // 4. Mapa de apelidos/nomes diretos de produtos específicos da Ecosopis
+  const specificSlugAliases: Array<{ slug: string; aliases: string[] }> = [
+    {
+      slug: 'kit-clareamento',
+      aliases: ['kit clareamento', 'kit clareador', 'kit super clareador'],
+    },
+    {
+      slug: 'kit-acne',
+      aliases: ['kit acne', 'kit anti acne', 'kit para acne', 'kit oleosidade'],
+    },
+    {
+      slug: 'kit-acafrao-argila',
+      aliases: ['kit acafrao', 'kit acafrao e argila', 'kit sabonetes'],
+    },
+    {
+      slug: 'sabonete-acafrao-dolomita',
+      aliases: [
+        'sabonete de acafrao',
+        'sabonete acafrao',
+        'acafrao e dolomita',
+        'acafrao dolomita',
+        'sabonete curcuma',
+      ],
+    },
+    {
+      slug: 'sabonete-clareador-argila-branca',
+      aliases: [
+        'sabonete clareador',
+        'sabonete super clareador',
+        'sabonete de argila branca',
+        'sabonete argila branca',
+        'argila branca',
+      ],
+    },
+    {
+      slug: 'sabonete-argila-verde',
+      aliases: ['sabonete de argila verde', 'sabonete argila verde', 'argila verde'],
+    },
+    {
+      slug: 'sabonete-carvao-ativado',
+      aliases: ['sabonete de carvao', 'sabonete carvao ativado', 'carvao ativado', 'carvao e calendula'],
+    },
+    {
+      slug: 'sabonete-rosa-mosqueta-argila-rosa',
+      aliases: [
+        'sabonete de rosa mosqueta',
+        'sabonete rosa mosqueta',
+        'sabonete de argila rosa',
+        'sabonete argila rosa',
+        'argila rosa',
+      ],
+    },
+    {
+      slug: 'sabonete-liquido-barbatimao',
+      aliases: ['sabonete liquido', 'sabonete liquido barbatimao', 'sabonete liquido de barbatimao'],
+    },
+    {
+      slug: 'sabonete-intimo-barbatimao',
+      aliases: ['sabonete intimo', 'sabonete de barbatimao', 'sabonete barbatimao'],
+    },
+    {
+      slug: 'creme-pes-de-anjo',
+      aliases: ['pes de anjo', 'creme pes de anjo', 'creme para os pes', 'creme para rachaduras'],
+    },
+    {
+      slug: 'creme-oleosidade-acne',
+      aliases: [
+        'creme facial',
+        'creme anti oleosidade',
+        'creme para oleosidade',
+        'creme oleosidade e acne',
+        'creme de acne',
+      ],
+    },
+    {
+      slug: 'desodorante-clareador-solido',
+      aliases: ['desodorante', 'desodorante clareador', 'desodorante solido', 'desodorante natural'],
+    },
+    {
+      slug: 'tonico-facial-antioxidante',
+      aliases: ['tonico', 'tonico facial', 'tonico antioxidante'],
+    },
+    {
+      slug: 'manteiga-ojon',
+      aliases: ['manteiga de ojon', 'manteiga ojon', 'ojon'],
+    },
+    {
+      slug: 'refil-rosa-mosqueta',
+      aliases: ['refil rosa mosqueta', 'refil de rosa mosqueta'],
+    },
+    {
+      slug: 'oleo-rosa-mosqueta-20ml',
+      aliases: ['rosa mosqueta 20ml', 'oleo rosa mosqueta 20ml', 'rosa mosqueta canina'],
+    },
+    {
+      slug: 'oleo-rosa-mosqueta-puro',
+      aliases: [
+        'oleo de rosa mosqueta',
+        'oleo rosa mosqueta',
+        'rosa mosqueta puro',
+        'rosa mosqueta rubiginosa',
+        'rosa mosqueta',
+      ],
+    },
+    {
+      slug: 'oleo-alecrim',
+      aliases: ['oleo de alecrim', 'oleo alecrim', 'oleo vegetal de alecrim'],
+    },
+    {
+      slug: 'oleo-ricino',
+      aliases: ['oleo de ricino', 'oleo ricino', 'ricino'],
+    },
+    {
+      slug: 'oleo-abacate',
+      aliases: ['oleo de abacate', 'oleo abacate'],
+    },
+    {
+      slug: 'oleo-argan',
+      aliases: ['oleo de argan', 'oleo argan', 'argan'],
+    },
+    {
+      slug: 'oleo-semente-uva',
+      aliases: ['oleo de semente de uva', 'semente de uva', 'oleo semente de uva'],
+    },
+    {
+      slug: 'oe-lavanda',
+      aliases: ['oleo essencial de lavanda', 'oleo de lavanda', 'oe lavanda', 'lavanda francesa', 'lavanda'],
+    },
+    {
+      slug: 'oe-melaleuca',
+      aliases: ['oleo essencial de melaleuca', 'oleo de melaleuca', 'oe melaleuca', 'melaleuca', 'tea tree'],
+    },
+    {
+      slug: 'oe-menta',
+      aliases: ['oleo essencial de menta', 'oleo de menta', 'menta piperita', 'oe menta', 'menta'],
+    },
+    {
+      slug: 'oe-laranja',
+      aliases: ['oleo essencial de laranja', 'oleo de laranja', 'laranja doce', 'oe laranja'],
+    },
+  ];
+
+  if (!isConsultativeQuestion) {
+    for (const entry of specificSlugAliases) {
+      if (entry.aliases.some((alias) => cleaned === alias || cleaned.includes(alias))) {
+        const found = products.find((p) => normalizeStr(p.slug) === entry.slug);
+        if (found) return found;
+      }
+    }
+
+    // 5. Match aproximado pelo nome de qualquer produto cadastrado no banco
+    const stopWords = new Set(['de', 'da', 'do', 'dos', 'das', 'para', 'com', 'sem', 'puro', 'natural']);
+    const userTokens = cleaned.split(/\s+/).filter((w) => w.length >= 3 && !stopWords.has(w));
+    if (userTokens.length >= 1) {
+      // Se o nome do produto contém o texto limpo (e o texto tem pelo menos 5 letras e aponta para 1 único produto)
+      const substringMatches = products.filter(
+        (p) =>
+          cleaned.length >= 5 &&
+          (normalizeStr(p.name).includes(cleaned) ||
+            userTokens.every((t) => normalizeStr(p.name).includes(t)))
+      );
+      if (substringMatches.length === 1) {
+        return substringMatches[0];
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Motor Consultivo da IA (Lia): analisa o que a pessoa procura (necessidade, sintoma, tipo de pele ou categoria)
+ * e sugere os melhores produtos com explicação personalizada + opção de digitar o nome do produto ou VER CATÁLOGO (PDF).
+ */
+function buildConsultativeRecommendationMessage(
+  rawText: string,
+  products: CatalogProduct[]
+): string {
+  const norm = normalizeStr(rawText);
+
+  interface NeedProfile {
+    label: string;
+    intro: string;
+    slugs: string[];
+    keywords: string[];
+  }
+
+  const profiles: NeedProfile[] = [
+    {
+      label: 'Foliculite & Pelos Encravados',
+      intro:
+        'Para cuidar de *foliculite, pelos encravados e irritações pós-depilação*, estas são as nossas fórmulas naturais mais amadas:',
+      slugs: ['sabonete-acafrao-dolomita', 'kit-acafrao-argila', 'sabonete-clareador-argila-branca'],
+      keywords: ['foliculite', 'pelo', 'encravado', 'depilacao', 'depilar', 'virilha', 'bumbum', 'barba', 'acafrao', 'curcuma'],
+    },
+    {
+      label: 'Clareamento de Manchas & Melasma',
+      intro:
+        'Para *clarear manchas, melasma, marcas de acne ou áreas escurecidas* e devolver o viço à pele, recomendo:',
+      slugs: [
+        'sabonete-clareador-argila-branca',
+        'oleo-rosa-mosqueta-puro',
+        'kit-clareamento',
+        'desodorante-clareador-solido',
+      ],
+      keywords: ['mancha', 'manchas', 'clarear', 'clareamento', 'clareador', 'melasma', 'uniformizar', 'escura', 'escurecida'],
+    },
+    {
+      label: 'Acne, Espinhas & Controle de Oleosidade',
+      intro:
+        'Para *controlar a oleosidade, secar espinhas e desobstruir os poros* sem efeito rebote, indico:',
+      slugs: [
+        'sabonete-argila-verde',
+        'sabonete-carvao-ativado',
+        'creme-oleosidade-acne',
+        'oe-melaleuca',
+        'kit-acne',
+      ],
+      keywords: ['acne', 'espinha', 'espinhas', 'cravo', 'cravos', 'oleosidade', 'oleosa', 'poros', 'brilho'],
+    },
+    {
+      label: 'Hidratação, Pele Seca, Sensível ou Madura',
+      intro:
+        'Para *nutrir profundamente, regenerar peles secas/maduras e suavizar linhas finas*, estas opções são perfeitas:',
+      slugs: [
+        'sabonete-rosa-mosqueta-argila-rosa',
+        'oleo-rosa-mosqueta-puro',
+        'oleo-semente-uva',
+        'oleo-abacate',
+        'tonico-facial-antioxidante',
+      ],
+      keywords: ['seca', 'ressecada', 'ressecamento', 'hidratar', 'hidratacao', 'hidratante', 'madura', 'sensivel', 'rugas', 'linhas', 'estrias', 'cicatriz', 'dermatite'],
+    },
+    {
+      label: 'Cuidado Capilar, Queda & Crescimento dos Fios',
+      intro:
+        'Para *fortalecer os cabelos, combater a queda, estimular o crescimento e nutrir os fios*, indico:',
+      slugs: ['oleo-alecrim', 'oleo-ricino', 'manteiga-ojon', 'oleo-argan', 'oleo-abacate'],
+      keywords: ['cabelo', 'cabelos', 'capilar', 'queda', 'crescimento', 'crescer', 'fio', 'fios', 'frizz', 'couro cabeludo', 'sobrancelha', 'umectacao'],
+    },
+    {
+      label: 'Cuidado Íntimo Natural & Barbatimão',
+      intro:
+        'Para o *cuidado íntimo diário com pH equilibrado, frescor e proteção natural*, temos:',
+      slugs: ['sabonete-intimo-barbatimao', 'sabonete-liquido-barbatimao'],
+      keywords: ['intimo', 'intima', 'barbatimao', 'corrimento', 'coceira', 'ginecologico'],
+    },
+    {
+      label: 'Pés Rachados & Ressecamento Intenso',
+      intro:
+        'Para *recuperar calcanhares rachados e hidratar profundamente os pés*, este produto é transformador:',
+      slugs: ['creme-pes-de-anjo', 'oleo-abacate'],
+      keywords: ['pe', 'pes', 'rachadura', 'rachaduras', 'calcanhar', 'calcanhares', 'aspero'],
+    },
+    {
+      label: 'Desodorante Natural & Clareamento de Axilas',
+      intro:
+        'Para *proteger contra odores por 24h sem alumínio e clarear as axilas naturalmente*, indico:',
+      slugs: ['desodorante-clareador-solido', 'sabonete-clareador-argila-branca'],
+      keywords: ['axila', 'axilas', 'suor', 'odor', 'transpiracao', 'aluminio', 'desodorante'],
+    },
+    {
+      label: 'Relaxamento, Sono, Bem-Estar & Aromaterapia',
+      intro:
+        'Para *relaxar, melhorar o sono, aliviar a ansiedade ou aromatizar seu ambiente*, recomendo nossos Óleos Essenciais 100% puros:',
+      slugs: ['oe-lavanda', 'oe-laranja', 'oe-menta', 'oe-melaleuca'],
+      keywords: ['relaxar', 'relaxamento', 'sono', 'dormir', 'insonia', 'ansiedade', 'estresse', 'foco', 'respiracao', 'difusor', 'aroma', 'aromaterapia', 'essencial', 'essenciais'],
+    },
+    {
+      label: 'Sabonetes Naturais & Fitoterápicos',
+      intro:
+        'Nossos *Sabonetes Botânicos* são os queridinhos da Ecosopis! Veja qual combina mais com a sua pele:',
+      slugs: [
+        'sabonete-acafrao-dolomita',
+        'sabonete-clareador-argila-branca',
+        'sabonete-argila-verde',
+        'sabonete-rosa-mosqueta-argila-rosa',
+        'sabonete-intimo-barbatimao',
+      ],
+      keywords: ['sabonete', 'sabonetes', 'banho', 'rosto', 'limpeza'],
+    },
+    {
+      label: 'Óleos Vegetais 100% Puros',
+      intro:
+        'Nossos *Óleos Vegetais 100% Puros* prensados a frio são riquíssimos em nutrientes para pele e cabelos:',
+      slugs: ['oleo-rosa-mosqueta-puro', 'oleo-alecrim', 'oleo-semente-uva', 'oleo-ricino', 'oleo-argan'],
+      keywords: ['oleo', 'oleos', 'vegetal', 'vegetais'],
+    },
+    {
+      label: 'Kits de Tratamento Completo',
+      intro:
+        'Nossos *Kits de Tratamento* reúnem as melhores combinações com desconto especial:',
+      slugs: ['kit-clareamento', 'kit-acafrao-argila', 'kit-acne'],
+      keywords: ['kit', 'kits', 'combo', 'rotina', 'completo'],
+    },
+  ];
+
+  let matchedProfile: NeedProfile | null = null;
+  let bestHitCount = 0;
+
+  for (const prof of profiles) {
+    const hits = prof.keywords.filter((kw) => norm.includes(kw)).length;
+    if (hits > bestHitCount) {
+      bestHitCount = hits;
+      matchedProfile = prof;
+    }
+  }
+
+  let suggestedProducts: CatalogProduct[] = [];
+  let introText = '';
+
+  if (matchedProfile) {
+    introText = matchedProfile.intro;
+    for (const slug of matchedProfile.slugs) {
+      const p = products.find((item) => normalizeStr(item.slug) === slug);
+      if (p && !suggestedProducts.some((s) => s.id === p.id)) {
+        suggestedProducts.push(p);
+      }
+    }
+  }
+
+  // Se não caiu em um perfil predefinido, pontua produtos por palavras da mensagem em nome/benefícios/ingredientes/descrição
+  if (suggestedProducts.length === 0) {
+    const tokens = norm.split(/\s+/).filter((w) => w.length >= 3);
+    const scored = products
+      .map((p) => {
+        const staticInfo = PRODUCT_STATIC_DATA[p.slug];
+        const haystack = normalizeStr(
+          `${p.name} ${p.category} ${p.description} ${p.benefits} ${p.ingredients} ${staticInfo?.ativos || ''} ${staticInfo?.beneficios || ''}`
+        );
+        let score = 0;
+        for (const t of tokens) {
+          if (haystack.includes(t)) score += 2;
+        }
+        return { product: p, score };
+      })
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+    if (scored.length > 0) {
+      suggestedProducts = scored.slice(0, 4).map((x) => x.product);
+      introText = `Encontrei estas opções perfeitas na *ECOSOPIS* para o que você procura:`;
+    }
+  }
+
+  // Fallback para os Campeões de Vendas caso a mensagem seja muito aberta (ex: "me indica algum", "qual o mais vendido")
+  if (suggestedProducts.length === 0) {
+    const bestSellers = [
+      'sabonete-acafrao-dolomita',
+      'sabonete-clareador-argila-branca',
+      'oleo-rosa-mosqueta-puro',
+      'sabonete-argila-verde',
+    ];
+    for (const slug of bestSellers) {
+      const p = products.find((item) => normalizeStr(item.slug) === slug);
+      if (p) suggestedProducts.push(p);
+    }
+    if (suggestedProducts.length === 0) {
+      suggestedProducts = products.slice(0, 4);
+    }
+    introText = `Separei os nossos *campeões de vendas da ECOSOPIS* para você conhecer:`;
+  }
+
+  suggestedProducts = suggestedProducts.slice(0, 4);
+
+  let msg = `🌿 ${introText}\n\n`;
+  suggestedProducts.forEach((p) => {
+    const price = getEffectivePrice(p);
+    const staticInfo = PRODUCT_STATIC_DATA[p.slug];
+    const benefitText = (
+      staticInfo?.frase_decisao ||
+      staticInfo?.beneficios ||
+      p.benefits ||
+      p.description ||
+      'Cosmético 100% natural e vegano.'
+    )
+      .replace(/\r?\n+/g, ' ')
+      .replace(/[•*]/g, '')
+      .trim();
+    const shortBenefit = benefitText.length > 125 ? `${benefitText.slice(0, 122)}...` : benefitText;
+
+    msg += `✨ *${p.name}* — *${formatBRL(price)}*\n`;
+    msg += `   _${shortBenefit}_\n\n`;
+  });
+
+  const exampleName = suggestedProducts[0]?.name || 'Sabonete de Açafrão';
+  msg += `🛍️ *Gostou de alguma dessas opções?*\n`;
+  msg += `👉 Para comprar, basta digitar aqui o *nome do produto* (ex: *${exampleName}*)!\n\n`;
+  msg += `💬 _Se quiser outra sugestão, me conte mais sobre o que procura._\n`;
+  msg += `📖 *Quer ver todos os produtos com fotos?* Digite *VER CATÁLOGO* que eu te envio o *PDF com prints de todos os produtos*!`;
+
+  return msg;
+}
+
 /**
  * Processa mensagens recebidas no WhatsApp conectado.
  * Retorna `true` se a mensagem fez parte do fluxo de compra/catálogo,
@@ -647,7 +1285,7 @@ export async function handleIncomingWhatsAppCommerceMessage(
       enqueueSafeCommerceReply(
         sock,
         remoteJid,
-        `✅ Seu atendimento de compra foi encerrado e o carrinho limpo.\n\nSempre que quiser fazer um novo pedido pelo WhatsApp, basta enviar *COMPRAR* ou *CATÁLOGO*! 🌿`,
+        `✅ Seu atendimento de compra foi encerrado e o carrinho limpo.\n\nSempre que quiser fazer um novo pedido pelo WhatsApp, basta enviar *COMPRAR* ou *VER CATÁLOGO*! 🌿`,
         session.customer.name
       );
       return true;
@@ -668,10 +1306,31 @@ export async function handleIncomingWhatsAppCommerceMessage(
     return true;
   }
 
-  // Gatilhos para abrir o Catálogo e iniciar compra
+  // Se o cliente pediu explicitamente para VER CATÁLOGO / PDF em qualquer momento
+  const wantsPdfCatalog = isCatalogPdfRequest(norm);
+  if (wantsPdfCatalog) {
+    const products = await getActiveCatalogProducts();
+    if (products.length === 0) {
+      enqueueSafeCommerceReply(
+        sock,
+        remoteJid,
+        `🌿 Olá! No momento nosso catálogo está sendo atualizado. Você pode conferir todos os produtos diretamente em nosso site oficial:\n👉 https://www.ecosopis.com.br/produtos`,
+        session.customer.name
+      );
+      return true;
+    }
+
+    session.step = 'AWAITING_PRODUCT';
+    session.selectedProductId = null;
+    await saveSession(session);
+
+    enqueueSafeCommerceCatalogPdf(sock, remoteJid, products, session.customer.name);
+    return true;
+  }
+
+  // Gatilhos para iniciar compra com a IA consultiva ("O que você procura?")
   const isBuyTrigger =
     norm === 'comprar' ||
-    norm === 'catalogo' ||
     norm === 'produtos' ||
     norm === 'cardapio' ||
     norm === 'loja' ||
@@ -679,7 +1338,6 @@ export async function handleIncomingWhatsAppCommerceMessage(
     norm === 'quero comprar' ||
     norm === 'fazer pedido' ||
     norm.startsWith('comprar ') ||
-    norm.includes('ver catalogo') ||
     norm.includes('quero comprar');
 
   if (isBuyTrigger) {
@@ -698,70 +1356,83 @@ export async function handleIncomingWhatsAppCommerceMessage(
     session.selectedProductId = null;
     await saveSession(session);
 
-    const catalogText = buildCatalogMessage(products);
-    enqueueSafeCommerceReply(sock, remoteJid, catalogText, session.customer.name);
+    // Se a pessoa já escreveu "comprar sabonete de açafrão", tenta identificar o produto direto
+    if (norm.startsWith('comprar ') && norm.length > 9) {
+      const restQuery = rawText.replace(/^\s*comprar\s+/i, '').trim();
+      const directProd = matchSpecificProductByName(restQuery, products);
+      if (directProd) {
+        session.selectedProductId = directProd.id;
+        session.step = 'AWAITING_QUANTITY';
+        await saveSession(session);
+        enqueueSafeCommerceReply(
+          sock,
+          remoteJid,
+          buildProductExplanationMessage(directProd),
+          session.customer.name
+        );
+        return true;
+      }
+    }
+
+    const greeting = buildConsultativeGreetingMessage(session.customer.name);
+    enqueueSafeCommerceReply(sock, remoteJid, greeting, session.customer.name);
     return true;
   }
 
   // Se o cliente não está em uma sessão ativa de compra, deixa o fluxo padrão responder
-  // (mas o fluxo padrão agora também informa que basta digitar COMPRAR ou CATÁLOGO!)
   if (session.step === 'IDLE') {
     return false;
   }
 
   const products = await getActiveCatalogProducts();
 
-  // ── ETAPA 1: ESCOLHA DO PRODUTO ────────────────────────────────────────────
+  // ── ETAPA 1: CONSULTORIA IA ("O QUE VOCÊ PROCURA?") OU ESCOLHA PELO NOME ──
   if (session.step === 'AWAITING_PRODUCT') {
-    let chosen: CatalogProduct | undefined;
+    const chosen = matchSpecificProductByName(rawText, products);
 
-    // Verifica se digitou o número do item no catálogo (ex: "1", "2")
-    const numMatch = norm.match(/^(\d+)$/);
-    if (numMatch) {
-      const idx = parseInt(numMatch[1], 10) - 1;
-      if (idx >= 0 && idx < products.length) {
-        chosen = products[idx];
-      }
-    }
+    if (chosen) {
+      session.selectedProductId = chosen.id;
+      session.step = 'AWAITING_QUANTITY';
+      await saveSession(session);
 
-    // Se não escolheu por número, busca por nome/slug aproximado
-    if (!chosen) {
-      chosen = products.find(p => normalizeStr(p.name) === norm || normalizeStr(p.slug) === norm);
-      if (!chosen) {
-        chosen = products.find(
-          p =>
-            normalizeStr(p.name).includes(norm) ||
-            norm.split(/\s+/).filter(w => w.length >= 3).every(w => normalizeStr(p.name).includes(w))
-        );
-      }
-    }
-
-    if (!chosen) {
-      enqueueSafeCommerceReply(
-        sock,
-        remoteJid,
-        `🤔 Não consegui identificar esse produto.\n\nPor favor, digite apenas o *número* do produto da lista (de *1* a *${products.length}*) ou digite *CATALOGO* para ver a lista novamente.`,
-        session.customer.name
-      );
+      const explanation = buildProductExplanationMessage(chosen);
+      enqueueSafeCommerceReply(sock, remoteJid, explanation, session.customer.name);
       return true;
     }
 
-    session.selectedProductId = chosen.id;
-    session.step = 'AWAITING_QUANTITY';
-    await saveSession(session);
-
-    const explanation = buildProductExplanationMessage(chosen);
-    enqueueSafeCommerceReply(sock, remoteJid, explanation, session.customer.name);
+    // Não foi o nome exato de 1 produto: a IA atua como consultora sugerindo produtos para o que a pessoa procura!
+    const suggestionReply = buildConsultativeRecommendationMessage(rawText, products);
+    enqueueSafeCommerceReply(sock, remoteJid, suggestionReply, session.customer.name);
     return true;
   }
 
   // ── ETAPA 2: ESCOLHA DA QUANTIDADE ─────────────────────────────────────────
   if (session.step === 'AWAITING_QUANTITY') {
-    if (norm === 'voltar' || norm === '0') {
+    if (norm === 'voltar' || norm === '0' || norm === 'outro' || norm === 'trocar') {
       session.step = 'AWAITING_PRODUCT';
       session.selectedProductId = null;
       await saveSession(session);
-      enqueueSafeCommerceReply(sock, remoteJid, buildCatalogMessage(products), session.customer.name);
+      enqueueSafeCommerceReply(
+        sock,
+        remoteJid,
+        `🌿 Sem problemas! Me conte *o que você procura* ou digite o *nome de outro produto* (ou envie *VER CATÁLOGO* para receber o PDF com fotos de todos os produtos):`,
+        session.customer.name
+      );
+      return true;
+    }
+
+    // Se em vez de número o cliente digitou o nome de outro produto, troca para o novo produto!
+    const switchedProduct = matchSpecificProductByName(rawText, products);
+    if (switchedProduct && !/^\d+$/.test(norm)) {
+      session.selectedProductId = switchedProduct.id;
+      session.step = 'AWAITING_QUANTITY';
+      await saveSession(session);
+      enqueueSafeCommerceReply(
+        sock,
+        remoteJid,
+        buildProductExplanationMessage(switchedProduct),
+        session.customer.name
+      );
       return true;
     }
 
@@ -771,7 +1442,7 @@ export async function handleIncomingWhatsAppCommerceMessage(
       enqueueSafeCommerceReply(
         sock,
         remoteJid,
-        `🔢 Por favor, digite apenas a *quantidade desejada* em números (ex: *1*, *2*, *3*...) ou digite *CATALOGO* para escolher outro produto.`,
+        `🔢 Por favor, digite apenas a *quantidade desejada* em números (ex: *1*, *2*, *3*...) ou digite *VER CATÁLOGO* para escolher outro produto.`,
         session.customer.name
       );
       return true;
@@ -781,7 +1452,12 @@ export async function handleIncomingWhatsAppCommerceMessage(
     if (!product) {
       session.step = 'AWAITING_PRODUCT';
       await saveSession(session);
-      enqueueSafeCommerceReply(sock, remoteJid, buildCatalogMessage(products), session.customer.name);
+      enqueueSafeCommerceReply(
+        sock,
+        remoteJid,
+        buildConsultativeGreetingMessage(session.customer.name),
+        session.customer.name
+      );
       return true;
     }
 
@@ -821,7 +1497,7 @@ export async function handleIncomingWhatsAppCommerceMessage(
       `${summary}\n\n` +
       `Deseja adicionar mais algum produto ou fechar a compra?\n` +
       `1️⃣ Digite *1* (ou *FECHAR*) para informar seus dados e fechar a compra\n` +
-      `2️⃣ Digite *2* (ou *MAIS*) para escolher outro produto do catálogo`;
+      `2️⃣ Digite *2* (ou *MAIS*) para buscar outro produto ou ver o catálogo`;
 
     enqueueSafeCommerceReply(sock, remoteJid, reply, session.customer.name);
     return true;
@@ -847,7 +1523,12 @@ export async function handleIncomingWhatsAppCommerceMessage(
     if (wantsMore) {
       session.step = 'AWAITING_PRODUCT';
       await saveSession(session);
-      enqueueSafeCommerceReply(sock, remoteJid, buildCatalogMessage(products), session.customer.name);
+      enqueueSafeCommerceReply(
+        sock,
+        remoteJid,
+        `🌿 *Ótimo! O que mais você gostaria de adicionar ao seu pedido?*\n\n👉 Digite o *nome do produto*, me conte *o que procura cuidar* para eu te sugerir opções, ou digite *VER CATÁLOGO* para receber o *PDF com fotos de todos os produtos*!`,
+        session.customer.name
+      );
       return true;
     }
 
@@ -866,10 +1547,25 @@ export async function handleIncomingWhatsAppCommerceMessage(
       return true;
     }
 
+    // Se o cliente digitou diretamente o nome de outro produto nessa etapa, já seleciona!
+    const directMoreProduct = matchSpecificProductByName(rawText, products);
+    if (directMoreProduct) {
+      session.selectedProductId = directMoreProduct.id;
+      session.step = 'AWAITING_QUANTITY';
+      await saveSession(session);
+      enqueueSafeCommerceReply(
+        sock,
+        remoteJid,
+        buildProductExplanationMessage(directMoreProduct),
+        session.customer.name
+      );
+      return true;
+    }
+
     enqueueSafeCommerceReply(
       sock,
       remoteJid,
-      `Por favor, escolha uma opção:\n1️⃣ Digite *1* para *FECHAR O PEDIDO*\n2️⃣ Digite *2* para *ADICIONAR MAIS PRODUTOS*`,
+      `Por favor, escolha uma opção:\n1️⃣ Digite *1* para *FECHAR O PEDIDO*\n2️⃣ Digite *2* para *ADICIONAR MAIS PRODUTOS* (ou digite *VER CATÁLOGO* para ver o PDF completo)`,
       session.customer.name
     );
     return true;

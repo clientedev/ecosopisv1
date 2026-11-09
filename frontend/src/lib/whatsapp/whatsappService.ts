@@ -508,12 +508,12 @@ export async function connectWhatsApp(
       }
     });
 
-    // 3. Fluxo de Compra pelo WhatsApp (Catálogo Interativo) + Resposta Automática Oficial Ecosopis
+    // 3. Fluxo de Compra pelo WhatsApp (Consultora IA + Catálogo PDF) + Resposta Automática Oficial Ecosopis
     const autoReplyText = 
       `🌿 *ECOSOPIS Cosméticos Naturais*\n\n` +
       `Olá! Bem-vindo(a) ao canal automático da Ecosopis.\n\n` +
       `🛍️ *Quer realizar uma compra agora mesmo pelo WhatsApp?*\n` +
-      `👉 Digite *COMPRAR* ou *CATÁLOGO* para ver nossos produtos, conhecer os benefícios e fechar seu pedido por aqui!\n\n` +
+      `👉 Digite *COMPRAR* para nossa consultora te indicar os produtos ideais para você, ou digite *VER CATÁLOGO* para receber o nosso *Catálogo em PDF com fotos de todos os produtos*!\n\n` +
       `💬 *Deseja atendimento humano?*\n` +
       `Nos chame no WhatsApp oficial de atendimento:\n` +
       `📱 *WhatsApp Atendimento:* (11) 95155-9212\n` +
