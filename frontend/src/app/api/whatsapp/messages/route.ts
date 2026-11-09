@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getWhatsAppMessageLogs } from '@/lib/whatsapp/templates';
-import { getQueueStatus, setQueuePaused } from '@/lib/whatsapp/whatsappService';
+import { getQueueStatus, setQueuePaused, sendSingleMessageByIdNow } from '@/lib/whatsapp/whatsappService';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +29,22 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
+
+    if (body.action === 'send_single' && body.logId) {
+      const singleRes = await sendSingleMessageByIdNow(Number(body.logId));
+      if (!singleRes.success) {
+        return NextResponse.json(
+          { error: singleRes.error || 'Falha ao disparar mensagem individualmente' },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        status: 'SENT',
+        messageId: singleRes.messageId,
+      });
+    }
+
     const shouldPause =
       body.action === 'pause'
         ? true

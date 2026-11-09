@@ -843,6 +843,76 @@ export async function setQueuePaused(paused: boolean): Promise<{
   return { paused, affectedCount };
 }
 
+/**
+ * Dispara imediatamente UMA única mensagem da fila/histórico pelo seu ID,
+ * sem despausar nem liberar o restante da fila.
+ */
+export async function sendSingleMessageByIdNow(
+  logId: number
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const res = await safeDbQuery(
+    `SELECT id, to_phone, recipient_name, message, trigger_type, status
+     FROM whatsapp_message_logs
+     WHERE id = $1
+     LIMIT 1`,
+    [logId]
+  );
+  const row = res?.rows?.[0];
+  if (!row) {
+    return { success: false, error: 'Mensagem não encontrada no histórico.' };
+  }
+
+  // Se o socket não estiver conectado mas houver sessão salva, tenta reconectar rapidamente
+  if (!state.socket || state.status !== 'CONNECTED') {
+    if (!state.isDestroying && (await hasValidSavedSession())) {
+      await connectWhatsApp('default', false).catch(() => {});
+      for (let i = 0; i < 15; i++) {
+        if (state.socket && state.status === 'CONNECTED') break;
+        await sleep(300);
+      }
+    }
+  }
+
+  if (!state.socket || state.status !== 'CONNECTED') {
+    return {
+      success: false,
+      error: 'WhatsApp não está conectado no momento. Verifique a aba Conexão.'
+    };
+  }
+
+  await safeDbQuery(
+    `UPDATE whatsapp_message_logs SET status = 'SENDING' WHERE id = $1`,
+    [logId]
+  );
+
+  try {
+    const result = await state.socket.sendMessage(formatToWhatsAppJid(row.to_phone), {
+      text: row.message
+    });
+    queueControl.lastSentAt = Date.now();
+    await safeDbQuery(
+      `UPDATE whatsapp_message_logs SET status = 'SENT', error = NULL, created_at = NOW() WHERE id = $1`,
+      [logId]
+    );
+    state.events.emit('message_sent', {
+      to: row.to_phone,
+      recipientName: row.recipient_name,
+      message: row.message,
+      triggerType: row.trigger_type,
+      date: new Date(),
+      messageId: result?.key?.id
+    });
+    return { success: true, messageId: result?.key?.id };
+  } catch (err: any) {
+    const errMsg = err?.message || 'Falha no envio individual';
+    await safeDbQuery(
+      `UPDATE whatsapp_message_logs SET status = 'FAILED', error = $1 WHERE id = $2`,
+      [errMsg, logId]
+    );
+    return { success: false, error: errMsg };
+  }
+}
+
 async function processQueue() {
   if (queueControl.running || queueControl.paused) return;
   queueControl.running = true;

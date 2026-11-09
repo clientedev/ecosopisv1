@@ -175,6 +175,7 @@ export default function AdminWhatsAppPage() {
   const [retryingAll, setRetryingAll] = useState(false);
   const [queuePaused, setQueuePaused] = useState(false);
   const [togglingPause, setTogglingPause] = useState(false);
+  const [sendingSingleId, setSendingSingleId] = useState<number | null>(null);
 
   // ── ABA USUÁRIOS ──
   const [usersList, setUsersList] = useState<UserItem[]>([]);
@@ -403,6 +404,46 @@ export default function AdminWhatsAppPage() {
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [logs, activeTab]);
+
+  const handleSendSingleQueuedMessage = async (log: MessageLogItem) => {
+    setSendingSingleId(log.id);
+    setAlert(null);
+    const previousStatus = log.status;
+    setLogs(prev => prev.map(item => item.id === log.id ? { ...item, status: 'SENDING' } : item));
+    try {
+      const res = await fetch('/api/whatsapp/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          action: 'send_single',
+          logId: log.id
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Falha ao disparar mensagem individualmente.');
+      }
+
+      setLogs(prev => prev.map(item => item.id === log.id ? { ...item, status: 'SENT', error: undefined } : item));
+      setAlert({
+        type: 'success',
+        text: `✓ Mensagem para ${log.recipient_name || log.to_phone} disparada individualmente com sucesso! O restante da fila permanece pausado.`
+      });
+      fetchLogs();
+    } catch (err: any) {
+      setLogs(prev => prev.map(item => item.id === log.id ? { ...item, status: previousStatus } : item));
+      setAlert({
+        type: 'error',
+        text: `Erro ao disparar para ${log.recipient_name || log.to_phone}: ${err.message}`
+      });
+    } finally {
+      setSendingSingleId(null);
+    }
+  };
 
   const handleRetrySingleMessage = async (log: MessageLogItem) => {
     setRetryingId(log.id);
@@ -1881,7 +1922,30 @@ export default function AdminWhatsAppPage() {
                           )}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          {log.status === 'FAILED' ? (
+                          {log.status === 'PAUSED' || log.status === 'QUEUED' ? (
+                            <button
+                              onClick={() => handleSendSingleQueuedMessage(log)}
+                              disabled={sendingSingleId === log.id || retryingAll || togglingPause}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 5,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                padding: '5px 10px',
+                                borderRadius: 8,
+                                border: '1px solid #16a34a',
+                                background: sendingSingleId === log.id ? '#dcfce7' : '#16a34a',
+                                color: sendingSingleId === log.id ? '#166534' : '#ffffff',
+                                cursor: sendingSingleId === log.id ? 'wait' : 'pointer',
+                                whiteSpace: 'nowrap'
+                              }}
+                              title="Disparar apenas esta mensagem agora sem soltar o restante da fila"
+                            >
+                              <Send size={12} />
+                              {sendingSingleId === log.id ? 'Disparando...' : 'Disparar agora'}
+                            </button>
+                          ) : log.status === 'FAILED' ? (
                             <button
                               onClick={() => handleRetrySingleMessage(log)}
                               disabled={retryingId === log.id || retryingAll}
