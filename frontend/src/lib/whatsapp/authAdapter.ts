@@ -174,7 +174,7 @@ export async function hasValidSavedSession(whatsappId: string = 'default'): Prom
       `SELECT data FROM baileys_auth_state_backup WHERE whatsapp_id = $1 AND data_id = 'creds' LIMIT 1`,
       [whatsappId]
     ).catch(() => null);
-    if (backupRes?.rows?.length > 0 && backupRes.rows[0].data) {
+    if (backupRes && backupRes.rows && backupRes.rows.length > 0 && backupRes.rows[0].data) {
       try {
         const parsedBackup = JSON.parse(backupRes.rows[0].data, BufferJSON.reviver);
         if (parsedBackup?.registered || parsedBackup?.me || parsedBackup?.account || parsedBackup?.noiseKey) return true;

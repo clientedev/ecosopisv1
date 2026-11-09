@@ -457,12 +457,16 @@ function parsePersonalFields(text: string, current: CommerceCustomerData): Comme
   if (emailMatch) remaining = remaining.replace(emailMatch[0], ' ');
   if (cpfMatch) remaining = remaining.replace(cpfMatch[0], ' ');
   remaining = remaining
-    .replace(/\b(nome|cpf|e-mail|email)\s*[:=-]?/gi, ' ')
+    .replace(/\b(meu|minha|nome|completo|cpf|e-mail|email|segue|aqui|esta|está)\s*[:=-]?/gi, ' ')
     .replace(/[,;|/\n\r]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
-  if (remaining.length >= 3 && !/^\d+$/.test(remaining)) {
+  if (
+    remaining.length >= 3 &&
+    !/^\d+$/.test(remaining) &&
+    (!updated.name || /\bnome\b/i.test(text) || Boolean(emailMatch && cpfMatch))
+  ) {
     updated.name = remaining;
   }
 
@@ -629,9 +633,7 @@ export async function handleIncomingWhatsAppCommerceMessage(
   const norm = normalizeStr(rawText);
   const session = await loadSession(remoteJid);
   const pushName = msg?.pushName ? String(msg.pushName).trim() : '';
-  if (pushName && !session.customer.name && pushName.length >= 3) {
-    session.customer.name = pushName;
-  }
+  const displayName = session.customer.name || pushName || 'Cliente';
 
   // Comandos de saída / cancelamento
   if (['cancelar', 'sair', 'encerrar', 'parar', 'limpar'].includes(norm)) {
