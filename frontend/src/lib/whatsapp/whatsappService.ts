@@ -778,20 +778,76 @@ function startWatchdog(whatsappId: string) {
 
 // ---------------------------------------------------------------------------
 // Fila de envio: UMA mensagem por vez, com intervalo mínimo de 30s entre elas.
-// A fila vive no PostgreSQL (status QUEUED) e sobrevive a redeploys.
+// A fila vive no PostgreSQL (status QUEUED / PAUSED) e sobrevive a redeploys.
 // ---------------------------------------------------------------------------
 export const WHATSAPP_SEND_GAP_MS = 30000;
 
-const queueControl: { running: boolean; stopped: boolean; lastSentAt: number; interval: NodeJS.Timeout | null } =
-  ((globalThis as any).__wa_queue_control__ ||= { running: false, stopped: false, lastSentAt: 0, interval: null });
+const queueControl: {
+  running: boolean;
+  stopped: boolean;
+  paused: boolean;
+  lastSentAt: number;
+  interval: NodeJS.Timeout | null;
+} = ((globalThis as any).__wa_queue_control__ ||= {
+  running: false,
+  stopped: false,
+  paused: false,
+  lastSentAt: 0,
+  interval: null,
+});
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
+export async function getQueueStatus(): Promise<{
+  paused: boolean;
+  queuedCount: number;
+  pausedCount: number;
+}> {
+  const countsRes = await safeDbQuery(
+    `SELECT
+       COUNT(*) FILTER (WHERE status = 'QUEUED' OR status = 'SENDING') AS queued_count,
+       COUNT(*) FILTER (WHERE status = 'PAUSED') AS paused_count
+     FROM whatsapp_message_logs`
+  );
+  const queuedCount = parseInt(countsRes?.rows?.[0]?.queued_count || '0', 10);
+  const pausedCount = parseInt(countsRes?.rows?.[0]?.paused_count || '0', 10);
+  const paused = Boolean(queueControl.paused || (pausedCount > 0 && queuedCount === 0));
+  if (pausedCount > 0 && queuedCount === 0) {
+    queueControl.paused = true;
+  }
+  return { paused, queuedCount, pausedCount };
+}
+
+export async function setQueuePaused(paused: boolean): Promise<{
+  paused: boolean;
+  affectedCount: number;
+}> {
+  queueControl.paused = paused;
+  let affectedCount = 0;
+
+  if (paused) {
+    const res = await safeDbQuery(
+      `UPDATE whatsapp_message_logs SET status = 'PAUSED' WHERE status = 'QUEUED'`
+    );
+    affectedCount = res?.rowCount || 0;
+  } else {
+    queueControl.stopped = false;
+    const res = await safeDbQuery(
+      `UPDATE whatsapp_message_logs SET status = 'QUEUED' WHERE status = 'PAUSED'`
+    );
+    affectedCount = res?.rowCount || 0;
+    processQueue().catch(() => {});
+  }
+
+  state.events.emit('queue_status', { paused, affectedCount });
+  return { paused, affectedCount };
+}
+
 async function processQueue() {
-  if (queueControl.running) return;
+  if (queueControl.running || queueControl.paused) return;
   queueControl.running = true;
   try {
-    while (!queueControl.stopped) {
+    while (!queueControl.stopped && !queueControl.paused) {
       const peek = await safeDbQuery(`SELECT id FROM whatsapp_message_logs WHERE status = 'QUEUED' LIMIT 1`);
       if (!peek || !peek.rows || peek.rows.length === 0) break;
 
@@ -804,6 +860,8 @@ async function processQueue() {
         continue;
       }
 
+      if (queueControl.stopped || queueControl.paused) break;
+
       // Intervalo mínimo de 30s desde o último envio (considera também envios de outro container)
       let sinceLast = Date.now() - queueControl.lastSentAt;
       const lastDb = await safeDbQuery(
@@ -815,6 +873,8 @@ async function processQueue() {
         await sleep(Math.min(WHATSAPP_SEND_GAP_MS - sinceLast + 200, WHATSAPP_SEND_GAP_MS));
         continue;
       }
+
+      if (queueControl.stopped || queueControl.paused) break;
 
       // Reivindica atomicamente a próxima mensagem
       const claim = await safeDbQuery(
@@ -869,19 +929,20 @@ export async function sendWhatsAppMessage(
   existingLogId?: number
 ): Promise<{ success: boolean; messageId?: string; error?: string; queued?: boolean; logId?: number }> {
   queueControl.stopped = false;
+  const targetStatus = queueControl.paused ? 'PAUSED' : 'QUEUED';
   let logId = existingLogId;
 
   if (existingLogId) {
     const upd = await safeDbQuery(
-      `UPDATE whatsapp_message_logs SET status = 'QUEUED', error = NULL, created_at = NOW() WHERE id = $1`,
-      [existingLogId]
+      `UPDATE whatsapp_message_logs SET status = $2, error = NULL, created_at = NOW() WHERE id = $1`,
+      [existingLogId, targetStatus]
     );
     if (!upd) return { success: false, error: 'Banco de dados indisponível para enfileirar a mensagem.' };
   } else {
     const ins = await safeDbQuery(
       `INSERT INTO whatsapp_message_logs (whatsapp_id, to_phone, recipient_name, message, trigger_type, status)
-       VALUES ('default', $1, $2, $3, $4, 'QUEUED') RETURNING id`,
-      [to, recipientName, message, triggerType]
+       VALUES ('default', $1, $2, $3, $4, $5) RETURNING id`,
+      [to, recipientName, message, triggerType, targetStatus]
     );
     logId = ins?.rows?.[0]?.id;
     if (!logId) return { success: false, error: 'Banco de dados indisponível para enfileirar a mensagem.' };
@@ -893,7 +954,9 @@ export async function sendWhatsAppMessage(
     }).catch(() => {});
   }
 
-  processQueue().catch(() => {});
+  if (!queueControl.paused) {
+    processQueue().catch(() => {});
+  }
   return { success: true, queued: true, logId };
 }
 

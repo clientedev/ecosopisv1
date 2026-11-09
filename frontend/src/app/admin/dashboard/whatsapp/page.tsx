@@ -35,7 +35,9 @@ import {
   ExternalLink,
   Smartphone,
   Eye,
-  Trash2
+  Trash2,
+  Pause,
+  Play
 } from 'lucide-react';
 
 interface WhatsAppStatus {
@@ -171,6 +173,8 @@ export default function AdminWhatsAppPage() {
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [retryingId, setRetryingId] = useState<number | null>(null);
   const [retryingAll, setRetryingAll] = useState(false);
+  const [queuePaused, setQueuePaused] = useState(false);
+  const [togglingPause, setTogglingPause] = useState(false);
 
   // ── ABA USUÁRIOS ──
   const [usersList, setUsersList] = useState<UserItem[]>([]);
@@ -336,6 +340,9 @@ export default function AdminWhatsAppPage() {
       if (res.ok) {
         const json = await res.json();
         setLogs(json.messages || []);
+        if (typeof json.queuePaused === 'boolean') {
+          setQueuePaused(json.queuePaused);
+        }
       }
     } catch (e) {
       console.error('Erro ao buscar logs:', e);
@@ -344,14 +351,53 @@ export default function AdminWhatsAppPage() {
     }
   };
 
+  const handleTogglePauseQueue = async () => {
+    const isCurrentlyPaused = queuePaused || logs.some(l => l.status === 'PAUSED');
+    const nextAction = isCurrentlyPaused ? 'resume' : 'pause';
+    setTogglingPause(true);
+    setAlert(null);
+    try {
+      const res = await fetch('/api/whatsapp/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({ action: nextAction })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao alterar estado da fila');
+      }
+      setQueuePaused(Boolean(data.queuePaused));
+      await fetchLogs();
+      setAlert({
+        type: 'success',
+        text: data.queuePaused
+          ? `⏸️ Disparo pausado com sucesso! As mensagens na fila não serão enviadas até você retomar.`
+          : `▶️ Disparo retomado! As mensagens da fila voltaram a ser enviadas (1 a cada 30s).`
+      });
+    } catch (err: any) {
+      setAlert({
+        type: 'error',
+        text: err.message || 'Erro ao pausar/retomar a fila de mensagens.'
+      });
+    } finally {
+      setTogglingPause(false);
+    }
+  };
+
   // Atualiza o histórico automaticamente enquanto houver mensagens na fila
   useEffect(() => {
     if (activeTab !== 'logs') return;
-    if (!logs.some(l => l.status === 'QUEUED' || l.status === 'SENDING')) return;
+    if (!logs.some(l => l.status === 'QUEUED' || l.status === 'SENDING' || l.status === 'PAUSED')) return;
     const t = setInterval(() => {
       fetch('/api/whatsapp/messages?limit=50', { headers: getAuthHeaders() })
         .then(r => (r.ok ? r.json() : null))
-        .then(json => { if (json?.messages) setLogs(json.messages); })
+        .then(json => {
+          if (json?.messages) setLogs(json.messages);
+          if (typeof json?.queuePaused === 'boolean') setQueuePaused(json.queuePaused);
+        })
         .catch(() => {});
     }, 10000);
     return () => clearInterval(t);
@@ -1673,13 +1719,57 @@ export default function AdminWhatsAppPage() {
                     ⚠️ {logs.filter(l => l.status === 'FAILED').length} mensagem(ns) pendente(s) de reenvio por falha anterior.
                   </p>
                 )}
-                {logs.some(l => l.status === 'QUEUED' || l.status === 'SENDING') && (
+                {logs.some(l => l.status === 'QUEUED' || l.status === 'SENDING') && !queuePaused && (
                   <p style={{ color: '#b45309', fontSize: 12, margin: '4px 0 0', fontWeight: 600 }}>
                     ⏳ {logs.filter(l => l.status === 'QUEUED' || l.status === 'SENDING').length} mensagem(ns) na fila (envio de 1 a cada 30s).
                   </p>
                 )}
+                {(queuePaused || logs.some(l => l.status === 'PAUSED')) && (
+                  <p style={{ color: '#c2410c', fontSize: 12, margin: '4px 0 0', fontWeight: 700 }}>
+                    ⏸️ Fila de disparos pausada ({logs.filter(l => l.status === 'PAUSED' || l.status === 'QUEUED').length} mensagem(ns) aguardando retomada).
+                  </p>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  onClick={handleTogglePauseQueue}
+                  disabled={togglingPause || loadingLogs}
+                  className={styles.btn}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontWeight: 700,
+                    padding: '9px 14px',
+                    borderRadius: 10,
+                    border: 'none',
+                    cursor: togglingPause || loadingLogs ? 'not-allowed' : 'pointer',
+                    background: (queuePaused || logs.some(l => l.status === 'PAUSED')) ? '#16a34a' : '#f59e0b',
+                    color: '#ffffff',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
+                  }}
+                  title={
+                    (queuePaused || logs.some(l => l.status === 'PAUSED'))
+                      ? 'Retomar o disparo das mensagens na fila'
+                      : 'Pausar imediatamente o envio das mensagens que estão na fila'
+                  }
+                >
+                  {(queuePaused || logs.some(l => l.status === 'PAUSED')) ? (
+                    <>
+                      <Play size={14} />
+                      {togglingPause
+                        ? 'Retomando...'
+                        : `Retomar Disparo da Fila${logs.filter(l => l.status === 'PAUSED' || l.status === 'QUEUED').length > 0 ? ` (${logs.filter(l => l.status === 'PAUSED' || l.status === 'QUEUED').length})` : ''}`}
+                    </>
+                  ) : (
+                    <>
+                      <Pause size={14} />
+                      {togglingPause
+                        ? 'Pausando...'
+                        : `Pausar Disparo da Fila${logs.filter(l => l.status === 'QUEUED' || l.status === 'SENDING').length > 0 ? ` (${logs.filter(l => l.status === 'QUEUED' || l.status === 'SENDING').length})` : ''}`}
+                    </>
+                  )}
+                </button>
                 {logs.some(l => l.status === 'FAILED') && (
                   <button
                     onClick={handleRetryAllFailed}
@@ -1749,6 +1839,14 @@ export default function AdminWhatsAppPage() {
                             <span className={styles.badgeSent}>
                               <CheckCircle size={12} />
                               Enviado
+                            </span>
+                          ) : log.status === 'PAUSED' ? (
+                            <span
+                              title="Disparo pausado manualmente pelo administrador"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: '#c2410c', background: '#ffedd5', padding: '3px 8px', borderRadius: 999 }}
+                            >
+                              <Pause size={12} />
+                              Pausado
                             </span>
                           ) : log.status === 'QUEUED' || log.status === 'SENDING' ? (
                             <span
