@@ -1,9 +1,10 @@
 /** @type {import('next').NextConfig} */
 const BACKEND_URL =
-  process.env.BACKEND_URL ||
-  process.env.API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  'https://web-production-33f04.up.railway.app';
+  process.env.BACKEND_URL && !process.env.BACKEND_URL.includes('localhost')
+    ? process.env.BACKEND_URL
+    : process.env.API_URL && !process.env.API_URL.includes('localhost')
+    ? process.env.API_URL
+    : 'https://web-production-33f04.up.railway.app';
 
 const path = require('path');
 
@@ -70,20 +71,24 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    return [
-      {
-        source: '/api/:path((?!whatsapp(?:/|$)).*)*',
-        destination: `${BACKEND_URL}/:path*`,
-      },
-      {
-        source: '/static/:path*',
-        destination: `${BACKEND_URL}/static/:path*`,
-      },
-      {
-        source: '/images/:path*',
-        destination: `${BACKEND_URL}/images/:path*`,
-      },
-    ];
+    return {
+      beforeFiles: [],
+      afterFiles: [],
+      fallback: [
+        {
+          source: '/api/:path*',
+          destination: `${BACKEND_URL}/api/:path*`,
+        },
+        {
+          source: '/static/:path*',
+          destination: `${BACKEND_URL}/static/:path*`,
+        },
+        {
+          source: '/images/:path*',
+          destination: `${BACKEND_URL}/images/:path*`,
+        },
+      ],
+    };
   },
   images: {
     formats: ['image/avif', 'image/webp'],

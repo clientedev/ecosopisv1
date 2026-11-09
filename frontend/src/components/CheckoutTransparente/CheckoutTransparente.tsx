@@ -299,7 +299,14 @@ export default function CheckoutTransparente({
                                         })
                                     });
 
-                                    const data = await response.json();
+                                    let data: any = null;
+                                    const contentType = response.headers.get("content-type") || "";
+                                    if (contentType.includes("application/json")) {
+                                        data = await response.json().catch(() => null);
+                                    } else {
+                                        const text = await response.text().catch(() => "");
+                                        data = { detail: text || `Erro no servidor (${response.status})` };
+                                    }
 
                                     if (response.ok && (data.status === "approved" || data.status === "authorized")) {
                                         persistGuestToken(data.order_id, data.guest_access_token);
@@ -399,7 +406,14 @@ export default function CheckoutTransparente({
                 body: JSON.stringify(payload)
             });
 
-            const data = await response.json();
+            let data: any = null;
+            const contentType = response.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+                data = await response.json().catch(() => null);
+            } else {
+                const text = await response.text().catch(() => "");
+                data = { detail: text || `Erro no servidor (${response.status})` };
+            }
             if (response.ok && data.qr_code) {
                 persistGuestToken(data.order_id, data.guest_access_token);
                 setPixData({
@@ -517,7 +531,14 @@ export default function CheckoutTransparente({
                     card_amount: Number(computedCardSplit.toFixed(2)),
                 }),
             });
-            const data = await res.json();
+            let data: any = null;
+            const contentType = res.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+                data = await res.json().catch(() => null);
+            } else {
+                const text = await res.text().catch(() => "");
+                data = { detail: text || `Erro no servidor (${res.status})` };
+            }
             if (res.ok && data.order_id) {
                 persistGuestToken(data.order_id, data.guest_access_token);
                 setSplitData(data);
@@ -546,7 +567,14 @@ export default function CheckoutTransparente({
                     guest_access_token: splitData.guest_access_token,
                 }),
             });
-            const data = await res.json();
+            let data: any = null;
+            const contentType = res.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+                data = await res.json().catch(() => null);
+            } else {
+                const text = await res.text().catch(() => "");
+                data = { detail: text || `Erro no servidor (${res.status})` };
+            }
             if (res.ok && data.pix_slice) {
                 setSplitData(prev => prev ? { ...prev, pix_slice: data.pix_slice } : prev);
             } else {
@@ -642,7 +670,14 @@ export default function CheckoutTransparente({
                                             guest_access_token: splitData.guest_access_token,
                                         }),
                                     });
-                                    const data = await response.json();
+                                    let data: any = null;
+                                    const contentType = response.headers.get("content-type") || "";
+                                    if (contentType.includes("application/json")) {
+                                        data = await response.json().catch(() => null);
+                                    } else {
+                                        const text = await response.text().catch(() => "");
+                                        data = { detail: text || `Erro no servidor (${response.status})` };
+                                    }
                                     if (response.ok && (data.slice_status === "approved" || data.slice_status === "in_process")) {
                                         resolve(data);
                                         setSplitData(prev =>
