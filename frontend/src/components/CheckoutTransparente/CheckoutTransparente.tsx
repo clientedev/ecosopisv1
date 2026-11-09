@@ -105,6 +105,42 @@ export default function CheckoutTransparente({
     // Error state
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+    const formatErrorMessage = (detail: any, fallback = "Erro ao processar o pagamento. Verifique os dados informados."): string => {
+        if (!detail) return fallback;
+        if (typeof detail === "string") return detail;
+        if (Array.isArray(detail)) {
+            return detail
+                .map((d: any) => {
+                    if (typeof d === "string") return d;
+                    if (d && typeof d === "object") {
+                        const field = Array.isArray(d.loc)
+                            ? d.loc.filter((x: any) => x !== "body" && x !== "order_data").join(".")
+                            : "";
+                        const msg = d.msg || d.message || JSON.stringify(d);
+                        return field ? `${field}: ${msg}` : msg;
+                    }
+                    return String(d);
+                })
+                .join(" | ");
+        }
+        if (typeof detail === "object") {
+            if (detail.detail) return formatErrorMessage(detail.detail, fallback);
+            return detail.msg || detail.message || JSON.stringify(detail);
+        }
+        return String(detail);
+    };
+
+    const normalizeCheckoutItems = (rawItems: any[]) => {
+        return (rawItems || []).map((item: any) => ({
+            product_id: Number(item.product_id ?? item.id),
+            id: Number(item.id ?? item.product_id),
+            product_name: String(item.product_name ?? item.name ?? item.title ?? "Produto"),
+            name: String(item.name ?? item.product_name ?? item.title ?? "Produto"),
+            quantity: Math.max(1, Number(item.quantity || 1)),
+            price: Number(item.price || 0),
+        }));
+    };
+
     const persistGuestToken = (orderId: number, guestToken?: string | null) => {
         if (typeof window !== "undefined" && orderId && guestToken) {
             try {
@@ -234,24 +270,26 @@ export default function CheckoutTransparente({
                                         headers["Authorization"] = `Bearer ${token}`;
                                     }
 
+                                    const cleanCpf = (orderData.customerCpf || "").replace(/\D/g, "");
                                     const response = await fetch("/api/payment/process-transparent-card", {
                                         method: "POST",
                                         headers,
                                         body: JSON.stringify({
                                             order_data: {
-                                                items: orderData.items,
-                                                total: orderData.total,
-                                                shipping_price: orderData.shippingPrice,
-                                                shipping_method: orderData.shippingMethod,
-                                                shipping_service_id: orderData.shippingServiceId,
+                                                order_id: orderData.orderId || undefined,
+                                                items: normalizeCheckoutItems(orderData.items),
+                                                total: Number(orderData.total || 0),
+                                                shipping_price: Number(orderData.shippingPrice || 0),
+                                                shipping_method: orderData.shippingMethod || "fixo",
+                                                shipping_service_id: orderData.shippingServiceId ?? null,
                                                 address: orderData.address,
-                                                customer_name: orderData.customerName,
-                                                customer_email: userEmail || (orderData.address as any)?.email || "",
-                                                customer_phone: orderData.customerPhone,
-                                                customer_cpf: orderData.customerCpf,
-                                                coupon_code: orderData.couponCode,
-                                                discount_amount: orderData.discountAmount,
-                                                cashback_amount: orderData.cashbackAmount,
+                                                customer_name: (orderData.customerName || "").trim(),
+                                                customer_email: (userEmail || (orderData.address as any)?.email || orderData.customerEmail || "").trim(),
+                                                customer_phone: (orderData.customerPhone || "").trim(),
+                                                customer_cpf: cleanCpf,
+                                                coupon_code: orderData.couponCode || null,
+                                                discount_amount: Number(orderData.discountAmount || 0),
+                                                cashback_amount: Number(orderData.cashbackAmount || 0),
                                             },
                                             token: cardFormData.token,
                                             installments: cardFormData.installments,
@@ -273,7 +311,7 @@ export default function CheckoutTransparente({
                                         const gt = data.guest_access_token ? `&guest_token=${encodeURIComponent(data.guest_access_token)}` : "";
                                         window.location.href = `/pagamento?status=pending&order_id=${data.order_id}${gt}`;
                                     } else {
-                                        const msg = data.detail || data.message || "Cartão não autorizado pelo emissor. Verifique os dados ou utilize outro cartão.";
+                                        const msg = formatErrorMessage(data?.detail || data?.message, "Cartão não autorizado pelo emissor. Verifique os dados ou utilize outro cartão.");
                                         setErrorMessage(msg);
                                         reject(msg);
                                     }
@@ -337,24 +375,28 @@ export default function CheckoutTransparente({
                 headers["Authorization"] = `Bearer ${token}`;
             }
 
+            const cleanCpf = (orderData.customerCpf || "").replace(/\D/g, "");
+            const payload: any = {
+                order_id: orderData.orderId || undefined,
+                items: normalizeCheckoutItems(orderData.items),
+                total: Number(orderData.total || 0),
+                shipping_price: Number(orderData.shippingPrice || 0),
+                shipping_method: orderData.shippingMethod || "fixo",
+                shipping_service_id: orderData.shippingServiceId ?? null,
+                address: orderData.address,
+                customer_name: (orderData.customerName || "").trim(),
+                customer_email: (userEmail || (orderData.address as any)?.email || orderData.customerEmail || "").trim(),
+                customer_phone: (orderData.customerPhone || "").trim(),
+                customer_cpf: cleanCpf,
+                coupon_code: orderData.couponCode || null,
+                discount_amount: Number(orderData.discountAmount || 0),
+                cashback_amount: Number(orderData.cashbackAmount || 0),
+            };
+
             const response = await fetch("/api/payment/process-transparent-pix", {
                 method: "POST",
                 headers,
-                body: JSON.stringify({
-                    items: orderData.items,
-                    total: orderData.total,
-                    shipping_price: orderData.shippingPrice,
-                    shipping_method: orderData.shippingMethod,
-                    shipping_service_id: orderData.shippingServiceId,
-                    address: orderData.address,
-                    customer_name: orderData.customerName,
-                    customer_email: userEmail || (orderData.address as any)?.email || "",
-                    customer_phone: orderData.customerPhone,
-                    customer_cpf: orderData.customerCpf,
-                    coupon_code: orderData.couponCode,
-                    discount_amount: orderData.discountAmount,
-                    cashback_amount: orderData.cashbackAmount,
-                })
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
@@ -371,7 +413,7 @@ export default function CheckoutTransparente({
                 });
                 setPixPolling(true);
             } else {
-                setErrorMessage(data.detail || "Erro ao gerar PIX. Verifique os dados informados.");
+                setErrorMessage(formatErrorMessage(data?.detail || data?.message, "Erro ao gerar PIX. Verifique os dados informados."));
             }
         } catch (err: any) {
             console.error("PIX error:", err);
@@ -450,25 +492,26 @@ export default function CheckoutTransparente({
             const headers: Record<string, string> = { "Content-Type": "application/json" };
             if (token) headers["Authorization"] = `Bearer ${token}`;
 
+            const cleanCpf = (orderData.customerCpf || "").replace(/\D/g, "");
             const res = await fetch("/api/payment/split/init", {
                 method: "POST",
                 headers,
                 body: JSON.stringify({
                     order_data: {
                         order_id: orderData.orderId || splitData?.order_id || undefined,
-                        items: orderData.items,
-                        total: orderData.total,
-                        shipping_price: orderData.shippingPrice,
-                        shipping_method: orderData.shippingMethod,
-                        shipping_service_id: orderData.shippingServiceId,
+                        items: normalizeCheckoutItems(orderData.items),
+                        total: Number(orderData.total || 0),
+                        shipping_price: Number(orderData.shippingPrice || 0),
+                        shipping_method: orderData.shippingMethod || "fixo",
+                        shipping_service_id: orderData.shippingServiceId ?? null,
                         address: orderData.address,
-                        customer_name: orderData.customerName,
-                        customer_email: userEmail || orderData.customerEmail || (orderData.address as any)?.email || "",
-                        customer_phone: orderData.customerPhone,
-                        customer_cpf: orderData.customerCpf,
-                        coupon_code: orderData.couponCode,
-                        discount_amount: orderData.discountAmount,
-                        cashback_amount: orderData.cashbackAmount,
+                        customer_name: (orderData.customerName || "").trim(),
+                        customer_email: (userEmail || orderData.customerEmail || (orderData.address as any)?.email || "").trim(),
+                        customer_phone: (orderData.customerPhone || "").trim(),
+                        customer_cpf: cleanCpf,
+                        coupon_code: orderData.couponCode || null,
+                        discount_amount: Number(orderData.discountAmount || 0),
+                        cashback_amount: Number(orderData.cashbackAmount || 0),
                     },
                     pix_amount: Number(parsedPixSplit.toFixed(2)),
                     card_amount: Number(computedCardSplit.toFixed(2)),
@@ -479,7 +522,7 @@ export default function CheckoutTransparente({
                 persistGuestToken(data.order_id, data.guest_access_token);
                 setSplitData(data);
             } else {
-                setErrorMessage(data.detail || "Não foi possível iniciar o pagamento combinado.");
+                setErrorMessage(formatErrorMessage(data?.detail || data?.message, "Não foi possível iniciar o pagamento combinado."));
             }
         } catch (err) {
             setErrorMessage("Erro de conexão ao iniciar o pagamento combinado. Tente novamente.");
@@ -507,7 +550,7 @@ export default function CheckoutTransparente({
             if (res.ok && data.pix_slice) {
                 setSplitData(prev => prev ? { ...prev, pix_slice: data.pix_slice } : prev);
             } else {
-                setErrorMessage(data.detail || "Não foi possível regenerar o QR Code PIX.");
+                setErrorMessage(formatErrorMessage(data?.detail || data?.message, "Não foi possível regenerar o QR Code PIX."));
             }
         } catch (e) {
             setErrorMessage("Erro ao regenerar PIX.");
@@ -625,9 +668,10 @@ export default function CheckoutTransparente({
                                             }, 1000);
                                         }
                                     } else {
-                                        const msg =
-                                            data.detail ||
-                                            "Cartão recusado pelo emissor. A parte do PIX permanece preservada — você pode tentar outro cartão.";
+                                        const msg = formatErrorMessage(
+                                            data?.detail || data?.message,
+                                            "Cartão recusado pelo emissor. A parte do PIX permanece preservada — você pode tentar outro cartão."
+                                        );
                                         setSplitCardError(msg);
                                         setSplitData(prev =>
                                             prev

@@ -1674,7 +1674,12 @@ export default function FinalizarCompraWhatsAppPage() {
                             orderId: orderCreated?.id || null,
                             items: items.map((item) => ({
                               id: item.id,
+                              product_id: item.id,
                               name: item.name,
+                              product_name:
+                                isWholesaleEligible && item.isWholesale
+                                  ? `${item.name} (Atacado)`
+                                  : item.name,
                               quantity: item.quantity,
                               price:
                                 isWholesaleEligible && item.isWholesale

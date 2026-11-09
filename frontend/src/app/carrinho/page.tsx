@@ -747,7 +747,9 @@ export default function CarrinhoPage() {
             const isItemDiscounted = i.isWholesale && isWholesaleEligible;
             const finalPrice = isItemDiscounted ? i.price * 0.55 : i.price;
             return {
+                id: i.id,
                 product_id: i.id,
+                name: isItemDiscounted ? `${i.name} (Atacado)` : i.name,
                 product_name: isItemDiscounted ? `${i.name} (Atacado)` : i.name,
                 quantity: i.quantity,
                 price: finalPrice
@@ -765,8 +767,8 @@ export default function CarrinhoPage() {
         },
         customerName: customerName.trim() || (user?.full_name?.trim() ?? ""),
         customerEmail: (user?.email || customerEmail || (address as any)?.email || "").trim(),
-        customerPhone: customerPhone,
-        customerCpf: customerCpf.replace(/\D/g, ""),
+        customerPhone: (customerPhone || user?.phone || "").trim(),
+        customerCpf: (customerCpf || (user as any)?.cpf || "").replace(/\D/g, ""),
         couponCode: activeCouponCode,
         discountAmount: activeDiscountAmount,
         cashbackAmount: cashbackDiscount,

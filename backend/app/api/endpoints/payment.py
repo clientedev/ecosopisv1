@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -27,10 +27,36 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 
 # ── Pydantic schemas ─────────────────────────────────────────────────────────
 class CheckoutItemIn(BaseModel):
-    product_id: int
-    product_name: str
-    quantity: int
-    price: float
+    product_id: Optional[int] = None
+    id: Optional[int] = None
+    product_name: Optional[str] = None
+    name: Optional[str] = None
+    quantity: int = 1
+    price: float = 0.0
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_fields(cls, data):
+        if not isinstance(data, dict):
+            return data
+        pid = data.get("product_id")
+        if pid is None:
+            pid = data.get("id")
+        if pid is not None:
+            try:
+                data["product_id"] = int(pid)
+                data["id"] = int(pid)
+            except Exception:
+                data["product_id"] = 0
+                data["id"] = 0
+        else:
+            data["product_id"] = 0
+            data["id"] = 0
+
+        pname = data.get("product_name") or data.get("name") or data.get("title") or "Produto"
+        data["product_name"] = str(pname)
+        data["name"] = str(pname)
+        return data
 
 
 class CreateCheckoutIn(BaseModel):
@@ -48,6 +74,29 @@ class CreateCheckoutIn(BaseModel):
     customer_cpf: Optional[str] = None
     discount_amount: Optional[float] = 0.0
     cashback_amount: Optional[float] = 0.0
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_checkout_fields(cls, data):
+        if not isinstance(data, dict):
+            return data
+        if "orderId" in data and not data.get("order_id"):
+            data["order_id"] = data["orderId"]
+        if "customerCpf" in data and not data.get("customer_cpf"):
+            data["customer_cpf"] = data["customerCpf"]
+        if "customerName" in data and not data.get("customer_name"):
+            data["customer_name"] = data["customerName"]
+        if "customerEmail" in data and not data.get("customer_email"):
+            data["customer_email"] = data["customerEmail"]
+        if "customerPhone" in data and not data.get("customer_phone"):
+            data["customer_phone"] = data["customerPhone"]
+        if "shippingPrice" in data and "shipping_price" not in data:
+            data["shipping_price"] = data["shippingPrice"]
+        if "shippingMethod" in data and "shipping_method" not in data:
+            data["shipping_method"] = data["shippingMethod"]
+        if "shippingServiceId" in data and "shipping_service_id" not in data:
+            data["shipping_service_id"] = data["shippingServiceId"]
+        return data
 
 
 class CheckoutResponse(BaseModel):
