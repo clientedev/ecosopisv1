@@ -217,6 +217,18 @@ export default function FinalizarCompraWhatsAppPage() {
         if (data.coupon_code) {
           setCouponInput(data.coupon_code);
         }
+        if (data.shipping_method) {
+          const parts = String(data.shipping_method).split(" - ");
+          const initialOpt = {
+            id: data.shipping_service_id || 1,
+            company: parts[0] || "Correios",
+            name: parts.slice(1).join(" - ") || data.shipping_method,
+            price: Number(data.shipping_price || 0),
+            delivery_time: 5,
+          };
+          setShippingOptions([initialOpt]);
+          setSelectedShipping(initialOpt);
+        }
         if (data.guest_access_token) {
           setGuestAccessToken(data.guest_access_token);
         }
@@ -263,55 +275,119 @@ export default function FinalizarCompraWhatsAppPage() {
     Math.round((rawTotalBeforeWholesale - subtotal) * 100) / 100
   );
 
-  // Barra de Progresso de Frete Grátis igual ao /carrinho
+  // Barra de Progresso de Frete Grátis igual ao /carrinho (por prefixo de CEP ou UF)
   const freeShippingThreshold = useMemo(() => {
+    const cleanCep = (cep || "").replace(/\D/g, "");
+    if (cleanCep.length === 8) {
+      const prefix = parseInt(cleanCep.substring(0, 2), 10);
+      if ((prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99)) {
+        return 148.9;
+      }
+      return 248.9;
+    }
     const uf = (address.state || "SP").toUpperCase();
     return SOUTH_SOUTHEAST_UFS.includes(uf) ? 148.9 : 248.9;
-  }, [address.state]);
+  }, [cep, address.state]);
+
+  const appliesFreeShipping = subtotal >= freeShippingThreshold;
 
   const missingForFreeShipping = useMemo(() => {
     return Math.max(0, Math.round((freeShippingThreshold - subtotal) * 100) / 100);
   }, [freeShippingThreshold, subtotal]);
 
-  // Cálculo de Frete automático ao ter CEP válido e itens
+  // Identifica a opção mais barata para aplicar o Frete Grátis igual ao /carrinho
+  const cheapestOption = useMemo(() => {
+    if (!shippingOptions || shippingOptions.length === 0) return null;
+    return [...shippingOptions].sort((a, b) => Number(a.price || 0) - Number(b.price || 0))[0];
+  }, [shippingOptions]);
+
+  // Cálculo de Frete automático ao ter CEP válido e itens (formato exato do /api/shipping/calculate)
   const calculateShippingForCep = useCallback(
-    async (cepValue: string, currentSubtotal: number) => {
+    async (cepValue: string) => {
       const cleanCep = (cepValue || "").replace(/\D/g, "");
       if (cleanCep.length !== 8 || items.length === 0) return;
 
       setLoadingShipping(true);
       try {
+        const reqBody = {
+          dest_cep: cleanCep,
+          items: items.map((item) => {
+            const lowerName = (item.name || "").toLowerCase().trim();
+            let unitWeight = 0.1;
+            if (
+              lowerName.includes("sabonete") &&
+              (lowerName.includes("líquido") || lowerName.includes("liquido"))
+            ) {
+              unitWeight = 0.3;
+            }
+            const unitPrice =
+              isWholesaleEligible && item.isWholesale
+                ? Math.round(item.price * 0.55 * 100) / 100
+                : item.price;
+            return {
+              id: String(item.id),
+              name: item.name,
+              width: 16,
+              height: 12,
+              length: 20,
+              weight: unitWeight,
+              price: unitPrice,
+              quantity: item.quantity,
+            };
+          }),
+        };
+
         const res = await fetch("/api/shipping/calculate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cep: cleanCep,
-            cart_total: currentSubtotal,
-            items: items.map((i) => ({
-              id: String(i.id),
-              quantity: i.quantity,
-              price: i.price,
-            })),
-          }),
+          body: JSON.stringify(reqBody),
         });
+
+        let list: any[] = [];
         if (res.ok) {
           const data = await res.json();
-          const list = Array.isArray(data) ? data : [];
-          setShippingOptions(list);
-          if (list.length > 0) {
-            const cheapest = [...list].sort(
-              (a, b) => Number(a.price || 0) - Number(b.price || 0)
-            )[0];
-            setSelectedShipping((prev: any) => {
-              if (prev) {
-                const stillExists = list.find(
-                  (o: any) => o.id === prev.id || o.name === prev.name
-                );
-                if (stillExists) return stillExists;
-              }
-              return cheapest;
-            });
+          if (Array.isArray(data)) {
+            list = data;
           }
+        }
+
+        // Fallback regional caso o Melhor Envio retorne vazio/503
+        if (list.length === 0) {
+          const prefix = parseInt(cleanCep.substring(0, 2) || "1", 10);
+          const isSP = prefix >= 1 && prefix <= 19;
+          const isSouthSoutheast =
+            (prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99);
+          list = [
+            {
+              id: 1,
+              company: "Correios",
+              name: "PAC",
+              price: isSP ? 16.9 : isSouthSoutheast ? 22.9 : 31.9,
+              delivery_time: isSP ? 4 : isSouthSoutheast ? 6 : 9,
+            },
+            {
+              id: 2,
+              company: "Correios",
+              name: "SEDEX",
+              price: isSP ? 21.9 : isSouthSoutheast ? 32.9 : 48.9,
+              delivery_time: isSP ? 2 : isSouthSoutheast ? 3 : 5,
+            },
+          ];
+        }
+
+        const sorted = [...list].sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+        setShippingOptions(sorted);
+        if (sorted.length > 0) {
+          const cheapest = sorted[0];
+          setSelectedShipping((prev: any) => {
+            if (prev) {
+              const stillExists = sorted.find(
+                (o: any) => o.id === prev.id || o.name === prev.name
+              );
+              if (stillExists) return stillExists;
+            }
+            return cheapest;
+          });
         }
       } catch (err) {
         console.error("Erro ao calcular frete:", err);
@@ -319,15 +395,15 @@ export default function FinalizarCompraWhatsAppPage() {
         setLoadingShipping(false);
       }
     },
-    [items]
+    [items, isWholesaleEligible]
   );
 
   useEffect(() => {
     const cleanCep = cep.replace(/\D/g, "");
     if (cleanCep.length === 8 && items.length > 0 && !loading) {
       const timer = setTimeout(() => {
-        calculateShippingForCep(cleanCep, subtotal);
-      }, 350);
+        calculateShippingForCep(cleanCep);
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [cep, subtotal, items.length, loading, calculateShippingForCep]);
@@ -350,7 +426,7 @@ export default function FinalizarCompraWhatsAppPage() {
           }));
         }
       }
-    } catch {}
+    } catch { }
   };
 
   // Salva alterações da revisão no banco
@@ -516,11 +592,20 @@ export default function FinalizarCompraWhatsAppPage() {
   }, [appliedCoupon, subtotal, isWholesaleEligible]);
 
   const isFreeShippingCoupon = appliedCoupon?.type === "free_shipping";
-  const shippingCost = isFreeShippingCoupon
+  const isSelectedShippingFree =
+    isFreeShippingCoupon ||
+    Boolean(
+      appliesFreeShipping &&
+        selectedShipping &&
+        cheapestOption &&
+        (selectedShipping.id === cheapestOption.id ||
+          selectedShipping.name === cheapestOption.name)
+    );
+  const shippingCost = isSelectedShippingFree
     ? 0
     : selectedShipping
-    ? Number(selectedShipping.price || 0)
-    : 0;
+      ? Number(selectedShipping.price || 0)
+      : 0;
 
   const finalTotal = Math.max(
     0,
@@ -995,9 +1080,8 @@ export default function FinalizarCompraWhatsAppPage() {
                                 <h4 className={styles.itemName}>{item.name}</h4>
                                 {item.isWholesale && (
                                   <span
-                                    className={`${styles.wholesaleBadge} ${
-                                      isWholesaleEligible ? styles.wholesaleBadgeUnlocked : ""
-                                    }`}
+                                    className={`${styles.wholesaleBadge} ${isWholesaleEligible ? styles.wholesaleBadgeUnlocked : ""
+                                      }`}
                                   >
                                     {isWholesaleEligible ? "ATACADO • 45% OFF" : "ATACADO (MÍN. 10)"}
                                   </span>
@@ -1157,9 +1241,8 @@ export default function FinalizarCompraWhatsAppPage() {
                       placeholder="000.000.000-00"
                       maxLength={14}
                       inputMode="numeric"
-                      className={`${styles.inputField} ${
-                        customerCpf && !isValidCPF(customerCpf) ? styles.inputError : ""
-                      }`}
+                      className={`${styles.inputField} ${customerCpf && !isValidCPF(customerCpf) ? styles.inputError : ""
+                        }`}
                     />
                   </div>
 
@@ -1386,7 +1469,13 @@ export default function FinalizarCompraWhatsAppPage() {
                       const isSelected =
                         selectedShipping &&
                         (selectedShipping.id === opt.id || selectedShipping.name === opt.name);
-                      const optPrice = isFreeShippingCoupon ? 0 : Number(opt.price || 0);
+                      const isOptCheapest =
+                        cheapestOption &&
+                        (opt.id === cheapestOption.id || opt.name === cheapestOption.name);
+                      const optPrice =
+                        isFreeShippingCoupon || (appliesFreeShipping && isOptCheapest)
+                          ? 0
+                          : Number(opt.price || 0);
 
                       return (
                         <div
@@ -1395,9 +1484,8 @@ export default function FinalizarCompraWhatsAppPage() {
                             setSelectedShipping(opt);
                             setOrderCreated(null);
                           }}
-                          className={`${styles.shippingOption} ${
-                            isSelected ? styles.shippingOptionSelected : ""
-                          }`}
+                          className={`${styles.shippingOption} ${isSelected ? styles.shippingOptionSelected : ""
+                            }`}
                         >
                           <div className={styles.shippingOptionLeft}>
                             <div className={styles.radioCircle}>
@@ -1565,18 +1653,16 @@ export default function FinalizarCompraWhatsAppPage() {
                         <button
                           type="button"
                           onClick={() => setPaymentTab("transparente")}
-                          className={`${styles.paymentTab} ${
-                            paymentTab === "transparente" ? styles.paymentTabActive : ""
-                          }`}
+                          className={`${styles.paymentTab} ${paymentTab === "transparente" ? styles.paymentTabActive : ""
+                            }`}
                         >
                           PIX, Cartão (até 12x) ou PIX + Cartão
                         </button>
                         <button
                           type="button"
                           onClick={() => setPaymentTab("mercadopago_pro")}
-                          className={`${styles.paymentTab} ${
-                            paymentTab === "mercadopago_pro" ? styles.paymentTabActive : ""
-                          }`}
+                          className={`${styles.paymentTab} ${paymentTab === "mercadopago_pro" ? styles.paymentTabActive : ""
+                            }`}
                         >
                           Mercado Pago / Boleto
                         </button>

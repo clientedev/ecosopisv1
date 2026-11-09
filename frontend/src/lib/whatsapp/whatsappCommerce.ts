@@ -41,6 +41,10 @@ export interface CommerceCustomerData {
   neighborhood?: string;
   city?: string;
   state?: string;
+  shippingMethod?: string;
+  shippingServiceId?: number | null;
+  shippingPrice?: number;
+  shippingDeliveryTime?: number | null;
 }
 
 type SessionStep =
@@ -636,6 +640,179 @@ async function lookupCep(cepDigits: string): Promise<{
   return null;
 }
 
+export interface WhatsAppShippingOption {
+  id: number;
+  name: string;
+  company: string;
+  price: number;
+  effectivePrice: number;
+  delivery_time: number;
+  isFreeShipping: boolean;
+}
+
+function getFreeShippingThresholdByCep(cepDigits: string): number {
+  const clean = (cepDigits || '').replace(/\D/g, '');
+  if (clean.length !== 8) return 248.9;
+  const prefix = parseInt(clean.substring(0, 2), 10);
+  // SP(01-19), RJ(20-28), ES(29), MG(30-39), PR(80-87), SC(88-89), RS(90-99)
+  if ((prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99)) {
+    return 148.9;
+  }
+  return 248.9;
+}
+
+/**
+ * Calcula o frete para exibir diretamente na conversa do WhatsApp e pré-selecionar no link de pagamento.
+ * Utiliza a rota oficial /api/shipping/calculate (Melhor Envio) + regra de Frete Grátis da loja.
+ */
+async function calculateShippingForWhatsApp(
+  cepDigits: string,
+  cart: CommerceCartItem[]
+): Promise<{
+  options: WhatsAppShippingOption[];
+  selected: WhatsAppShippingOption;
+  appliesFreeShipping: boolean;
+}> {
+  const cleanCep = (cepDigits || '').replace(/\D/g, '');
+  const { subtotal, isWholesaleUnlocked } = calculateCartTotals(cart);
+  const threshold = getFreeShippingThresholdByCep(cleanCep);
+  const appliesFreeShipping = subtotal >= threshold;
+
+  const reqPayload = {
+    dest_cep: cleanCep,
+    items: cart.map((item) => {
+      const lowerName = (item.name || '').toLowerCase().trim();
+      let unitWeight = 0.1;
+      if (lowerName.includes('sabonete') && (lowerName.includes('líquido') || lowerName.includes('liquido'))) {
+        unitWeight = 0.3;
+      }
+      const unitPrice =
+        isWholesaleUnlocked && item.isWholesale
+          ? Math.round(item.price * 0.55 * 100) / 100
+          : item.price;
+      return {
+        id: String(item.id),
+        name: item.name,
+        width: 16,
+        height: 12,
+        length: 20,
+        weight: unitWeight,
+        price: unitPrice,
+        quantity: item.quantity,
+      };
+    }),
+  };
+
+  const baseCandidates = [
+    process.env.BACKEND_URL,
+    process.env.NEXT_PUBLIC_API_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.FRONTEND_URL,
+    'https://www.ecosopis.com.br',
+    'http://127.0.0.1:8000',
+  ]
+    .filter(Boolean)
+    .map((u) => String(u).replace(/\/$/, ''));
+
+  let rawOptions: any[] = [];
+
+  for (const base of baseCandidates) {
+    try {
+      const endpoint = base.endsWith('/api')
+        ? `${base}/shipping/calculate`
+        : `${base}/api/shipping/calculate`;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqPayload),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          rawOptions = data;
+          break;
+        }
+      }
+    } catch {}
+  }
+
+  // Fallback regional caso a API externa demore ou esteja indisponível no momento
+  if (rawOptions.length === 0) {
+    const prefix = parseInt(cleanCep.substring(0, 2) || '1', 10);
+    const isSP = prefix >= 1 && prefix <= 19;
+    const isSouthSoutheast = (prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99);
+    rawOptions = [
+      {
+        id: 1,
+        company: 'Correios',
+        name: 'PAC',
+        price: isSP ? 16.9 : isSouthSoutheast ? 22.9 : 31.9,
+        delivery_time: isSP ? 4 : isSouthSoutheast ? 6 : 9,
+      },
+      {
+        id: 2,
+        company: 'Correios',
+        name: 'SEDEX',
+        price: isSP ? 21.9 : isSouthSoutheast ? 32.9 : 48.9,
+        delivery_time: isSP ? 2 : isSouthSoutheast ? 3 : 5,
+      },
+    ];
+  }
+
+  // Ordena do mais econômico para o mais caro
+  const sorted = [...rawOptions].sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+  const cheapestId = sorted[0]?.id;
+
+  const formatted: WhatsAppShippingOption[] = sorted.map((opt, idx) => {
+    const basePrice = Number(opt.price || 0);
+    const isCheapest = opt.id !== undefined ? opt.id === cheapestId : idx === 0;
+    const isFree = appliesFreeShipping && isCheapest;
+    return {
+      id: Number(opt.id || idx + 1),
+      name: String(opt.name || 'Entrega Padrão'),
+      company: String(opt.company || 'Correios'),
+      price: basePrice,
+      effectivePrice: isFree ? 0 : basePrice,
+      delivery_time: Number(opt.delivery_time || 5),
+      isFreeShipping: isFree,
+    };
+  });
+
+  return {
+    options: formatted,
+    selected: formatted[0],
+    appliesFreeShipping,
+  };
+}
+
+function buildShippingSummaryForWhatsApp(
+  quotes: WhatsAppShippingOption[],
+  selected: WhatsAppShippingOption,
+  subtotal: number
+): string {
+  let msg = `🚚 *Frete calculado para o seu CEP:*\n`;
+  quotes.slice(0, 3).forEach((q) => {
+    const isSel = q.id === selected.id && q.name === selected.name;
+    const priceLabel =
+      q.effectivePrice === 0
+        ? `*FRETE GRÁTIS* 🎉 _(de ${formatBRL(q.price)})_`
+        : `*${formatBRL(q.effectivePrice)}*`;
+    const eta = q.delivery_time ? ` — até ${q.delivery_time} dias úteis` : '';
+    msg += `${isSel ? '✅' : '•'} *${q.company} (${q.name}):* ${priceLabel}${eta}\n`;
+  });
+
+  const totalWithShipping = Math.round((subtotal + selected.effectivePrice) * 100) / 100;
+  msg += `💰 *Total do Pedido com Frete:* *${formatBRL(totalWithShipping)}*\n`;
+  if (quotes.length > 1) {
+    msg += `_(Deixamos a opção mais econômica pré-selecionada, e você também poderá trocar no link de pagamento se preferir!)_`;
+  }
+  return msg;
+}
+
 /**
  * Salva o checkout gerado pelo WhatsApp e retorna o link exclusivo de revisão e pagamento
  */
@@ -670,8 +847,9 @@ async function createWhatsAppCheckoutToken(session: CommerceSession): Promise<{
     await pool.query(
       `INSERT INTO whatsapp_commerce_checkouts (
         token, jid, phone, customer_name, customer_email, customer_cpf, cep,
-        address_json, items_json, status, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending_review', NOW(), NOW())`,
+        address_json, items_json, shipping_method, shipping_service_id, shipping_price,
+        status, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending_review', NOW(), NOW())`,
       [
         token,
         session.jid,
@@ -682,6 +860,9 @@ async function createWhatsAppCheckoutToken(session: CommerceSession): Promise<{
         (session.customer.cep || '').replace(/\D/g, ''),
         JSON.stringify(addressObj),
         JSON.stringify(session.cart || []),
+        session.customer.shippingMethod || null,
+        session.customer.shippingServiceId ?? null,
+        session.customer.shippingPrice !== undefined ? Number(session.customer.shippingPrice) : 0,
       ]
     );
   }
@@ -1616,7 +1797,7 @@ export async function handleIncomingWhatsAppCommerceMessage(
     return true;
   }
 
-  // ── ETAPA 4B: CEP DE ENTREGA ───────────────────────────────────────────────
+  // ── ETAPA 4B: CEP DE ENTREGA + CÁLCULO DE FRETE NO WHATSAPP ────────────────
   if (session.step === 'AWAITING_CEP') {
     const cepDigits = rawText.replace(/\D/g, '');
     if (cepDigits.length !== 8) {
@@ -1630,7 +1811,23 @@ export async function handleIncomingWhatsAppCommerceMessage(
     }
 
     session.customer.cep = cepDigits;
-    const lookedUp = await lookupCep(cepDigits);
+    const [lookedUp, shippingCalc] = await Promise.all([
+      lookupCep(cepDigits),
+      calculateShippingForWhatsApp(cepDigits, session.cart),
+    ]);
+
+    const bestShipping = shippingCalc.selected;
+    session.customer.shippingMethod = `${bestShipping.company} - ${bestShipping.name}`;
+    session.customer.shippingServiceId = bestShipping.id;
+    session.customer.shippingPrice = bestShipping.effectivePrice;
+    session.customer.shippingDeliveryTime = bestShipping.delivery_time;
+
+    const { subtotal } = calculateCartTotals(session.cart);
+    const shippingText = buildShippingSummaryForWhatsApp(
+      shippingCalc.options,
+      bestShipping,
+      subtotal
+    );
 
     if (lookedUp && lookedUp.street) {
       session.customer.street = lookedUp.street;
@@ -1643,7 +1840,7 @@ export async function handleIncomingWhatsAppCommerceMessage(
       enqueueSafeCommerceReply(
         sock,
         remoteJid,
-        `🏠 Endereço localizado:\n*${lookedUp.street} - ${lookedUp.neighborhood}, ${lookedUp.city}/${lookedUp.state}*\n\n👉 Digite agora o *Número da residência* (e complemento, se houver — ex: *150, Apto 42*):`,
+        `🏠 *Endereço localizado:*\n*${lookedUp.street} - ${lookedUp.neighborhood}, ${lookedUp.city}/${lookedUp.state}*\n\n${shippingText}\n\n👉 Digite agora o *Número da residência* (e complemento, se houver — ex: *150, Apto 42*):`,
         session.customer.name
       );
       return true;
@@ -1660,7 +1857,7 @@ export async function handleIncomingWhatsAppCommerceMessage(
     enqueueSafeCommerceReply(
       sock,
       remoteJid,
-      `📍 CEP *${cepDigits}* registrado!\nPor favor, envie em uma única mensagem sua *Rua, Número e Bairro* (ex: *Rua das Flores, 120, Centro*):`,
+      `📍 CEP *${cepDigits}* registrado!\n\n${shippingText}\n\n👉 Por favor, envie em uma única mensagem sua *Rua, Número e Bairro* (ex: *Rua das Flores, 120, Centro*):`,
       session.customer.name
     );
     return true;
@@ -1674,8 +1871,25 @@ export async function handleIncomingWhatsAppCommerceMessage(
       session.customer.complement = parts.slice(1).join(', ');
     }
 
+    // Garante que o frete esteja calculado caso ainda não tenha sido preenchido
+    if (session.customer.shippingPrice === undefined && session.customer.cep) {
+      const calc = await calculateShippingForWhatsApp(session.customer.cep, session.cart);
+      session.customer.shippingMethod = `${calc.selected.company} - ${calc.selected.name}`;
+      session.customer.shippingServiceId = calc.selected.id;
+      session.customer.shippingPrice = calc.selected.effectivePrice;
+      session.customer.shippingDeliveryTime = calc.selected.delivery_time;
+    }
+
     const { checkoutUrl } = await createWhatsAppCheckoutToken(session);
     const summary = buildCartSummaryText(session.cart);
+    const { subtotal } = calculateCartTotals(session.cart);
+    const shipPrice = Number(session.customer.shippingPrice || 0);
+    const shipMethod = session.customer.shippingMethod || 'Correios';
+    const shipEta = session.customer.shippingDeliveryTime
+      ? ` _(até ${session.customer.shippingDeliveryTime} dias úteis)_`
+      : '';
+    const shipDisplay = shipPrice === 0 ? `*FRETE GRÁTIS* 🎉` : `*${formatBRL(shipPrice)}*`;
+    const totalWithShip = Math.round((subtotal + shipPrice) * 100) / 100;
 
     // Reseta a sessão após gerar o link para que o cliente possa iniciar nova compra quando quiser
     const finalName = session.customer.name || 'Cliente';
@@ -1686,10 +1900,12 @@ export async function handleIncomingWhatsAppCommerceMessage(
 
     const finalMessage =
       `🎉 *Pedido Pronto para Revisão e Pagamento, ${finalName}!*\n\n` +
-      `${summary}\n\n` +
+      `${summary}\n` +
+      `🚚 *Frete (${shipMethod}):* ${shipDisplay}${shipEta}\n` +
+      `💰 *Total Final (Produtos + Frete):* *${formatBRL(totalWithShip)}*\n\n` +
       `👤 *Cliente:* ${finalName}\n` +
       `📍 *Entrega:* ${session.customer.street}, ${session.customer.number}${session.customer.complement ? ` (${session.customer.complement})` : ''} - ${session.customer.neighborhood}, ${session.customer.city}/${session.customer.state} (CEP ${session.customer.cep})\n\n` +
-      `🔒 *Acesse seu Link Exclusivo da Ecosopis abaixo para revisar o pedido, escolher o frete e finalizar o pagamento (PIX, Cartão em até 12x, PIX + Cartão ou Boleto):*\n` +
+      `🔒 *Acesse seu Link Exclusivo da Ecosopis abaixo para revisar o pedido e finalizar o pagamento (PIX, Cartão em até 12x, PIX + Cartão ou Boleto):*\n` +
       `👉 ${checkoutUrl}\n\n` +
       `_Assim que o pagamento for confirmado, você receberá a confirmação e o código de rastreio automaticamente por aqui!_ 🌿✨`;
 
@@ -1706,8 +1922,24 @@ export async function handleIncomingWhatsAppCommerceMessage(
     if (!session.customer.city) session.customer.city = 'São Paulo';
     if (!session.customer.state) session.customer.state = 'SP';
 
+    if (session.customer.shippingPrice === undefined && session.customer.cep) {
+      const calc = await calculateShippingForWhatsApp(session.customer.cep, session.cart);
+      session.customer.shippingMethod = `${calc.selected.company} - ${calc.selected.name}`;
+      session.customer.shippingServiceId = calc.selected.id;
+      session.customer.shippingPrice = calc.selected.effectivePrice;
+      session.customer.shippingDeliveryTime = calc.selected.delivery_time;
+    }
+
     const { checkoutUrl } = await createWhatsAppCheckoutToken(session);
     const summary = buildCartSummaryText(session.cart);
+    const { subtotal } = calculateCartTotals(session.cart);
+    const shipPrice = Number(session.customer.shippingPrice || 0);
+    const shipMethod = session.customer.shippingMethod || 'Correios';
+    const shipEta = session.customer.shippingDeliveryTime
+      ? ` _(até ${session.customer.shippingDeliveryTime} dias úteis)_`
+      : '';
+    const shipDisplay = shipPrice === 0 ? `*FRETE GRÁTIS* 🎉` : `*${formatBRL(shipPrice)}*`;
+    const totalWithShip = Math.round((subtotal + shipPrice) * 100) / 100;
 
     const finalName = session.customer.name || 'Cliente';
     session.step = 'IDLE';
@@ -1717,10 +1949,12 @@ export async function handleIncomingWhatsAppCommerceMessage(
 
     const finalMessage =
       `🎉 *Pedido Pronto para Revisão e Pagamento, ${finalName}!*\n\n` +
-      `${summary}\n\n` +
+      `${summary}\n` +
+      `🚚 *Frete (${shipMethod}):* ${shipDisplay}${shipEta}\n` +
+      `💰 *Total Final (Produtos + Frete):* *${formatBRL(totalWithShip)}*\n\n` +
       `👤 *Cliente:* ${finalName}\n` +
       `📍 *Entrega:* ${session.customer.street}, ${session.customer.number} - ${session.customer.neighborhood}, ${session.customer.city}/${session.customer.state} (CEP ${session.customer.cep})\n\n` +
-      `🔒 *Acesse seu Link Exclusivo da Ecosopis abaixo para revisar seus dados, escolher o frete e finalizar o pagamento (PIX, Cartão em até 12x, PIX + Cartão ou Boleto):*\n` +
+      `🔒 *Acesse seu Link Exclusivo da Ecosopis abaixo para revisar seus dados e finalizar o pagamento (PIX, Cartão em até 12x, PIX + Cartão ou Boleto):*\n` +
       `👉 ${checkoutUrl}\n\n` +
       `_Assim que o pagamento for confirmado, você receberá a confirmação e o código de rastreio automaticamente por aqui!_ 🌿✨`;
 
