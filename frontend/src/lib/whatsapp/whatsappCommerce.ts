@@ -705,7 +705,9 @@ async function calculateShippingForWhatsApp(
 
   const baseCandidates = [
     process.env.BACKEND_URL,
+    process.env.API_URL,
     process.env.NEXT_PUBLIC_API_URL,
+    'https://web-production-33f04.up.railway.app',
     process.env.NEXT_PUBLIC_SITE_URL,
     process.env.FRONTEND_URL,
     'https://www.ecosopis.com.br',

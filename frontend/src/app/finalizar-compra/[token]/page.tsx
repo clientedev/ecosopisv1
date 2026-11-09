@@ -391,6 +391,27 @@ export default function FinalizarCompraWhatsAppPage() {
         }
       } catch (err) {
         console.error("Erro ao calcular frete:", err);
+        const prefix = parseInt(cleanCep.substring(0, 2) || "1", 10);
+        const isSP = prefix >= 1 && prefix <= 19;
+        const isSouthSoutheast = (prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99);
+        const fallbackList = [
+          {
+            id: 1,
+            company: "Correios",
+            name: "PAC",
+            price: isSP ? 16.9 : isSouthSoutheast ? 22.9 : 31.9,
+            delivery_time: isSP ? 4 : isSouthSoutheast ? 6 : 9,
+          },
+          {
+            id: 2,
+            company: "Correios",
+            name: "SEDEX",
+            price: isSP ? 21.9 : isSouthSoutheast ? 32.9 : 48.9,
+            delivery_time: isSP ? 2 : isSouthSoutheast ? 3 : 5,
+          },
+        ];
+        setShippingOptions(fallbackList);
+        setSelectedShipping(fallbackList[0]);
       } finally {
         setLoadingShipping(false);
       }

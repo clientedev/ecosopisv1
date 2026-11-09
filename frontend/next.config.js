@@ -72,7 +72,7 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/:path((?!whatsapp).*)',
+        source: '/api/:path((?!whatsapp(?:/|$)).*)*',
         destination: `${BACKEND_URL}/:path*`,
       },
       {
