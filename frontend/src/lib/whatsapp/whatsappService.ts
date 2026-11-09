@@ -11,6 +11,7 @@ import { EventEmitter } from 'events';
 import dns from 'dns';
 import { getPostgresAuthState, hasValidSavedSession } from './authAdapter';
 import { getDbPool } from './db';
+import { handleIncomingWhatsAppCommerceMessage } from './whatsappCommerce';
 
 // Desativa bufferutil nativo para evitar o erro "e.mask is not a function" causado pelo empacotamento do Webpack no Next.js
 process.env.WS_NO_BUFFER_UTIL = '1';
@@ -507,11 +508,14 @@ export async function connectWhatsApp(
       }
     });
 
-    // 3. Resposta automática oficial Ecosopis para mensagens recebidas
+    // 3. Fluxo de Compra pelo WhatsApp (Catálogo Interativo) + Resposta Automática Oficial Ecosopis
     const autoReplyText = 
       `🌿 *ECOSOPIS Cosméticos Naturais*\n\n` +
-      `Olá! Este número é utilizado exclusivamente para *notificações automáticas de pedidos* e não recebe nem responde mensagens.\n\n` +
-      `Para falar com nossa equipe de atendimento oficial, por favor nos chame pelo WhatsApp:\n` +
+      `Olá! Bem-vindo(a) ao canal automático da Ecosopis.\n\n` +
+      `🛍️ *Quer realizar uma compra agora mesmo pelo WhatsApp?*\n` +
+      `👉 Digite *COMPRAR* ou *CATÁLOGO* para ver nossos produtos, conhecer os benefícios e fechar seu pedido por aqui!\n\n` +
+      `💬 *Deseja atendimento humano?*\n` +
+      `Nos chame no WhatsApp oficial de atendimento:\n` +
       `📱 *WhatsApp Atendimento:* (11) 95155-9212\n` +
       `👉 *Clique aqui para conversar:* https://wa.me/5511951559212\n\n` +
       `Será um prazer te atender! ✨`;
@@ -545,7 +549,17 @@ export async function connectWhatsApp(
             continue;
           }
 
-          // Anti-flood: evita responder mais de 1 vez a cada 5 minutos ao mesmo contato
+          // 3.1 Verifica primeiro se é o fluxo de Compra / Catálogo pelo WhatsApp (cadência segura anti-ban)
+          try {
+            const handledByCommerce = await handleIncomingWhatsAppCommerceMessage(sock, msg);
+            if (handledByCommerce) {
+              continue;
+            }
+          } catch (commerceErr: any) {
+            console.warn('[WhatsApp Commerce Handler Warning]:', commerceErr?.message || commerceErr);
+          }
+
+          // 3.2 Anti-flood para resposta padrão: evita responder mais de 1 vez a cada 5 minutos ao mesmo contato
           const now = Date.now();
           const lastReply = autoReplyCooldown.get(remoteJid);
           if (lastReply && (now - lastReply) < 5 * 60 * 1000) {
@@ -563,27 +577,9 @@ export async function connectWhatsApp(
           autoReplyCooldown.set(remoteJid, now);
 
           console.log(`[WhatsApp Auto-Reply] Respondendo automaticamente para ${remoteJid}...`);
+          // Aguarda breve intervalo humanizado (3.5s) antes de enviar a saudação única
+          await new Promise(r => setTimeout(r, 3500));
           await sock.sendMessage(remoteJid, { text: autoReplyText });
-
-          // Envia também o cartão de contato do WhatsApp de Atendimento Oficial
-          try {
-            const vcard =
-              'BEGIN:VCARD\n' +
-              'VERSION:3.0\n' +
-              'FN:Atendimento Ecosopis\n' +
-              'ORG:ECOSOPIS Cosméticos Naturais;\n' +
-              'TEL;type=CELL;type=VOICE;waid=5511951559212:+55 11 95155-9212\n' +
-              'END:VCARD';
-
-            await sock.sendMessage(remoteJid, {
-              contacts: {
-                displayName: 'Atendimento Ecosopis',
-                contacts: [{ vcard }]
-              }
-            });
-          } catch (vcardErr) {
-            // Silencioso se o formato vcard não for suportado pelo cliente remoto
-          }
         } catch (err: any) {
           console.error('[WhatsApp Auto-Reply Error]:', err?.message || err);
         }
