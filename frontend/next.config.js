@@ -8,12 +8,38 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   swcMinify: true,
+  productionBrowserSourceMaps: false,
   experimental: {
     instrumentationHook: true,
-    serverComponentsExternalPackages: ['@whiskeysockets/baileys', 'bufferutil', 'utf-8-validate'],
+    webpackBuildWorker: true,
+    cpus: 2,
+    workerThreads: false,
+    optimizePackageImports: ['lucide-react', 'recharts'],
+    serverComponentsExternalPackages: [
+      '@whiskeysockets/baileys',
+      'bufferutil',
+      'utf-8-validate',
+      'pg',
+      'pino',
+      'qrcode',
+      'sharp',
+    ],
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve.alias['@'] = path.resolve(__dirname, 'src');
+    config.parallelism = 2;
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        dns: false,
+        child_process: false,
+        pg: false,
+        'pg-native': false,
+      };
+    }
     return config;
   },
   eslint: {
