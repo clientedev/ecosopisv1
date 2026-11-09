@@ -20,12 +20,12 @@ router = APIRouter()
 class ShippingItem(BaseModel):
     id: Optional[str] = "1"
     name: Optional[str] = None
-    width: float
-    height: float
-    length: float
-    weight: float
-    price: float
-    quantity: int
+    width: float = 16.0
+    height: float = 12.0
+    length: float = 20.0
+    weight: float = 0.3
+    price: float = 20.0
+    quantity: int = 1
 
 class ShippingRequest(BaseModel):
     dest_cep: str
@@ -74,6 +74,27 @@ async def calculate_shipping(request: ShippingRequest, db: Session = Depends(get
         is_sp = 1 <= prefix <= 19
         is_sul_sudeste = (1 <= prefix <= 39) or (80 <= prefix <= 99)
         options = [
+            {
+                "id": 31,
+                "name": "Express",
+                "price": 9.85 if is_sp else (15.90 if is_sul_sudeste else 24.90),
+                "delivery_time": 2 if is_sp else (4 if is_sul_sudeste else 6),
+                "company": "Loggi",
+            },
+            {
+                "id": 34,
+                "name": "Loggi Ponto",
+                "price": 10.47 if is_sp else (16.50 if is_sul_sudeste else 25.50),
+                "delivery_time": 3 if is_sp else (5 if is_sul_sudeste else 7),
+                "company": "Loggi",
+            },
+            {
+                "id": 33,
+                "name": "Standard",
+                "price": 14.90 if is_sp else (19.90 if is_sul_sudeste else 28.90),
+                "delivery_time": 2 if is_sp else (4 if is_sul_sudeste else 6),
+                "company": "JeT",
+            },
             {
                 "id": 1,
                 "name": "PAC",

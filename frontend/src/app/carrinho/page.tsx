@@ -411,6 +411,9 @@ export default function CarrinhoPage() {
                         const isSP = prefix >= 1 && prefix <= 19;
                         const isSouthSoutheast = (prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99);
                         list = [
+                            { id: 31, company: "Loggi", name: "Express", price: isSP ? 9.85 : isSouthSoutheast ? 15.9 : 24.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6 },
+                            { id: 34, company: "Loggi", name: "Loggi Ponto", price: isSP ? 10.47 : isSouthSoutheast ? 16.5 : 25.5, delivery_time: isSP ? 3 : isSouthSoutheast ? 5 : 7 },
+                            { id: 33, company: "JeT", name: "Standard", price: isSP ? 14.9 : isSouthSoutheast ? 19.9 : 28.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6 },
                             { id: 1, company: "Correios", name: "PAC", price: isSP ? 16.9 : isSouthSoutheast ? 22.9 : 31.9, delivery_time: isSP ? 4 : isSouthSoutheast ? 6 : 9 },
                             { id: 2, company: "Correios", name: "SEDEX", price: isSP ? 21.9 : isSouthSoutheast ? 32.9 : 48.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 3 : 5 },
                         ];
@@ -433,6 +436,9 @@ export default function CarrinhoPage() {
                     const isSP = prefix >= 1 && prefix <= 19;
                     const isSouthSoutheast = (prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99);
                     const fallbackList = [
+                        { id: 31, company: "Loggi", name: "Express", price: isSP ? 9.85 : isSouthSoutheast ? 15.9 : 24.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6 },
+                        { id: 34, company: "Loggi", name: "Loggi Ponto", price: isSP ? 10.47 : isSouthSoutheast ? 16.5 : 25.5, delivery_time: isSP ? 3 : isSouthSoutheast ? 5 : 7 },
+                        { id: 33, company: "JeT", name: "Standard", price: isSP ? 14.9 : isSouthSoutheast ? 19.9 : 28.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6 },
                         { id: 1, company: "Correios", name: "PAC", price: isSP ? 16.9 : isSouthSoutheast ? 22.9 : 31.9, delivery_time: isSP ? 4 : isSouthSoutheast ? 6 : 9 },
                         { id: 2, company: "Correios", name: "SEDEX", price: isSP ? 21.9 : isSouthSoutheast ? 32.9 : 48.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 3 : 5 },
                     ];
@@ -803,51 +809,102 @@ export default function CarrinhoPage() {
     };
 
     const handleAddressStepSubmit = async () => {
-        const emailToUse = (user?.email || customerEmail || "").trim();
-        if (!customerName.trim() && !(user?.full_name?.trim())) {
+        const nameToUse = (customerName || user?.full_name || "").trim();
+        if (!nameToUse) {
             showToast("Por favor, preencha seu nome completo.", "error");
             return;
         }
-        if (!user && (!emailToUse || !emailToUse.includes("@") || !emailToUse.includes("."))) {
+        if (!customerName && nameToUse) setCustomerName(nameToUse);
+
+        const emailToUse = (customerEmail || user?.email || "").trim();
+        if (!emailToUse || !emailToUse.includes("@") || !emailToUse.includes(".")) {
             showToast("Por favor, informe um e-mail válido para acompanhamento do pedido.", "error");
             return;
         }
-        if (!customerPhone.trim() || customerPhone.replace(/\D/g, "").length < 10) {
+        if (!customerEmail && emailToUse) setCustomerEmail(emailToUse);
+
+        const phoneDigits = (customerPhone || user?.phone || "").replace(/\D/g, "");
+        if (!phoneDigits || phoneDigits.length < 10) {
             showToast("Por favor, insira um WhatsApp válido com DDD.", "error");
             return;
         }
-        const cleanCpf = customerCpf.replace(/\D/g, "");
-        if (!cleanCpf || cleanCpf.length !== 11 || !isCpfValid(cleanCpf)) {
+        if (!customerPhone && phoneDigits) setCustomerPhone(formatPhone(phoneDigits));
+
+        const cleanCpf = (customerCpf || (user as any)?.cpf || "").replace(/\D/g, "");
+        if (!cleanCpf || cleanCpf.length !== 11) {
             showToast("Por favor, informe um CPF válido com 11 dígitos.", "error");
             return;
         }
-        const cleanCep = cep.replace(/\D/g, "");
+        if (!isCpfValid(cleanCpf)) {
+            showToast("Por favor, informe um CPF válido com 11 dígitos.", "error");
+            return;
+        }
+        if (!customerCpf && cleanCpf) setCustomerCpf(formatCpf(cleanCpf));
+
+        const cleanCep = (cep || "").replace(/\D/g, "");
         if (cleanCep.length !== 8) {
             showToast("Por favor, digite um CEP válido com 8 dígitos.", "error");
             return;
         }
-        if (!address.street || !address.number || !address.neighborhood || !address.city || !address.state) {
+
+        const streetVal = (address.street || "").trim();
+        const numberVal = (address.number || "").trim();
+        const cityVal = (address.city || "").trim();
+        const stateVal = (address.state || "").trim().toUpperCase();
+        let neighborhoodVal = (address.neighborhood || "").trim();
+
+        if (!neighborhoodVal) {
+            neighborhoodVal = "Centro";
+            setAddress((prev: any) => ({ ...prev, neighborhood: "Centro" }));
+        }
+
+        if (!streetVal || !numberVal || !cityVal || !stateVal) {
             showToast("Por favor, preencha todos os campos obrigatórios do endereço.", "error");
             return;
         }
-        const stateVal = address.state.trim().toUpperCase();
-        if (!stateVal || stateVal.length !== 2) {
-            showToast("Por favor, selecione o Estado (UF) de entrega.", "error");
-            return;
-        }
-        if (!selectedShipping) {
-            showToast("Por favor, selecione uma opção de frete para continuar.", "error");
+        if (stateVal.length !== 2) {
+            showToast("Por favor, informe a UF do Estado de entrega (ex: SP).", "error");
             return;
         }
 
-        // Check guest identity against existing accounts before proceeding
+        // Auto-seleciona frete para garantir fluxo fluido sem travar o cliente
+        let currentShipping = selectedShipping;
+        if (!currentShipping) {
+            if (displayedShippingOptions && displayedShippingOptions.length > 0) {
+                currentShipping = displayedShippingOptions[0];
+                setSelectedShipping(currentShipping);
+            } else if (shippingOptions && shippingOptions.length > 0) {
+                currentShipping = shippingOptions[0];
+                setSelectedShipping(currentShipping);
+            } else {
+                const prefix = parseInt(cleanCep.substring(0, 2) || "1", 10);
+                const isSP = prefix >= 1 && prefix <= 19;
+                const isSouthSoutheast = (prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99);
+                const quickList = [
+                    { id: 31, company: "Loggi", name: "Express", price: isSP ? 9.85 : isSouthSoutheast ? 15.9 : 24.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6 },
+                    { id: 34, company: "Loggi", name: "Loggi Ponto", price: isSP ? 10.47 : isSouthSoutheast ? 16.5 : 25.5, delivery_time: isSP ? 3 : isSouthSoutheast ? 5 : 7 },
+                    { id: 33, company: "JeT", name: "Standard", price: isSP ? 14.9 : isSouthSoutheast ? 19.9 : 28.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6 },
+                    { id: 1, company: "Correios", name: "PAC", price: isSP ? 16.9 : isSouthSoutheast ? 22.9 : 31.9, delivery_time: isSP ? 4 : isSouthSoutheast ? 6 : 9 },
+                    { id: 2, company: "Correios", name: "SEDEX", price: isSP ? 21.9 : isSouthSoutheast ? 32.9 : 48.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 3 : 5 },
+                ];
+                currentShipping = quickList[0];
+                setShippingOptions(quickList);
+                setSelectedShipping(quickList[0]);
+            }
+        }
+
+        // Checagem rápida de visitante com timeout para nunca travar a navegação
         if (!user && !token) {
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
                 const res = await fetch("/api/auth/check-guest-identity", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ email: emailToUse, cpf: cleanCpf }),
+                    signal: controller.signal,
                 });
+                clearTimeout(timeoutId);
                 if (res.ok) {
                     const data = await res.json();
                     if (data.conflict) {
@@ -867,7 +924,9 @@ export default function CarrinhoPage() {
 
         setStep("payment");
         setMobileStep("payment");
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        if (typeof window !== "undefined") {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
     };
 
     if (isMobile) {
