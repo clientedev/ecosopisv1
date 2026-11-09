@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 5000",
-    "build": "node -e \"require('fs').rmSync('.next/cache',{recursive:true,force:true})\" && next build",
+    "build": "node -e \"try{require('fs').rmSync('.next/cache/webpack',{recursive:true,force:true})}catch(e){}\" && next build",
     "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
     "lint": "next lint"
   },

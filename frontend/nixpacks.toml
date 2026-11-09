@@ -1,3 +1,7 @@
+[variables]
+NEXT_TELEMETRY_DISABLED = "1"
+NODE_OPTIONS = "--max-old-space-size=4096"
+
 [phases.setup]
 nixPkgs = ["nodejs_20"]
 
@@ -5,6 +9,7 @@ nixPkgs = ["nodejs_20"]
 cmds = ["npm ci"]
 
 [phases.build]
+cacheDirectories = []
 cmds = [
     "npm run build",
     "cp -r .next/static .next/standalone/.next/static",
