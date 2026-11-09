@@ -176,6 +176,8 @@ export default function AdminWhatsAppPage() {
   const [queuePaused, setQueuePaused] = useState(false);
   const [togglingPause, setTogglingPause] = useState(false);
   const [sendingSingleId, setSendingSingleId] = useState<number | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [cancellingAll, setCancellingAll] = useState(false);
 
   // ── ABA USUÁRIOS ──
   const [usersList, setUsersList] = useState<UserItem[]>([]);
@@ -442,6 +444,79 @@ export default function AdminWhatsAppPage() {
       });
     } finally {
       setSendingSingleId(null);
+    }
+  };
+
+  const handleCancelSingleMessage = async (log: MessageLogItem) => {
+    setCancellingId(log.id);
+    setAlert(null);
+    try {
+      const res = await fetch('/api/whatsapp/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          action: 'cancel_single',
+          logId: log.id
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Falha ao cancelar o envio da mensagem.');
+      }
+      setLogs(prev => prev.filter(item => item.id !== log.id));
+      setAlert({
+        type: 'success',
+        text: `✕ Envio para ${log.recipient_name || log.to_phone} cancelado e removido da fila.`
+      });
+      fetchLogs();
+    } catch (err: any) {
+      setAlert({
+        type: 'error',
+        text: `Erro ao cancelar envio: ${err.message}`
+      });
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const handleCancelAllQueue = async () => {
+    const pendingLogs = logs.filter(l => l.status === 'QUEUED' || l.status === 'PAUSED');
+    if (pendingLogs.length === 0) return;
+    if (!confirm(`Deseja realmente cancelar o envio de todas as ${pendingLogs.length} mensagem(ns) que estão na fila?`)) {
+      return;
+    }
+
+    setCancellingAll(true);
+    setAlert(null);
+    try {
+      const res = await fetch('/api/whatsapp/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({ action: 'cancel_all' })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Falha ao cancelar fila.');
+      }
+      setQueuePaused(false);
+      await fetchLogs();
+      setAlert({
+        type: 'success',
+        text: `✕ Fila cancelada! ${data.cancelledCount ?? pendingLogs.length} envio(s) pendente(s) foram cancelados.`
+      });
+    } catch (err: any) {
+      setAlert({
+        type: 'error',
+        text: err.message || 'Erro ao cancelar a fila de mensagens.'
+      });
+    } finally {
+      setCancellingAll(false);
     }
   };
 
@@ -1811,6 +1886,32 @@ export default function AdminWhatsAppPage() {
                     </>
                   )}
                 </button>
+                {logs.some(l => l.status === 'QUEUED' || l.status === 'PAUSED') && (
+                  <button
+                    onClick={handleCancelAllQueue}
+                    disabled={cancellingAll || loadingLogs || togglingPause}
+                    className={styles.btn}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontWeight: 700,
+                      padding: '9px 14px',
+                      borderRadius: 10,
+                      border: '1px solid #fecaca',
+                      cursor: cancellingAll || loadingLogs ? 'not-allowed' : 'pointer',
+                      background: '#dc2626',
+                      color: '#ffffff',
+                      boxShadow: '0 2px 6px rgba(220,38,38,0.15)'
+                    }}
+                    title="Cancelar e remover todas as mensagens aguardando na fila"
+                  >
+                    <Trash2 size={14} />
+                    {cancellingAll
+                      ? 'Cancelando Fila...'
+                      : `Cancelar Fila (${logs.filter(l => l.status === 'QUEUED' || l.status === 'PAUSED').length})`}
+                  </button>
+                )}
                 {logs.some(l => l.status === 'FAILED') && (
                   <button
                     onClick={handleRetryAllFailed}
@@ -1923,38 +2024,86 @@ export default function AdminWhatsAppPage() {
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           {log.status === 'PAUSED' || log.status === 'QUEUED' ? (
-                            <button
-                              onClick={() => handleSendSingleQueuedMessage(log)}
-                              disabled={sendingSingleId === log.id || retryingAll || togglingPause}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 5,
-                                fontSize: 12,
-                                fontWeight: 700,
-                                padding: '5px 10px',
-                                borderRadius: 8,
-                                border: '1px solid #16a34a',
-                                background: sendingSingleId === log.id ? '#dcfce7' : '#16a34a',
-                                color: sendingSingleId === log.id ? '#166534' : '#ffffff',
-                                cursor: sendingSingleId === log.id ? 'wait' : 'pointer',
-                                whiteSpace: 'nowrap'
-                              }}
-                              title="Disparar apenas esta mensagem agora sem soltar o restante da fila"
-                            >
-                              <Send size={12} />
-                              {sendingSingleId === log.id ? 'Disparando...' : 'Disparar agora'}
-                            </button>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                              <button
+                                onClick={() => handleSendSingleQueuedMessage(log)}
+                                disabled={sendingSingleId === log.id || cancellingId === log.id || retryingAll || togglingPause}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  padding: '5px 10px',
+                                  borderRadius: 8,
+                                  border: '1px solid #16a34a',
+                                  background: sendingSingleId === log.id ? '#dcfce7' : '#16a34a',
+                                  color: sendingSingleId === log.id ? '#166534' : '#ffffff',
+                                  cursor: sendingSingleId === log.id ? 'wait' : 'pointer',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                title="Disparar apenas esta mensagem agora sem soltar o restante da fila"
+                              >
+                                <Send size={12} />
+                                {sendingSingleId === log.id ? 'Disparando...' : 'Disparar agora'}
+                              </button>
+                              <button
+                                onClick={() => handleCancelSingleMessage(log)}
+                                disabled={cancellingId === log.id || sendingSingleId === log.id || retryingAll || togglingPause}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  padding: '5px 10px',
+                                  borderRadius: 8,
+                                  border: '1px solid #fecaca',
+                                  background: '#fef2f2',
+                                  color: '#dc2626',
+                                  cursor: cancellingId === log.id ? 'wait' : 'pointer',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                title="Cancelar o envio desta mensagem"
+                              >
+                                <X size={13} />
+                                {cancellingId === log.id ? 'Cancelando...' : 'Cancelar envio'}
+                              </button>
+                            </div>
                           ) : log.status === 'FAILED' ? (
-                            <button
-                              onClick={() => handleRetrySingleMessage(log)}
-                              disabled={retryingId === log.id || retryingAll}
-                              className={styles.btnRetry}
-                              title="Tentar enviar esta mensagem novamente agora"
-                            >
-                              <RefreshCw size={12} className={retryingId === log.id ? styles.spinner : ''} />
-                              {retryingId === log.id ? 'Enviando...' : 'Tentar novamente'}
-                            </button>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                              <button
+                                onClick={() => handleRetrySingleMessage(log)}
+                                disabled={retryingId === log.id || cancellingId === log.id || retryingAll}
+                                className={styles.btnRetry}
+                                title="Tentar enviar esta mensagem novamente agora"
+                              >
+                                <RefreshCw size={12} className={retryingId === log.id ? styles.spinner : ''} />
+                                {retryingId === log.id ? 'Enviando...' : 'Tentar novamente'}
+                              </button>
+                              <button
+                                onClick={() => handleCancelSingleMessage(log)}
+                                disabled={cancellingId === log.id || retryingId === log.id}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  padding: '5px 9px',
+                                  borderRadius: 8,
+                                  border: '1px solid #fecaca',
+                                  background: '#fef2f2',
+                                  color: '#dc2626',
+                                  cursor: cancellingId === log.id ? 'wait' : 'pointer',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                title="Cancelar e excluir esta mensagem"
+                              >
+                                <X size={13} />
+                                {cancellingId === log.id ? '...' : 'Cancelar'}
+                              </button>
+                            </div>
                           ) : (
                             <span style={{ color: '#16a34a', fontSize: 12, fontWeight: 700 }}>
                               —

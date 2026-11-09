@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getWhatsAppMessageLogs } from '@/lib/whatsapp/templates';
-import { getQueueStatus, setQueuePaused, sendSingleMessageByIdNow } from '@/lib/whatsapp/whatsappService';
+import {
+  getQueueStatus,
+  setQueuePaused,
+  sendSingleMessageByIdNow,
+  cancelSingleQueuedMessage,
+  cancelAllQueuedMessages,
+} from '@/lib/whatsapp/whatsappService';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +48,26 @@ export async function POST(req: Request) {
         success: true,
         status: 'SENT',
         messageId: singleRes.messageId,
+      });
+    }
+
+    if (body.action === 'cancel_single' && body.logId) {
+      const cancelRes = await cancelSingleQueuedMessage(Number(body.logId));
+      if (!cancelRes.success) {
+        return NextResponse.json(
+          { error: cancelRes.error || 'Falha ao cancelar envio da mensagem' },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json({ success: true });
+    }
+
+    if (body.action === 'cancel_all') {
+      const cancelAllRes = await cancelAllQueuedMessages();
+      return NextResponse.json({
+        success: true,
+        cancelledCount: cancelAllRes.cancelledCount,
+        queuePaused: false,
       });
     }
 

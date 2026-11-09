@@ -913,6 +913,38 @@ export async function sendSingleMessageByIdNow(
   }
 }
 
+/**
+ * Cancela/remove uma única mensagem pendente/pausada da fila de disparo.
+ */
+export async function cancelSingleQueuedMessage(
+  logId: number
+): Promise<{ success: boolean; error?: string }> {
+  const res = await safeDbQuery(
+    `DELETE FROM whatsapp_message_logs
+     WHERE id = $1 AND status IN ('QUEUED', 'PAUSED', 'FAILED')`,
+    [logId]
+  );
+  if (!res) {
+    return { success: false, error: 'Erro ao cancelar envio no banco de dados.' };
+  }
+  return { success: true };
+}
+
+/**
+ * Cancela/remove todas as mensagens que estão aguardando na fila (QUEUED ou PAUSED).
+ */
+export async function cancelAllQueuedMessages(): Promise<{
+  success: boolean;
+  cancelledCount: number;
+}> {
+  const res = await safeDbQuery(
+    `DELETE FROM whatsapp_message_logs WHERE status IN ('QUEUED', 'PAUSED')`
+  );
+  const cancelledCount = res?.rowCount || 0;
+  queueControl.paused = false;
+  return { success: true, cancelledCount };
+}
+
 async function processQueue() {
   if (queueControl.running || queueControl.paused) return;
   queueControl.running = true;
