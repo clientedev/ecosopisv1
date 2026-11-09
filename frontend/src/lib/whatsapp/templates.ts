@@ -113,6 +113,21 @@ export async function getWhatsAppTemplates(): Promise<WhatsAppTemplateItem[]> {
   try {
     const pool = getDbPool();
     if (pool) {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS whatsapp_templates (
+          id SERIAL PRIMARY KEY,
+          trigger_type VARCHAR(64) UNIQUE NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          message_template TEXT NOT NULL,
+          is_enabled BOOLEAN DEFAULT TRUE,
+          delay_minutes INTEGER DEFAULT 0,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_whatsapp_templates_trigger
+        ON whatsapp_templates (trigger_type);
+      `).catch(() => {});
+
       // Remove permanentemente o template de Chave PIX se existir no banco
       pool.query(`DELETE FROM whatsapp_templates WHERE trigger_type = 'order_created_pix'`).catch(() => {});
 

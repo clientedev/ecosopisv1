@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, JSON, DateTime, Text, LargeBinary, event
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, JSON, DateTime, Text, LargeBinary, UniqueConstraint, event
 from sqlalchemy.orm import relationship, Session
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -655,9 +655,24 @@ class WhatsAppAccount(Base):
 
 class BaileysAuthState(Base):
     __tablename__ = "baileys_auth_state"
+    __table_args__ = (
+        UniqueConstraint("whatsapp_id", "data_id", name="uq_baileys_key"),
+    )
 
-    id = Column(String(64), primary_key=True, index=True)
+    id = Column(String(255), primary_key=True, index=True)
     whatsapp_id = Column(String(64), ForeignKey("whatsapp_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
+    data_id = Column(String(255), nullable=False, index=True)
+    data = Column(Text, nullable=False)
+
+
+class BaileysAuthStateBackup(Base):
+    __tablename__ = "baileys_auth_state_backup"
+    __table_args__ = (
+        UniqueConstraint("whatsapp_id", "data_id", name="uq_baileys_key_backup"),
+    )
+
+    id = Column(String(255), primary_key=True, index=True)
+    whatsapp_id = Column(String(64), nullable=False, index=True)
     data_id = Column(String(255), nullable=False, index=True)
     data = Column(Text, nullable=False)
 

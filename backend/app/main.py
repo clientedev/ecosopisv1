@@ -476,6 +476,57 @@ def _ensure_extra_tables():
     except Exception as e:
         logger.warning(f"order_payments ensure: {e}")
 
+    # whatsapp_accounts, baileys_auth_state, baileys_auth_state_backup & whatsapp_templates constraints
+    try:
+        with engine.begin() as conn:
+            if not is_sqlite:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS whatsapp_accounts (
+                        id VARCHAR(64) PRIMARY KEY,
+                        name VARCHAR(255) NOT NULL DEFAULT 'WhatsApp Principal E-commerce',
+                        status VARCHAR(64) NOT NULL DEFAULT 'DISCONNECTED',
+                        phone VARCHAR(64),
+                        qr_code TEXT,
+                        last_connection TIMESTAMPTZ,
+                        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS baileys_auth_state (
+                        id VARCHAR(255) PRIMARY KEY,
+                        whatsapp_id VARCHAR(64) NOT NULL REFERENCES whatsapp_accounts(id) ON DELETE CASCADE,
+                        data_id VARCHAR(255) NOT NULL,
+                        data TEXT NOT NULL,
+                        CONSTRAINT uq_baileys_key UNIQUE (whatsapp_id, data_id)
+                    )
+                """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS baileys_auth_state_backup (
+                        id VARCHAR(255) PRIMARY KEY,
+                        whatsapp_id VARCHAR(64) NOT NULL,
+                        data_id VARCHAR(255) NOT NULL,
+                        data TEXT NOT NULL,
+                        CONSTRAINT uq_baileys_key_backup UNIQUE (whatsapp_id, data_id)
+                    )
+                """))
+                conn.execute(text("ALTER TABLE baileys_auth_state ALTER COLUMN id TYPE VARCHAR(255)"))
+                conn.execute(text("ALTER TABLE baileys_auth_state_backup ALTER COLUMN id TYPE VARCHAR(255)"))
+                # Remove duplicate (whatsapp_id, data_id) rows keeping the newest ctid before creating unique index
+                conn.execute(text("""
+                    DELETE FROM baileys_auth_state a USING baileys_auth_state b
+                    WHERE a.ctid < b.ctid AND a.whatsapp_id = b.whatsapp_id AND a.data_id = b.data_id
+                """))
+                conn.execute(text("""
+                    DELETE FROM baileys_auth_state_backup a USING baileys_auth_state_backup b
+                    WHERE a.ctid < b.ctid AND a.whatsapp_id = b.whatsapp_id AND a.data_id = b.data_id
+                """))
+                conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_baileys_auth_state_wid_did ON baileys_auth_state (whatsapp_id, data_id)"))
+                conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_baileys_auth_backup_wid_did ON baileys_auth_state_backup (whatsapp_id, data_id)"))
+        logger.info("✓ Baileys auth tables and unique constraints ensured.")
+    except Exception as e:
+        logger.warning(f"baileys_auth_state constraint ensure: {e}")
+
     logger.info("Extra tables ensured successfully.")
 
 

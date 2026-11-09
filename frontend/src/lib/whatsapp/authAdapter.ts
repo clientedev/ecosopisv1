@@ -12,7 +12,95 @@ import crypto from 'crypto';
 let tablesInitialized = false;
 
 /**
- * Garante que todas as tabelas de autenticação e a conta padrão existam antes de qualquer operação
+ * Gera um ID determinístico de 64 caracteres para o par (whatsapp_id, data_id),
+ * compatível tanto com VARCHAR(64) quanto com chaves primárias existentes.
+ */
+function buildDeterministicRowId(whatsappId: string, dataId: string): string {
+  return crypto.createHash('sha256').update(`${whatsappId}:${dataId}`).digest('hex');
+}
+
+/**
+ * Garante que os índices UNIQUE em (whatsapp_id, data_id) existam nas tabelas do Baileys,
+ * removendo eventuais duplicatas antigas antes de criar o índice.
+ */
+async function ensureUniqueConstraints(): Promise<void> {
+  const pool = getDbPool();
+  if (!pool) return;
+
+  // 1. Tabela principal: baileys_auth_state
+  try {
+    await pool.query(`
+      DELETE FROM baileys_auth_state a USING baileys_auth_state b
+      WHERE a.ctid < b.ctid AND a.whatsapp_id = b.whatsapp_id AND a.data_id = b.data_id
+    `).catch(() => {});
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_baileys_auth_state_wid_did
+      ON baileys_auth_state (whatsapp_id, data_id)
+    `);
+  } catch (err: any) {
+    console.warn('[Baileys Auth] Aviso ao criar índice único em baileys_auth_state:', err?.message || err);
+  }
+
+  // 2. Tabela espelho de backup: baileys_auth_state_backup
+  try {
+    await pool.query(`
+      DELETE FROM baileys_auth_state_backup a USING baileys_auth_state_backup b
+      WHERE a.ctid < b.ctid AND a.whatsapp_id = b.whatsapp_id AND a.data_id = b.data_id
+    `).catch(() => {});
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_baileys_auth_backup_wid_did
+      ON baileys_auth_state_backup (whatsapp_id, data_id)
+    `);
+  } catch (err: any) {
+    console.warn('[Baileys Auth] Aviso ao criar índice único em baileys_auth_state_backup:', err?.message || err);
+  }
+}
+
+/**
+ * Upsert resiliente que utiliza ON CONFLICT (whatsapp_id, data_id) e, caso o banco
+ * tenha sido recriado sem a constraint, autocorrige o índice e faz fallback atômico UPDATE/INSERT.
+ */
+async function upsertAuthRecord(
+  table: 'baileys_auth_state' | 'baileys_auth_state_backup',
+  whatsappId: string,
+  dataId: string,
+  serialized: string
+): Promise<void> {
+  const pool = getDbPool();
+  if (!pool) return;
+  const rowId = buildDeterministicRowId(whatsappId, dataId);
+
+  try {
+    await pool.query(
+      `INSERT INTO ${table} (id, whatsapp_id, data_id, data)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (whatsapp_id, data_id)
+       DO UPDATE SET data = EXCLUDED.data`,
+      [rowId, whatsappId, dataId, serialized]
+    );
+  } catch (err: any) {
+    const msg = String(err?.message || '');
+    if (msg.includes('no unique or exclusion constraint') || err?.code === '42P10') {
+      await ensureUniqueConstraints();
+    }
+    // Fallback seguro: atualiza se existir (whatsapp_id, data_id), senão insere com ON CONFLICT (id)
+    const updateRes = await pool.query(
+      `UPDATE ${table} SET data = $3 WHERE whatsapp_id = $1 AND data_id = $2`,
+      [whatsappId, dataId, serialized]
+    );
+    if (!updateRes.rowCount || updateRes.rowCount === 0) {
+      await pool.query(
+        `INSERT INTO ${table} (id, whatsapp_id, data_id, data)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data`,
+        [rowId, whatsappId, dataId, serialized]
+      );
+    }
+  }
+}
+
+/**
+ * Garante que todas as tabelas de autenticação, índices UNIQUE e a conta padrão existam antes de qualquer operação
  */
 async function ensureAuthTables(whatsappId: string = 'default'): Promise<void> {
   const pool = getDbPool();
@@ -32,7 +120,7 @@ async function ensureAuthTables(whatsappId: string = 'default'): Promise<void> {
         );
 
         CREATE TABLE IF NOT EXISTS baileys_auth_state (
-          id VARCHAR(64) PRIMARY KEY,
+          id VARCHAR(255) PRIMARY KEY,
           whatsapp_id VARCHAR(64) NOT NULL REFERENCES whatsapp_accounts(id) ON DELETE CASCADE,
           data_id VARCHAR(255) NOT NULL,
           data TEXT NOT NULL,
@@ -40,13 +128,14 @@ async function ensureAuthTables(whatsappId: string = 'default'): Promise<void> {
         );
 
         CREATE TABLE IF NOT EXISTS baileys_auth_state_backup (
-          id VARCHAR(64) PRIMARY KEY,
+          id VARCHAR(255) PRIMARY KEY,
           whatsapp_id VARCHAR(64) NOT NULL,
           data_id VARCHAR(255) NOT NULL,
           data TEXT NOT NULL,
           CONSTRAINT uq_baileys_key_backup UNIQUE (whatsapp_id, data_id)
         );
       `);
+      await ensureUniqueConstraints();
       tablesInitialized = true;
     }
 
@@ -159,12 +248,15 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
               creds = backupCreds;
               isRestoredSession = true;
               console.log(`[Baileys Auth] SESSÃO RECUPERADA DO BACKUP AUTOMÁTICO para ${whatsappId}! Restaurando chaves ativas...`);
-              await pool.query(
-                `INSERT INTO baileys_auth_state (id, whatsapp_id, data_id, data)
-                 SELECT id, whatsapp_id, data_id, data FROM baileys_auth_state_backup WHERE whatsapp_id = $1
-                 ON CONFLICT (whatsapp_id, data_id) DO UPDATE SET data = EXCLUDED.data`,
+              const backupAllRes = await pool.query(
+                `SELECT data_id, data FROM baileys_auth_state_backup WHERE whatsapp_id = $1`,
                 [whatsappId]
-              ).catch(() => {});
+              ).catch(() => null);
+              if (backupAllRes?.rows) {
+                for (const row of backupAllRes.rows) {
+                  await upsertAuthRecord('baileys_auth_state', whatsappId, row.data_id, row.data).catch(() => {});
+                }
+              }
             } else if (!creds) {
               creds = backupCreds;
             }
@@ -198,22 +290,9 @@ export async function getPostgresAuthState(whatsappId: string = 'default'): Prom
     if (!pool) return;
     try {
       const serialized = JSON.stringify(data, BufferJSON.replacer);
-      const uid = crypto.randomUUID();
       await Promise.all([
-        pool.query(
-          `INSERT INTO baileys_auth_state (id, whatsapp_id, data_id, data) 
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (whatsapp_id, data_id) 
-           DO UPDATE SET data = EXCLUDED.data`,
-          [uid, whatsappId, dataId, serialized]
-        ),
-        pool.query(
-          `INSERT INTO baileys_auth_state_backup (id, whatsapp_id, data_id, data) 
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (whatsapp_id, data_id) 
-           DO UPDATE SET data = EXCLUDED.data`,
-          [uid, whatsappId, dataId, serialized]
-        ).catch(() => {})
+        upsertAuthRecord('baileys_auth_state', whatsappId, dataId, serialized),
+        upsertAuthRecord('baileys_auth_state_backup', whatsappId, dataId, serialized).catch(() => {})
       ]);
     } catch (err: any) {
       console.error(`[Baileys Auth] Erro ao persistir ${dataId} no PostgreSQL:`, err?.message || err);
