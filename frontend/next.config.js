@@ -1,10 +1,10 @@
 /** @type {import('next').NextConfig} */
 const BACKEND_URL =
-  process.env.BACKEND_URL && !process.env.BACKEND_URL.includes('localhost')
-    ? process.env.BACKEND_URL
-    : process.env.API_URL && !process.env.API_URL.includes('localhost')
-    ? process.env.API_URL
-    : 'https://web-production-33f04.up.railway.app';
+  process.env.NODE_ENV === 'production'
+    ? 'https://web-production-33f04.up.railway.app'
+    : (process.env.BACKEND_URL && !process.env.BACKEND_URL.includes('localhost') && !process.env.BACKEND_URL.includes('127.0.0.1')
+        ? process.env.BACKEND_URL
+        : 'https://web-production-33f04.up.railway.app');
 
 const path = require('path');
 

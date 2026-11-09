@@ -2,10 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const BACKEND_BASE =
-  process.env.BACKEND_URL && !process.env.BACKEND_URL.includes('localhost')
-    ? process.env.BACKEND_URL.replace(/\/$/, '')
-    : 'https://web-production-33f04.up.railway.app';
+const BACKEND_BASE = 'https://web-production-33f04.up.railway.app';
 
 async function proxyPaymentRequest(req: NextRequest, { params }: { params: { slug: string[] } }) {
   try {
@@ -13,13 +10,15 @@ async function proxyPaymentRequest(req: NextRequest, { params }: { params: { slu
     const search = req.nextUrl.search || '';
     const targetUrl = `${BACKEND_BASE}/api/payment/${slug}${search}`;
 
-    const headers: Record<string, string> = {};
-    req.headers.forEach((value, key) => {
-      const lower = key.toLowerCase();
-      if (lower !== 'host' && lower !== 'content-length' && lower !== 'connection') {
-        headers[key] = value;
-      }
-    });
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+    };
+
+    const authHeader = req.headers.get('authorization');
+    if (authHeader) headers['Authorization'] = authHeader;
+
+    const contentType = req.headers.get('content-type');
+    if (contentType) headers['Content-Type'] = contentType;
 
     let body: any = undefined;
     if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -64,7 +63,7 @@ async function proxyPaymentRequest(req: NextRequest, { params }: { params: { slu
         detail: err?.message || 'Falha de comunicação com o servidor de pagamento. Tente novamente.',
         error: true,
       },
-      { status: 502 }
+      { status: 500 }
     );
   }
 }
