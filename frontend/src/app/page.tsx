@@ -9,7 +9,7 @@ import dynamic from "next/dynamic";
 const ChatIA = dynamic(() => import("@/components/ChatIA/ChatIA"), { ssr: false });
 import styles from "./page.module.css";
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import Image from "next/image";
 import { 
     Sparkles, 
@@ -167,12 +167,14 @@ export default function Home() {
     const isMouseDownRef = useRef<boolean>(false);
     const hasDraggedRef = useRef<boolean>(false);
 
-    // Regra: mobile vê APENAS slides que tenham mobile_image_url preenchido
-    //        desktop vê APENAS slides que tenham image_url preenchido
-    //        slides com ambos aparecem em cada dispositivo usando a imagem correta
-    const deviceSlides = isMobile
-        ? slides.filter(s => s.mobile_image_url || s.mobile_video_url || s.image_url || s.video_url)
-        : slides.filter(s => s.image_url || s.video_url);
+    // Regra: mobile vê APENAS slides que tenham mobile_image_url ou mobile_video_url preenchido
+    //        desktop vê APENAS slides que tenham image_url ou video_url preenchido
+    //        slides com ambos aparecem em cada dispositivo usando a mídia correta
+    const deviceSlides = useMemo(() => {
+        return isMobile
+            ? slides.filter(s => Boolean((s.mobile_image_url && s.mobile_image_url.trim()) || (s.mobile_video_url && s.mobile_video_url.trim())))
+            : slides.filter(s => Boolean((s.image_url && s.image_url.trim()) || (s.video_url && s.video_url.trim())));
+    }, [isMobile, slides]);
 
     const getImageUrl = (url: string) => {
         if (!url) return "";
@@ -248,23 +250,21 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
-        const currentDeviceSlides = isMobile
-            ? slides.filter(s => s.mobile_image_url || s.mobile_video_url || s.image_url || s.video_url)
-            : slides.filter(s => s.image_url || s.video_url);
-        if (currentDeviceSlides.length <= 1) return;
+        if (deviceSlides.length <= 1) return;
 
-        const duration = currentDeviceSlides[currentSlide]?.slide_duration_ms ?? 8000;
+        const safeIndex = currentSlide >= deviceSlides.length ? 0 : currentSlide;
+        const duration = deviceSlides[safeIndex]?.slide_duration_ms ?? 8000;
 
         const timer = setTimeout(() => {
-            setCurrentSlide(prev => (prev + 1) % currentDeviceSlides.length);
+            setCurrentSlide(prev => (prev + 1) % deviceSlides.length);
         }, duration);
 
         return () => clearTimeout(timer);
-    }, [isMobile, slides, currentSlide]);
+    }, [deviceSlides, currentSlide]);
 
     useEffect(() => {
         setCurrentSlide(0);
-    }, [isMobile]);
+    }, [isMobile, deviceSlides.length]);
 
     // Normaliza campos JSON que podem vir como string do PostgreSQL/Railway
     const normalizeProduct = (p: any) => {
@@ -534,6 +534,42 @@ return (
 
 
 
+            {isValentines && hearts.map(h => (
+                <div
+                    key={h.id}
+                    aria-hidden="true"
+                    style={{
+                        position: 'fixed',
+                        left: `${h.x}vw`,
+                        bottom: '-60px',
+                        fontSize: `${h.size}px`,
+                        opacity: 0,
+                        pointerEvents: 'none',
+                        zIndex: 9999,
+                        animation: `floatHeart ${h.duration}s ${h.delay}s ease-in forwards`,
+                        userSelect: 'none',
+                    }}
+                >❤️</div>
+            ))}
+            {isAnniversary && anniversaryBalloons.map(b => (
+                <div
+                    key={b.id}
+                    aria-hidden="true"
+                    style={{
+                        position: 'fixed',
+                        left: `${b.x}vw`,
+                        bottom: '-60px',
+                        fontSize: `${b.size}px`,
+                        opacity: 0,
+                        pointerEvents: 'none',
+                        zIndex: 9999,
+                        animation: `floatHeart ${b.duration}s ${b.delay}s ease-in forwards`,
+                        userSelect: 'none',
+                    }}
+                >{b.emoji}</div>
+            ))}
+
+            {deviceSlides.length > 0 && (
             <section
                 className={styles.heroCarousel}
                 onMouseDown={(e) => {
@@ -599,40 +635,6 @@ return (
                     }
                 }}
             >
-                {isValentines && hearts.map(h => (
-                    <div
-                        key={h.id}
-                        aria-hidden="true"
-                        style={{
-                            position: 'fixed',
-                            left: `${h.x}vw`,
-                            bottom: '-60px',
-                            fontSize: `${h.size}px`,
-                            opacity: 0,
-                            pointerEvents: 'none',
-                            zIndex: 9999,
-                            animation: `floatHeart ${h.duration}s ${h.delay}s ease-in forwards`,
-                            userSelect: 'none',
-                        }}
-                    >❤️</div>
-                ))}
-                {isAnniversary && anniversaryBalloons.map(b => (
-                    <div
-                        key={b.id}
-                        aria-hidden="true"
-                        style={{
-                            position: 'fixed',
-                            left: `${b.x}vw`,
-                            bottom: '-60px',
-                            fontSize: `${b.size}px`,
-                            opacity: 0,
-                            pointerEvents: 'none',
-                            zIndex: 9999,
-                            animation: `floatHeart ${b.duration}s ${b.delay}s ease-in forwards`,
-                            userSelect: 'none',
-                        }}
-                    >{b.emoji}</div>
-                ))}
                 {deviceSlides.map((slide, index) => {
                     // Helper to convert hex to rgba for overlay
                     const hexToRgba = (hex: string, opacity: number) => {
@@ -654,10 +656,13 @@ return (
                         bottom: 90
                     };
 
-                    // Mobile usa sempre mobile_image_url; desktop usa sempre image_url
+                    // Mobile usa sempre mobile_image_url / mobile_video_url; desktop usa sempre image_url / video_url
                     const activeImageUrl = isMobile
                         ? (slide.mobile_image_url || "")
                         : (slide.image_url || "");
+                    const activeDeviceVideoUrl = isMobile
+                        ? (slide.mobile_video_url || "")
+                        : (slide.video_url || "");
                     const isAutoHeight = slide.image_fit === 'auto' || slide.carousel_height === 'auto';
                     const isCover = slide.image_fit === 'cover';
                     const activeHeight = isAutoHeight
@@ -670,7 +675,7 @@ return (
                             key={index}
                             className={`${styles.carouselSlide} ${index === currentSlide ? styles.activeSlide : ''}`}
                         >
-                            {(activeImageUrl || slide.video_url || slide.mobile_video_url) && (
+                            {(activeImageUrl || activeDeviceVideoUrl) && (
                                 <>
                                     {/* Proportional banner image: adapts vertically without cropping or black borders */}
                                     {(() => {
@@ -679,8 +684,8 @@ return (
                                             const cl = u.toLowerCase().split('?')[0];
                                             return cl.endsWith('.mp4') || cl.endsWith('.webm') || cl.endsWith('.mov') || cl.endsWith('.ogg') || cl.includes('/video');
                                         };
-                                        const activeVideoSrc = isMobile ? (slide.mobile_video_url || slide.video_url) : (slide.video_url || (isVideoUrlCheck(activeImageUrl) ? activeImageUrl : ""));
-                                        const isSlideVideo = slide.media_type === "video" || Boolean(activeVideoSrc) || isVideoUrlCheck(activeImageUrl);
+                                        const activeVideoSrc = activeDeviceVideoUrl || (isVideoUrlCheck(activeImageUrl) ? activeImageUrl : "");
+                                        const isSlideVideo = Boolean(activeVideoSrc) || isVideoUrlCheck(activeImageUrl);
                                         const mediaSrc = isSlideVideo ? (activeVideoSrc || activeImageUrl) : activeImageUrl;
 
                                         return (
@@ -974,6 +979,7 @@ return (
                     </div>
                 )}
             </section>
+            )}
 
             {/* ── Stories em Destaque (Abaixo do Banner Principal) ── */}
             <HomeStoryCircles stories={homeStories} />
