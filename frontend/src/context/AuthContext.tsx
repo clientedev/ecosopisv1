@@ -26,9 +26,9 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string, remember?: boolean) => Promise<{ success: boolean; status?: number }>;
+  login: (email: string, password: string, remember?: boolean) => Promise<{ success: boolean; status?: number; detail?: string }>;
   logout: () => void;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<boolean>;
   updateUser: (data: Partial<User>) => void;
   isLoading: boolean;
 }
@@ -108,14 +108,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  const refreshProfile = async () => {
-    const storedToken = localStorage.getItem('token');
-    if (!storedToken) return;
+  const refreshProfile = async (): Promise<boolean> => {
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!storedToken) {
+      return false;
+    }
     if (isTokenExpired(storedToken)) {
       logout();
-      return;
+      return false;
     }
 
+    setToken(storedToken);
     try {
       const response = await fetch('/api/auth/me', {
         headers: { 'Authorization': `Bearer ${storedToken}` }
@@ -124,16 +127,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData = await response.json();
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
+        return true;
+      } else if (response.status === 401 || response.status === 403) {
+        logout();
+        return false;
       }
+      return false;
     } catch (error) {
       console.error("Refresh profile error:", error);
+      return false;
     }
   };
 
-  const login = async (email: string, password: string, remember: boolean = false): Promise<{ success: boolean; status?: number }> => {
+  const login = async (email: string, password: string, remember: boolean = false): Promise<{ success: boolean; status?: number; detail?: string }> => {
     try {
       const params = new URLSearchParams();
-      params.append("username", email);
+      params.append("username", email.trim());
       params.append("password", password);
 
       const response = await fetch('/api/auth/login', {
@@ -151,33 +160,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('remember_me', remember ? 'true' : 'false');
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('session_active', 'true');
-        }
-
-        // Clear obsolete flags on login
-        if (typeof window !== 'undefined') {
           sessionStorage.removeItem("roulette_spin_shown");
         }
 
         // Fetch user profile immediately
-        const userRes = await fetch('/api/auth/me', {
-          headers: { 'Authorization': `Bearer ${data.access_token}` }
-        });
-        if (userRes.ok) {
-          const userData = await userRes.json();
-          setUser(userData);
-          localStorage.setItem('user', JSON.stringify(userData));
-          if ((data.must_change_password || userData.must_change_password) && typeof window !== 'undefined' && !window.location.pathname.startsWith('/redefinir-senha')) {
-            setTimeout(() => {
-              window.location.href = '/redefinir-senha?first_access=1';
-            }, 300);
+        try {
+          const userRes = await fetch('/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${data.access_token}` }
+          });
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            setUser(userData);
+            localStorage.setItem('user', JSON.stringify(userData));
+            if ((data.must_change_password || userData.must_change_password) && typeof window !== 'undefined' && !window.location.pathname.startsWith('/redefinir-senha')) {
+              setTimeout(() => {
+                window.location.href = '/redefinir-senha?first_access=1';
+              }, 300);
+            }
+          } else {
+            // Fallback minimo para garantir exibição imediata da conta caso /me oscile
+            const fallbackUser: User = {
+              id: 0,
+              email: email.trim(),
+              full_name: email.trim().split('@')[0],
+              role: data.role || 'client',
+              must_change_password: Boolean(data.must_change_password),
+            };
+            setUser(fallbackUser);
+            localStorage.setItem('user', JSON.stringify(fallbackUser));
           }
+        } catch {
+          const fallbackUser: User = {
+            id: 0,
+            email: email.trim(),
+            full_name: email.trim().split('@')[0],
+            role: data.role || 'client',
+            must_change_password: Boolean(data.must_change_password),
+          };
+          setUser(fallbackUser);
+          localStorage.setItem('user', JSON.stringify(fallbackUser));
         }
         return { success: true };
       }
-      return { success: false, status: response.status };
+
+      let detail = undefined;
+      try {
+        const errBody = await response.json();
+        detail = typeof errBody?.detail === 'string' ? errBody.detail : undefined;
+      } catch {
+        // ignore parse errors
+      }
+      return { success: false, status: response.status, detail };
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false };
+      return { success: false, detail: 'Falha na conexão com o servidor.' };
     }
   };
 

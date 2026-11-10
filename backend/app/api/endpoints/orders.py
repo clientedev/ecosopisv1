@@ -45,6 +45,7 @@ class ShippingPackageUpdate(BaseModel):
     shipping_service_id: Optional[int] = None
     shipping_method: Optional[str] = None
 
+@router.post("", response_model=schemas.OrderResponse)
 @router.post("/", response_model=schemas.OrderResponse)
 def create_order(
     order_in: schemas.OrderCreate,
@@ -397,6 +398,7 @@ def delete_order(
     return {"status": "success", "message": f"Pedido #{order_id} excluído com sucesso"}
 
 
+@router.get("", response_model=List[schemas.OrderResponse])
 @router.get("/", response_model=List[schemas.OrderResponse])
 def list_orders(
     db: Session = Depends(get_db),

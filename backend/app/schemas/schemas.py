@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, validator, field_validator, model_validator
 from typing import List, Optional, Any, Dict
 from datetime import datetime
 
@@ -86,10 +86,32 @@ class AddressResponse(AddressBase):
         from_attributes = True
 
 class OrderItem(BaseModel):
-    product_id: int
-    product_name: str
-    quantity: int
-    price: float
+    product_id: Optional[int] = 1
+    product_name: Optional[str] = "Produto"
+    quantity: int = 1
+    price: float = 0.0
+
+    class Config:
+        from_attributes = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_order_item(cls, data: Any):
+        if isinstance(data, dict):
+            d = dict(data)
+            if d.get("product_id") is None and d.get("id") is not None:
+                try:
+                    d["product_id"] = int(d["id"])
+                except Exception:
+                    d["product_id"] = 1
+            if not d.get("product_name") and d.get("name"):
+                d["product_name"] = str(d["name"])
+            if d.get("price") is None:
+                d["price"] = 0.0
+            if d.get("quantity") is None:
+                d["quantity"] = 1
+            return d
+        return data
 
 class OrderCreate(BaseModel):
     items: List[OrderItem]
@@ -141,6 +163,30 @@ class OrderResponse(BaseModel):
     payment_transactions: Optional[List[Dict[str, Any]]] = []
     payment_history: Optional[List[Dict[str, Any]]] = []
     created_at: Optional[datetime] = None
+
+    @field_validator("payment_history", "payment_transactions", mode="before")
+    @classmethod
+    def _coerce_payment_records(cls, value: Any):
+        if value is None:
+            return []
+        result = []
+        for entry in value:
+            if isinstance(entry, dict):
+                result.append(entry)
+            elif hasattr(entry, "__dict__"):
+                clean = {}
+                for k, v in vars(entry).items():
+                    if not k.startswith("_"):
+                        clean[k] = v.isoformat() if isinstance(v, datetime) else v
+                result.append(clean)
+        return result
+
+    @field_validator("items", "order_items", mode="before")
+    @classmethod
+    def _coerce_items_list(cls, value: Any):
+        if value is None:
+            return []
+        return list(value)
 
     class Config:
         from_attributes = True

@@ -6,7 +6,7 @@ import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { Package, CheckCircle, Truck, Clock, ShoppingBag, ChevronRight, XCircle, Tag, Trash2 } from "lucide-react";
+import { Package, CheckCircle, Truck, Clock, ShoppingBag, ChevronRight, XCircle, Tag, Trash2, Eye, EyeOff, RefreshCw } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
     pending: { label: "Pendente", color: "#f59e0b", icon: Clock },
@@ -27,6 +27,7 @@ export default function ContaPage() {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(true);
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
@@ -36,13 +37,14 @@ export default function ContaPage() {
     const [showVerificationMessage, setShowVerificationMessage] = useState(false);
     const [activeCoupon, setActiveCoupon] = useState<ActiveCoupon | null>(null);
     const [authError, setAuthError] = useState<string | null>(null);
+    const [submittingAuth, setSubmittingAuth] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [isEditingPhone, setIsEditingPhone] = useState(false);
     const [newPhone, setNewPhone] = useState("");
     const [savingPhone, setSavingPhone] = useState(false);
     const [phoneSaveSuccess, setPhoneSaveSuccess] = useState(false);
 
-    const { login, logout, token, user, refreshProfile } = useAuth();
+    const { login, logout, token, user, refreshProfile, isLoading } = useAuth();
     const router = useRouter();
 
     const handleSavePhone = async (e: React.FormEvent) => {
@@ -161,12 +163,12 @@ export default function ContaPage() {
         if (!t) return;
         setLoadingOrders(true);
         try {
-            const res = await fetch("/api/orders/", {
+            const res = await fetch("/api/orders", {
                 headers: { Authorization: `Bearer ${t}` },
             });
             if (res.ok) {
                 const data = await res.json();
-                setOrders(data);
+                setOrders(Array.isArray(data) ? data : []);
             }
         } catch (e) {
             console.error("Error fetching orders:", e);
@@ -177,24 +179,32 @@ export default function ContaPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setAuthError(null);
+        setSubmittingAuth(true);
 
         if (isLogin) {
             try {
                 const result = await login(email, password, rememberMe);
                 if (result.success) {
                     const searchParams = new URLSearchParams(window.location.search);
-                    const redirect = searchParams.get('redirect') || "/";
-                    router.push(redirect);
+                    const redirect = searchParams.get('redirect') || "/conta";
+                    if (redirect === "/conta") {
+                        await fetchOrders();
+                    } else {
+                        router.push(redirect);
+                    }
                 } else {
                     if (result.status === 403) {
-                        alert("Seu e-mail ainda não foi verificado. Por favor, verifique sua caixa de entrada (e a pasta de spam).");
+                        setAuthError(result.detail || "Seu e-mail ainda não foi verificado. Por favor, verifique sua caixa de entrada (e a pasta de spam).");
                     } else {
-                        alert("Credenciais inválidas. Verifique seu e-mail e senha.");
+                        setAuthError(result.detail || "Credenciais inválidas. Verifique seu e-mail e senha.");
                     }
                 }
             } catch (err) {
                 console.error("Login error:", err);
-                alert("Erro ao tentar entrar. Tente novamente em instantes.");
+                setAuthError("Erro ao tentar entrar. Tente novamente em instantes.");
+            } finally {
+                setSubmittingAuth(false);
             }
         } else {
             try {
@@ -209,11 +219,13 @@ export default function ContaPage() {
                 } else {
                     let errorMessage = "Erro ao criar conta.";
                     try { const data = await res.json(); errorMessage = data.detail || errorMessage; } catch { }
-                    alert(errorMessage + " Verifique se o e-mail já está em uso.");
+                    setAuthError(errorMessage + " Verifique se o e-mail já está em uso.");
                 }
             } catch (err) {
                 console.error("Registration error:", err);
-                alert("Não foi possível conectar ao servidor.");
+                setAuthError("Não foi possível conectar ao servidor.");
+            } finally {
+                setSubmittingAuth(false);
             }
         }
     };
@@ -228,6 +240,42 @@ export default function ContaPage() {
             <Header />
             <div className={`container ${styles.contaContainer}`}>
                 <div className={styles.formBox}>
+                    {token && !user && isLoading && (
+                        <div style={{ textAlign: 'center', padding: '48px 16px' }}>
+                            <RefreshCw size={32} color="#2d5a27" style={{ animation: 'spinCard 1s linear infinite', marginBottom: '12px' }} />
+                            <p style={{ color: '#475569', fontSize: '0.95rem', fontWeight: 600 }}>Carregando sua conta...</p>
+                        </div>
+                    )}
+
+                    {token && !user && !isLoading && (
+                        <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+                            <h2 style={{ color: '#1a3a16', marginBottom: '10px', fontSize: '1.2rem' }}>Não foi possível carregar seu perfil</h2>
+                            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '20px' }}>
+                                Sua sessão pode ter expirado ou o servidor demorou para responder.
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <button
+                                    type="button"
+                                    className="btn-primary"
+                                    onClick={() => { refreshProfile(); fetchOrders(); }}
+                                    style={{ width: '100%' }}
+                                >
+                                    TENTAR NOVAMENTE
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => logout()}
+                                    style={{
+                                        width: '100%', padding: '12px', background: '#f1f5f9', color: '#475569',
+                                        border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: 700
+                                    }}
+                                >
+                                    ENTRAR COM OUTRA CONTA
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {isAdmin && (
                         <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #10b981', textAlign: 'center' }}>
                             <p style={{ color: '#065f46', fontWeight: 'bold', marginBottom: '10px' }}>Você está logado como Administrador</p>
@@ -582,7 +630,33 @@ export default function ContaPage() {
                                 </div>
                                 <div className={styles.field}>
                                     <label>Senha</label>
-                                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            style={{ width: '100%', paddingRight: '44px' }}
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(prev => !prev)}
+                                            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                                            style={{
+                                                position: 'absolute',
+                                                right: '10px',
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                color: '#64748b',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                padding: '4px'
+                                            }}
+                                        >
+                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 {isLogin && (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
@@ -598,8 +672,8 @@ export default function ContaPage() {
                                         </label>
                                     </div>
                                 )}
-                                <button type="submit" className="btn-primary" style={{ width: '100%' }}>
-                                    {isLogin ? "ENTRAR" : "CRIAR CONTA"}
+                                <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={submittingAuth}>
+                                    {submittingAuth ? (isLogin ? "ENTRANDO..." : "CRIANDO CONTA...") : (isLogin ? "ENTRAR" : "CRIAR CONTA")}
                                 </button>
                             </form>
                             </>

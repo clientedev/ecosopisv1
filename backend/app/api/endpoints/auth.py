@@ -226,20 +226,86 @@ async def send_custom_emails(
 
     return {"message": f"Envio de e-mail iniciado para {len(recipient_emails)} destinatários em segundo plano."}
 
+def _serialize_user_profile(user: models.User, db: Session) -> dict:
+    """Safely serialize user profile, addresses, and orders without ORM validation traps."""
+    from app.api.endpoints.orders import _order_to_response
+
+    orders_list = []
+    try:
+        user_orders = (
+            db.query(models.Order)
+            .filter(models.Order.user_id == user.id)
+            .order_by(models.Order.created_at.desc())
+            .all()
+        )
+        for o in user_orders:
+            try:
+                orders_list.append(_order_to_response(o, db))
+            except Exception as oe:
+                logger.warning(f"Skipping malformed order {getattr(o, 'id', '?')} in profile: {oe}")
+    except Exception as e:
+        logger.warning(f"Error loading orders for user {user.id}: {e}")
+
+    addresses_list = []
+    try:
+        for a in (getattr(user, "addresses", None) or []):
+            addresses_list.append({
+                "id": a.id,
+                "user_id": a.user_id,
+                "name": getattr(a, "name", None),
+                "street": a.street or "",
+                "number": a.number or "",
+                "complement": getattr(a, "complement", None),
+                "neighborhood": a.neighborhood or "",
+                "city": a.city or "",
+                "state": a.state or "",
+                "postal_code": a.postal_code or "",
+                "is_default": bool(getattr(a, "is_default", False)),
+                "created_at": a.created_at,
+            })
+    except Exception as e:
+        logger.warning(f"Error loading addresses for user {user.id}: {e}")
+
+    return {
+        "id": user.id,
+        "email": (user.email or "").strip(),
+        "full_name": user.full_name,
+        "phone": user.phone,
+        "cpf": getattr(user, "cpf", None),
+        "role": user.role or "client",
+        "is_verified": bool(user.is_verified),
+        "can_post_news": bool(getattr(user, "can_post_news", False)),
+        "total_compras": int(getattr(user, "total_compras", 0) or 0),
+        "scratch_used": bool(getattr(user, "scratch_used", False)),
+        "scratch_reward_id": getattr(user, "scratch_reward_id", None),
+        "profile_picture": getattr(user, "profile_picture", None),
+        "is_guest_created": bool(getattr(user, "is_guest_created", False)),
+        "must_change_password": bool(getattr(user, "must_change_password", False)),
+        "auth_provider": getattr(user, "auth_provider", "local") or "local",
+        "google_id": getattr(user, "google_id", None),
+        "cart_json": getattr(user, "cart_json", None),
+        "cart_updated_at": getattr(user, "cart_updated_at", None),
+        "created_at": getattr(user, "created_at", None),
+        "orders": orders_list,
+        "addresses": addresses_list,
+    }
+
+
 @router.get("/users/{user_id}", response_model=schemas.UserProfileResponse)
 def get_user_profile(user_id: int, db: Session = Depends(get_db), current_admin: models.User = Depends(get_current_admin)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return _serialize_user_profile(user, db)
 
 @router.get("/me", response_model=schemas.UserProfileResponse)
+@router.get("/me/", response_model=schemas.UserProfileResponse)
 def get_my_profile(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     db.refresh(current_user)
-    return current_user
+    return _serialize_user_profile(current_user, db)
 
 @router.put("/me/profile", response_model=schemas.UserResponse)
 def update_my_profile(
