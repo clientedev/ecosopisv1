@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import BrandLoader from "@/components/BrandLoader/BrandLoader";
 
 interface LoadingContextValue {
@@ -78,8 +79,11 @@ async function ensureUnderlyingLoaded(): Promise<void> {
 }
 
 export function LoadingProvider({ children }: { children: ReactNode }) {
+    const pathname = usePathname();
+    // A árvore só aparece quando o site abre/recarrega na página inicial ("/")
+    const isHomeEntry = pathname === "/";
     // 1. Initial Site Load States (First open / Refresh)
-    const [initialLoading, setInitialLoading] = useState(true);
+    const [initialLoading, setInitialLoading] = useState(isHomeEntry);
     const [initialFadeOut, setInitialFadeOut] = useState(false);
     const initialFinishedRef = useRef(false);
     const cycleCompletedRef = useRef(false);
@@ -122,6 +126,12 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
 
     // Initial Site Load Effect: Completes strictly 1 tree animation cycle once DOM/assets are ready.
     useEffect(() => {
+        if (!isHomeEntry) {
+            initialFinishedRef.current = true;
+            cleanRawHtmlPreloader();
+            setInitialLoading(false);
+            return;
+        }
         const handleInitialReady = async () => {
             await ensureUnderlyingLoaded();
             pageReadyRef.current = true;
@@ -146,6 +156,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
                 window.removeEventListener("DOMContentLoaded", handleInitialReady);
             }
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [finishInitialLoad]);
 
     // Programmatic Controls: For heavy operations (fechar compra, processando pedido, etc.)

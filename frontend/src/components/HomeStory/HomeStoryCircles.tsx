@@ -1,4 +1,5 @@
 "use client";
+import LazyMount from "@/components/LazyMount/LazyMount";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import styles from "./HomeStory.module.css";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -140,6 +141,7 @@ export default function HomeStoryCircles({ stories = [] }: HomeStoryCirclesProps
                                     <div className={styles.storyCircleRing}>
                                         <div className={styles.storyCircleInner}>
                                             {media.type === "video" ? (
+<LazyMount>
                                                 <video
                                                     src={media.src}
                                                     className={styles.storyMediaPreview}
@@ -160,6 +162,7 @@ export default function HomeStoryCircles({ stories = [] }: HomeStoryCirclesProps
                                                         target.play().catch(() => {});
                                                     }}
                                                 />
+</LazyMount>
                                             ) : media.type === "iframe" ? (
                                                 <iframe
                                                     src={media.src}
