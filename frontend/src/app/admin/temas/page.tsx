@@ -173,6 +173,18 @@ const THEME_DEFINITIONS: ThemeDefinition[] = [
         tags: ["Sazonal", "Rosa", "Outubro Rosa", "Conscientização"],
         features: ["Cores rosa vibrantes em toda a loja", "Animação de laços e flores ao carregar e clicar", "Fundo rosado suave", "Logo filtrado para rosa", "Barra de anúncio rosa animada"],
     },
+    {
+        id: "black_friday" as ThemeId,
+        name: "Black Friday 🔥",
+        description: "Tema de Black Friday em preto e vermelho. Loja inteira em fundo escuro com destaques vermelhos, faixa no topo com fogo animado e contagem regressiva para 27/11, chuva de confetes e etiquetas de desconto ao carregar, e explosão de confetes e fogo nos cliques.",
+        emoji: "🔥",
+        primary: "#e10600",
+        primaryDark: "#a30000",
+        bg: "#0b0b0b",
+        accent: "#ff5a36",
+        tags: ["Sazonal", "Preto", "Vermelho", "Black Friday"],
+        features: ["Paleta preta e vermelha em toda a loja", "Faixa animada com fogo e contagem regressiva", "Confetes e etiquetas de % OFF ao carregar", "Explosão de confetes e fogo nos cliques", "Brasas subindo pela tela", "Selos de desconto com brilho de fogo"],
+    },
 ];
 
 export default function AdminTemas() {

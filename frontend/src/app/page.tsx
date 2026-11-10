@@ -50,6 +50,7 @@ export default function Home() {
     const { showToast } = useToast();
     const isValentines = activeTheme === 'valentines_day';
     const isAnniversary = activeTheme === 'aniversario_4_anos';
+    const isBlackFriday = activeTheme === 'black_friday';
 
 
     const copyToClipboard = (text: string) => {
@@ -792,6 +793,18 @@ return (
                                             }}
                                         />
                                     )}
+                                    {isBlackFriday && (
+                                        <div
+                                            data-black-friday-overlay="true"
+                                            style={{
+                                                position: 'absolute',
+                                                inset: 0,
+                                                background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(120,0,0,0.25) 60%, rgba(0,0,0,0.55) 100%)',
+                                                zIndex: 2,
+                                                pointerEvents: 'none',
+                                            }}
+                                        />
+                                    )}
                                     {isAnniversary && (
                                         <div
                                             data-anniversary-overlay="true"
@@ -1007,7 +1020,9 @@ return (
                 if (promoProducts.length === 0) return null;
                 return (
                     <section style={{
-                        background: 'linear-gradient(135deg, #0e1a0f 0%, #17301c 50%, #0e1a0f 100%)',
+                        background: isBlackFriday
+                            ? 'linear-gradient(135deg, #000000 0%, #2a0000 50%, #000000 100%)'
+                            : 'linear-gradient(135deg, #0e1a0f 0%, #17301c 50%, #0e1a0f 100%)',
                         padding: '80px 0',
                         position: 'relative',
                         overflow: 'hidden'
@@ -1015,7 +1030,9 @@ return (
                         {/* Background decoração */}
                         <div style={{
                             position: 'absolute', inset: 0, pointerEvents: 'none',
-                            background: 'radial-gradient(circle at 50% -20%, rgba(162, 233, 74, 0.15) 0%, transparent 60%)'
+                            background: isBlackFriday
+                                ? 'radial-gradient(circle at 50% -20%, rgba(225, 6, 0, 0.35) 0%, transparent 60%)'
+                                : 'radial-gradient(circle at 50% -20%, rgba(162, 233, 74, 0.15) 0%, transparent 60%)'
                         }} />
                         <div className="container" style={{ position: 'relative', zIndex: 1 }}>
                             <div style={{ textAlign: 'center', marginBottom: '48px' }}>
@@ -1023,9 +1040,9 @@ return (
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '8px',
-                                    background: 'rgba(162, 233, 74, 0.1)',
-                                    border: '1px solid rgba(162, 233, 74, 0.3)',
-                                    color: '#a2e94a',
+                                    background: isBlackFriday ? '#e10600' : 'rgba(162, 233, 74, 0.1)',
+                                    border: isBlackFriday ? '1px solid #ff5a36' : '1px solid rgba(162, 233, 74, 0.3)',
+                                    color: isBlackFriday ? '#ffffff' : '#a2e94a',
                                     padding: '8px 24px',
                                     borderRadius: '50px',
                                     fontSize: '0.8rem',
@@ -1035,8 +1052,8 @@ return (
                                     textTransform: 'uppercase',
                                     boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)'
                                 }}>
-                                    <Sparkles size={14} style={{ color: '#a2e94a' }} />
-                                    <span>Ofertas por tempo limitado</span>
+                                    <Sparkles size={14} style={{ color: isBlackFriday ? '#ffffff' : '#a2e94a' }} />
+                                    <span>{isBlackFriday ? '🔥 Ofertas Black Friday' : 'Ofertas por tempo limitado'}</span>
                                 </div>
                                 <h2 style={{
                                     fontSize: 'clamp(2rem, 5vw, 3.2rem)',
@@ -1047,7 +1064,7 @@ return (
                                     textShadow: '0 2px 10px rgba(0,0,0,0.3)',
                                     letterSpacing: '-0.02em'
                                 }}>
-                                    Em <span style={{ background: 'linear-gradient(to right, #a2e94a, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>Promoção</span>
+                                    Em <span style={{ background: isBlackFriday ? 'linear-gradient(to right, #ff1a0d, #ffb300)' : 'linear-gradient(to right, #a2e94a, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>Promoção</span>
                                 </h2>
                                 <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1.05rem', maxWidth: '520px', margin: '0 auto', lineHeight: 1.6 }}>
                                     Aproveite os melhores preços nos nossos produtos selecionados
