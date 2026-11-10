@@ -47,7 +47,7 @@ class QuoteOrderPayload(BaseModel):
     package_weight: Optional[float] = None
 
 @router.post("/calculate")
-async def calculate_shipping(request: ShippingRequest, db: Session = Depends(get_db)):
+def calculate_shipping(request: ShippingRequest, db: Session = Depends(get_db)):
     """
     Calcula opções de frete reais via Melhor Envio utilizando as regras exatas de produtos:
     - Sabonete líquido: 300g
@@ -67,6 +67,13 @@ async def calculate_shipping(request: ShippingRequest, db: Session = Depends(get
         items_dict.append(i_dict)
 
     options, error = MelhorEnvioService.calculate_shipping(request.dest_cep, items_dict)
+    if options:
+        # Guarda a cotação real para validar o frete no checkout sem nova chamada à Melhor Envio
+        try:
+            from app.core.payment_guard import remember_quote
+            remember_quote(request.dest_cep, items_dict, options)
+        except Exception:
+            pass
     if not options:
         # Fallback regional resiliente para garantir que o cliente nunca seja impedido de comprar
         clean_cep = "".join(filter(str.isdigit, request.dest_cep or ""))
@@ -114,10 +121,12 @@ async def calculate_shipping(request: ShippingRequest, db: Session = Depends(get
     return options
 
 @router.get("/test-connection")
-async def test_melhorenvio():
+def test_melhorenvio(current_user: models.User = Depends(get_current_user)):
     """
-    Testa a conexão com o Melhor Envio e retorna detalhes do erro se houver.
+    Testa a conexão com o Melhor Envio e retorna detalhes do erro se houver (somente admin).
     """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
     url = f"{MelhorEnvioService.MELHORENVIO_URL}/api/v2/me"
     headers = {
         "Accept": "application/json",
@@ -287,7 +296,7 @@ def _simulate_label_pdf(order: models.Order) -> bytes:
         return content.encode("utf-8")
 
 @router.post("/generate-label/{order_id}")
-async def generate_label(
+def generate_label(
     order_id: int,
     payload: Optional[GenerateLabelPayload] = None,
     db: Session = Depends(get_db),
@@ -469,7 +478,7 @@ async def generate_label(
     }
 
 @router.get("/label/{order_id}")
-async def download_label(
+def download_label(
     order_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -486,7 +495,7 @@ async def download_label(
 
 
 @router.post("/sync/{order_id}", summary="Sincronizar status e rastreio de um pedido com o Melhor Envio")
-async def sync_shipping_status(
+def sync_shipping_status(
     order_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -506,7 +515,7 @@ async def sync_shipping_status(
 
 
 @router.post("/sync-all", summary="Sincronizar todos os pedidos ativos com o Melhor Envio")
-async def sync_all_active_shipping(
+def sync_all_active_shipping(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -535,7 +544,7 @@ async def sync_all_active_shipping(
 
 
 @router.post("/quote-order/{order_id}", summary="Cotar opções de frete disponíveis para o CEP do pedido")
-async def quote_order_shipping(
+def quote_order_shipping(
     order_id: int,
     payload: Optional[QuoteOrderPayload] = None,
     db: Session = Depends(get_db),

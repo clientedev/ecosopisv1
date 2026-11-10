@@ -69,7 +69,7 @@ EVENT_STATUS_MAP = {
 @router.get("/webhook/melhorenvio")
 @router.get("/shipping/webhook")
 @router.get("/api/shipping/webhook")
-async def webhook_melhor_envio_health():
+def webhook_melhor_envio_health():
     """Endpoint de handshake / verificação de saúde da URL do webhook."""
     return {"status": "online", "service": "Melhor Envio Webhook ECOSOPIS"}
 
@@ -91,16 +91,45 @@ async def webhook_melhor_envio(
     - order.delivered                              → delivered (Entregue) + Notificação ao cliente
     - order.cancelled                              → cancelled (Cancelado)
     """
+    import json as _json
+    raw_body = await request.body()
+    payload = None
     try:
-        payload = await request.json()
+        payload = _json.loads(raw_body.decode("utf-8")) if raw_body else None
     except Exception:
+        payload = None
+    if not isinstance(payload, dict):
         try:
             form = await request.form()
             payload = dict(form)
         except Exception:
-            payload = dict(request.query_params)
+            payload = {}
+    if not payload:
+        payload = dict(request.query_params)
 
-    logger.info(f"[WEBHOOK ME] Payload recebido: {payload}")
+    signature_ok = _me_signature_is_valid(raw_body, request.headers.get("x-me-signature") or request.headers.get("X-ME-Signature") or "")
+
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(_process_me_webhook, payload, signature_ok, db)
+
+
+def _me_signature_is_valid(raw_body: bytes, signature: str) -> bool:
+    """
+    Melhor Envio assina o corpo com HMAC-SHA256 (base64) usando o secret do aplicativo.
+    Retorna True só se MELHORENVIO_WEBHOOK_SECRET (ou o client secret) estiver configurado
+    e a assinatura conferir.
+    """
+    import base64, hashlib, hmac, os
+    secret = (os.getenv("MELHORENVIO_WEBHOOK_SECRET") or os.getenv("MELHORENVIO_CLIENT_SECRET") or "").strip()
+    if not secret or not signature or not raw_body:
+        return False
+    digest = hmac.new(secret.encode(), raw_body, hashlib.sha256).digest()
+    expected = base64.b64encode(digest).decode()
+    return hmac.compare_digest(expected, signature.strip())
+
+
+def _process_me_webhook(payload: dict, signature_ok: bool, db: Session):
+    logger.info(f"[WEBHOOK ME] Payload recebido (assinatura válida={signature_ok}): {payload}")
 
     event = (
         payload.get("event")
@@ -163,12 +192,18 @@ async def webhook_melhor_envio(
     # Se temos o pedido, executa a sincronização completa
     res_sync = me_service.sync_melhor_envio_status(order, db)
 
-    # Se o evento do payload trouxer um status mapeado diretamente e ainda não foi aplicado:
-    novo_status = EVENT_STATUS_MAP.get(str(event).lower()) if event else None
+    # O status oficial vem da consulta à API da Melhor Envio (sync acima). O evento do corpo
+    # da requisição só é aplicado se a assinatura do webhook for válida — sem isso, qualquer
+    # pessoa poderia marcar pedidos como cancelados/entregues.
+    novo_status = EVENT_STATUS_MAP.get(str(event).lower()) if (event and signature_ok) else None
+    if event and not signature_ok and EVENT_STATUS_MAP.get(str(event).lower()):
+        logger.info(f"[WEBHOOK ME] Evento '{event}' sem assinatura válida: usando apenas o status consultado na API.")
+    if novo_status == "shipped" and order.status in ("pending", "partially_paid", "cancelled"):
+        novo_status = None  # nunca "enviar" um pedido não pago
     if novo_status and order.status != novo_status:
         status_anterior = order.status
         order.status = novo_status
-        if tracking_code and not order.codigo_rastreio:
+        if tracking_code and not order.codigo_rastreio and signature_ok:
             order.codigo_rastreio = tracking_code
 
         db.commit()

@@ -130,6 +130,12 @@ export default function UserProfile() {
                     address: order.address || {},
                     shipping_method: order.shipping_method || "fixo",
                     shipping_price: order.shipping_price || 0,
+                    shipping_service_id: order.shipping_service_id || undefined,
+                    coupon_code: order.coupon_code || undefined,
+                    customer_cpf: (order.customer_cpf || user?.cpf || "").toString().replace(/\D/g, ""),
+                    customer_name: order.customer_name || user?.full_name || undefined,
+                    customer_email: order.customer_email || user?.email || undefined,
+                    customer_phone: order.customer_phone || user?.phone || undefined,
                 })
             });
 

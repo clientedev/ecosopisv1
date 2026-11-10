@@ -427,9 +427,14 @@ def get_order(
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
 
-    has_guest_access = bool(guest_token and getattr(order, "guest_access_token", None) and guest_token == order.guest_access_token)
-    
-    # Suporte a consulta para clientes visitantes via e-mail ou CPF
+    import hmac as _hmac
+    order_token = getattr(order, "guest_access_token", None)
+    has_guest_access = bool(guest_token and order_token and _hmac.compare_digest(str(guest_token), str(order_token)))
+    has_full_access = has_guest_access or bool(
+        current_user and (current_user.role == "admin" or (order.user_id and order.user_id == current_user.id))
+    )
+
+    # Suporte a consulta para clientes visitantes via e-mail ou CPF (acesso limitado)
     if not has_guest_access and email:
         clean_email = email.strip().lower()
         order_email = (getattr(order, "customer_email", "") or getattr(order, "buyer_email", "") or "").strip().lower()
@@ -470,7 +475,47 @@ def get_order(
         except Exception as me_err:
             pass
 
-    return _order_to_response(order, db)
+    response = _order_to_response(order, db)
+    if not has_full_access:
+        response = _mask_order_for_identifier_access(response)
+    return response
+
+
+def _mask(value: Optional[str], keep_end: int = 2) -> Optional[str]:
+    if not value:
+        return value
+    v = str(value)
+    return ("*" * max(0, len(v) - keep_end)) + v[-keep_end:]
+
+
+def _mask_email(value: Optional[str]) -> Optional[str]:
+    if not value or "@" not in str(value):
+        return value
+    name, domain = str(value).split("@", 1)
+    return (name[:2] + "***@" + domain) if name else value
+
+
+def _mask_order_for_identifier_access(resp: dict) -> dict:
+    """
+    Consulta só com e-mail/CPF (sem login nem token do pedido): mostra status, itens,
+    valores e rastreio, mas oculta endereço completo e dados pessoais.
+    """
+    out = dict(resp)
+    addr = out.get("address") or {}
+    if isinstance(addr, dict):
+        out["address"] = {
+            "city": addr.get("city"),
+            "state": addr.get("state"),
+            "postal_code": _mask(str(addr.get("postal_code") or addr.get("cep") or ""), 3) or None,
+        }
+    for key in ("customer_cpf",):
+        out[key] = _mask(out.get(key), 2)
+    out["customer_phone"] = _mask(out.get("customer_phone"), 4)
+    for key in ("customer_email", "buyer_email", "user_email"):
+        out[key] = _mask_email(out.get(key))
+    out["payment_transactions"] = []
+    out["payment_history"] = []
+    return out
 
 
 @router.post("/subscribe")

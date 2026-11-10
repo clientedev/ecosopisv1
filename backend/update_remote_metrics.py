@@ -4,7 +4,7 @@ import random
 from urllib.parse import urlparse
 from datetime import datetime, timedelta, timezone
 
-DB_URL = "postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway"
+DB_URL = __import__("os").environ["DATABASE_PUBLIC_URL"]
 
 PATHS = [
     "/", "/", "/", "/produto/sabonete-acafrao-dolomita",

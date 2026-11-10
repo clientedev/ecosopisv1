@@ -1,7 +1,7 @@
 import psycopg2
 from urllib.parse import urlparse
 
-DATABASE_URL = "postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway"
+DATABASE_URL = __import__("os").environ["DATABASE_PUBLIC_URL"]
 
 def fix_db():
     print("Connecting to remote database with SSL...")

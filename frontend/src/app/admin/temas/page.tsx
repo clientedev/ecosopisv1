@@ -209,6 +209,10 @@ export default function AdminTemas() {
         setSaving(true);
         try {
             const token = localStorage.getItem("token");
+            if (!token) {
+                showToast("🔒 Sua sessão expirou. Saia e entre novamente no admin para salvar o tema.", "error");
+                return;
+            }
             const res = await fetch("/api/settings", {
                 method: "POST",
                 headers: {
@@ -226,8 +230,12 @@ export default function AdminTemas() {
                         : `✅ Tema "${THEME_DEFINITIONS.find(t => t.id === themeId)?.name}" ativado!`,
                     "success"
                 );
+            } else if (res.status === 401 || res.status === 403) {
+                showToast("🔒 Sua sessão expirou. Saia e entre novamente no admin para salvar o tema.", "error");
             } else {
-                showToast("❌ Erro ao salvar tema. Tente novamente.", "error");
+                let detail = "";
+                try { detail = (await res.json())?.detail || ""; } catch { /* ignore */ }
+                showToast(`❌ Erro ao salvar tema${detail ? `: ${detail}` : ""}. Tente novamente.`, "error");
             }
         } catch {
             showToast("❌ Erro de conexão.", "error");

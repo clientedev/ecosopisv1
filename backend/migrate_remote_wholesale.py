@@ -1,6 +1,6 @@
 import psycopg2
 
-URL = "postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway"
+URL = __import__("os").environ["DATABASE_PUBLIC_URL"]
 
 def migrate():
     conn = psycopg2.connect(URL, sslmode='require')

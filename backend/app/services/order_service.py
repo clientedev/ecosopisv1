@@ -147,7 +147,8 @@ class OrderService:
             if mp_payment_id:
                 try:
                     p_info = get_mp_payment_status(str(mp_payment_id))
-                    if p_info.get("status") in ["approved", "authorized"]:
+                    from app.core.payment_guard import payment_matches_order
+                    if payment_matches_order(p_info, order)[0]:
                         from app.api.endpoints.payment import finalize_order_on_payment
                         finalize_order_on_payment(
                             order=order,
@@ -165,7 +166,10 @@ class OrderService:
             if result.get("status") in [200, 201]:
                 payments = result.get("response", {}).get("results", [])
                 for payment in payments:
-                    if payment.get("status") in ["approved", "authorized"]:
+                    from app.core.payment_guard import payment_matches_order
+                    if payment.get("status") in ["approved", "authorized"] and payment_matches_order(
+                        {**payment, "transaction_amount": payment.get("transaction_amount")}, order
+                    )[0]:
                         print(f"Sincronização: Pedido {order_id} detectado como pago no Mercado Pago via payment.search.")
                         from app.api.endpoints.payment import finalize_order_on_payment
                         finalize_order_on_payment(
@@ -183,7 +187,14 @@ class OrderService:
                 for mo in merchant_orders:
                     payments = mo.get("payments", [])
                     for p in payments:
-                        if p.get("status") in ["approved", "authorized"]:
+                        if p.get("status") not in ["approved", "authorized"]:
+                            continue
+                        from app.core.payment_guard import payment_matches_order
+                        try:
+                            full_p = get_mp_payment_status(str(p.get("id")))
+                        except Exception:
+                            continue
+                        if payment_matches_order(full_p, order)[0]:
                             print(f"Sincronização: Pedido {order_id} detectado como pago no Mercado Pago via merchant_order.")
                             from app.api.endpoints.payment import finalize_order_on_payment
                             finalize_order_on_payment(

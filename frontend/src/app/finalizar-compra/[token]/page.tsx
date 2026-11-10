@@ -778,28 +778,79 @@ export default function FinalizarCompraWhatsAppPage() {
   ]);
 
   // Redirecionamento para Mercado Pago Checkout Pro (inclui Boleto, Saldo MP, etc.)
+  // Usa a mesma rota do carrinho: cria o pedido (inclusive para visitante),
+  // valida preços/frete no servidor e devolve o link de pagamento.
   const handleMercadoPagoProCheckout = async () => {
     try {
       setCreatingOrderForPro(true);
-      const order = await ensureBackendOrder();
-      const effectiveToken = authToken || order?.guest_access_token || guestAccessToken;
-
-      const prefHeaders: Record<string, string> = { "Content-Type": "application/json" };
-      if (effectiveToken) {
-        prefHeaders["Authorization"] = `Bearer ${effectiveToken}`;
+      if (!isFormValid) {
+        throw new Error(validationErrors[0] || "Preencha todos os dados obrigatórios.");
       }
+      const cleanCep = cep.replace(/\D/g, "");
+      const emailToUse = customerEmail.trim().toLowerCase();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
 
-      const prefRes = await fetch("/api/payment/preference", {
+      const res = await fetch("/api/payment/create-mercadopago-checkout", {
         method: "POST",
-        headers: prefHeaders,
-        body: JSON.stringify({ order_id: order.id }),
+        headers,
+        body: JSON.stringify({
+          order_id: orderCreated?.id || undefined,
+          items: items.map((item) => {
+            const discounted = isWholesaleEligible && item.isWholesale;
+            return {
+              product_id: item.id,
+              product_name: discounted ? `${item.name} (Atacado)` : item.name,
+              quantity: item.quantity,
+              price: discounted ? Math.round(item.price * 0.55 * 100) / 100 : item.price,
+            };
+          }),
+          total: finalTotal,
+          shipping_price: shippingCost,
+          shipping_method: selectedShipping
+            ? `${selectedShipping.company || ""} - ${selectedShipping.name || ""}`
+            : "Correios",
+          shipping_service_id: selectedShipping?.id ? Number(selectedShipping.id) : undefined,
+          customer_name: customerName.trim(),
+          customer_email: emailToUse,
+          customer_phone: customerPhone.trim(),
+          customer_cpf: customerCpf.replace(/\D/g, ""),
+          address: {
+            street: address.street.trim(),
+            number: address.number.trim(),
+            complement: address.complement.trim(),
+            neighborhood: address.neighborhood.trim() || "Centro",
+            city: address.city.trim(),
+            state: address.state.trim().toUpperCase(),
+            postal_code: cleanCep,
+            zip: cleanCep,
+            cep: cleanCep,
+            email: emailToUse,
+          },
+          coupon_code: appliedCoupon?.code || null,
+          discount_amount: discountAmount,
+          cashback_amount: 0,
+        }),
       });
-      const prefData = await prefRes.json();
-      if (!prefRes.ok || !prefData.init_point) {
-        throw new Error(prefData?.detail || "Erro ao gerar link do Mercado Pago.");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.checkout_url) {
+        throw new Error(data?.detail || "Erro ao gerar link do Mercado Pago.");
       }
 
-      window.location.href = prefData.init_point;
+      if (data.order_id) {
+        setOrderCreated({ id: data.order_id, guest_access_token: data.guest_access_token });
+        if (data.guest_access_token && typeof window !== "undefined") {
+          localStorage.setItem("guest_order_token_" + data.order_id, data.guest_access_token);
+          localStorage.setItem("last_guest_order_token", data.guest_access_token);
+        }
+        await persistReviewState({
+          order_id: data.order_id,
+          guest_access_token: data.guest_access_token || guestAccessToken,
+          status: "order_created",
+        }).catch(() => {});
+      }
+
+      window.location.href = data.checkout_url;
     } catch (err: any) {
       alert(err?.message || "Erro ao iniciar pagamento externo.");
     } finally {

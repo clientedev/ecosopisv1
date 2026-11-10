@@ -3,7 +3,7 @@ from psycopg2.extras import execute_values
 import random
 from datetime import datetime, timedelta, timezone
 
-DB_URL = "postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway?sslmode=require"
+DB_URL = __import__("os").environ["DATABASE_PUBLIC_URL"] + "?sslmode=require"
 
 PATHS = [
     "/", "/", "/", "/produto/sabonete-acafrao-dolomita",

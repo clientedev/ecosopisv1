@@ -1,7 +1,7 @@
 import psycopg2
 from urllib.parse import urlparse
 
-DB_URL = "postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway"
+DB_URL = __import__("os").environ["DATABASE_PUBLIC_URL"]
 
 def sync_seq():
     result = urlparse(DB_URL)

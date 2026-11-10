@@ -6,7 +6,7 @@
 import pkg from 'pg';
 const { Client } = pkg;
 
-const DATABASE_URL = 'postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway';
+const DATABASE_URL = process.env.DATABASE_PUBLIC_URL;
 
 const MISSING_COLUMNS = [
     ["alignment", "VARCHAR DEFAULT 'left'"],

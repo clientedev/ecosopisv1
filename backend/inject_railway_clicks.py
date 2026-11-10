@@ -4,7 +4,7 @@ import random
 from urllib.parse import urlparse
 from datetime import datetime, timedelta, timezone
 
-DB_URL = "postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway"
+DB_URL = __import__("os").environ["DATABASE_PUBLIC_URL"]
 
 PRODUCT_WEIGHTS = {
     1: 15, 2: 14, 3: 12, 13: 12, 14: 10, 15: 9, 27: 8, 25: 7, 26: 7,

@@ -18,6 +18,7 @@ from app.models import models
 from app.models.pedido import Pedido
 from app.core import emails
 from app.api.endpoints.cashback import create_cashback_for_order
+from app.core.payment_guard import payment_matches_order, can_access_order, APPROVED_STATUSES
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +179,7 @@ def _translate_mp_status_detail(detail: str) -> str:
     return messages.get(detail, "O pagamento com cartão foi recusado. Verifique os dados ou utilize outro método.")
 
 
-def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.User, db: Session) -> dict:
+def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.User, db: Session, verify_shipping: bool = True) -> dict:
     """
     Strict server-side validation of products, active stock, coupon codes,
     cashback deductions, shipping discounts, and CPF.
@@ -196,49 +197,91 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
         raise HTTPException(status_code=400, detail="O CPF informado é inválido. Por favor, confira os números digitados.")
     data.customer_cpf = clean_cpf
 
-    # 2. Wholesale threshold detection
-    # A customer is ONLY eligible for wholesale discount (45% OFF = price * 0.55)
-    # when the cart contains at least 10 units of wholesale-eligible items,
-    # matching the business rule in CartContext.tsx: wholesaleItemsCount >= 10.
-    total_wholesale_quantity = 0
+    # 2. Quantity sanity (never trust client quantities)
+    MAX_QTY_PER_LINE = 500
     for item in data.items:
-        prod = db.query(models.Product).filter(models.Product.id == item.product_id).first()
-        if prod and (bool(prod.is_wholesale) or "(Atacado)" in (item.product_name or "")):
-            total_wholesale_quantity += int(item.quantity or 1)
+        try:
+            qty = int(item.quantity)
+        except (TypeError, ValueError):
+            qty = 0
+        if qty < 1 or qty > MAX_QTY_PER_LINE:
+            raise HTTPException(status_code=400, detail="Quantidade inválida em um dos itens do carrinho.")
+        item.quantity = qty
 
+    # Load each product once
+    product_cache: Dict[int, models.Product] = {}
+    for item in data.items:
+        pid = int(item.product_id or 0)
+        if pid not in product_cache:
+            prod = db.query(models.Product).filter(models.Product.id == pid).first()
+            if not prod:
+                raise HTTPException(status_code=404, detail=f"Produto ID {item.product_id} não encontrado.")
+            product_cache[pid] = prod
+
+    # 3. Wholesale threshold detection
+    # Wholesale (45% OFF = price * 0.55) applies ONLY to products flagged is_wholesale
+    # in the database, and only when the cart has >= 10 wholesale units
+    # (same rule as CartContext.tsx: wholesaleItemsCount >= 10). The item name sent by
+    # the browser (e.g. "(Atacado)") is never trusted to grant eligibility.
+    def _client_requested_wholesale(it, prod) -> bool:
+        if "(Atacado)" in (it.product_name or ""):
+            return True
+        try:
+            return it.price is not None and abs(float(it.price) - round(float(prod.price or 0.0) * 0.55, 2)) < 0.05
+        except (TypeError, ValueError):
+            return False
+
+    total_wholesale_quantity = sum(
+        int(it.quantity)
+        for it in data.items
+        if bool(product_cache[int(it.product_id or 0)].is_wholesale)
+        and _client_requested_wholesale(it, product_cache[int(it.product_id or 0)])
+    )
     is_wholesale_unlocked = total_wholesale_quantity >= 10
     has_wholesale_items = False
 
-    # 3. Item & Stock verification
-    subtotal = 0.0
-    for item in data.items:
-        prod = db.query(models.Product).filter(models.Product.id == item.product_id).first()
-        if not prod:
-            raise HTTPException(status_code=404, detail=f"Produto ID {item.product_id} não encontrado.")
+    # Stock is checked against the total quantity per product (a product can appear
+    # in two lines: regular + wholesale)
+    qty_per_product: Dict[int, int] = {}
+    for it in data.items:
+        pid = int(it.product_id or 0)
+        qty_per_product[pid] = qty_per_product.get(pid, 0) + int(it.quantity)
+
+    for pid, qty in qty_per_product.items():
+        prod = product_cache[pid]
         if not prod.is_active or not prod.buy_on_site:
             raise HTTPException(status_code=400, detail=f"O produto '{prod.name}' não está disponível para compra no momento.")
-        if prod.stock is not None and prod.stock < item.quantity:
+        if prod.stock is not None and prod.stock < qty:
             raise HTTPException(
                 status_code=400,
-                detail=f"Estoque insuficiente para '{prod.name}'. Disponível: {prod.stock}, solicitado: {item.quantity}."
+                detail=f"Estoque insuficiente para '{prod.name}'. Disponível: {prod.stock}, solicitado: {qty}."
             )
 
-        # An item receives wholesale pricing only if the 10-unit minimum threshold is met
-        # AND it was purchased under wholesale conditions (either tagged '(Atacado)' or client price matches wholesale)
-        item_is_wholesale_eligible = bool(prod.is_wholesale) or "(Atacado)" in (item.product_name or "")
-        client_requested_wholesale = (
-            "(Atacado)" in (item.product_name or "") or 
-            (item.price is not None and abs(float(item.price) - round(float(prod.price or 0.0) * 0.55, 2)) < 0.05)
+    # Item price verification
+    subtotal = 0.0
+    for item in data.items:
+        prod = product_cache[int(item.product_id or 0)]
+        is_item_wholesale = (
+            is_wholesale_unlocked
+            and bool(prod.is_wholesale)
+            and _client_requested_wholesale(item, prod)
         )
-        is_item_wholesale = is_wholesale_unlocked and item_is_wholesale_eligible and client_requested_wholesale
 
         if is_item_wholesale:
             has_wholesale_items = True
             verified_price = round(float(prod.price or 0.0) * 0.55, 2)
+            if "(Atacado)" not in (item.product_name or ""):
+                item.product_name = f"{prod.name} (Atacado)"
+                item.name = item.product_name
         elif prod.is_on_sale and prod.sale_price and float(prod.sale_price) > 0:
             verified_price = round(float(prod.sale_price), 2)
         else:
             verified_price = round(float(prod.price or 0.0), 2)
+
+        if not is_item_wholesale and "(Atacado)" in (item.product_name or ""):
+            # Never keep a wholesale label on an item that was priced at retail
+            item.product_name = prod.name
+            item.name = prod.name
 
         item.price = verified_price
         subtotal += verified_price * int(item.quantity)
@@ -250,7 +293,7 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
     if data.coupon_code and not has_wholesale_items:
         code_clean = data.coupon_code.strip().upper()
         if code_clean == "PRIMEIRACOMPRA":
-            if current_user is None or (current_user.total_compras or 0) == 0:
+            if _is_first_purchase(db, current_user, data):
                 discount_amount = round(subtotal * 0.10, 2)
             else:
                 data.coupon_code = None
@@ -293,16 +336,33 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
         cashback_discount = min(avail_cashback, max_possible, float(data.cashback_amount))
     data.cashback_amount = round(cashback_discount, 2)
 
-    # 6. Shipping verification & Free Shipping check
-    shipping_price = max(0.0, round(float(data.shipping_price or 0.0), 2))
+    # 6. Shipping verification (server-side) & Free Shipping check
     is_free_coupon = bool(
         data.coupon_code and db.query(models.Coupon).filter(
-            models.Coupon.code == data.coupon_code.upper(),
-            models.Coupon.discount_type == "free_shipping"
+            models.Coupon.code == data.coupon_code.strip().upper(),
+            models.Coupon.discount_type == "free_shipping",
+            models.Coupon.is_active == True,
         ).first()
     )
-    if is_free_coupon:
-        shipping_price = 0.0
+    dest_cep = (data.address or {}).get("postal_code") or (data.address or {}).get("zip") or (data.address or {}).get("cep") or ""
+    if verify_shipping:
+        from app.core.payment_guard import verify_shipping_price
+        ship_ok, shipping_price, ship_reason = verify_shipping_price(
+            cep=dest_cep,
+            items=[it.dict() for it in data.items],
+            subtotal=subtotal,
+            client_price=float(data.shipping_price or 0.0),
+            service_id=data.shipping_service_id,
+            free_shipping_coupon=is_free_coupon,
+        )
+        if not ship_ok:
+            logger.warning(f"[Checkout] Frete recusado (CEP {dest_cep}, serviço {data.shipping_service_id}, "
+                           f"enviado R$ {float(data.shipping_price or 0):.2f}): {ship_reason}")
+            raise HTTPException(status_code=400, detail=ship_reason)
+    else:
+        shipping_price = max(0.0, round(float(data.shipping_price or 0.0), 2))
+        if is_free_coupon:
+            shipping_price = 0.0
     data.shipping_price = shipping_price
 
     # 7. Final total server calculation
@@ -316,6 +376,33 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
         "shipping_price": shipping_price,
         "final_total": final_total,
     }
+
+
+def _is_first_purchase(db: Session, user: Optional[models.User], data: CreateCheckoutIn) -> bool:
+    """
+    PRIMEIRACOMPRA vale só para quem nunca teve um pedido pago, conferindo a conta,
+    o CPF e o e-mail (impede reaproveitar o cupom comprando como visitante).
+    """
+    paid_statuses = ["paid", "shipped", "delivered", "processando_envio", "PROCESSANDO_ENVIO"]
+    if user is not None and (user.total_compras or 0) > 0:
+        return False
+    from sqlalchemy import or_, func as _func
+    conds = []
+    cpf = "".join(filter(str.isdigit, data.customer_cpf or ""))
+    if cpf:
+        conds.append(models.Order.customer_cpf == cpf)
+    email = (data.customer_email or (data.address or {}).get("email") or (user.email if user else "") or "").strip().lower()
+    if email:
+        conds.append(_func.lower(models.Order.customer_email) == email)
+        conds.append(_func.lower(models.Order.buyer_email) == email)
+    if user is not None:
+        conds.append(models.Order.user_id == user.id)
+    if not conds:
+        return True
+    previous = db.query(models.Order.id).filter(
+        models.Order.status.in_(paid_statuses), or_(*conds)
+    ).first()
+    return previous is None
 
 
 def _is_feature_enabled(db: Session, key: str, env_var: str, default: bool = True) -> bool:
@@ -562,6 +649,98 @@ def _resolve_or_create_user(data: CreateCheckoutIn, current_user: Optional[model
     return user
 
 
+def _order_can_be_reused(
+    order: Optional[models.Order],
+    current_user: Optional[models.User],
+    buyer_email: str,
+    payment_method: str,
+    db: Session,
+) -> bool:
+    """
+    Um pedido existente só é reaproveitado (nova tentativa de pagamento) se pertencer a
+    quem está pagando e ainda estiver em aberto. Nunca altera pedidos pagos/enviados.
+    """
+    if order is None:
+        return False
+    if current_user is not None and getattr(current_user, "role", None) == "admin":
+        owned = True
+    elif order.user_id:
+        owned = current_user is not None and order.user_id == current_user.id
+    else:
+        owned = bool(buyer_email) and (order.customer_email or "").strip().lower() == buyer_email
+    if not owned:
+        return False
+
+    status = (order.status or "pending").lower()
+    if status == "pending":
+        if not getattr(order, "is_split_payment", False):
+            approved = db.query(models.OrderPayment.id).filter(
+                models.OrderPayment.order_id == order.id,
+                models.OrderPayment.status.in_(["approved", "authorized"]),
+            ).first()
+            if approved:
+                return False
+        return True
+    if status == "partially_paid":
+        # Só o pagamento combinado pode continuar um pedido parcialmente pago
+        return payment_method == "mercadopago_split"
+    return False
+
+
+def _sync_cashback_reservation(order: models.Order, user: Optional[models.User], amount: float, db: Session) -> None:
+    """
+    Guarda o cashback usado neste pedido como transação 'used' pendente.
+    Ela só passa a debitar o saldo quando o pagamento for confirmado (finalize).
+    """
+    if user is None:
+        return
+    try:
+        tx = db.query(models.CashbackTransaction).filter(
+            models.CashbackTransaction.order_id == order.id,
+            models.CashbackTransaction.user_id == user.id,
+            models.CashbackTransaction.type == "used",
+        ).first()
+        amount = round(max(0.0, float(amount or 0.0)), 2)
+        if amount <= 0:
+            if tx is not None and tx.status == "pending":
+                db.delete(tx)
+            return
+        if tx is None:
+            db.add(models.CashbackTransaction(
+                user_id=user.id,
+                order_id=order.id,
+                amount=amount,
+                type="used",
+                status="pending",
+                description=f"Uso no pedido #{order.id}",
+            ))
+        elif tx.status == "pending":
+            tx.amount = amount
+    except Exception as e:
+        logger.warning(f"Could not register cashback reservation for order {order.id}: {e}")
+
+
+def _apply_paid_order_side_effects_db(order: models.Order, db: Session) -> None:
+    """Debita o cashback reservado e contabiliza o uso do cupom (uma única vez, no pagamento)."""
+    from sqlalchemy import func
+    try:
+        db.query(models.CashbackTransaction).filter(
+            models.CashbackTransaction.order_id == order.id,
+            models.CashbackTransaction.type == "used",
+            models.CashbackTransaction.status == "pending",
+        ).update({"status": "used"}, synchronize_session=False)
+    except Exception as e:
+        logger.warning(f"Could not debit cashback for order {order.id}: {e}")
+    try:
+        code = (order.coupon_code or "").strip().upper()
+        if code and code != "PRIMEIRACOMPRA":
+            db.query(models.Coupon).filter(models.Coupon.code == code).update(
+                {"usage_count": func.coalesce(models.Coupon.usage_count, 0) + 1}, synchronize_session=False
+            )
+    except Exception as e:
+        logger.warning(f"Could not increment coupon usage for order {order.id}: {e}")
+
+
 def _get_or_create_order(
     data: CreateCheckoutIn,
     current_user: Optional[models.User],
@@ -586,10 +765,23 @@ def _get_or_create_order(
     ).strip().lower()
 
     if data.order_id:
-        order = repo.get_order_by_id(data.order_id)
-        if not order:
-            raise HTTPException(status_code=404, detail="Pedido não encontrado")
+        existing_order = repo.get_order_by_id(data.order_id)
+        if not _order_can_be_reused(existing_order, current_user, buyer_email, payment_method, db):
+            logger.info(
+                f"[Checkout] order_id={data.order_id} não reutilizável (dono/status). Criando novo pedido."
+            )
+            data.order_id = None
+            is_new_order = True
+
+    if data.order_id:
+        order = existing_order
         order.payment_method = payment_method
+        order.items = [item.dict() for item in data.items]
+        try:
+            db.query(models.OrderItem).filter(models.OrderItem.order_id == order.id).delete(synchronize_session=False)
+            repo.add_order_items(order.id, [item.dict() for item in data.items])
+        except Exception as oi_err:
+            logger.warning(f"Could not refresh order_items for order {order.id}: {oi_err}")
         order.total = data.total
         order.shipping_price = data.shipping_price or 0.0
         order.shipping_method = data.shipping_method or "fixo"
@@ -638,6 +830,9 @@ def _get_or_create_order(
         if current_user:
             current_user.cart_json = None
             current_user.cart_updated_at = None
+
+    db.flush()
+    _sync_cashback_reservation(order, current_user, float(data.cashback_amount or 0.0), db)
 
     db.commit()
     db.refresh(order)
@@ -721,6 +916,25 @@ def _record_order_payment_slice(
         db.add(hist)
 
     return payment_row
+
+
+def _record_payment_mismatch(order: models.Order, db: Session, payment_id: str, payment_info: dict, reason: str) -> None:
+    """Registra no histórico um pagamento aprovado que não cobre/pertence ao pedido (para o admin revisar)."""
+    try:
+        db.add(models.OrderPaymentHistory(
+            order_id=order.id,
+            order_payment_id=None,
+            previous_status=order.status,
+            new_status="under_review",
+            amount=float(payment_info.get("transaction_amount") or 0.0),
+            external_payment_id=str(payment_id),
+            source="security",
+            notes=f"Pagamento não aplicado: {reason}"[:500],
+        ))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.warning(f"Could not record payment mismatch for order {order.id}: {e}")
 
 
 def _serialize_order_payments(order: models.Order, db: Session) -> List[Dict[str, Any]]:
@@ -850,6 +1064,12 @@ def sync_and_evaluate_split_order(order: models.Order, db: Session) -> Dict[str,
                 p_info = get_mp_payment_status(str(s.external_payment_id))
                 mp_st = p_info.get("status")
                 mp_det = p_info.get("status_detail", "")
+                if mp_st in APPROVED_STATUSES:
+                    ok, reason = payment_matches_order(p_info, order, expected_amount=s.amount)
+                    if not ok:
+                        logger.warning(f"[SEGURANÇA] Parcela {s.part_number} do pedido #{order.id} divergente: {reason}")
+                        mp_st = "under_review"
+                        mp_det = f"divergencia: {reason}"[:250]
                 if mp_st and mp_st != s.status:
                     prev_st = s.status
                     s.status = "approved" if mp_st in ("approved", "authorized") else mp_st
@@ -964,8 +1184,40 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
         except Exception as e:
             logger.error(f"Error processing cashback for order {order.id}: {e}")
 
+    # Debit reserved cashback + count coupon usage (runs once: guarded by the atomic update above)
+    _apply_paid_order_side_effects_db(order, db)
+
     db.commit()
     logger.info(f"Order {order.id} status updated to PAID via {order.payment_method}")
+
+    # Shipping cart placement + e-mails + WhatsApp can take many seconds (external APIs).
+    # Run them in the background so payment confirmation / webhooks answer immediately.
+    _schedule_post_payment_tasks(order.id)
+
+
+def _schedule_post_payment_tasks(order_id: int) -> None:
+    import threading
+
+    def _runner():
+        from app.core.database import SessionLocal
+        bg_db = SessionLocal()
+        try:
+            bg_order = bg_db.query(models.Order).filter(models.Order.id == order_id).first()
+            if bg_order is not None:
+                _run_post_payment_tasks(bg_order, bg_db)
+        except Exception as e:
+            logger.error(f"Post-payment tasks failed for order {order_id}: {e}", exc_info=True)
+        finally:
+            bg_db.close()
+
+    if os.getenv("POST_PAYMENT_TASKS_SYNC", "").lower() in ("1", "true", "yes"):
+        _runner()  # used by tests
+        return
+    threading.Thread(target=_runner, name=f"post-payment-{order_id}", daemon=True).start()
+
+
+def _run_post_payment_tasks(order: models.Order, db: Session) -> None:
+    user = db.query(models.User).filter(models.User.id == order.user_id).first() if order.user_id else None
 
     # ── LOGISTICS: MELHOR ENVIO ──────────────────────────────────────────────
     # Envia automaticamente o pedido para o carrinho do Melhor Envio (sem finalizar compra).
@@ -1065,13 +1317,15 @@ def finalize_order_on_payment(order: models.Order, db: Session, payment_id: str 
 
 @router.post("/create-stripe-checkout", response_model=CheckoutResponse)
 @router.post("/create-payment", include_in_schema=False)
-async def create_stripe_payment(
+def create_stripe_payment(
     data: CreateCheckoutIn,
     request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     try:
+        # Same authoritative server-side pricing as the Mercado Pago flows
+        _validate_and_calculate_order(data, current_user, db)
         order = _get_or_create_order(data, current_user, db, "stripe")
         frontend_url = _resolve_frontend_url(request)
 
@@ -1090,6 +1344,9 @@ async def create_stripe_payment(
             session_id=result["session_id"],
             order_id=order.id,
         )
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         logger.error(f"Erro no checkout Stripe: {str(e)}", exc_info=True)
@@ -1101,7 +1358,7 @@ async def create_stripe_payment(
 
 @router.post("/create-mercadopago-checkout", response_model=CheckoutResponse)
 @router.post("/create-preference", include_in_schema=False)
-async def create_mp_payment(
+def create_mp_payment(
     data: CreateCheckoutIn,
     request: Request,
     db: Session = Depends(get_db),
@@ -1158,7 +1415,7 @@ async def create_mp_payment(
 
 
 @router.get("/config")
-async def get_payment_config(db: Session = Depends(get_db)):
+def get_payment_config(db: Session = Depends(get_db)):
     """
     Returns public payment gateway configuration and feature flag status.
     """
@@ -1177,7 +1434,7 @@ async def get_payment_config(db: Session = Depends(get_db)):
 
 
 @router.post("/process-transparent-pix")
-async def process_transparent_pix(
+def process_transparent_pix(
     data: CreateCheckoutIn,
     request: Request,
     db: Session = Depends(get_db),
@@ -1251,7 +1508,7 @@ async def process_transparent_pix(
 
 
 @router.post("/process-transparent-card")
-async def process_transparent_card(
+def process_transparent_card(
     payload: ProcessCardIn,
     request: Request,
     db: Session = Depends(get_db),
@@ -1365,7 +1622,7 @@ async def process_transparent_card(
 # ── Split Payment (Pagamento Combinado PIX + Cartão) Endpoints ────────────────
 
 @router.post("/split/init")
-async def init_split_payment(
+def init_split_payment(
     payload: SplitPaymentInitIn,
     request: Request,
     db: Session = Depends(get_db),
@@ -1541,7 +1798,7 @@ async def init_split_payment(
 
 
 @router.post("/split/process-card")
-async def process_split_card_payment(
+def process_split_card_payment(
     payload: SplitCardProcessIn,
     request: Request,
     db: Session = Depends(get_db),
@@ -1558,8 +1815,9 @@ async def process_split_card_payment(
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado.")
 
-    if current_user and current_user.role != "admin" and order.user_id and order.user_id != current_user.id:
-        if not (payload.guest_access_token and payload.guest_access_token == getattr(order, "guest_access_token", None)):
+    if not can_access_order(order, current_user, payload.guest_access_token):
+        # Pedidos de visitante exigem o token do pedido; pedidos de conta exigem o login do dono
+        if current_user is not None or getattr(order, "guest_access_token", None) or order.user_id:
             raise HTTPException(status_code=403, detail="Acesso negado a este pedido.")
 
     if not payload.token or not payload.token.strip():
@@ -1666,7 +1924,7 @@ async def process_split_card_payment(
 
 
 @router.post("/split/regenerate-pix")
-async def regenerate_split_pix(
+def regenerate_split_pix(
     payload: SplitRegeneratePixIn,
     db: Session = Depends(get_db),
     current_user: Optional[models.User] = Depends(get_current_user_optional),
@@ -1679,8 +1937,9 @@ async def regenerate_split_pix(
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado.")
 
-    if current_user and current_user.role != "admin" and order.user_id and order.user_id != current_user.id:
-        if not (payload.guest_access_token and payload.guest_access_token == getattr(order, "guest_access_token", None)):
+    if not can_access_order(order, current_user, payload.guest_access_token):
+        # Pedidos de visitante exigem o token do pedido; pedidos de conta exigem o login do dono
+        if current_user is not None or getattr(order, "guest_access_token", None) or order.user_id:
             raise HTTPException(status_code=403, detail="Acesso negado a este pedido.")
 
     pix_slice = db.query(models.OrderPayment).filter(
@@ -1762,6 +2021,11 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         logger.error(f"Stripe Webhook error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(_process_stripe_event, event, db)
+
+
+def _process_stripe_event(event, db: Session):
     if event["type"] in ["checkout.session.completed", "checkout.session.async_payment_succeeded", "payment_intent.succeeded"]:
         session = event["data"]["object"]
         metadata = session.get("metadata", {})
@@ -1785,7 +2049,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 @router.get("/webhook/mercadopago")
 @router.get("/api/payment/webhook/mercadopago")
 @router.get("/payment/webhook/mercadopago")
-async def mercadopago_webhook_health():
+def mercadopago_webhook_health():
     """Healthcheck e validação de URL de notificação do Mercado Pago."""
     return {"status": "online", "service": "Mercado Pago Webhook ECOSOPIS"}
 
@@ -1927,7 +2191,46 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     if not data:
         data = dict(request.query_params)
 
-    logger.info(f"MP Webhook received. Data: {data}, Query: {dict(request.query_params)}")
+    query_params = dict(request.query_params)
+    if not _mp_signature_is_valid(request, data, query_params):
+        logger.warning("[SEGURANÇA] Webhook Mercado Pago com assinatura inválida ignorado.")
+        raise HTTPException(status_code=401, detail="invalid signature")
+
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(_process_mp_webhook, data, query_params, db)
+
+
+def _mp_signature_is_valid(request: Request, data: dict, query_params: dict) -> bool:
+    """
+    Valida o cabeçalho x-signature do Mercado Pago quando MP_WEBHOOK_SECRET estiver configurado.
+    Sem a chave configurada, aceita (o webhook sempre reconsulta o pagamento na API do MP).
+    """
+    import hmac, hashlib
+    secret = (os.getenv("MP_WEBHOOK_SECRET") or "").strip()
+    if not secret:
+        return True
+    sig = request.headers.get("x-signature") or ""
+    req_id = request.headers.get("x-request-id") or ""
+    parts = dict(p.split("=", 1) for p in sig.split(",") if "=" in p)
+    ts, v1 = parts.get("ts", "").strip(), parts.get("v1", "").strip()
+    if not ts or not v1:
+        return False
+    data_obj = data.get("data") if isinstance(data.get("data"), dict) else {}
+    data_id = str(query_params.get("data.id") or data_obj.get("id") or data.get("id") or "")
+    if data_id.isalnum():
+        data_id = data_id.lower()
+    manifest = ""
+    if data_id:
+        manifest += f"id:{data_id};"
+    if req_id:
+        manifest += f"request-id:{req_id};"
+    manifest += f"ts:{ts};"
+    expected = hmac.new(secret.encode(), manifest.encode(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, v1)
+
+
+def _process_mp_webhook(data: dict, query_params: dict, db: Session):
+    logger.info(f"MP Webhook received. Data: {data}, Query: {query_params}")
 
     # Extract resource ID safely without crashing on null nested fields
     data_obj = data.get("data")
@@ -1937,18 +2240,18 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
         data_id or 
         data.get("id") or 
         data.get("resource") or
-        request.query_params.get("data.id") or 
-        request.query_params.get("id") or
-        request.query_params.get("resource")
+        query_params.get("data.id") or 
+        query_params.get("id") or
+        query_params.get("resource")
     )
     topic = (
         data.get("type") or 
         data.get("topic") or 
-        request.query_params.get("type") or 
-        request.query_params.get("topic")
+        query_params.get("type") or 
+        query_params.get("topic")
     )
     
-    action = data.get("action") or request.query_params.get("action")
+    action = data.get("action") or query_params.get("action")
     if action and isinstance(action, str):
         if action.startswith("payment."):
             topic = "payment"
@@ -2002,6 +2305,12 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                         if mp_status in ["approved", "authorized"]
                         else ("in_process" if mp_status in ["in_process", "pending"] else (mp_status or matched_slice.status))
                     )
+                    if norm_status == "approved":
+                        ok, reason = payment_matches_order(payment_info, order, expected_amount=matched_slice.amount)
+                        if not ok:
+                            logger.warning(f"[SEGURANÇA] Parcela {matched_slice.part_number} do pedido #{order.id} não aprovada: {reason}")
+                            norm_status = "under_review"
+                            mp_detail = f"divergencia: {reason}"[:250]
                     prev_st = matched_slice.status
                     matched_slice.external_payment_id = str(resource_id)
                     matched_slice.status = norm_status
@@ -2031,13 +2340,18 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
 
             elif mp_status in ["approved", "authorized"]:
                 if order:
-                    finalize_order_on_payment(
-                        order=order,
-                        db=db,
-                        payment_id=str(resource_id),
-                        buyer_email=payment_info.get("payer", {}).get("email")
-                    )
-                    logger.info(f"MP Payment {resource_id} successfully processed for order {order.id}")
+                    ok, reason = payment_matches_order(payment_info, order)
+                    if ok:
+                        finalize_order_on_payment(
+                            order=order,
+                            db=db,
+                            payment_id=str(resource_id),
+                            buyer_email=(payment_info.get("payer") or {}).get("email")
+                        )
+                        logger.info(f"MP Payment {resource_id} successfully processed for order {order.id}")
+                    else:
+                        logger.warning(f"[SEGURANÇA] Pagamento MP {resource_id} NÃO quitou o pedido #{order.id}: {reason}")
+                        _record_payment_mismatch(order, db, str(resource_id), payment_info, reason)
                 else:
                     logger.info(f"Order not found for MP Payment {resource_id} (ext_ref: {pedido_id}). Capturing as external payment...")
                     _handle_external_mp_payment(payment_info, str(resource_id), db)
@@ -2082,13 +2396,19 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                         if getattr(order, "is_split_payment", False):
                             sync_and_evaluate_split_order(order, db)
                         else:
-                            finalize_order_on_payment(
-                                order=order,
-                                db=db,
-                                payment_id=approved_payment_id,
-                                buyer_email=buyer_email
-                            )
-                        logger.info(f"MP Merchant Order {resource_id} successfully processed for order {order.id}")
+                            p_info = get_mp_payment_status(str(approved_payment_id))
+                            ok, reason = payment_matches_order(p_info, order)
+                            if ok:
+                                finalize_order_on_payment(
+                                    order=order,
+                                    db=db,
+                                    payment_id=approved_payment_id,
+                                    buyer_email=buyer_email
+                                )
+                            else:
+                                logger.warning(f"[SEGURANÇA] Merchant order {resource_id}: pagamento {approved_payment_id} não quitou o pedido #{order.id}: {reason}")
+                                _record_payment_mismatch(order, db, str(approved_payment_id), p_info, reason)
+                        logger.info(f"MP Merchant Order {resource_id} processed for order {order.id}")
                     elif approved_payment_id:
                         try:
                             payment_info = get_mp_payment_status(str(approved_payment_id))
@@ -2102,7 +2422,7 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/installments")
-async def get_real_installments(
+def get_real_installments(
     amount: float = Query(..., gt=0),
     bin: Optional[str] = Query(None)
 ):
@@ -2163,7 +2483,7 @@ async def get_real_installments(
 
 @router.get("/status/{order_id}")
 @router.get("/split/status/{order_id}")
-async def get_payment_status(
+def get_payment_status(
     order_id: int,
     payment_id: Optional[str] = Query(None),
     guest_token: Optional[str] = Query(None),
@@ -2173,10 +2493,10 @@ async def get_payment_status(
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
-        
-    if current_user and current_user.role != "admin" and order.user_id and order.user_id != current_user.id:
-        if not (guest_token and guest_token == getattr(order, "guest_access_token", None)):
-            raise HTTPException(status_code=403, detail="Acesso negado")
+
+    has_full_access = can_access_order(order, current_user, guest_token)
+    if current_user and not has_full_access and order.user_id:
+        raise HTTPException(status_code=403, detail="Acesso negado")
 
     if getattr(order, "is_split_payment", False):
         if order.status in ("pending", "partially_paid"):
@@ -2187,7 +2507,10 @@ async def get_payment_status(
         if payment_id and order.status == "pending":
             try:
                 payment_info = get_mp_payment_status(str(payment_id))
-                if payment_info.get("status") in ["approved", "authorized"]:
+                ok, reason = payment_matches_order(payment_info, order)
+                if not ok and payment_info.get("status") in APPROVED_STATUSES:
+                    logger.warning(f"[SEGURANÇA] payment_id {payment_id} recusado para o pedido #{order_id}: {reason}")
+                if ok:
                     finalize_order_on_payment(
                         order=order,
                         db=db,
@@ -2262,6 +2585,22 @@ async def get_payment_status(
     paid_amt = round(float(order.total if is_paid_final else (order.paid_amount or 0.0)), 2)
     rem_amt = 0.0 if is_paid_final else max(0.0, round(float(order.total or 0.0) - paid_amt, 2))
 
+    if not has_full_access:
+        # Sem login do dono nem token do pedido: apenas o status (sem dados de pagamento)
+        return {
+            "order_id": order.id,
+            "status": order.status,
+            "total": order.total,
+            "payment_method": order.payment_method,
+            "payment_details": {},
+            "is_guest_order": bool(getattr(order, "is_guest_order", False)),
+            "is_split_payment": bool(getattr(order, "is_split_payment", False)),
+            "paid_amount": paid_amt,
+            "remaining_amount": rem_amt,
+            "payment_transactions": [],
+            "payment_history": [],
+        }
+
     return {
         "order_id": order.id,
         "status": order.status,
@@ -2280,7 +2619,7 @@ async def get_payment_status(
 
 # Admin list and Patch status kept for backwards compat
 @router.get("/admin/orders")
-async def list_admin_orders(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def list_admin_orders(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role != "admin": raise HTTPException(status_code=403)
     orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
     return [{
@@ -2290,7 +2629,7 @@ async def list_admin_orders(db: Session = Depends(get_db), current_user: models.
     } for o in orders]
 
 @router.patch("/admin/orders/{order_id}/status")
-async def update_order_status(order_id: int, body: StatusUpdateIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def update_order_status(order_id: int, body: StatusUpdateIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role != "admin": raise HTTPException(status_code=403)
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order: raise HTTPException(status_code=404)

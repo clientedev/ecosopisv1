@@ -1,9 +1,9 @@
 from sqlalchemy import create_engine, text
 import time
 
-URL1 = "postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway"
-URL2 = "postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway?sslmode=disable"
-URL3 = "postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway?sslmode=require"
+URL1 = __import__("os").environ["DATABASE_PUBLIC_URL"]
+URL2 = __import__("os").environ["DATABASE_PUBLIC_URL"] + "?sslmode=disable"
+URL3 = __import__("os").environ["DATABASE_PUBLIC_URL"] + "?sslmode=require"
 
 def run_migration():
     for url in [URL1, URL2, URL3]:

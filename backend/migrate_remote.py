@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, text
 from app.models import models
 
 # Remote Railway PostgreSQL URL
-DATABASE_URL = "postgresql://postgres:tIrQzBYwBOacJhZPNDehIOoIfltenbBz@nozomi.proxy.rlwy.net:45826/railway?sslmode=require"
+DATABASE_URL = __import__("os").environ["DATABASE_PUBLIC_URL"] + "?sslmode=require"
 
 def migrate_remote():
     print(f"Connecting to remote database at {DATABASE_URL.split('@')[-1]}...")

@@ -287,16 +287,38 @@ def create_checkout_pro_preference(order_id: int, items: list, shipping_price: f
 
 
 def get_payment_status(payment_id: str) -> dict:
-    """Query payment status from Mercado Pago."""
+    """
+    Query a payment on Mercado Pago (source of truth).
+    Returns the normalized fields used across the app plus the raw fields the
+    webhook relies on (amount, type, preference, items, shipment address).
+    """
     result = sdk.payment().get(payment_id)
-    response = result.get("response", {})
+    response = result.get("response", {}) or {}
+    if result.get("status") not in (200, 201) or not isinstance(response, dict):
+        return {"id": str(payment_id), "status": "unknown", "status_detail": "", "external_reference": "", "payer": {}}
+
+    order_obj = response.get("order") or {}
+    try:
+        amount = float(response.get("transaction_amount") or 0.0)
+    except (TypeError, ValueError):
+        amount = 0.0
     return {
         "id": str(response.get("id", "")),
         "status": response.get("status", "unknown"),
         "status_detail": response.get("status_detail", ""),
-        "external_reference": response.get("external_reference", ""),
-        "payer": response.get("payer", {}),
-        "merchant_order_id": str(response.get("order", {}).get("id", "")),
+        "external_reference": response.get("external_reference") or "",
+        "payer": response.get("payer") or {},
+        "merchant_order_id": str(order_obj.get("id", "")) if isinstance(order_obj, dict) else "",
+        "transaction_amount": round(amount, 2),
+        "currency_id": response.get("currency_id"),
+        "payment_type_id": response.get("payment_type_id"),
+        "payment_method_id": response.get("payment_method_id"),
+        "preference_id": (response.get("metadata") or {}).get("preference_id") or response.get("preference_id"),
+        "description": response.get("description"),
+        "additional_info": response.get("additional_info") or {},
+        "order": order_obj if isinstance(order_obj, dict) else {},
+        "point_of_interaction": response.get("point_of_interaction") or {},
+        "live_mode": response.get("live_mode"),
     }
 
 

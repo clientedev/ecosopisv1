@@ -109,7 +109,7 @@ class MelhorEnvioService:
         return MELHORENVIO_TOKEN
 
     @classmethod
-    def calculate_shipping(cls, dest_cep, items):
+    def calculate_shipping(cls, dest_cep, items, timeout: int = 20, attempts: int = 2):
         """
         Calcula frete para múltiplas transportadoras via Melhor Envio.
         Retorna tupla (options, error_message).
@@ -197,14 +197,14 @@ class MelhorEnvioService:
         }
 
         last_error = None
-        for attempt in range(1, 3):
+        for attempt in range(1, max(1, int(attempts)) + 1):
             try:
                 print(f"--- MelhorEnvio Freight Request (tentativa {attempt}) ---")
                 print(f"URL: {url}")
                 print(f"CEP origem: {STORE_CEP} | CEP destino: {clean_dest_cep}")
                 print(f"Payload: {json.dumps(payload, indent=2)}")
 
-                response = requests.post(url, json=payload, headers=headers, timeout=20)
+                response = requests.post(url, json=payload, headers=headers, timeout=timeout)
 
                 print(f"Status Code: {response.status_code}")
                 print(f"Resposta: {response.text[:500]}")
