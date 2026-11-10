@@ -546,7 +546,7 @@ export default function ProductDetailPage() {
                                         <span className={styles.price} style={{ color: '#f59e0b', fontSize: '2rem', fontWeight: 800 }}>
                                             R$ {currentPrice.toFixed(2).replace(".", ",")}
                                         </span>
-                                        <span style={{
+                                        <span data-discount-pill="" style={{
                                             background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
                                             color: 'white',
                                             fontSize: '0.75rem',

@@ -57,13 +57,22 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="pt-BR">
+        <html lang="pt-BR" suppressHydrationWarning>
+            <head>
+                {/* Runs before first paint: skip the entry splash after the first page of the session,
+                    and apply the last known seasonal theme so the splash shows in the right colors. */}
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `try{var d=document.documentElement;if(sessionStorage.getItem("ecosopis_splash_seen")==="1")d.setAttribute("data-splash-seen","");var t=localStorage.getItem("ecosopis_active_theme");if(t&&t!=="default")d.setAttribute("data-theme",t);}catch(e){}`,
+                    }}
+                />
+            </head>
             <body className={`${raleway.variable} ${karla.variable} ${cinzel.variable}`} suppressHydrationWarning={true}>
                 <AuthProvider>
                     <ToastProvider>
                         <CartProvider>
                             <ThemeProvider>
-                                <Suspense fallback={<BrandLoader fullScreen={true} />}>
+                                <Suspense fallback={<BrandLoader />}>
                                     <LoadingProvider>
                                         <DynamicBranding />
                                         <HeartAnimation />

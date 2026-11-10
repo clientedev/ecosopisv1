@@ -799,7 +799,7 @@ return (
                                             style={{
                                                 position: 'absolute',
                                                 inset: 0,
-                                                background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(120,0,0,0.25) 60%, rgba(0,0,0,0.55) 100%)',
+                                                background: 'linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%)',
                                                 zIndex: 2,
                                                 pointerEvents: 'none',
                                             }}
@@ -1021,7 +1021,7 @@ return (
                 return (
                     <section style={{
                         background: isBlackFriday
-                            ? 'linear-gradient(135deg, #000000 0%, #2a0000 50%, #000000 100%)'
+                            ? '#0d0d0d'
                             : 'linear-gradient(135deg, #0e1a0f 0%, #17301c 50%, #0e1a0f 100%)',
                         padding: '80px 0',
                         position: 'relative',
@@ -1031,7 +1031,7 @@ return (
                         <div style={{
                             position: 'absolute', inset: 0, pointerEvents: 'none',
                             background: isBlackFriday
-                                ? 'radial-gradient(circle at 50% -20%, rgba(225, 6, 0, 0.35) 0%, transparent 60%)'
+                                ? 'radial-gradient(circle at 50% -30%, rgba(200, 16, 46, 0.18) 0%, transparent 55%)'
                                 : 'radial-gradient(circle at 50% -20%, rgba(162, 233, 74, 0.15) 0%, transparent 60%)'
                         }} />
                         <div className="container" style={{ position: 'relative', zIndex: 1 }}>
@@ -1040,8 +1040,8 @@ return (
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '8px',
-                                    background: isBlackFriday ? '#e10600' : 'rgba(162, 233, 74, 0.1)',
-                                    border: isBlackFriday ? '1px solid #ff5a36' : '1px solid rgba(162, 233, 74, 0.3)',
+                                    background: isBlackFriday ? 'transparent' : 'rgba(162, 233, 74, 0.1)',
+                                    border: isBlackFriday ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(162, 233, 74, 0.3)',
                                     color: isBlackFriday ? '#ffffff' : '#a2e94a',
                                     padding: '8px 24px',
                                     borderRadius: '50px',
@@ -1053,7 +1053,7 @@ return (
                                     boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)'
                                 }}>
                                     <Sparkles size={14} style={{ color: isBlackFriday ? '#ffffff' : '#a2e94a' }} />
-                                    <span>{isBlackFriday ? '🔥 Ofertas Black Friday' : 'Ofertas por tempo limitado'}</span>
+                                    <span>{isBlackFriday ? 'Black Friday Ecosopis' : 'Ofertas por tempo limitado'}</span>
                                 </div>
                                 <h2 style={{
                                     fontSize: 'clamp(2rem, 5vw, 3.2rem)',
@@ -1064,7 +1064,7 @@ return (
                                     textShadow: '0 2px 10px rgba(0,0,0,0.3)',
                                     letterSpacing: '-0.02em'
                                 }}>
-                                    Em <span style={{ background: isBlackFriday ? 'linear-gradient(to right, #ff1a0d, #ffb300)' : 'linear-gradient(to right, #a2e94a, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>Promoção</span>
+                                    Em <span style={{ background: isBlackFriday ? 'linear-gradient(to right, #e8233f, #c8102e)' : 'linear-gradient(to right, #a2e94a, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>Promoção</span>
                                 </h2>
                                 <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1.05rem', maxWidth: '520px', margin: '0 auto', lineHeight: 1.6 }}>
                                     Aproveite os melhores preços nos nossos produtos selecionados

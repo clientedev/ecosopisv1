@@ -46,27 +46,18 @@ const THEMES: Record<string, Record<string, string>> = {
         bg_color: "#fff5f8",
     },
     black_friday: {
-        primary_color: "#e10600",
-        primary_color_dark: "#a30000",
+        primary_color: "#111111",
+        primary_color_dark: "#000000",
         secondary_color: "#ffffff",
-        text_primary: "#f5f5f5",
-        text_secondary: "#c9c9c9",
-        bg_color: "#0b0b0b",
+        text_primary: "#1a1a1a",
+        text_secondary: "#4a4a4a",
+        bg_color: "#fdfcf9",
     },
 };
 
-// Admin panel keeps a light canvas during Black Friday (only the accent turns red)
-const BLACK_FRIDAY_ADMIN = {
-    primary_color: "#e10600",
-    primary_color_dark: "#a30000",
-    secondary_color: "#ffffff",
-    text_primary: "#1a1a1a",
-    text_secondary: "#4a4a4a",
-    bg_color: "#fdfcf9",
-};
 
 export default function DynamicBranding() {
-    const { activeTheme } = useTheme();
+    const { activeTheme, resolved } = useTheme();
     const pathname = usePathname() || '';
     const isAdmin = pathname.startsWith('/admin');
     const [colors, setColors] = useState<Record<string, string>>(THEMES.default);
@@ -120,19 +111,19 @@ export default function DynamicBranding() {
     }, [activeTheme]);
 
     // Set data-theme attribute on <html> element for global CSS targeting
+    // Only write after the real theme is known, so the value applied before first paint
+    // (inline script in layout.tsx) is not briefly replaced by "default".
     useEffect(() => {
+        if (!resolved) return;
         document.documentElement.setAttribute('data-theme', themeId);
-        return () => {
-            document.documentElement.removeAttribute('data-theme');
-        };
-    }, [themeId]);
+    }, [themeId, resolved]);
 
     useEffect(() => {
         if (isAdmin) document.documentElement.setAttribute('data-theme-scope', 'admin');
         else document.documentElement.removeAttribute('data-theme-scope');
     }, [isAdmin]);
 
-    const effectiveColors = themeId === 'black_friday' && isAdmin ? BLACK_FRIDAY_ADMIN : colors;
+    const effectiveColors = colors;
 
     const valentinesExtras = themeId === "valentines_day" ? `
         /* ============================================
@@ -607,293 +598,133 @@ export default function DynamicBranding() {
 
     const BF = 'html[data-theme="black_friday"]';
     const SHOP = 'html[data-theme="black_friday"]:not([data-theme-scope="admin"])';
-    // Light "surfaces" inside the dark storefront (cards, drawers, modals, forms...).
-    // CSS-module classes look like "File_localName__hash": match on the local name's ending
-    // ("…card__", "…Card__") so children such as "CartDrawer_checkoutBtn__x" are not caught.
-    const SURFACE = [
-        '[class*="_card__"]', '[class*="Card__"]', '[class*="_drawer__"]', '[class*="Drawer__"]',
-        '[class*="_modal__"]', '[class*="Modal__"]', '[class*="_dropdown__"]', '[class*="Dropdown__"]',
-        '[class*="_popup__"]', '[class*="Popup__"]', '[class*="_form__"]', '[class*="Form__"]',
-        'form', 'input', 'textarea', 'select',
-    ].map(sel => `${SHOP} ${sel}:not([class*="Grid"]):not([class*="grid"]):not([class*="section"]):not([class*="Section"]):not([class*="container"]):not([class*="Container"]):not([class*="wrapper"]):not([class*="Wrapper"]):not([class*="List"]):not([class*="list"])`).join(',\n');
 
+    /* Black Friday "clean": keeps the Ecosopis light canvas and typography.
+       Black is the main color (buttons, logo, footer); red is used only for
+       discounts and prices. */
     const blackFridayExtras = themeId === "black_friday" ? `
-        /* ============================================
-           BLACK FRIDAY THEME - BLACK & RED
-           ============================================ */
-
-        /* --- Buttons (everywhere, incl. admin) --- */
+        /* --- Buttons --- */
         .btn-primary {
-            background: linear-gradient(135deg, #ff1a0d 0%, #e10600 45%, #a30000 100%) !important;
-            box-shadow: 0 4px 18px rgba(225, 6, 0, 0.45) !important;
-            border-color: #e10600 !important;
+            background: #111111 !important;
+            border-color: #111111 !important;
             color: #ffffff !important;
-            font-weight: 800 !important;
-            letter-spacing: 0.04em;
-            position: relative !important;
-            overflow: hidden !important;
-        }
-        .btn-primary::after {
-            content: "";
-            position: absolute; top: 0; left: -120%;
-            width: 60%; height: 100%;
-            background: linear-gradient(110deg, transparent, rgba(255,255,255,.35), transparent);
-            animation: bfShine 3.2s ease-in-out infinite;
-            pointer-events: none;
+            box-shadow: none !important;
+            transition: background-color .2s ease, transform .2s ease !important;
         }
         .btn-primary:hover {
-            background: linear-gradient(135deg, #e10600 0%, #a30000 100%) !important;
-            box-shadow: 0 6px 26px rgba(255, 60, 0, 0.6) !important;
+            background: #c8102e !important;
+            border-color: #c8102e !important;
             transform: translateY(-1px);
         }
-        .btn-outline {
-            border-color: #e10600 !important;
-            color: #e10600 !important;
-        }
-        .btn-outline:hover { background-color: rgba(225, 6, 0, 0.12) !important; }
-        a:hover { color: #ff2d1a; }
+        .btn-outline { border-color: #111111 !important; color: #111111 !important; }
+        .btn-outline:hover { background-color: rgba(17, 17, 17, 0.05) !important; }
+        ${SHOP} a:hover { color: #c8102e; }
 
-        /* --- Dark canvas (storefront only) --- */
-        ${SHOP} body { color: #f5f5f5; }
-        ${SHOP} [class*="section"], ${SHOP} [class*="Section"] {
-            background-color: transparent !important;
-            background-image: none !important;
-        }
+        /* --- Logo in black --- */
+        ${SHOP} img[alt="ECOSOPIS Logo"] { filter: grayscale(1) brightness(0.15) !important; transition: filter .4s ease; }
 
-        /* --- Light surfaces keep dark text --- */
-        ${SURFACE} {
-            --text-primary: #111111;
-            --text-secondary: #444444;
-            color: #111111;
-        }
+        /* --- Header accents --- */
+        ${BF} [class*="cartBadge"] { background: #c8102e !important; color: #fff !important; }
+        ${BF} [class*="highlightNavLink"] { color: #111111 !important; border-color: #111111 !important; }
+        ${BF} [class*="highlightNavLink"]:hover { background: rgba(17,17,17,0.05) !important; }
+        ${BF} [class*="liaLink"] { color: #111111 !important; }
+        ${BF} [class*="desktopSuggestionTag"]:hover { border-color: #111 !important; color: #111 !important; background: rgba(17,17,17,.04) !important; }
+        ${BF} [class*="avatar"] { background: #111111 !important; }
+        ${SHOP} [class*="Header_scrolledSearchBtn"] { background: #111 !important; color: #fff !important; border-color: #111 !important; }
 
-        /* --- Cart drawer --- */
-        ${BF} [class*="CartDrawer_checkoutBtn"] {
-            background: linear-gradient(135deg, #ff1a0d 0%, #a30000 100%) !important;
-            color: #ffffff !important;
-            box-shadow: 0 6px 20px rgba(225, 6, 0, 0.4) !important;
+        /* --- Admin-configured announcement bar: green becomes black --- */
+        ${BF} :is([style*="background-color: #4B8411"], [style*="background-color: rgb(75, 132, 17)"], [style*="background: #4B8411"]) {
+            background-color: #111111 !important;
         }
-        ${BF} [class*="CartDrawer_checkoutBtn"]:hover { background: #a30000 !important; }
-
-        /* --- Brand loader --- */
-        ${SHOP} [class*="BrandLoader_fullScreenWrapper"] { background-color: #000000 !important; }
-        ${SHOP} [class*="BrandLoader_gifMedia"] { filter: invert(1) grayscale(1) brightness(1.15); }
-
-        /* --- Header --- */
-        ${SHOP} header {
-            background-color: #000000 !important;
-            border-bottom: 2px solid #e10600 !important;
-            --text-primary: #f5f5f5;
-            color: #f5f5f5;
-        }
-        ${SHOP} header nav a, ${SHOP} header [class*="navLink"], ${SHOP} header [class*="icon"],
-        ${SHOP} header button:not(.btn-primary) {
-            color: #f5f5f5 !important;
-        }
-        ${SHOP} header nav a:hover, ${SHOP} header [class*="navLink"]:hover { color: #ff2d1a !important; }
-        ${SHOP} header input {
-            background: #1a1a1a !important;
-            color: #f5f5f5 !important;
-            border-color: #333 !important;
-        }
-        ${SHOP} header input::placeholder { color: #8a8a8a !important; }
-        ${SHOP} [class*="Header_desktopSearchBand"] {
-            background-color: #0b0b0b !important;
-            border-bottom: 1px solid #2a0000 !important;
-        }
-        ${SHOP} [class*="Header_desktopSearchInputWrapper"] {
-            background-color: #1a1a1a !important;
-            border-color: #3a0a0a !important;
-        }
-        ${SHOP} [class*="Header_desktopSearchInputWrapper"]:focus-within { border-color: #e10600 !important; }
-        ${SHOP} [class*="Header_desktopSearchField"] { background: transparent !important; color: #f5f5f5 !important; }
-        ${SHOP} [class*="Header_desktopSearchIcon"] { color: #e10600 !important; }
-        ${SHOP} [class*="Header_desktopSuggestion"] { color: #bdbdbd !important; }
-        ${SHOP} [class*="Header_desktopSuggestionTag"] { color: #f5f5f5 !important; }
-        ${SHOP} [class*="Header_scrolledSearchBtn"] {
-            background: #e10600 !important;
-            color: #ffffff !important;
-            border-color: #e10600 !important;
-        }
-        ${SHOP} img[alt="ECOSOPIS Logo"] {
-            filter: brightness(0) invert(1) !important;
-            transition: filter 0.4s ease;
-        }
-
-        /* --- Page heroes / titles on the dark canvas --- */
-        ${SHOP} [class*="CatalogHero"], ${SHOP} [class*="pageHero"] {
-            background: radial-gradient(ellipse at 50% 0%, #3a0000 0%, #0b0b0b 70%) !important;
-            border-bottom: 1px solid #2a0000 !important;
-        }
-        ${SHOP} [class*="heroTitle"], ${SHOP} [class*="catalogTitle"], ${SHOP} [class*="pageTitle"] { color: #ffffff !important; }
-        ${SHOP} [class*="heroSubtitle"], ${SHOP} [class*="pageSubtitle"] { color: #c9c9c9 !important; }
-        ${SHOP} [class*="heroBadge"] {
-            background: #e10600 !important;
-            color: #ffffff !important;
-            border-color: #e10600 !important;
-        }
-        ${SHOP} [class*="countText"] { color: #9a9a9a !important; }
-        ${SHOP} [class*="catPill"]:not([class*="catPillActive"]) {
-            background: #151515 !important;
-            color: #e5e5e5 !important;
-            border-color: #333 !important;
-        }
-        ${SHOP} [class*="catPill"]:not([class*="catPillActive"]):hover { border-color: #e10600 !important; color: #ffffff !important; }
-        ${SHOP} [class*="catPillActive"] { background: #e10600 !important; color: #fff !important; border-color: #e10600 !important; }
-
-        /* --- Product detail page --- */
-        ${SHOP} [class*="page_productName"] { color: #ffffff !important; }
-        ${SHOP} [class*="page_description"] { color: #c9c9c9 !important; }
-        ${SHOP} [class*="page_price"] { color: #ff2d1a !important; }
-        ${SHOP} [class*="page_quantityWrapper"] { background: #151515 !important; border-color: #333 !important; }
-        ${SHOP} [class*="page_quantityBtn"] { background: #1f1f1f !important; color: #ffffff !important; }
-        ${SHOP} [class*="page_quantityBtn"]:hover:not(:disabled) { background: #e10600 !important; }
-        ${SHOP} [class*="page_quantityValue"] { color: #ffffff !important; }
-        ${SHOP} [class*="page_addToCartBtn"] {
-            background: transparent !important; color: #ffffff !important; border: 2px solid #e10600 !important;
-        }
-        ${SHOP} [class*="page_addToCartBtn"]:hover { background: #e10600 !important; }
-        ${SHOP} [class*="page_buyNowBtn"] {
-            background: linear-gradient(135deg, #ff1a0d 0%, #a30000 100%) !important;
-            color: #ffffff !important;
-            box-shadow: 0 6px 22px rgba(225, 6, 0, 0.45) !important;
-        }
-        ${SHOP} [class*="page_chatHeaderInline"], ${SHOP} [class*="page_readMore"],
-        ${SHOP} [class*="page_cardContent"] h3, ${SHOP} [class*="page_textBlock"] h2 { color: #ff2d1a !important; }
-
-        /* --- Sobre --- */
-        ${SHOP} [class*="page_aboutContainer"] { color: #d6d6d6 !important; }
-        ${SHOP} [class*="page_aboutContainer"] [class*="page_hero"] {
-            background: linear-gradient(rgba(0, 0, 0, 0.72), rgba(110, 0, 0, 0.72)),
-                url('/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png') center / cover !important;
-        }
-        ${SHOP} [class*="page_aboutContainer"] [class*="page_textBlock"] p { color: #c9c9c9 !important; }
-        ${SHOP} [class*="page_aboutContainer"] [class*="page_values"] { background: #111111 !important; }
-        ${SHOP} [class*="page_aboutContainer"] [class*="page_ctaButton"] { background-color: #e10600 !important; }
-        ${SHOP} [class*="page_aboutContainer"] [class*="page_tag"] { background: rgba(225, 6, 0, 0.12) !important; color: #e10600 !important; }
-
-        /* --- Cart / checkout: keep a light, legible canvas; only accents go red --- */
-        ${SHOP} [class*="page_carrinhoContainer"] {
-            --text-primary: #111111;
-            --text-secondary: #444444;
-            color: #111111;
-        }
-        ${SHOP} [class*="page_carrinhoContainer"] h1, ${SHOP} [class*="page_carrinhoContainer"] h2,
-        ${SHOP} [class*="page_carrinhoContainer"] h3 { color: #111111; }
-        ${SHOP} [class*="page_stepActive"] { color: #e10600 !important; }
-        ${SHOP} [class*="page_stepNum"][class*="page_stepActive"], ${SHOP} [class*="page_stepActive"] [class*="page_stepNum"] { background: #e10600 !important; color: #fff !important; }
-        ${SHOP} [class*="page_miniItemPrice"], ${SHOP} [class*="page_itemPrice"], ${SHOP} [class*="page_totalValue"] { color: #e10600 !important; }
-
-        /* --- Footer --- */
-        ${SHOP} footer {
-            background-color: #000000 !important;
-            border-top: 2px solid #e10600 !important;
-            --text-primary: #f5f5f5;
-            --text-secondary: #bdbdbd;
-            color: #bdbdbd;
-        }
-        ${SHOP} footer h1, ${SHOP} footer h2, ${SHOP} footer h3, ${SHOP} footer h4 { color: #ffffff !important; }
-        ${SHOP} footer a { color: #d6d6d6 !important; }
-        ${SHOP} footer a:hover { color: #ff2d1a !important; }
-
-        /* --- Mobile bottom nav --- */
-        ${SHOP} [class*="MobileBottomNav_bottomNav"] {
-            background: #000000 !important;
-            border-top: 1px solid #e10600 !important;
-        }
-        ${SHOP} [class*="MobileBottomNav_navItem"] { color: #d6d6d6 !important; }
-        ${SHOP} [class*="MobileBottomNav_active"] { color: #ff2d1a !important; }
-        ${SHOP} [class*="mobileNavItem"] { color: #e5e5e5 !important; }
-        ${SHOP} [class*="mobileNavItem"]:hover, ${SHOP} [class*="mobileLiaItem"] { color: #ff2d1a !important; }
 
         /* --- Product cards --- */
-        ${SHOP} [class*="ProductCard_card"] {
-            border: 1px solid #222 !important;
-            transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease !important;
-        }
+        ${SHOP} [class*="ProductCard_card"] { transition: box-shadow .25s ease, border-color .25s ease !important; }
         ${SHOP} [class*="ProductCard_card"]:hover {
-            border-color: #e10600 !important;
-            box-shadow: 0 0 0 1px #e10600, 0 10px 34px rgba(225, 6, 0, 0.35) !important;
-            transform: translateY(-3px);
+            border-color: #111111 !important;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08) !important;
         }
-        ${BF} [class*="saleBadge"] {
-            background: linear-gradient(135deg, #ff1a0d, #a30000) !important;
+        ${BF} [class*="ProductCard_saleBadge"] {
+            background: #c8102e !important;
             color: #ffffff !important;
-            font-weight: 900 !important;
-            letter-spacing: .03em;
-            animation: bfBadgeFire 1.4s ease-in-out infinite alternate;
+            font-weight: 800 !important;
+            letter-spacing: .04em;
+            overflow: hidden;
         }
-        ${BF} [class*="saleBadge"]::before { content: "🔥 "; }
-        ${BF} [class*="productBadge"], ${BF} [class*="recommendedLabel"] {
-            background: #000000 !important;
-            color: #ffffff !important;
-            border: 1px solid #e10600 !important;
+        ${BF} [class*="ProductCard_saleBadge"]::after {
+            content: "";
+            position: absolute; top: 0; left: -60%;
+            width: 40%; height: 100%;
+            background: linear-gradient(110deg, transparent, rgba(255,255,255,.45), transparent);
+            animation: bfBadgeShine 4s ease-in-out infinite;
         }
-        ${BF} [class*="ProductCard_price"], ${BF} [class*="salePrice"] { color: #e10600 !important; }
+        ${BF} [class*="productBadge"], ${BF} [class*="recommendedLabel"] { background: #111111 !important; color: #ffffff !important; }
+        ${BF} [class*="ProductCard_price"], ${BF} [class*="salePrice"] { color: #c8102e !important; }
+        ${BF} svg[fill="#4B8411"] { fill: #111111 !important; color: #111111 !important; stroke: #111111 !important; }
 
-        /* --- Badges / pills / accents --- */
-        ${BF} [class*="cartBadge"] { background: #e10600 !important; color: #fff !important; }
-        ${BF} [class*="highlightNavLink"] { color: #ff2d1a !important; border-color: #e10600 !important; }
-        ${BF} [class*="highlightNavLink"]:hover { background: rgba(225, 6, 0, 0.15) !important; }
-        ${BF} [class*="liaLink"] { color: #ff2d1a !important; }
+        ${BF} [class*="ProductCard_onSale"] {
+            border: 1px solid #111111 !important;
+            box-shadow: 0 6px 22px rgba(0, 0, 0, 0.07) !important;
+        }
+        ${BF} [class*="ProductCard_onSale"]::before { background: none !important; }
+        ${SHOP} [class*="page_heroTitle"], ${SHOP} [class*="page_catalogTitle"] { color: #111111 !important; }
+        ${SHOP} [class*="page_catPillActive"] { background: #111111 !important; border-color: #111111 !important; color: #fff !important; }
+
+        /* --- Home accents --- */
+        ${BF} [class*="rankBadgeTop1"], ${BF} [class*="rankBadgeStar"] {
+            background: #111111 !important; color: #ffffff !important; border: none !important; box-shadow: 0 4px 14px rgba(0,0,0,.15) !important;
+        }
         ${BF} [class*="sectionBadge"], ${BF} [class*="scientificBadge"], ${BF} .scientific-badge {
-            background: #e10600 !important;
-            color: #ffffff !important;
-            border-color: #e10600 !important;
+            background: rgba(17,17,17,0.06) !important; color: #111111 !important; border-color: rgba(17,17,17,0.15) !important;
         }
-        ${BF} [class*="statIcon"], ${BF} [class*="statCard"] h3,
-        ${BF} [class*="historyHighlight"], ${BF} [class*="reviewStars"],
-        ${BF} [class*="diagnosticIcon"], ${BF} [class*="diagnosticAction"] { color: #e10600 !important; }
-        ${BF} [class*="rankBadgeTop1"] { background: linear-gradient(135deg, #e10600, #a30000) !important; }
-        ${BF} [class*="diagnosticCard"]:hover {
-            border-color: #e10600 !important;
-            box-shadow: 0 8px 30px rgba(225, 6, 0, 0.3) !important;
-        }
-        ${BF} [class*="avatar"] { background: linear-gradient(135deg, #e10600, #000000) !important; }
-        ${BF} [class*="desktopSuggestionTag"]:hover {
-            background: rgba(225, 6, 0, 0.12) !important;
-            border-color: #e10600 !important;
-            color: #e10600 !important;
-        }
-        ${BF} [data-cart-status-bar] {
-            background-color: #140000 !important;
-            border-color: #e10600 !important;
-            color: #ffd2cc !important;
-        }
+        ${BF} [class*="statIcon"], ${BF} [class*="statCard"] h3, ${BF} [class*="historyHighlight"],
+        ${BF} [class*="reviewStars"], ${BF} [class*="diagnosticIcon"], ${BF} [class*="diagnosticAction"] { color: #111111 !important; }
+        ${BF} [class*="diagnosticCard"]:hover { border-color: #111111 !important; box-shadow: 0 8px 26px rgba(0,0,0,0.08) !important; }
         ${BF} [data-black-friday-overlay] { display: block !important; }
 
-        /* --- Green leftovers become red --- */
+        /* --- Green leftovers become black --- */
         ${BF} :is([style^="color: #2d5a27"], [style*="; color: #2d5a27"], [style^="color: #4B8411"], [style*="; color: #4B8411"],
-                  [style^="color: #166534"], [style*="; color: #166534"], [style^="color: rgb(75, 132, 17)"], [style*="; color: rgb(75, 132, 17)"]) {
-            color: #e10600 !important;
-        }
-        /* Product stars (lucide, inline fill) */
-        ${BF} svg[fill="#4B8411"] { fill: #e10600 !important; color: #e10600 !important; stroke: #e10600 !important; }
-        ${BF} [class*="rankBadgeStar"] {
-            background: linear-gradient(135deg, #1a1a1a, #000000) !important;
-            color: #ffffff !important;
-            border: 1px solid #e10600 !important;
-            box-shadow: 0 4px 18px rgba(225, 6, 0, 0.35) !important;
-        }
-        ${BF} [style*="background-color: #4B8411"], ${BF} [style*="background: #4B8411"],
-        ${BF} [style*="background-color: rgb(75, 132, 17)"] { background-color: #e10600 !important; }
+                  [style^="color: #166534"], [style*="; color: #166534"]) { color: #111111 !important; }
 
-        /* --- Scrollbar & selection --- */
-        ${SHOP} ::selection { background: #e10600; color: #fff; }
-        ${SHOP} ::-webkit-scrollbar { width: 10px; }
-        ${SHOP} ::-webkit-scrollbar-track { background: #0b0b0b; }
-        ${SHOP} ::-webkit-scrollbar-thumb { background: #e10600; border-radius: 10px; }
+        /* --- Product detail --- */
+        ${SHOP} [class*="page_price"]:not([class*="priceBlock"]) { color: #c8102e !important; }
+        ${SHOP} [class*="page_addToCartBtn"] { background: #ffffff !important; color: #111111 !important; border-color: #111111 !important; }
+        ${SHOP} [class*="page_addToCartBtn"]:hover { background: #111111 !important; color: #ffffff !important; }
+        ${SHOP} [class*="page_buyNowBtn"] { background: #111111 !important; }
+        ${SHOP} [class*="page_buyNowBtn"]:hover { background: #c8102e !important; }
+        ${SHOP} [class*="page_quantityBtn"] { color: #111111 !important; }
+        ${SHOP} [class*="page_quantityBtn"]:hover:not(:disabled) { background: #111111 !important; color: #fff !important; }
 
-        @keyframes bfShine {
-            0%, 60% { left: -120%; }
-            100%    { left: 140%; }
+        ${BF} [data-discount-pill] { background: #c8102e !important; box-shadow: none !important; border-radius: 4px !important; }
+
+        /* --- Cart --- */
+        ${BF} [class*="CartDrawer_checkoutBtn"] { background: #111111 !important; color: #ffffff !important; }
+        ${BF} [class*="CartDrawer_checkoutBtn"]:hover { background: #c8102e !important; }
+        ${SHOP} [class*="page_stepActive"] { color: #111111 !important; }
+        ${SHOP} [class*="page_miniItemPrice"] { color: #c8102e !important; }
+
+        /* --- Footer in black --- */
+        ${SHOP} footer {
+            background-color: #0d0d0d !important;
+            border-top: none !important;
+            color: #a8a8a8;
+            --text-primary: #f5f5f5;
+            --text-secondary: #a8a8a8;
         }
-        @keyframes bfBadgeFire {
-            0%   { box-shadow: 0 0 6px 1px rgba(255, 90, 20, .55); transform: scale(1); }
-            100% { box-shadow: 0 0 16px 4px rgba(255, 40, 0, .85); transform: scale(1.06); }
+        ${SHOP} footer h1, ${SHOP} footer h2, ${SHOP} footer h3, ${SHOP} footer h4 { color: #ffffff !important; }
+        ${SHOP} footer a { color: #cfcfcf !important; }
+        ${SHOP} footer a:hover { color: #ffffff !important; }
+
+        /* --- Mobile nav --- */
+        ${SHOP} [class*="MobileBottomNav_active"] { color: #111111 !important; }
+
+        ${SHOP} ::selection { background: #111; color: #fff; }
+
+        @keyframes bfBadgeShine {
+            0%, 70% { left: -60%; }
+            100%    { left: 130%; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .btn-primary::after, ${BF} [class*="saleBadge"] { animation: none !important; }
+            ${BF} [class*="ProductCard_saleBadge"]::after { animation: none !important; display: none; }
         }
     ` : '';
 

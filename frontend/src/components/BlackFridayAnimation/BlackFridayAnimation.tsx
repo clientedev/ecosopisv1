@@ -4,51 +4,47 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/ThemeContext";
 
 /**
- * Black Friday theme effects:
- *  - Animated top strip (fire gradient + marquee + countdown)
- *  - Confetti + "% OFF" tags burst on page load
- *  - Confetti + flame burst on clicks in buttons/links/cards
- *  - Embers rising from the bottom of the screen (light, capped)
- * Everything is skipped in /admin and reduced for prefers-reduced-motion.
+ * Black Friday (clean) effects:
+ *  - Slim black strip on top: "BLACK FRIDAY" + small flickering flame + countdown
+ *  - Light confetti once per session, right after the entry splash
+ *  - Small confetti burst when clicking primary buttons (add to cart, buy)
+ * Skipped in /admin and for prefers-reduced-motion.
  */
 
-const CONFETTI_COLORS = ["#e10600", "#ff2d1a", "#ffffff", "#111111", "#ffb300", "#ff5a36"];
-const DISCOUNT_TAGS = ["-10%", "-20%", "-30%", "-40%", "-50%", "% OFF", "🔥", "💥"];
-const CLICK_EMOJIS = ["🔥", "💥", "🔥", "%"];
+const CONFETTI_COLORS = ["#111111", "#c8102e", "#c8102e", "#b89b5e", "#d9d9d9"];
 
 // Black Friday 2026: 27/11/2026 (horário de Brasília)
 const BF_START = new Date("2026-11-27T00:00:00-03:00").getTime();
 const BF_END = new Date("2026-11-28T00:00:00-03:00").getTime();
+const ENTRY_CONFETTI_KEY = "ecosopis_bf_confetti_seen";
 
 function countdownLabel(now: number): string {
-    if (now >= BF_END) return "BLACK FRIDAY ECOSOPIS 🔥 OFERTAS DE QUEIMAR";
+    if (now >= BF_END) return "Ofertas por tempo limitado";
     if (now >= BF_START) {
         const h = Math.floor((BF_END - now) / 3_600_000);
         const m = Math.floor(((BF_END - now) % 3_600_000) / 60_000);
-        return `É HOJE! 🔥 TERMINA EM ${h}H ${String(m).padStart(2, "0")}MIN`;
+        return `É hoje · termina em ${h}h ${String(m).padStart(2, "0")}min`;
     }
     const diff = BF_START - now;
     const d = Math.floor(diff / 86_400_000);
     const h = Math.floor((diff % 86_400_000) / 3_600_000);
     const m = Math.floor((diff % 3_600_000) / 60_000);
-    return `FALTAM ${d}D ${String(h).padStart(2, "0")}H ${String(m).padStart(2, "0")}MIN PARA A BLACK FRIDAY`;
+    return `Começa em ${d}d ${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}min`;
 }
+
+const reducedMotion = () =>
+    typeof window !== "undefined" &&
+    !!window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export default function BlackFridayAnimation() {
     const { activeTheme } = useTheme();
     const pathname = usePathname() || "";
-    const isAdmin = pathname.startsWith("/admin");
-    const enabled = activeTheme === "black_friday" && !isAdmin;
+    const enabled = activeTheme === "black_friday" && !pathname.startsWith("/admin");
 
-    const containerRef = useRef<HTMLDivElement>(null);
+    const layerRef = useRef<HTMLDivElement>(null);
     const [label, setLabel] = useState("");
 
-    const reducedMotion = () =>
-        typeof window !== "undefined" &&
-        window.matchMedia &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    // Countdown text
     useEffect(() => {
         if (!enabled) return;
         const tick = () => setLabel(countdownLabel(Date.now()));
@@ -57,155 +53,67 @@ export default function BlackFridayAnimation() {
         return () => clearInterval(id);
     }, [enabled]);
 
-    // ---------- particle helpers ----------
-    const spawn = (opts: {
-        x: number;
-        y: number;
-        content?: string;
-        kind: "confetti" | "tag" | "emoji" | "ember";
-        duration: number;
-        dx: number;
-        dy: number;
-        rotate: number;
-    }) => {
-        const root = containerRef.current;
+    const spawnConfetti = (x: number, y: number, dx: number, dy: number, duration: number) => {
+        const root = layerRef.current;
         if (!root) return;
         const el = document.createElement("div");
-        el.className = `bf-p bf-${opts.kind}`;
-        el.style.left = opts.x + "px";
-        el.style.top = opts.y + "px";
-        el.style.setProperty("--dx", opts.dx + "px");
-        el.style.setProperty("--dy", opts.dy + "px");
-        el.style.setProperty("--rot", opts.rotate + "deg");
-        el.style.animationDuration = opts.duration + "ms";
-
-        if (opts.kind === "confetti") {
-            const w = Math.random() * 6 + 6;
-            el.style.width = w + "px";
-            el.style.height = w * (Math.random() > 0.5 ? 0.45 : 1) + "px";
-            el.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
-            if (Math.random() > 0.7) el.style.borderRadius = "50%";
-        } else if (opts.kind === "ember") {
-            const s = Math.random() * 4 + 3;
-            el.style.width = s + "px";
-            el.style.height = s + "px";
-        } else {
-            el.textContent = opts.content || "";
-        }
-
+        el.className = "bf-confetti";
+        const w = Math.random() * 4 + 5;
+        el.style.width = w + "px";
+        el.style.height = w * (Math.random() > 0.5 ? 0.4 : 1) + "px";
+        el.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+        el.style.setProperty("--dx", dx + "px");
+        el.style.setProperty("--dy", dy + "px");
+        el.style.setProperty("--rot", (Math.random() - 0.5) * 720 + "deg");
+        el.style.animationDuration = duration + "ms";
         root.appendChild(el);
-        setTimeout(() => el.remove(), opts.duration + 80);
+        setTimeout(() => el.remove(), duration + 80);
     };
 
-    // Load burst: confetti rain + discount tags
+    // Entry confetti: once per session, after the splash is gone
     useEffect(() => {
         if (!enabled || reducedMotion()) return;
+        try {
+            if (sessionStorage.getItem(ENTRY_CONFETTI_KEY)) return;
+        } catch { /* storage blocked: still show once per mount */ }
+
         let timer: ReturnType<typeof setTimeout>;
         let waited = 0;
-        // Wait until the full-screen brand loader is gone (max ~5s) so the burst is visible
-        const loaderVisible = () => {
-            const el = document.querySelector('[class*="BrandLoader_fullScreenWrapper"]') as HTMLElement | null;
-            return !!el && el.offsetParent !== null && !el.className.includes("fadeOut");
-        };
+        const splashVisible = () => !!document.querySelector('[data-brand-splash]:not([data-fading])');
         const start = () => {
-            if (loaderVisible() && waited < 5000) {
+            if (splashVisible() && waited < 8000) {
                 waited += 200;
                 timer = setTimeout(start, 200);
                 return;
             }
-            burst();
-        };
-        const burst = () => {
+            try { sessionStorage.setItem(ENTRY_CONFETTI_KEY, "1"); } catch { /* ignore */ }
             const W = window.innerWidth;
             const H = window.innerHeight;
-            const confettiCount = W < 768 ? 45 : 80;
-            for (let i = 0; i < confettiCount; i++) {
+            const count = W < 768 ? 28 : 45;
+            for (let i = 0; i < count; i++) {
                 setTimeout(() => {
-                    spawn({
-                        kind: "confetti",
-                        x: Math.random() * W,
-                        y: -20,
-                        dx: (Math.random() - 0.5) * 220,
-                        dy: H + 60,
-                        rotate: (Math.random() - 0.5) * 900,
-                        duration: Math.random() * 1800 + 2600,
-                    });
-                }, Math.random() * 1600);
-            }
-            const tagCount = W < 768 ? 6 : 10;
-            for (let i = 0; i < tagCount; i++) {
-                setTimeout(() => {
-                    spawn({
-                        kind: "tag",
-                        content: DISCOUNT_TAGS[Math.floor(Math.random() * DISCOUNT_TAGS.length)],
-                        x: Math.random() * (W - 80) + 40,
-                        y: -40,
-                        dx: (Math.random() - 0.5) * 120,
-                        dy: H + 80,
-                        rotate: (Math.random() - 0.5) * 70,
-                        duration: Math.random() * 1600 + 3200,
-                    });
-                }, Math.random() * 2200);
+                    spawnConfetti(Math.random() * W, -12, (Math.random() - 0.5) * 140, H * (Math.random() * 0.4 + 0.6), Math.random() * 1500 + 2800);
+                }, Math.random() * 1400);
             }
         };
-        timer = setTimeout(start, 350);
+        timer = setTimeout(start, 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [enabled]);
 
-    // Rising embers (continuous, capped, paused while tab hidden)
-    useEffect(() => {
-        if (!enabled || reducedMotion()) return;
-        const id = setInterval(() => {
-            if (document.hidden) return;
-            const root = containerRef.current;
-            if (!root || root.querySelectorAll(".bf-ember").length > 14) return;
-            spawn({
-                kind: "ember",
-                x: Math.random() * window.innerWidth,
-                y: window.innerHeight + 10,
-                dx: (Math.random() - 0.5) * 120,
-                dy: -(window.innerHeight * (Math.random() * 0.35 + 0.35)),
-                rotate: 0,
-                duration: Math.random() * 2500 + 3500,
-            });
-        }, 650);
-        return () => clearInterval(id);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [enabled]);
-
-    // Click burst on interactive elements
+    // Small burst on primary actions only
     useEffect(() => {
         if (!enabled || reducedMotion()) return;
         const onClick = (e: MouseEvent) => {
             const t = e.target as HTMLElement;
             if (!t || typeof t.closest !== "function") return;
-            const interactive = t.closest("button, a, [class*='btn'], [class*='Card'], [class*='card']");
-            if (!interactive) return;
-            for (let i = 0; i < 14; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const dist = Math.random() * 90 + 40;
-                spawn({
-                    kind: "confetti",
-                    x: e.clientX,
-                    y: e.clientY,
-                    dx: Math.cos(angle) * dist,
-                    dy: Math.sin(angle) * dist + 60,
-                    rotate: (Math.random() - 0.5) * 720,
-                    duration: Math.random() * 500 + 800,
-                });
-            }
-            for (let i = 0; i < 3; i++) {
-                spawn({
-                    kind: "emoji",
-                    content: CLICK_EMOJIS[Math.floor(Math.random() * CLICK_EMOJIS.length)],
-                    x: e.clientX,
-                    y: e.clientY,
-                    dx: (Math.random() - 0.5) * 90,
-                    dy: -(Math.random() * 80 + 90),
-                    rotate: (Math.random() - 0.5) * 40,
-                    duration: Math.random() * 400 + 900,
-                });
+            if (!t.closest(".btn-primary, [class*='addToCartBtn'], [class*='buyNowBtn'], [class*='checkoutBtn']")) return;
+            for (let i = 0; i < 10; i++) {
+                const a = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.2;
+                const d = Math.random() * 50 + 35;
+                spawnConfetti(e.clientX, e.clientY, Math.cos(a) * d, Math.sin(a) * d + 70, Math.random() * 400 + 750);
             }
         };
         document.addEventListener("click", onClick);
@@ -215,123 +123,72 @@ export default function BlackFridayAnimation() {
 
     if (!enabled) return null;
 
-    const marqueeItems = [
-        "🔥 BLACK FRIDAY ECOSOPIS",
-        "DESCONTOS DE QUEIMAR",
-        label,
-        "🔥 BLACK FRIDAY ECOSOPIS",
-        "APROVEITE ENQUANTO DURAR O ESTOQUE",
-        label,
-    ];
-
     const css = `
         .bf-strip {
-            position: relative;
-            overflow: hidden;
-            background: #050505;
-            color: #fff;
-            border-bottom: 2px solid #e10600;
-            height: 38px;
+            background: #0d0d0d;
+            color: #f2f2f2;
+            height: 36px;
             display: flex;
             align-items: center;
-            font-family: var(--font-header), sans-serif;
-            font-weight: 800;
+            justify-content: center;
+            gap: 14px;
+            padding: 0 16px;
+            font-family: var(--font-body), sans-serif;
             font-size: 0.78rem;
-            letter-spacing: 0.12em;
-            z-index: 1001;
-        }
-        .bf-strip::before {
-            /* flickering fire glow along the bottom edge */
-            content: "";
-            position: absolute;
-            left: 0; right: 0; bottom: -8px;
-            height: 26px;
-            background:
-                radial-gradient(ellipse 40px 18px at 10% 100%, rgba(255,90,20,.85), transparent 70%),
-                radial-gradient(ellipse 60px 22px at 30% 100%, rgba(225,6,0,.9), transparent 70%),
-                radial-gradient(ellipse 50px 20px at 52% 100%, rgba(255,140,0,.8), transparent 70%),
-                radial-gradient(ellipse 70px 24px at 74% 100%, rgba(225,6,0,.9), transparent 70%),
-                radial-gradient(ellipse 45px 18px at 92% 100%, rgba(255,90,20,.85), transparent 70%);
-            filter: blur(3px);
-            animation: bfFlicker 1.6s ease-in-out infinite alternate;
-            pointer-events: none;
-        }
-        .bf-track {
-            position: relative;
-            display: flex;
-            gap: 3rem;
+            letter-spacing: 0.06em;
             white-space: nowrap;
-            animation: bfMarquee 28s linear infinite;
-            padding-left: 100%;
+            overflow: hidden;
         }
-        .bf-track span { display: inline-flex; align-items: center; gap: .6rem; }
-        .bf-track span::after { content: "✦"; color: #e10600; margin-left: 3rem; }
+        .bf-strip-title {
+            display: inline-flex; align-items: center; gap: 7px;
+            font-family: var(--font-logo), var(--font-header), serif;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            font-size: 0.8rem;
+        }
+        .bf-strip-sep { width: 1px; height: 14px; background: rgba(255,255,255,.25); }
+        .bf-strip-count { color: #bdbdbd; }
+        .bf-flame { width: 11px; height: 14px; transform-origin: 50% 100%; animation: bfFlame 1.4s ease-in-out infinite; }
 
-        .bf-layer { position: fixed; inset: 0; pointer-events: none; z-index: 99999; overflow: hidden; }
-        .bf-p { position: fixed; pointer-events: none; user-select: none; will-change: transform, opacity; }
-        .bf-confetti { animation-name: bfFall; animation-timing-function: cubic-bezier(.25,.6,.4,1); animation-fill-mode: forwards; }
-        .bf-tag {
-            background: #e10600; color: #fff;
-            font: 900 0.9rem/1 var(--font-header), sans-serif;
-            padding: 6px 10px; border-radius: 6px;
-            border: 2px solid #fff;
-            box-shadow: 0 4px 14px rgba(225,6,0,.5);
-            animation-name: bfFall; animation-timing-function: cubic-bezier(.3,.5,.4,1); animation-fill-mode: forwards;
-        }
-        .bf-emoji {
-            font-size: 22px; font-weight: 900; color: #ff2d1a;
-            text-shadow: 0 0 8px rgba(255,90,20,.8);
-            animation-name: bfPop; animation-timing-function: ease-out; animation-fill-mode: forwards;
-        }
-        .bf-ember {
-            border-radius: 50%;
-            background: radial-gradient(circle, #fff3c4 0%, #ffb300 35%, #e10600 70%, transparent 100%);
-            box-shadow: 0 0 10px 3px rgba(255,90,20,.55);
-            animation-name: bfRise; animation-timing-function: ease-out; animation-fill-mode: forwards;
-        }
-
-        @keyframes bfMarquee { from { transform: translateX(0); } to { transform: translateX(-100%); } }
-        @keyframes bfFlicker {
-            0%   { opacity: .55; transform: scaleY(.85); }
-            50%  { opacity: .95; transform: scaleY(1.1); }
-            100% { opacity: .7;  transform: scaleY(.95); }
+        .bf-layer { position: fixed; inset: 0; pointer-events: none; z-index: 99998; overflow: hidden; }
+        .bf-confetti {
+            position: fixed; pointer-events: none; border-radius: 1px; opacity: 0;
+            will-change: transform, opacity;
+            animation-name: bfFall; animation-timing-function: cubic-bezier(.25,.6,.4,1); animation-fill-mode: forwards;
         }
         @keyframes bfFall {
             0%   { opacity: 0; transform: translate(-50%, 0) rotate(0deg); }
-            8%   { opacity: 1; }
-            85%  { opacity: 1; }
+            10%  { opacity: .95; }
+            80%  { opacity: .9; }
             100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), var(--dy)) rotate(var(--rot)); }
         }
-        @keyframes bfPop {
-            0%   { opacity: 1; transform: translate(-50%, -50%) scale(.4); }
-            25%  { opacity: 1; transform: translate(-50%, -50%) translateY(-20px) scale(1.3); }
-            100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.6) rotate(var(--rot)); }
+        @keyframes bfFlame {
+            0%, 100% { transform: scale(1, 1) rotate(-2deg); opacity: .95; }
+            30%      { transform: scale(.92, 1.08) rotate(2deg); opacity: 1; }
+            60%      { transform: scale(1.04, .94) rotate(-1deg); opacity: .85; }
         }
-        @keyframes bfRise {
-            0%   { opacity: 0; transform: translate(0, 0) scale(1); }
-            15%  { opacity: 1; }
-            100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); }
+        @media (max-width: 640px) {
+            .bf-strip { font-size: 0.7rem; gap: 10px; height: 32px; }
+            .bf-strip-title { font-size: 0.72rem; letter-spacing: 0.16em; }
         }
-        @media (prefers-reduced-motion: reduce) {
-            .bf-track { animation: none; padding-left: 1rem; }
-            .bf-strip::before { animation: none; }
-        }
-        @media (max-width: 768px) {
-            .bf-strip { height: 32px; font-size: 0.68rem; }
-        }
+        @media (prefers-reduced-motion: reduce) { .bf-flame { animation: none; } }
     `;
 
     return (
         <>
             <style dangerouslySetInnerHTML={{ __html: css }} />
-            <div className="bf-strip" data-black-friday-strip role="marquee" aria-label={label || "Black Friday Ecosopis"}>
-                <div className="bf-track">
-                    {marqueeItems.map((t, i) => (
-                        <span key={i}>{t}</span>
-                    ))}
-                </div>
+            <div className="bf-strip" data-black-friday-strip role="note" aria-label={`Black Friday Ecosopis. ${label}`}>
+                <span className="bf-strip-title">
+                    <svg className="bf-flame" viewBox="0 0 12 16" aria-hidden="true">
+                        <path d="M6 0C6.6 3 10 5.2 10 9.6 10 13 8.2 16 6 16S2 13.9 2 10.8c0-2 1-3.3 1.9-4.2.1 1.4.7 2.3 1.5 2.6C5 6.6 4.9 3.4 6 0Z" fill="#c8102e" />
+                        <path d="M6 8.5c.4 1.4 2 2.3 2 4.1C8 14.1 7.1 15 6 15s-2-.8-2-2.1c0-1 .6-1.6 1.1-2 .1.6.4 1 .8 1.1-.2-1.3-.2-2.4.1-3.5Z" fill="#ff7a59" />
+                    </svg>
+                    BLACK FRIDAY
+                </span>
+                <span className="bf-strip-sep" aria-hidden="true" />
+                <span className="bf-strip-count">{label}</span>
             </div>
-            <div ref={containerRef} className="bf-layer" aria-hidden="true" />
+            <div ref={layerRef} className="bf-layer" aria-hidden="true" />
         </>
     );
 }

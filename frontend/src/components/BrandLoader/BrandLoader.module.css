@@ -106,3 +106,99 @@
     width: 230px;
   }
 }
+
+/* ── Discreet spinner (everything except the entry splash) ── */
+.spinnerInline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 220px;
+  padding: 30px 10px;
+  box-sizing: border-box;
+}
+
+.spinnerOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(253, 252, 249, 0.72);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.spinnerOverlay.fadeOut {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(0, 0, 0, 0.08);
+  border-top-color: var(--primary-green, #4B8411);
+  animation: brandSpin 0.8s linear infinite;
+}
+
+@keyframes brandSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Entry splash: only once per session ── */
+:global(html[data-splash-seen]) .fullScreenWrapper:not(.fadeOut) {
+  display: none;
+}
+
+.fullScreenWrapper {
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.5s ease;
+}
+
+.loaderCard {
+  flex-direction: column;
+  gap: 18px;
+}
+
+.bfCaption {
+  display: none;
+  align-items: center;
+  gap: 14px;
+  color: #f2f2f2;
+  animation: fadeIn 0.8s ease-out 0.3s both;
+}
+
+.bfLine {
+  width: 34px;
+  height: 1px;
+  background: #c8102e;
+}
+
+.bfText {
+  font-family: var(--font-logo), var(--font-header), serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.4em;
+  margin-right: -0.4em;
+}
+
+/* ── Black Friday version of the splash: black background, white tree ── */
+:global(html[data-theme="black_friday"]) .fullScreenWrapper {
+  background-color: #000000;
+}
+
+:global(html[data-theme="black_friday"]) .fullScreenWrapper .gifMedia {
+  mix-blend-mode: screen;
+  filter: invert(1) grayscale(1) brightness(1.1) contrast(1.05);
+}
+
+:global(html[data-theme="black_friday"]) .bfCaption {
+  display: flex;
+}

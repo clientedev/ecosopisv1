@@ -176,14 +176,14 @@ const THEME_DEFINITIONS: ThemeDefinition[] = [
     {
         id: "black_friday" as ThemeId,
         name: "Black Friday 🔥",
-        description: "Tema de Black Friday em preto e vermelho. Loja inteira em fundo escuro com destaques vermelhos, faixa no topo com fogo animado e contagem regressiva para 27/11, chuva de confetes e etiquetas de desconto ao carregar, e explosão de confetes e fogo nos cliques.",
+        description: "Black Friday elegante, mantendo o visual claro da Ecosopis: preto como cor principal (botões, logo, rodapé) e vermelho só nos descontos e preços. Faixa fina no topo com contagem regressiva para 27/11, abertura do site em versão preta e confetes discretos.",
         emoji: "🔥",
-        primary: "#e10600",
-        primaryDark: "#a30000",
-        bg: "#0b0b0b",
-        accent: "#ff5a36",
+        primary: "#111111",
+        primaryDark: "#000000",
+        bg: "#fdfcf9",
+        accent: "#c8102e",
         tags: ["Sazonal", "Preto", "Vermelho", "Black Friday"],
-        features: ["Paleta preta e vermelha em toda a loja", "Faixa animada com fogo e contagem regressiva", "Confetes e etiquetas de % OFF ao carregar", "Explosão de confetes e fogo nos cliques", "Brasas subindo pela tela", "Selos de desconto com brilho de fogo"],
+        features: ["Botões e logo em preto, descontos em vermelho", "Faixa no topo com contagem regressiva", "Abertura do site (árvore) em versão preta", "Confetes leves na entrada e ao adicionar ao carrinho"],
     },
 ];
 
