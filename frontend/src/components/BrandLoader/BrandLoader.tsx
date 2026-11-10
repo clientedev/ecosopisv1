@@ -98,9 +98,28 @@ function TreeSplash({ fadeOut, size, className }: { fadeOut: boolean; size?: "sm
                 ) : gif}
                 {/* Shown only when the Black Friday theme is active (see CSS) */}
                 <div className={styles.bfCaption} aria-hidden="true">
-                    <span className={styles.bfLine} />
-                    <span className={styles.bfText}>BLACK FRIDAY</span>
-                    <span className={styles.bfLine} />
+                    <span className={styles.bfEmbers}>
+                        {Array.from({ length: 9 }).map((_, i) => (
+                            <i key={i} style={{ ["--i" as any]: i }} />
+                        ))}
+                    </span>
+                    <span className={styles.bfTitle}>
+                        <span className={styles.bfBlack}>BLACK</span>
+                        <span className={styles.bfFriday}>FRIDAY</span>
+                    </span>
+                    <span className={styles.bfMeta}>
+                        <span className={styles.bfLine} />
+                        <svg className={styles.bfFlame} viewBox="0 0 12 16">
+                            <path d="M6 0C6.6 3 10 5.2 10 9.6 10 13 8.2 16 6 16S2 13.9 2 10.8c0-2 1-3.3 1.9-4.2.1 1.4.7 2.3 1.5 2.6C5 6.6 4.9 3.4 6 0Z" fill="#e8233f" />
+                            <path d="M6 8.5c.4 1.4 2 2.3 2 4.1C8 14.1 7.1 15 6 15s-2-.8-2-2.1c0-1 .6-1.6 1.1-2 .1.6.4 1 .8 1.1-.2-1.3-.2-2.4.1-3.5Z" fill="#ffb347" />
+                        </svg>
+                        <span className={styles.bfDate}>ECOSOPIS · 27 NOV</span>
+                        <svg className={styles.bfFlame} viewBox="0 0 12 16">
+                            <path d="M6 0C6.6 3 10 5.2 10 9.6 10 13 8.2 16 6 16S2 13.9 2 10.8c0-2 1-3.3 1.9-4.2.1 1.4.7 2.3 1.5 2.6C5 6.6 4.9 3.4 6 0Z" fill="#e8233f" />
+                            <path d="M6 8.5c.4 1.4 2 2.3 2 4.1C8 14.1 7.1 15 6 15s-2-.8-2-2.1c0-1 .6-1.6 1.1-2 .1.6.4 1 .8 1.1-.2-1.3-.2-2.4.1-3.5Z" fill="#ffb347" />
+                        </svg>
+                        <span className={styles.bfLine} />
+                    </span>
                 </div>
             </div>
         </aside>

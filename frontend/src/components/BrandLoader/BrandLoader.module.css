@@ -164,24 +164,123 @@
 
 .bfCaption {
   display: none;
+  position: relative;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  color: #f2f2f2;
-  animation: fadeIn 0.8s ease-out 0.3s both;
+  gap: 12px;
+  margin-top: -6px;
+  animation: fadeIn 0.9s ease-out 0.25s both;
+}
+
+.bfTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45em;
+  font-family: var(--font-logo), var(--font-header), serif;
+  font-weight: 700;
+  font-size: clamp(1.7rem, 6vw, 2.5rem);
+  letter-spacing: 0.16em;
+  line-height: 1;
+  margin-right: -0.16em;
+}
+
+.bfBlack {
+  color: #f5f5f5;
+}
+
+.bfFriday {
+  color: #e8233f;
+  text-shadow: 0 0 10px rgba(232, 35, 63, 0.55), 0 0 26px rgba(255, 90, 30, 0.35);
+  animation: bfGlow 2.2s ease-in-out infinite;
+}
+
+.bfMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .bfLine {
-  width: 34px;
+  width: 38px;
   height: 1px;
-  background: #c8102e;
+  background: linear-gradient(90deg, transparent, #e8233f);
 }
 
-.bfText {
-  font-family: var(--font-logo), var(--font-header), serif;
-  font-weight: 700;
-  font-size: 0.95rem;
-  letter-spacing: 0.4em;
-  margin-right: -0.4em;
+.bfMeta .bfLine:last-child {
+  background: linear-gradient(90deg, #e8233f, transparent);
+}
+
+.bfDate {
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  color: #bdbdbd;
+  margin-right: -0.34em;
+}
+
+.bfFlame {
+  width: 10px;
+  height: 13px;
+  transform-origin: 50% 100%;
+  animation: bfFlicker 1.3s ease-in-out infinite;
+}
+
+.bfMeta .bfFlame:nth-of-type(2) {
+  animation-delay: 0.45s;
+}
+
+/* Brasas subindo atrás do título */
+.bfEmbers {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  width: 260px;
+  height: 160px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.bfEmbers i {
+  position: absolute;
+  bottom: 0;
+  left: calc(8% + var(--i) * 10.5%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffe7b0 0%, #ff9a3c 45%, #e8233f 80%, transparent 100%);
+  box-shadow: 0 0 8px 2px rgba(255, 110, 40, 0.55);
+  opacity: 0;
+  animation: bfEmber 2.8s ease-out infinite;
+  animation-delay: calc(var(--i) * 0.31s);
+}
+
+.bfEmbers i:nth-child(3n) {
+  width: 3px;
+  height: 3px;
+  animation-duration: 3.4s;
+}
+
+@keyframes bfGlow {
+  0%, 100% { text-shadow: 0 0 10px rgba(232, 35, 63, 0.5), 0 0 24px rgba(255, 90, 30, 0.3); }
+  50%      { text-shadow: 0 0 16px rgba(232, 35, 63, 0.8), 0 0 36px rgba(255, 120, 40, 0.45); }
+}
+
+@keyframes bfFlicker {
+  0%, 100% { transform: scale(1, 1) rotate(-2deg); }
+  35%      { transform: scale(0.9, 1.1) rotate(2deg); }
+  70%      { transform: scale(1.05, 0.92) rotate(-1deg); }
+}
+
+@keyframes bfEmber {
+  0%   { opacity: 0; transform: translate(0, 0) scale(1); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc((var(--i) - 4) * 6px), -150px) scale(0.4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bfFriday, .bfFlame, .bfEmbers i { animation: none; }
+  .bfEmbers { display: none; }
 }
 
 /* ── Black Friday version of the splash: black background, white tree ── */
@@ -196,4 +295,8 @@
 
 :global(html[data-theme="black_friday"]) .bfCaption {
   display: flex;
+}
+
+:global(html[data-theme="black_friday"]) .fullScreenWrapper {
+  background-image: radial-gradient(ellipse 60% 45% at 50% 58%, rgba(150, 10, 20, 0.28) 0%, rgba(0, 0, 0, 0) 70%);
 }

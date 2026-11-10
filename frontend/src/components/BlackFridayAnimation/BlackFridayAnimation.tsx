@@ -11,12 +11,11 @@ import { useTheme } from "@/context/ThemeContext";
  * Skipped in /admin and for prefers-reduced-motion.
  */
 
-const CONFETTI_COLORS = ["#111111", "#c8102e", "#c8102e", "#b89b5e", "#d9d9d9"];
+const CONFETTI_COLORS = ["#111111", "#c8102e", "#e8233f", "#ff8a3d", "#ffc14d", "#ffffff"];
 
 // Black Friday 2026: 27/11/2026 (horário de Brasília)
 const BF_START = new Date("2026-11-27T00:00:00-03:00").getTime();
 const BF_END = new Date("2026-11-28T00:00:00-03:00").getTime();
-const ENTRY_CONFETTI_KEY = "ecosopis_bf_confetti_seen";
 
 function countdownLabel(now: number): string {
     if (now >= BF_END) return "Ofertas por tempo limitado";
@@ -53,11 +52,11 @@ export default function BlackFridayAnimation() {
         return () => clearInterval(id);
     }, [enabled]);
 
-    const spawnConfetti = (x: number, y: number, dx: number, dy: number, duration: number) => {
+    const spawnConfetti = (x: number, y: number, dx: number, dy: number, duration: number, cannon = false) => {
         const root = layerRef.current;
         if (!root) return;
         const el = document.createElement("div");
-        el.className = "bf-confetti";
+        el.className = cannon ? "bf-confetti bf-cannon" : "bf-confetti";
         const w = Math.random() * 4 + 5;
         el.style.width = w + "px";
         el.style.height = w * (Math.random() > 0.5 ? 0.4 : 1) + "px";
@@ -72,33 +71,71 @@ export default function BlackFridayAnimation() {
         setTimeout(() => el.remove(), duration + 80);
     };
 
-    // Entry confetti: once per session, after the splash is gone
+    // Fire spark / emoji particle (rising, glowing)
+    const spawnSpark = (x: number, y: number, dx: number, dy: number, duration: number, emoji?: string) => {
+        const root = layerRef.current;
+        if (!root) return;
+        const el = document.createElement("div");
+        el.className = emoji ? "bf-fire-emoji" : "bf-spark";
+        if (emoji) el.textContent = emoji;
+        else {
+            const s = Math.random() * 4 + 4;
+            el.style.width = s + "px";
+            el.style.height = s + "px";
+        }
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+        el.style.setProperty("--dx", dx + "px");
+        el.style.setProperty("--dy", dy + "px");
+        el.style.animationDuration = duration + "ms";
+        root.appendChild(el);
+        setTimeout(() => el.remove(), duration + 80);
+    };
+
+    // Entry burst: confetti cannons + fire sparks every time the splash finishes
     useEffect(() => {
         if (!enabled || reducedMotion()) return;
-        try {
-            if (sessionStorage.getItem(ENTRY_CONFETTI_KEY)) return;
-        } catch { /* storage blocked: still show once per mount */ }
-
         let timer: ReturnType<typeof setTimeout>;
         let waited = 0;
         const splashVisible = () => !!document.querySelector('[data-brand-splash]:not([data-fading])');
         const start = () => {
-            if (splashVisible() && waited < 8000) {
-                waited += 200;
-                timer = setTimeout(start, 200);
+            if (splashVisible() && waited < 9000) {
+                waited += 150;
+                timer = setTimeout(start, 150);
                 return;
             }
-            try { sessionStorage.setItem(ENTRY_CONFETTI_KEY, "1"); } catch { /* ignore */ }
             const W = window.innerWidth;
             const H = window.innerHeight;
-            const count = W < 768 ? 28 : 45;
-            for (let i = 0; i < count; i++) {
+            const mobile = W < 768;
+            // Two confetti cannons from the bottom corners
+            const perSide = mobile ? 26 : 42;
+            for (let side = 0; side < 2; side++) {
+                for (let i = 0; i < perSide; i++) {
+                    setTimeout(() => {
+                        const x = side === 0 ? -6 : W + 6;
+                        const dirX = side === 0 ? 1 : -1;
+                        const dx = dirX * (Math.random() * W * 0.55 + W * 0.15);
+                        const dy = -(Math.random() * H * 0.55 + H * 0.3);
+                        spawnConfetti(x, H + 6, dx, dy, Math.random() * 900 + 2100, true);
+                    }, Math.random() * 350);
+                }
+            }
+            // Fire sparks rising from the bottom center
+            const sparks = mobile ? 18 : 30;
+            for (let i = 0; i < sparks; i++) {
                 setTimeout(() => {
-                    spawnConfetti(Math.random() * W, -12, (Math.random() - 0.5) * 140, H * (Math.random() * 0.4 + 0.6), Math.random() * 1500 + 2800);
-                }, Math.random() * 1400);
+                    spawnSpark(W / 2 + (Math.random() - 0.5) * W * 0.5, H + 4, (Math.random() - 0.5) * 220, -(Math.random() * H * 0.5 + H * 0.25), Math.random() * 900 + 1300);
+                }, Math.random() * 500);
+            }
+            // A few flames
+            const flames = mobile ? 4 : 7;
+            for (let i = 0; i < flames; i++) {
+                setTimeout(() => {
+                    spawnSpark(Math.random() * W * 0.8 + W * 0.1, H + 10, (Math.random() - 0.5) * 120, -(Math.random() * H * 0.35 + H * 0.3), Math.random() * 700 + 1500, "🔥");
+                }, 120 + Math.random() * 500);
             }
         };
-        timer = setTimeout(start, 300);
+        timer = setTimeout(start, 200);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [enabled]);
@@ -155,6 +192,33 @@ export default function BlackFridayAnimation() {
             position: fixed; pointer-events: none; border-radius: 1px; opacity: 0;
             will-change: transform, opacity;
             animation-name: bfFall; animation-timing-function: cubic-bezier(.25,.6,.4,1); animation-fill-mode: forwards;
+        }
+        .bf-spark {
+            position: fixed; pointer-events: none; border-radius: 50%; opacity: 0;
+            background: radial-gradient(circle, #fff1c4 0%, #ffb347 40%, #e8233f 75%, transparent 100%);
+            box-shadow: 0 0 10px 3px rgba(255, 110, 40, .6);
+            will-change: transform, opacity;
+            animation-name: bfRise; animation-timing-function: cubic-bezier(.2,.7,.3,1); animation-fill-mode: forwards;
+        }
+        .bf-fire-emoji {
+            position: fixed; pointer-events: none; font-size: 22px; opacity: 0;
+            filter: drop-shadow(0 0 6px rgba(255, 100, 30, .7));
+            will-change: transform, opacity;
+            animation-name: bfRise; animation-timing-function: cubic-bezier(.2,.7,.3,1); animation-fill-mode: forwards;
+        }
+        .bf-cannon { animation-name: bfCannon; animation-timing-function: linear; }
+        @keyframes bfCannon {
+            0%   { opacity: 0; transform: translate(-50%, 0) rotate(0deg); }
+            6%   { opacity: 1; }
+            45%  { transform: translate(calc(-50% + var(--dx) * 0.7), var(--dy)) rotate(calc(var(--rot) * 0.5)); }
+            85%  { opacity: .95; }
+            100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(var(--dy) * 0.25)) rotate(var(--rot)); }
+        }
+        @keyframes bfRise {
+            0%   { opacity: 0; transform: translate(-50%, 0) scale(.6); }
+            12%  { opacity: 1; }
+            70%  { opacity: .9; }
+            100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), var(--dy)) scale(1.1); }
         }
         @keyframes bfFall {
             0%   { opacity: 0; transform: translate(-50%, 0) rotate(0deg); }
