@@ -17,9 +17,6 @@ const LoadingContext = createContext<LoadingContextValue>({
     withLoading: async (fn) => fn(),
 });
 
-// sessionStorage key: tree splash already shown in this session (also read by the inline script in layout.tsx)
-export const SPLASH_SEEN_KEY = "ecosopis_splash_seen";
-
 // Full animation cycle duration of the tree video/GIF (in milliseconds)
 const CYCLE_DURATION = 3725;
 
@@ -105,24 +102,10 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     }, []);
 
     // Initial Site Load Effect: Plays full loop AND waits for everything underneath to settle.
-    // The tree splash only plays on site entry (once per browser session).
+    // The tree splash plays whenever the site is opened or reloaded; navigating between
+    // pages inside the site never shows it (route changes use the discreet spinner).
     useEffect(() => {
         initialStartTimeRef.current = Date.now();
-
-        let alreadySeen = false;
-        try {
-            alreadySeen = sessionStorage.getItem(SPLASH_SEEN_KEY) === "1";
-        } catch { /* storage blocked: behave as first entry */ }
-
-        if (alreadySeen) {
-            cleanRawHtmlPreloader();
-            setInitialLoading(false);
-            return;
-        }
-
-        const markSeen = () => {
-            try { sessionStorage.setItem(SPLASH_SEEN_KEY, "1"); } catch { /* ignore */ }
-        };
 
         const handleInitialReady = async () => {
             await ensureUnderlyingLoaded();
@@ -131,7 +114,6 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
             const remaining = getDelayUntilCycleEnd(initialStartTimeRef.current);
 
             setTimeout(() => {
-                markSeen();
                 setInitialFadeOut(true);
                 cleanRawHtmlPreloader();
                 setTimeout(() => {
