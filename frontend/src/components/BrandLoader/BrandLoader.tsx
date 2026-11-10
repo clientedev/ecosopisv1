@@ -13,6 +13,7 @@ export interface BrandLoaderProps {
      * false = discreet spinner (route changes, page sections, checkout processing)
      */
     splash?: boolean;
+    onCycleComplete?: () => void;
 }
 
 function Spinner({ fullScreen, fadeOut, className }: { fullScreen: boolean; fadeOut: boolean; className: string }) {
@@ -35,12 +36,29 @@ function Spinner({ fullScreen, fadeOut, className }: { fullScreen: boolean; fade
     );
 }
 
-function TreeSplash({ fadeOut, size, className }: { fadeOut: boolean; size?: "sm" | "md" | "lg"; className: string }) {
+function TreeSplash({
+    fadeOut,
+    size,
+    className,
+    onCycleComplete,
+}: {
+    fadeOut: boolean;
+    size?: "sm" | "md" | "lg";
+    className: string;
+    onCycleComplete?: () => void;
+}) {
     const effectiveSize = size || "lg";
     const videoRef = useRef<HTMLVideoElement | null>(null);
+    const completedRef = useRef(false);
     const [useVideo, setUseVideo] = useState(true);
     // Key ensures GIF restarts from frame 0 if video is fallback
     const [mountTimestamp] = useState(() => Date.now());
+
+    const signalCycleDone = () => {
+        if (completedRef.current) return;
+        completedRef.current = true;
+        onCycleComplete?.();
+    };
 
     const sizeClass =
         effectiveSize === "sm" ? styles.sizeSm :
@@ -50,13 +68,20 @@ function TreeSplash({ fadeOut, size, className }: { fadeOut: boolean; size?: "sm
     useEffect(() => {
         if (videoRef.current) {
             videoRef.current.currentTime = 0;
-            videoRef.current.playbackRate = 2.0;
+            videoRef.current.playbackRate = 1.65;
             const playPromise = videoRef.current.play();
             if (playPromise !== undefined) {
                 playPromise.catch(() => setUseVideo(false));
             }
         }
     }, []);
+
+    useEffect(() => {
+        if (!useVideo) {
+            const gifTimer = setTimeout(signalCycleDone, 3725);
+            return () => clearTimeout(gifTimer);
+        }
+    }, [useVideo]);
 
     const gif = (
         <img
@@ -84,13 +109,13 @@ function TreeSplash({ fadeOut, size, className }: { fadeOut: boolean; size?: "sm
                     <video
                         ref={videoRef}
                         autoPlay
-                        loop
                         muted
                         playsInline
                         preload="auto"
                         className={styles.gifMedia}
                         width={width}
                         height="auto"
+                        onEnded={signalCycleDone}
                         onError={() => setUseVideo(false)}
                     >
                         <source src="/loading.mp4" type="video/mp4" />
@@ -133,7 +158,8 @@ export default function BrandLoader({
     size,
     className = "",
     splash = false,
+    onCycleComplete,
 }: BrandLoaderProps) {
-    if (splash) return <TreeSplash fadeOut={fadeOut} size={size} className={className} />;
+    if (splash) return <TreeSplash fadeOut={fadeOut} size={size} className={className} onCycleComplete={onCycleComplete} />;
     return <Spinner fullScreen={fullScreen} fadeOut={fadeOut} className={className} />;
 }

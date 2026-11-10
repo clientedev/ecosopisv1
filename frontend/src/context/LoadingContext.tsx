@@ -17,9 +17,8 @@ const LoadingContext = createContext<LoadingContextValue>({
     withLoading: async (fn) => fn(),
 });
 
-// Minimum splash duration (paired with 2.0x playbackRate in BrandLoader)
-const INITIAL_MIN_DURATION = 1150;
-const INITIAL_MAX_TIMEOUT = 1800;
+// Safety cap in case autoplay or media events are blocked by browser power-saving mode
+const INITIAL_SAFETY_TIMEOUT = 4200;
 const MANUAL_MIN_DURATION = 450;
 
 /**
@@ -82,7 +81,9 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     // 1. Initial Site Load States (First open / Refresh)
     const [initialLoading, setInitialLoading] = useState(true);
     const [initialFadeOut, setInitialFadeOut] = useState(false);
-    const initialStartTimeRef = useRef<number>(Date.now());
+    const initialFinishedRef = useRef(false);
+    const cycleCompletedRef = useRef(false);
+    const pageReadyRef = useRef(false);
 
     // 2. Manual / Programmatic Loading States (Checkout, Processando Pedido, Fechar Compra)
     const [manualLoading, setManualLoading] = useState(false);
@@ -101,29 +102,35 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // Initial Site Load Effect: Fast, smooth tree animation (max ~1.8s total).
+    const finishInitialLoad = useCallback(() => {
+        if (initialFinishedRef.current) return;
+        initialFinishedRef.current = true;
+        setInitialFadeOut(true);
+        cleanRawHtmlPreloader();
+        setTimeout(() => {
+            setInitialLoading(false);
+            setInitialFadeOut(false);
+        }, 300);
+    }, [cleanRawHtmlPreloader]);
+
+    const handleTreeCycleComplete = useCallback(() => {
+        cycleCompletedRef.current = true;
+        if (pageReadyRef.current) {
+            finishInitialLoad();
+        }
+    }, [finishInitialLoad]);
+
+    // Initial Site Load Effect: Completes strictly 1 tree animation cycle once DOM/assets are ready.
     useEffect(() => {
-        initialStartTimeRef.current = Date.now();
-        let finished = false;
-
-        const finishInitialLoad = () => {
-            if (finished) return;
-            finished = true;
-            setInitialFadeOut(true);
-            cleanRawHtmlPreloader();
-            setTimeout(() => {
-                setInitialLoading(false);
-                setInitialFadeOut(false);
-            }, 300);
-        };
-
         const handleInitialReady = async () => {
             await ensureUnderlyingLoaded();
-            const remaining = getRemainingMinDelay(initialStartTimeRef.current, INITIAL_MIN_DURATION);
-            setTimeout(finishInitialLoad, remaining);
+            pageReadyRef.current = true;
+            if (cycleCompletedRef.current) {
+                finishInitialLoad();
+            }
         };
 
-        const hardCap = setTimeout(finishInitialLoad, INITIAL_MAX_TIMEOUT);
+        const safetyCap = setTimeout(finishInitialLoad, INITIAL_SAFETY_TIMEOUT);
 
         if (typeof document !== "undefined") {
             if (document.readyState === "complete" || document.readyState === "interactive") {
@@ -134,12 +141,12 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
         }
 
         return () => {
-            clearTimeout(hardCap);
+            clearTimeout(safetyCap);
             if (typeof window !== "undefined") {
                 window.removeEventListener("DOMContentLoaded", handleInitialReady);
             }
         };
-    }, [cleanRawHtmlPreloader]);
+    }, [finishInitialLoad]);
 
     // Programmatic Controls: For heavy operations (fechar compra, processando pedido, etc.)
     const showLoading = useCallback(() => {
@@ -208,6 +215,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
                     splash
                     fullScreen={true}
                     fadeOut={initialFadeOut}
+                    onCycleComplete={handleTreeCycleComplete}
                 />
             )}
 
