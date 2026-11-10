@@ -50,6 +50,7 @@ function TreeSplash({ fadeOut, size, className }: { fadeOut: boolean; size?: "sm
     useEffect(() => {
         if (videoRef.current) {
             videoRef.current.currentTime = 0;
+            videoRef.current.playbackRate = 2.0;
             const playPromise = videoRef.current.play();
             if (playPromise !== undefined) {
                 playPromise.catch(() => setUseVideo(false));

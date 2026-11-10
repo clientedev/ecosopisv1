@@ -17,38 +17,38 @@ const LoadingContext = createContext<LoadingContextValue>({
     withLoading: async (fn) => fn(),
 });
 
-// Full animation cycle duration of the tree video/GIF (in milliseconds)
-const CYCLE_DURATION = 3725;
+// Minimum splash duration (paired with 2.0x playbackRate in BrandLoader)
+const INITIAL_MIN_DURATION = 1150;
+const INITIAL_MAX_TIMEOUT = 1800;
+const MANUAL_MIN_DURATION = 450;
 
 /**
- * Calculates remaining milliseconds needed so the animation completes
- * its current (or next) full cycle from the moment it started.
+ * Calculates remaining milliseconds needed to meet a clean minimum display duration.
  */
-function getDelayUntilCycleEnd(startTime: number): number {
+function getRemainingMinDelay(startTime: number, minDuration: number): number {
     const elapsed = Date.now() - startTime;
-    const completedCycles = Math.max(1, Math.ceil(elapsed / CYCLE_DURATION));
-    const targetTime = startTime + completedCycles * CYCLE_DURATION;
-    return Math.max(0, targetTime - Date.now());
+    return Math.max(0, minDuration - elapsed);
 }
 
 /**
- * Ensures critical assets in the document underneath are fully loaded and ready
- * before revealing the page to avoid layout shifts or broken placeholders.
+ * Gives critical fonts and initial frames a brief window to settle without
+ * stalling the page behind slow external assets.
  */
 async function ensureUnderlyingLoaded(): Promise<void> {
     if (typeof document === "undefined") return;
 
     try {
-        // 1. Wait for document fonts
         if ("fonts" in document) {
-            await (document as any).fonts.ready;
+            await Promise.race([
+                (document as any).fonts.ready,
+                new Promise<void>(resolve => setTimeout(resolve, 400)),
+            ]);
         }
 
-        // 2. Wait for pending images in viewport (up to first 12 images)
         const images = Array.from(document.querySelectorAll("img"));
         const pendingImages = images
             .filter(img => !img.complete && img.src && !img.src.includes("loading"))
-            .slice(0, 12);
+            .slice(0, 6);
 
         if (pendingImages.length > 0) {
             await Promise.all(
@@ -59,15 +59,15 @@ async function ensureUnderlyingLoaded(): Promise<void> {
                                 resolve();
                                 return;
                             }
-                            img.onload = () => resolve();
-                            img.onerror = () => resolve();
-                            setTimeout(resolve, 2500); // Safety fallback
+                            const done = () => resolve();
+                            img.addEventListener("load", done, { once: true });
+                            img.addEventListener("error", done, { once: true });
+                            setTimeout(done, 600);
                         })
                 )
             );
         }
 
-        // 3. Give animation frames for React DOM paint and styles to settle
         await new Promise<void>(resolve => {
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => resolve());
@@ -95,46 +95,50 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
             const rawEl = document.getElementById("ecosopis-preloader");
             if (rawEl) {
                 rawEl.style.opacity = "0";
-                rawEl.style.transition = "opacity 0.4s ease";
-                setTimeout(() => rawEl.remove(), 400);
+                rawEl.style.transition = "opacity 0.25s ease";
+                setTimeout(() => rawEl.remove(), 250);
             }
         }
     }, []);
 
-    // Initial Site Load Effect: Plays full loop AND waits for everything underneath to settle.
-    // The tree splash plays whenever the site is opened or reloaded; navigating between
-    // pages inside the site never shows it (route changes use the discreet spinner).
+    // Initial Site Load Effect: Fast, smooth tree animation (max ~1.8s total).
     useEffect(() => {
         initialStartTimeRef.current = Date.now();
+        let finished = false;
+
+        const finishInitialLoad = () => {
+            if (finished) return;
+            finished = true;
+            setInitialFadeOut(true);
+            cleanRawHtmlPreloader();
+            setTimeout(() => {
+                setInitialLoading(false);
+                setInitialFadeOut(false);
+            }, 300);
+        };
 
         const handleInitialReady = async () => {
             await ensureUnderlyingLoaded();
-
-            // Wait for the full loop of the animation to finish
-            const remaining = getDelayUntilCycleEnd(initialStartTimeRef.current);
-
-            setTimeout(() => {
-                setInitialFadeOut(true);
-                cleanRawHtmlPreloader();
-                setTimeout(() => {
-                    setInitialLoading(false);
-                    setInitialFadeOut(false);
-                }, 400);
-            }, remaining);
+            const remaining = getRemainingMinDelay(initialStartTimeRef.current, INITIAL_MIN_DURATION);
+            setTimeout(finishInitialLoad, remaining);
         };
 
+        const hardCap = setTimeout(finishInitialLoad, INITIAL_MAX_TIMEOUT);
+
         if (typeof document !== "undefined") {
-            if (document.readyState === "complete") {
+            if (document.readyState === "complete" || document.readyState === "interactive") {
                 handleInitialReady();
             } else {
-                window.addEventListener("load", handleInitialReady, { once: true });
-                const safety = setTimeout(handleInitialReady, 6000);
-                return () => {
-                    window.removeEventListener("load", handleInitialReady);
-                    clearTimeout(safety);
-                };
+                window.addEventListener("DOMContentLoaded", handleInitialReady, { once: true });
             }
         }
+
+        return () => {
+            clearTimeout(hardCap);
+            if (typeof window !== "undefined") {
+                window.removeEventListener("DOMContentLoaded", handleInitialReady);
+            }
+        };
     }, [cleanRawHtmlPreloader]);
 
     // Programmatic Controls: For heavy operations (fechar compra, processando pedido, etc.)
@@ -145,14 +149,14 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const hideLoading = useCallback(() => {
-        const remaining = getDelayUntilCycleEnd(manualStartTimeRef.current || Date.now());
+        const remaining = getRemainingMinDelay(manualStartTimeRef.current || Date.now(), MANUAL_MIN_DURATION);
 
         setTimeout(() => {
             setManualFadeOut(true);
             setTimeout(() => {
                 setManualLoading(false);
                 setManualFadeOut(false);
-            }, 400);
+            }, 300);
         }, remaining);
     }, []);
 
