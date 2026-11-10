@@ -4,7 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 /**
  * Só monta os filhos quando o elemento está perto da área visível.
  * Evita baixar vídeos de bolinhas/stories que estão fora da tela.
- * O wrapper preenche o pai, então o layout não muda.
+ * O wrapper ocupa 100% do pai (display:contents não tem caixa e o
+ * IntersectionObserver nunca dispara nele).
  */
 export default function LazyMount({ children, margin = "400px" }: { children: React.ReactNode; margin?: string }) {
     const ref = useRef<HTMLDivElement | null>(null);
@@ -21,5 +22,5 @@ export default function LazyMount({ children, margin = "400px" }: { children: Re
         return () => io.disconnect();
     }, [margin]);
 
-    return <div ref={ref} style={{ display: "contents" }}>{show ? children : null}</div>;
+    return <div ref={ref} style={{ width: "100%", height: "100%" }}>{show ? children : null}</div>;
 }
