@@ -13,6 +13,7 @@ export default function Footer() {
                     <h4>LINKS</h4>
                     <Link href="/produtos">Produtos</Link>
                     <Link href="/sobre">Sobre Nós</Link>
+                    <Link href="/experiencias">Experiências</Link>
                     <Link href="/quizz">Quizz de Pele</Link>
                 </div>
                 <div className={styles.column}>

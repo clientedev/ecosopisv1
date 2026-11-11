@@ -260,6 +260,7 @@ export default function Header() {
                     <nav className={styles.desktopNav}>
                         <Link href="/produtos">PRODUTOS</Link>
                         <Link href="/atacado" className={styles.highlightNavLink}>QUERO REVENDER</Link>
+                        <Link href="/experiencias">EXPERIÊNCIAS</Link>
                         <Link href="/novidades">NOVIDADES</Link>
                         <Link href="/quizz">QUIZZ</Link>
                         <Link href="/lia" className={styles.liaLink}>
@@ -295,6 +296,9 @@ export default function Header() {
                                 </Link>
                                 <Link href="/atacado" className={`${styles.mobileNavItem} ${styles.mobileHighlightLink}`} onClick={() => setIsMobileMenuOpen(false)}>
                                     QUERO REVENDER
+                                </Link>
+                                <Link href="/experiencias" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                    EXPERIÊNCIAS
                                 </Link>
                                 <Link href="/novidades" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
                                     NOVIDADES
