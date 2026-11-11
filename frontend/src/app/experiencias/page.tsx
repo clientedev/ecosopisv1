@@ -5,15 +5,15 @@ import Image from "next/image";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import { useToast } from "@/components/Toast/Toast";
-import { Sparkles, Droplets, Bath, Gift, MessageCircle, ChevronDown, Package, MapPin, ClipboardList, Wand2 } from "lucide-react";
+import { Sparkles, Droplets, Bath, Gift, MessageCircle, ChevronDown, Package, MapPin, Layers, ClipboardList, Wand2 } from "lucide-react";
 import styles from "./page.module.css";
 
 const WHATSAPP_NUMBER = "5511951559212";
 
 const WORKSHOPS = [
-    { value: "Body Splash", icon: Droplets, title: "Body Splash", text: "Cada pessoa cria o seu, escolhendo entre várias fragrâncias. Temos sugestões de mistura (como morango + framboise) e glitter para personalizar." },
+    { value: "Body Splash", icon: Droplets, title: "Body Splash", text: "Uma variedade de aromas para você explorar, combinar e criar uma fragrância exclusiva! Aqui, a criatividade é livre. Cada pessoa cria um Body Splash único, que transmite sua personalidade, desperta sensações e memórias." },
     { value: "Balm labial", icon: Sparkles, title: "Balm labial", text: "Cada participante cria o seu próprio balm labial, do começo ao fim." },
-    { value: "Espuma pra banho", icon: Bath, title: "Espuma pra banho", text: "Cada participante cria a sua espuma de banho para levar para casa." },
+    { value: "Espuma para Banho", icon: Bath, title: "Espuma para Banho", text: "Cada participante cria a sua espuma de banho para levar para casa." },
 ];
 
 const STEPS = [
@@ -137,6 +137,11 @@ export default function ExperienciasPage() {
                             ))}
                         </div>
 
+                        <p className={styles.combo}>
+                            <Layers size={18} />
+                            <span>Você pode contratar uma oficina individual ou combinar duas ou mais no mesmo evento, como <strong>Body Splash + Espuma para Banho</strong>.</span>
+                        </p>
+
                         <h3 className={styles.subTitle}>Como funciona</h3>
                         <ol className={styles.steps}>
                             {STEPS.map(({ icon: Icon, title, text }, i) => (
@@ -158,7 +163,16 @@ export default function ExperienciasPage() {
                     <div className="container">
                         <h2 className={styles.sectionTitle}>Kits personalizados</h2>
                         <p className={styles.lead}>
-                            Kits para eventos e empresas. A personalização é na embalagem, não no produto: sacolinha kraft com o logo Ecosopis, tag personalizada e cartinha ou panfleto do evento ou da empresa.
+                            Desenvolvemos kits de cosméticos para presentear colaboradores, clientes e convidados, com apresentação personalizada para a identidade do seu evento ou empresa.
+                        </p>
+                        <ul className={styles.chips}>
+                            <li>Eventos corporativos</li>
+                            <li>Colaboradores</li>
+                            <li>Clientes</li>
+                            <li>Ações especiais</li>
+                        </ul>
+                        <p className={styles.lead}>
+                            A personalização está na embalagem: sacolinha kraft com o logo Ecosopis, tag personalizada e cartinha ou panfleto do seu evento ou da sua empresa.
                         </p>
                         <p className={styles.leadSmall}>
                             Exemplos de produtos: sabonete em barra de açafrão, sabonete líquido e óleos essenciais (alecrim, lavanda).
@@ -171,7 +185,7 @@ export default function ExperienciasPage() {
                                 </figure>
                             ))}
                         </div>
-                        <p className={styles.note}>Cada proposta é montada de acordo com o seu evento.</p>
+                        <p className={styles.note}>Cada proposta é montada de acordo com o seu evento ou a sua empresa.</p>
                         <div className={styles.center}>
                             <button type="button" className={styles.btnPrimary} onClick={() => chooseType("Kit personalizado")}>Solicitar orçamento de kit</button>
                         </div>
@@ -212,7 +226,7 @@ export default function ExperienciasPage() {
                                     <select id="exp-oficina" value={form.oficina} onChange={set("oficina")}>
                                         <option>Body Splash</option>
                                         <option>Balm labial</option>
-                                        <option>Espuma pra banho</option>
+                                        <option>Espuma para Banho</option>
                                         <option>Ainda não sei</option>
                                     </select>
                                 </div>

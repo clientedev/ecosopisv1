@@ -86,6 +86,42 @@
     color: var(--text-secondary);
 }
 
+.combo {
+    max-width: 760px;
+    margin: -24px auto 48px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px 20px;
+    background: rgba(75, 132, 17, 0.08);
+    border-left: 4px solid var(--primary-green);
+    border-radius: var(--border-radius);
+    color: var(--text-secondary);
+}
+
+.combo svg { color: var(--primary-green); flex-shrink: 0; margin-top: 3px; }
+
+.chips {
+    list-style: none;
+    padding: 0;
+    margin: 20px auto 24px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+.chips li {
+    background: #fff;
+    border: 1px solid var(--primary-green);
+    color: #2d5a27;
+    font-family: var(--font-header);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 8px 16px;
+    border-radius: 999px;
+}
+
 .cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
