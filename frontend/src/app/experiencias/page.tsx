@@ -23,8 +23,24 @@ const STEPS = [
 ];
 
 const KITS = [
-    { name: "EBEM", src: "/experiencias/kit-ebem.jpg" },
-    { name: "Balance Saúde", src: "/experiencias/kit-balance-saude.jpg" },
+    {
+        name: "EBEM",
+        src: "/experiencias/kit-ebem.jpg",
+        label: "Kit EBEM",
+        text: "Sabonete líquido, óleo essencial e sabonete em barra dentro da sacolinha kraft com o logo Ecosopis e tag personalizada.",
+    },
+    {
+        name: "EBEM sacolinhas",
+        src: "/experiencias/kit-ebem-sacolinhas.jpg",
+        label: "Kit EBEM · produção para o evento",
+        text: "Sacolinhas kraft com o logo Ecosopis, fitinha de juta e tag com a mensagem do evento, prontas para entrega.",
+    },
+    {
+        name: "Balance Saúde",
+        src: "/experiencias/kit-balance-saude.jpg",
+        label: "Kit Balance Saúde",
+        text: "Frasco com conta-gotas em sachê de organza, acompanhado de cartinha personalizada.",
+    },
 ];
 
 const FAQ = [
@@ -177,11 +193,15 @@ export default function ExperienciasPage() {
                         <p className={styles.leadSmall}>
                             Exemplos de produtos: sabonete em barra de açafrão, sabonete líquido e óleos essenciais (alecrim, lavanda).
                         </p>
+                        <h3 className={styles.subTitle}>Kits que já realizamos</h3>
                         <div className={styles.kitGrid}>
                             {KITS.map((k) => (
                                 <figure key={k.name} className={styles.kit}>
                                     <div className={styles.kitImage}><KitImage name={k.name} src={k.src} /></div>
-                                    <figcaption><Package size={16} /> Kit {k.name}</figcaption>
+                                    <figcaption>
+                                        <strong><Package size={16} /> {k.label}</strong>
+                                        <span>{k.text}</span>
+                                    </figcaption>
                                 </figure>
                             ))}
                         </div>

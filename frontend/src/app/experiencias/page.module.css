@@ -207,9 +207,9 @@
 
 .kitGrid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 24px;
-    max-width: 880px;
+    max-width: 1080px;
     margin: 0 auto 28px;
 }
 
@@ -217,7 +217,7 @@
 
 .kitImage {
     position: relative;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 3 / 4;
     border-radius: var(--border-radius);
     overflow: hidden;
     box-shadow: var(--box-shadow);
@@ -236,12 +236,21 @@
 
 .kit figcaption {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-top: 12px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+}
+
+.kit figcaption strong {
+    display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    margin-top: 10px;
     font-family: var(--font-header);
-    font-weight: 700;
     color: #2d5a27;
 }
 
