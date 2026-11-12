@@ -105,6 +105,7 @@ def _product_photos(p: models.Product) -> List[str]:
 
 SIM_CATEGORY = "Embalagens (simulador)"  # itens só do simulador (ex.: sacola); ficam ocultos da loja
 SIM_LABEL = "Embalagens"
+ALLOWED_PHOTO_PREFIXES = ("/api/images/", "/experiencias/")  # fotos enviadas ao painel ou fotos de kit do site
 
 _ROUND_WORDS = ("frasco", "shampoo", "condicionador", "óleo", "oleo", "body splash", "splash", "spray", "hidratante",
                 "creme", "loção", "locao", "perfume", "garrafa", "pote", "gel", "sérum", "serum", "tônico", "tonico", "refil")
@@ -190,7 +191,7 @@ class ItemIn(BaseModel):
 @router.post("/items", status_code=201)
 def create_item(data: ItemIn, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     """Cadastra um item só do simulador (ex.: sacola, caixa) a partir de uma foto já enviada. Não aparece na loja."""
-    if not data.image_url.startswith("/api/images/"):
+    if not data.image_url.startswith(ALLOWED_PHOTO_PREFIXES):
         raise HTTPException(status_code=400, detail="Envie a foto pelo painel.")
     base = re.sub(r"[^a-z0-9]+", "-", data.name.lower()).strip("-") or "item"
     slug, n = f"sim-{base}", 1
@@ -233,7 +234,7 @@ def patch_item(product_id: int, data: ItemPatch, db: Session = Depends(get_db), 
     p = _sim_item(db, product_id)
     photos = _product_photos(p)
     for u in (data.add_photo, data.replace_photo.new_url if data.replace_photo else None):
-        if u is not None and not u.startswith("/api/images/"):
+        if u is not None and not u.startswith(ALLOWED_PHOTO_PREFIXES):
             raise HTTPException(status_code=400, detail="Envie a foto pelo painel.")
     if data.name is not None:
         p.name = data.name.strip()

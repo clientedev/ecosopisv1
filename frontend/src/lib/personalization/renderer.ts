@@ -185,7 +185,7 @@ export function renderComposite(o: RenderOptions): HTMLCanvasElement {
     for (let i = 0, p = 0; i < lum.length; i++, p += 4) lum[i] = 0.299 * orig.data[p] + 0.587 * orig.data[p + 1] + 0.114 * orig.data[p + 2];
     const blurC = makeCanvas(bw, bh);
     {
-        const small = makeCanvas(Math.max(3, bw / 14), Math.max(3, bh / 14));
+        const small = makeCanvas(Math.max(3, bw / 5), Math.max(3, bh / 5));
         const sctx = small.getContext("2d")!;
         sctx.imageSmoothingEnabled = true; sctx.imageSmoothingQuality = "high";
         const src = makeCanvas(bw, bh);
@@ -346,9 +346,9 @@ export function renderComposite(o: RenderOptions): HTMLCanvasElement {
             }
             return { f: g, spec: 0 };
         }
-        const s = Math.max(0.42, Math.min(1.3, lblur[i] / lmean));
+        const s = Math.max(0.8, Math.min(1.16, lblur[i] / lmean));
         const spec = Math.max(0, lblur[i] - lmean * 1.15) * 0.55;
-        const detail = keepDetail ? Math.max(-0.35, Math.min(0.35, ((lum[i] - lblur[i]) / 255) * 0.9)) : 0;
+        const detail = keepDetail ? Math.max(-0.06, Math.min(0.06, ((lum[i] - lblur[i]) / 255) * 0.25)) : 0;
         return { f: s * (1 + detail), spec };
     };
     for (let i = 0, p = 0; i < lum.length; i++, p += 4) {
@@ -374,5 +374,41 @@ export function renderComposite(o: RenderOptions): HTMLCanvasElement {
         }
     }
     ctx.putImageData(orig, bx, by);
+    return out;
+}
+
+
+/**
+ * "Desenrola" a área marcada da foto original (rótulo antigo) numa imagem plana, já corrigida de
+ * perspectiva e curvatura. Serve para recortar elementos do rótulo e movê-los como camadas.
+ * O canvas retornado cobre o plano da área: largura = 1, altura = 1/proporção.
+ */
+export function extractLabel(photo: CanvasImageSource, photoW: number, photoH: number, area: AreaCfg, outW = 900): HTMLCanvasElement {
+    const A = areaAspect(area, photoW, photoH);
+    const W = Math.round(outW), H = Math.max(2, Math.round(outW / A));
+    const src = makeCanvas(photoW, photoH);
+    const sctx = src.getContext("2d", { willReadFrequently: true })!;
+    sctx.drawImage(photo, 0, 0, photoW, photoH);
+    const sd = sctx.getImageData(0, 0, photoW, photoH).data;
+    const mapper = buildMapper(area, area.curvature || 0, photoW, photoH, photoW, photoH);
+    const out = makeCanvas(W, H);
+    const octx = out.getContext("2d")!;
+    const od = octx.createImageData(W, H);
+    for (let y = 0; y < H; y++) {
+        const v = (y + 0.5) / H;
+        for (let x = 0; x < W; x++) {
+            const u = (x + 0.5) / W;
+            const [px, py] = applyH(mapper.Hq, cylWarp(u, mapper.curvature), v);
+            const fx = Math.max(0, Math.min(photoW - 1.001, px - 0.5)), fy = Math.max(0, Math.min(photoH - 1.001, py - 0.5));
+            const x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
+            const i00 = (y0 * photoW + x0) * 4, i10 = i00 + 4, i01 = i00 + photoW * 4, i11 = i01 + 4;
+            const o = (y * W + x) * 4;
+            for (let c = 0; c < 3; c++) {
+                od.data[o + c] = (sd[i00 + c] * (1 - tx) + sd[i10 + c] * tx) * (1 - ty) + (sd[i01 + c] * (1 - tx) + sd[i11 + c] * tx) * ty;
+            }
+            od.data[o + 3] = 255;
+        }
+    }
+    octx.putImageData(od, 0, 0);
     return out;
 }

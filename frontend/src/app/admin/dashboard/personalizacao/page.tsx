@@ -211,18 +211,21 @@ export default function AdminPersonalizacaoPage() {
         setMsg({ type: "ok", text: "Área excluída." });
     };
 
-    const addItem = async (f?: File | null) => {
-        if (!f) return;
-        const name = (window.prompt("Nome do item (ex.: Sacola kraft Ecosopis):", f.name.replace(/\.[^.]+$/, "")) || "").trim();
+    const addItem = async (f?: File | null, presetUrl?: string, presetName?: string) => {
+        if (!f && !presetUrl) return;
+        const name = (window.prompt("Nome do item (ex.: Sacola kraft Ecosopis):", presetName || (f ? f.name.replace(/\.[^.]+$/, "") : "")) || "").trim();
         if (!name) return;
         setAdding(true);
         setMsg(null);
         try {
-            const fd = new FormData();
-            fd.append("file", f);
-            const up = await fetch("/api/images/upload", { method: "POST", headers: { Authorization: `Bearer ${token()}` }, body: fd });
-            if (!up.ok) throw new Error(up.status === 401 || up.status === 403 ? "Sua sessão expirou. Entre novamente no admin." : "Não foi possível enviar a foto.");
-            const { url } = await up.json();
+            let url = presetUrl || "";
+            if (f) {
+                const fd = new FormData();
+                fd.append("file", f);
+                const up = await fetch("/api/images/upload", { method: "POST", headers: { Authorization: `Bearer ${token()}` }, body: fd });
+                if (!up.ok) throw new Error(up.status === 401 || up.status === 403 ? "Sua sessão expirou. Entre novamente no admin." : "Não foi possível enviar a foto.");
+                url = (await up.json()).url;
+            }
             const r = await fetch("/api/personalization/items", { method: "POST", headers: headers(), body: JSON.stringify({ name, image_url: url }) });
             if (!r.ok) throw new Error("Não foi possível cadastrar o item.");
             const item = await r.json();
@@ -337,6 +340,12 @@ export default function AdminPersonalizacaoPage() {
                         <input type="file" accept="image/*" hidden disabled={adding} onChange={(e) => { addItem(e.target.files?.[0]); e.target.value = ""; }} />
                     </label>
                     <small>Envie a foto de um item que não está na loja (ex.: sacola kraft). Ele aparece só no simulador e já fica pronto para uso.</small>
+                    <div className={styles.siteQuick}>
+                        <span>Ou use uma foto de kit/sacola que já está no site:</span>
+                        <button type="button" disabled={adding} onClick={() => addItem(null, "/experiencias/kit-ebem-sacolinhas.jpg", "Kit sacolinhas EBEM")}>Sacolinhas EBEM</button>
+                        <button type="button" disabled={adding} onClick={() => addItem(null, "/experiencias/kit-ebem.jpg", "Kit EBEM")}>Kit EBEM</button>
+                        <button type="button" disabled={adding} onClick={() => addItem(null, "/experiencias/kit-balance-saude.jpg", "Kit Balance Saúde")}>Kit Balance Saúde</button>
+                    </div>
                 </div>
 
                 <div className={styles.layout}>

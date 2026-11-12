@@ -6,12 +6,13 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import {
     Search, Upload, ImagePlus, Download, RotateCcw, MessageCircle, Maximize2, X, Check, Palette,
-    Layers, Lock, Unlock, AlertCircle, ArrowLeft, ArrowRight, Sparkles, Eye,
+    Layers, Lock, Unlock, AlertCircle, ArrowLeft, ArrowRight, Sparkles, Eye, Wand2, Scissors, Trash2,
 } from "lucide-react";
 import { loadArtFile, LoadedArt } from "@/lib/personalization/artLoader";
 import {
-    AreaCfg, ArtTransform, areaAspect, buildMapper, defaultTransform, imageToPlane, renderComposite,
+    AreaCfg, ArtTransform, areaAspect, buildMapper, defaultTransform, extractLabel, imageToPlane, renderComposite,
 } from "@/lib/personalization/renderer";
+import { keyOutBackground, smartFit } from "@/lib/personalization/smart";
 import styles from "./page.module.css";
 
 const WHATSAPP_NUMBER = "5511951559212";
@@ -32,9 +33,17 @@ interface Product {
     areas: Area[];
     customizable: boolean;
 }
+interface Layer {
+    id: string;
+    name: string;
+    canvas: HTMLCanvasElement;
+    t: ArtTransform;
+}
 interface Placement {
     t: ArtTransform;
     enabled: boolean;
+    cover: boolean;      // esconder o rótulo original por baixo da arte
+    layers: Layer[];     // elementos do rótulo original recortados (movíveis)
 }
 
 const STEPS = ["Produto", "Arte", "Personalizar", "Resultado"];
@@ -78,6 +87,13 @@ export default function PersonalizePage() {
     const [photoError, setPhotoError] = useState("");
     const [areaId, setAreaId] = useState<number | null>(null);
     const [placements, setPlacements] = useState<Record<number, Placement>>({});
+    const [activeLayer, setActiveLayer] = useState<string | null>(null);
+    const [aiNotes, setAiNotes] = useState<string[]>([]);
+    const [extract, setExtract] = useState<null | { canvas: HTMLCanvasElement; rect: [number, number, number, number]; tol: number }>(null);
+    const [kitSel, setKitSel] = useState<number[]>([]);
+    const [kitBusy, setKitBusy] = useState(false);
+    const [kitUrl, setKitUrl] = useState("");
+    const [kitCanvas, setKitCanvas] = useState<HTMLCanvasElement | null>(null);
 
     const [art, setArt] = useState<LoadedArt | null>(null);
     const [artError, setArtError] = useState("");
@@ -143,9 +159,17 @@ export default function PersonalizePage() {
         const list = p.areas.filter((x) => x.image_url === url);
         list.forEach((x, i) => {
             const w = img?.naturalWidth || 1000, h = img?.naturalHeight || 1000;
-            next[x.id] = { t: defaultTransform(x, w, h, a?.canvas || null), enabled: i === 0 };
+            if (a && img) {
+                // montagem inteligente por padrão: centraliza a logo e esconde o rótulo antigo quando ele atrapalharia
+                const r = smartFit(a.canvas, img, w, h, x);
+                next[x.id] = { t: r.t, enabled: i === 0, cover: r.cover, layers: [] };
+            } else {
+                next[x.id] = { t: defaultTransform(x, w, h, a?.canvas || null), enabled: i === 0, cover: !!x.cover_label, layers: [] };
+            }
         });
         setPlacements(next);
+        setActiveLayer(null);
+        setAiNotes([]);
     }, []);
 
     const chooseProduct = (p: Product) => {
@@ -200,8 +224,12 @@ export default function PersonalizePage() {
         for (const a of list) {
             const pl = placements[a.id];
             if (!pl || !pl.enabled || !art) continue;
-            out = renderComposite({ photo: current as any, photoW: pw, photoH: ph, area: a, art: art.canvas, t: pl.t, outWidth: w, draft });
+            out = renderComposite({ photo: current as any, photoW: pw, photoH: ph, area: { ...a, cover_label: pl.cover }, art: art.canvas, t: pl.t, outWidth: w, draft });
             current = out; // as próximas áreas desenham sobre o resultado já composto
+            for (const ly of pl.layers) {
+                out = renderComposite({ photo: current as any, photoW: pw, photoH: ph, area: { ...a, cover_label: false }, art: ly.canvas, t: ly.t, outWidth: w, draft });
+                current = out;
+            }
         }
         if (!out) {
             out = document.createElement("canvas");
@@ -229,11 +257,20 @@ export default function PersonalizePage() {
         return () => { cancelAnimationFrame(raf); clearTimeout(id); };
     }, [step, compose, photo]);
 
+    const activeLayerRef = useRef<string | null>(null);
+    activeLayerRef.current = activeLayer;
+    const patchT = (pl: Placement, patch: Partial<ArtTransform>): Placement => {
+        const lid = activeLayerRef.current;
+        if (lid && pl.layers.some((l) => l.id === lid)) return { ...pl, layers: pl.layers.map((l) => (l.id === lid ? { ...l, t: { ...l.t, ...patch } } : l)) };
+        return { ...pl, t: { ...pl.t, ...patch } };
+    };
     const updateT = (patch: Partial<ArtTransform>, id = areaId) => {
         if (id == null) return;
-        setPlacements((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], t: { ...prev[id].t, ...patch } } } : prev));
+        setPlacements((prev) => (prev[id] ? { ...prev, [id]: patchT(prev[id], patch) } : prev));
     };
-    const cur = areaId != null ? placements[areaId] : undefined;
+    const curP = areaId != null ? placements[areaId] : undefined;
+    const curLayer = curP && activeLayer ? curP.layers.find((l) => l.id === activeLayer) || null : null;
+    const cur = curP ? { ...curP, t: curLayer ? curLayer.t : curP.t } : undefined;
 
     const setSize = (key: "scale" | "sx" | "sy", v: number) => {
         if (!cur) return;
@@ -298,12 +335,149 @@ export default function PersonalizePage() {
             setPlacements((prev) => {
                 const p = prev[areaId];
                 if (!p) return prev;
-                return { ...prev, [areaId]: { ...p, t: { ...p.t, scale: clamp(p.t.scale * Math.exp(-ev.deltaY * 0.0015), 0.03, 2.5) } } };
+                const lid = activeLayerRef.current;
+                const base = lid ? p.layers.find((l) => l.id === lid)?.t ?? p.t : p.t;
+                return { ...prev, [areaId]: patchT(p, { scale: clamp(base.scale * Math.exp(-ev.deltaY * 0.0015), 0.03, 2.5) }) };
             });
         };
         cv.addEventListener("wheel", onWheel, { passive: false });
         return () => cv.removeEventListener("wheel", onWheel);
     }, [step, areaId, photo]);
+
+    // ── Ajuda da I.A. (montagem inteligente) ────────────────────────────────
+    const runAI = () => {
+        if (!art || !photo || !product) return;
+        const list = product.areas.filter((a) => a.image_url === photoUrl);
+        const notes: string[] = [];
+        setPlacements((prev) => {
+            const next = { ...prev };
+            list.forEach((a) => {
+                const r = smartFit(art.canvas, photo, photo.naturalWidth, photo.naturalHeight, a);
+                next[a.id] = { t: r.t, enabled: true, cover: r.cover, layers: [] };
+                if (a.id === areaId || !notes.length) notes.splice(0, notes.length, ...r.notes);
+            });
+            return next;
+        });
+        setActiveLayer(null);
+        setAiNotes(notes.length ? notes : ["Montagem concluída."]);
+    };
+
+    // ── elementos do rótulo original ────────────────────────────────────────
+    const openExtract = () => {
+        if (!photo || !area) return;
+        const cv = extractLabel(photo, photo.naturalWidth, photo.naturalHeight, area, 900);
+        setExtract({ canvas: cv, rect: [0.3, 0.3, 0.7, 0.7], tol: 0.5 });
+    };
+    const confirmExtract = () => {
+        if (!extract || !area || !photo || areaId == null) return;
+        const { canvas, rect } = extract;
+        const x0 = Math.round(rect[0] * canvas.width), y0 = Math.round(rect[1] * canvas.height);
+        const x1 = Math.round(rect[2] * canvas.width), y1 = Math.round(rect[3] * canvas.height);
+        const w = Math.max(4, x1 - x0), h = Math.max(4, y1 - y0);
+        const crop = document.createElement("canvas");
+        crop.width = w; crop.height = h;
+        crop.getContext("2d")!.drawImage(canvas, x0, y0, w, h, 0, 0, w, h);
+        const piece = keyOutBackground(crop, extract.tol);
+        const A = areaAspect(area, photo.naturalWidth, photo.naturalHeight);
+        const id = `l${Date.now()}`;
+        const t: ArtTransform = {
+            cx: (x0 + x1) / 2 / canvas.width, cy: (((y0 + y1) / 2) / canvas.height) / A, scale: w / canvas.width,
+            sx: 1, sy: 1, rotation: 0, opacity: 1, perspX: 0, perspY: 0, curvature: area.curvature || 0,
+        };
+        setPlacements((prev) => {
+            const p = prev[areaId];
+            if (!p) return prev;
+            const n = p.layers.length + 1;
+            return { ...prev, [areaId]: { ...p, cover: true, layers: [...p.layers, { id, name: `Elemento ${n}`, canvas: piece, t }] } };
+        });
+        setActiveLayer(id);
+        setExtract(null);
+    };
+    const removeLayer = (id: string) => {
+        if (areaId == null) return;
+        setPlacements((prev) => (prev[areaId] ? { ...prev, [areaId]: { ...prev[areaId], layers: prev[areaId].layers.filter((l) => l.id !== id) } } : prev));
+        if (activeLayer === id) setActiveLayer(null);
+    };
+    const extractRef = useRef<HTMLDivElement | null>(null);
+    const extractDrag = useRef<[number, number] | null>(null);
+    const exNorm = (e: React.PointerEvent): [number, number] => {
+        const r = extractRef.current!.getBoundingClientRect();
+        return [clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1)];
+    };
+    const exDown = (e: React.PointerEvent) => { (e.currentTarget as Element).setPointerCapture(e.pointerId); extractDrag.current = exNorm(e); };
+    const exMove = (e: React.PointerEvent) => {
+        const s0 = extractDrag.current;
+        if (!s0 || !extract) return;
+        const p = exNorm(e);
+        const r: [number, number, number, number] = [Math.min(s0[0], p[0]), Math.min(s0[1], p[1]), Math.max(s0[0], p[0]), Math.max(s0[1], p[1])];
+        if (r[2] - r[0] > 0.02 && r[3] - r[1] > 0.02) setExtract({ ...extract, rect: r });
+    };
+    const exUp = () => { extractDrag.current = null; };
+    const exCanvasRef = useCallback((node: HTMLCanvasElement | null) => {
+        if (node && extract) { node.width = extract.canvas.width; node.height = extract.canvas.height; node.getContext("2d")!.drawImage(extract.canvas, 0, 0); }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [extract?.canvas]);
+
+    // ── kit: vários produtos numa imagem só ─────────────────────────────────
+    const toggleKit = (id: number) => setKitSel((k) => (k.includes(id) ? k.filter((x) => x !== id) : [...k, id]));
+    const buildKit = async () => {
+        if (!art || !product || !result) return;
+        setKitBusy(true);
+        try {
+            const tiles: { cv: HTMLCanvasElement; name: string }[] = [{ cv: result, name: product.name }];
+            for (const pid of kitSel) {
+                if (pid === product.id) continue;
+                const p = (products || []).find((x) => x.id === pid);
+                if (!p) continue;
+                const url = p.photos.find((u) => p.areas.some((a) => a.image_url === u)) || p.photos[0];
+                const img = await loadPhoto(url);
+                const pw = img.naturalWidth, ph = img.naturalHeight, w = Math.min(1100, pw);
+                let current: CanvasImageSource = img;
+                let out: HTMLCanvasElement | null = null;
+                for (const a of p.areas.filter((x) => x.image_url === url)) {
+                    const r = smartFit(art.canvas, img, pw, ph, a);
+                    out = renderComposite({ photo: current as any, photoW: pw, photoH: ph, area: { ...a, cover_label: r.cover }, art: art.canvas, t: r.t, outWidth: w, draft: false });
+                    current = out;
+                }
+                if (!out) { out = document.createElement("canvas"); out.width = w; out.height = Math.round((ph * w) / pw); out.getContext("2d")!.drawImage(img, 0, 0, out.width, out.height); }
+                tiles.push({ cv: out, name: p.name });
+            }
+            const n = tiles.length, cols = n <= 3 ? n : n === 4 ? 2 : 3, rows = Math.ceil(n / cols);
+            const cw = 760, chh = 820, cap = 54, gap = 24, pad = 32;
+            const W = pad * 2 + cols * cw + (cols - 1) * gap, H = pad * 2 + rows * (chh + cap) + (rows - 1) * gap;
+            const cv = document.createElement("canvas");
+            cv.width = W; cv.height = H;
+            const ctx = cv.getContext("2d")!;
+            ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
+            tiles.forEach((t, i) => {
+                const cx = pad + (i % cols) * (cw + gap), cy = pad + Math.floor(i / cols) * (chh + cap + gap);
+                ctx.fillStyle = "#f6f4ef"; ctx.fillRect(cx, cy, cw, chh);
+                const k = Math.min(cw / t.cv.width, chh / t.cv.height);
+                const dw = t.cv.width * k, dh = t.cv.height * k;
+                ctx.imageSmoothingQuality = "high";
+                ctx.drawImage(t.cv, cx + (cw - dw) / 2, cy + (chh - dh) / 2, dw, dh);
+                ctx.fillStyle = "#2b3a2f"; ctx.font = "600 26px sans-serif"; ctx.textAlign = "center";
+                ctx.fillText(t.name.length > 38 ? t.name.slice(0, 36) + "…" : t.name, cx + cw / 2, cy + chh + 36);
+            });
+            setKitCanvas(cv);
+            setKitUrl(cv.toDataURL("image/jpeg", 0.9));
+        } catch {
+            alert("Não foi possível montar o kit agora. Tente novamente.");
+        } finally {
+            setKitBusy(false);
+        }
+    };
+    const downloadKit = () => {
+        if (!kitCanvas) return;
+        kitCanvas.toBlob((blob) => {
+            if (!blob) return;
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "kit-personalizado.png";
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        }, "image/png");
+    };
 
     // ── resultado ───────────────────────────────────────────────────────────
     const generate = () => {
@@ -345,6 +519,7 @@ export default function PersonalizePage() {
     };
 
     const useOnOtherProduct = () => {
+        setKitUrl(""); setKitCanvas(null);
         setResult(null);
         setProduct(null);
         setStep(1);
@@ -522,6 +697,13 @@ export default function PersonalizePage() {
                                 </div>
 
                                 <aside className={styles.controls}>
+                                    <button type="button" className={styles.aiBtn} onClick={runAI} disabled={!art || !photo}>
+                                        <Wand2 size={18} /> Ajuda da I.A.
+                                        <small>Analisa sua logo e o produto e monta tudo sozinha</small>
+                                    </button>
+                                    {aiNotes.length > 0 && (
+                                        <ul className={styles.aiNotes}>{aiNotes.map((n) => <li key={n}>{n}</li>)}</ul>
+                                    )}
                                     {areasOnPhoto.length > 1 && (
                                         <div className={styles.areaPills}>
                                             <span className={styles.ctrlTitle}><Layers size={14} /> Áreas</span>
@@ -537,6 +719,28 @@ export default function PersonalizePage() {
                                         </div>
                                     )}
 
+                                    {curP && area && (
+                                        <div className={styles.layerBox}>
+                                            <span className={styles.ctrlTitle}><Layers size={14} /> O que você está movendo</span>
+                                            <div className={styles.layerPills}>
+                                                <button type="button" className={!activeLayer ? styles.pillOnBtn : ""} onClick={() => setActiveLayer(null)}>Minha arte</button>
+                                                {curP.layers.map((l) => (
+                                                    <span key={l.id} className={l.id === activeLayer ? styles.pillOnBtn : ""}>
+                                                        <button type="button" onClick={() => setActiveLayer(l.id)}>{l.name}</button>
+                                                        <button type="button" aria-label={`Remover ${l.name}`} onClick={() => removeLayer(l.id)}><Trash2 size={12} /></button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            <div className={styles.rowBtns}>
+                                                <button type="button" className={styles.btnGhost} onClick={openExtract}><Scissors size={14} /> Mover elementos do rótulo original</button>
+                                            </div>
+                                            <label className={styles.check}>
+                                                <input type="checkbox" checked={curP.cover} onChange={(e) => setPlacements((p) => ({ ...p, [areaId as number]: { ...p[areaId as number], cover: e.target.checked } }))} />
+                                                Esconder o rótulo original (a arte não mistura com ele)
+                                            </label>
+                                        </div>
+                                    )}
+
                                     {cur && area && (
                                         <>
                                             <Slider label="Tamanho" min={0.05} max={1.6} step={0.01} value={cur.t.scale} onChange={(v) => updateT({ scale: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
@@ -548,7 +752,7 @@ export default function PersonalizePage() {
                                             <Slider label="Largura" min={0.2} max={2.5} step={0.01} value={cur.t.sx} onChange={(v) => setSize("sx", v)} fmt={(v) => `${Math.round(v * 100)}%`} />
                                             <Slider label="Altura" min={0.2} max={2.5} step={0.01} value={cur.t.sy} onChange={(v) => setSize("sy", v)} fmt={(v) => `${Math.round(v * 100)}%`} />
                                             <Slider label="Rotação" min={-180} max={180} step={1} value={cur.t.rotation} onChange={(v) => updateT({ rotation: v })} fmt={(v) => `${Math.round(v)}°`} />
-                                            <Slider label="Transparência" min={0.1} max={1} step={0.01} value={cur.t.opacity} onChange={(v) => updateT({ opacity: v })} fmt={(v) => `${Math.round(v * 100)}% visível`} />
+                                            <Slider label="Opacidade (100% = sólida)" min={0.05} max={1} step={0.01} value={cur.t.opacity} onChange={(v) => updateT({ opacity: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
                                             <Slider label="Perspectiva horizontal" min={-0.6} max={0.6} step={0.01} value={cur.t.perspX} onChange={(v) => updateT({ perspX: v })} fmt={(v) => v.toFixed(2)} />
                                             <Slider label="Perspectiva vertical" min={-0.6} max={0.6} step={0.01} value={cur.t.perspY} onChange={(v) => updateT({ perspY: v })} fmt={(v) => v.toFixed(2)} />
                                             <Slider label="Curvatura da superfície" min={0} max={1} step={0.01} value={cur.t.curvature} onChange={(v) => updateT({ curvature: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
@@ -589,6 +793,31 @@ export default function PersonalizePage() {
                                 <button type="button" className={styles.btnGhost} onClick={redo}><RotateCcw size={16} /> Refazer</button>
                                 <a className={styles.btnWhats} href={quoteUrl} target="_blank" rel="noopener noreferrer"><MessageCircle size={16} /> Solicitar orçamento</a>
                             </div>
+                            <div className={styles.kitBox}>
+                                <h3>Montar um kit com vários produtos</h3>
+                                <p>Escolha os produtos (inclui sacolas e embalagens) e geramos <strong>uma única imagem</strong> com todos personalizados com a sua arte.</p>
+                                <div className={styles.kitGrid}>
+                                    {(products || []).filter((p) => p.id !== product.id && p.customizable).map((p) => (
+                                        <label key={p.id} className={`${styles.kitItem} ${kitSel.includes(p.id) ? styles.kitOn : ""}`}>
+                                            <input type="checkbox" checked={kitSel.includes(p.id)} onChange={() => toggleKit(p.id)} />
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={p.photos[0]} alt="" loading="lazy" />
+                                            <span>{p.name}</span>
+                                            {p.category === "Embalagens" && <em>sacola / embalagem</em>}
+                                        </label>
+                                    ))}
+                                </div>
+                                <button type="button" className={styles.btnPrimary} disabled={kitBusy || kitSel.length === 0} onClick={buildKit}>
+                                    <Layers size={16} /> {kitBusy ? "Montando o kit…" : `Gerar imagem do kit (${kitSel.length + 1} produtos)`}
+                                </button>
+                                {kitUrl && (
+                                    <div className={styles.kitResult}>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={kitUrl} alt="Kit personalizado" />
+                                        <button type="button" className={styles.btnPrimary} onClick={downloadKit}><Download size={16} /> Baixar imagem do kit (PNG)</button>
+                                    </div>
+                                )}
+                            </div>
                             <div className={styles.again}>
                                 <p>Gostou? Aplique a mesma identidade visual em outros produtos.</p>
                                 <button type="button" className={styles.btnLight} onClick={useOnOtherProduct}><Layers size={16} /> Escolher outro produto</button>
@@ -598,6 +827,26 @@ export default function PersonalizePage() {
                     )}
                 </div>
             </div>
+
+            {extract && (
+                <div className={styles.modal} role="dialog" aria-modal="true">
+                    <div className={styles.exBox} onClick={(e) => e.stopPropagation()}>
+                        <button type="button" className={styles.exClose} aria-label="Fechar" onClick={() => setExtract(null)}><X size={20} /></button>
+                        <h3>Mover elementos do rótulo original</h3>
+                        <p>Arraste sobre a imagem para selecionar o elemento que quer reaproveitar (logo, texto, desenho). Ele vira uma peça que você move, aumenta e gira; o rótulo antigo é escondido.</p>
+                        <div ref={extractRef} className={styles.exStage} style={{ aspectRatio: `${extract.canvas.width} / ${extract.canvas.height}`, width: `min(100%, calc(46vh * ${extract.canvas.width / extract.canvas.height}))` }}
+                            onPointerDown={exDown} onPointerMove={exMove} onPointerUp={exUp} onPointerCancel={exUp}>
+                            <canvas ref={exCanvasRef} />
+                            <div className={styles.exRect} style={{ left: `${extract.rect[0] * 100}%`, top: `${extract.rect[1] * 100}%`, width: `${(extract.rect[2] - extract.rect[0]) * 100}%`, height: `${(extract.rect[3] - extract.rect[1]) * 100}%` }} />
+                        </div>
+                        <Slider label="Remover o fundo do recorte" min={0} max={1} step={0.01} value={extract.tol} onChange={(v) => setExtract({ ...extract, tol: v })} fmt={(v) => (v < 0.02 ? "mantém fundo" : `${Math.round(v * 100)}%`)} />
+                        <div className={styles.rowBtns}>
+                            <button type="button" className={styles.btnGhost} onClick={() => setExtract(null)}>Cancelar</button>
+                            <button type="button" className={styles.btnPrimary} onClick={confirmExtract}><Scissors size={16} /> Usar como elemento móvel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {zoom && result && (
                 <div className={styles.modal} role="dialog" aria-modal="true" onClick={() => setZoom(false)}>
