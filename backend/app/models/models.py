@@ -368,27 +368,6 @@ class Address(Base):
 
     user = relationship("User", back_populates="addresses")
 
-class PersonalizationArea(Base):
-    """Área personalizável de uma fotografia de produto (simulador "Personalize seu Produto")."""
-    __tablename__ = "personalization_areas"
-
-    id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), index=True, nullable=False)
-    image_url = Column(String, nullable=False)          # fotografia original do produto onde a área foi marcada
-    name = Column(String, nullable=False, default="Área principal")
-    is_active = Column(Boolean, default=True)
-    # 4 cantos em coordenadas normalizadas (0..1) da fotografia: [[x,y] x4] -> sup-esq, sup-dir, inf-dir, inf-esq
-    quad = Column(JSON, nullable=False)
-    curvature = Column(Float, default=0.0)              # 0 = plano, 1 = cilindro bem curvo
-    aspect_ratio = Column(Float, nullable=True)         # largura/altura reais da área (None = automático)
-    cover_label = Column(Boolean, default=False)        # esconde o rótulo original sob a arte
-    base_color = Column(String, nullable=True)          # cor da superfície (#rrggbb) quando cover_label
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
-
-    product = relationship("Product")
-
-
 class AnnouncementBar(Base):
     __tablename__ = "announcement_bar"
 

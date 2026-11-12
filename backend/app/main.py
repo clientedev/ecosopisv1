@@ -680,7 +680,7 @@ from app.api.endpoints import (
     auth, products, coupons, carousel, orders, settings, reviews, 
     images, news, metrics, chat, scratchcard, admin_scratchcard, 
     shipping, addresses, cart, payment, crm, cashback, raw_materials,
-    world_cup, popup, whatsapp, personalization
+    world_cup, popup, whatsapp
 )
 from app.routes import webhook_me
 
@@ -728,8 +728,6 @@ app.include_router(world_cup.router, prefix="/world-cup", tags=["world_cup"])
 app.include_router(world_cup.router, prefix="/api/world-cup", tags=["world_cup_api"])
 app.include_router(popup.router, prefix="/popup", tags=["popup"])
 app.include_router(popup.router, prefix="/api/popup", tags=["popup_api"])
-app.include_router(personalization.router, prefix="/personalization", tags=["personalization"])
-app.include_router(personalization.router, prefix="/api/personalization", tags=["personalization_api"])
 app.include_router(whatsapp.router, prefix="/whatsapp", tags=["whatsapp"])
 app.include_router(whatsapp.router, prefix="/api/whatsapp", tags=["whatsapp_api"])
 app.include_router(webhook_me.router)
