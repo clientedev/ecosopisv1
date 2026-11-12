@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
-import { Sparkles, Droplets, Bath, Gift, MessageCircle, ChevronDown, Package, MapPin, Layers, ClipboardList, Wand2 } from "lucide-react";
+import { Sparkles, Droplets, Bath, Gift, MessageCircle, ChevronDown, Package, MapPin, Layers, ClipboardList, Wand2, Palette, ArrowRight } from "lucide-react";
 import styles from "./page.module.css";
 
 const WHATSAPP_NUMBER = "5511951559212";
@@ -206,6 +207,20 @@ export default function ExperienciasPage() {
                                 <MessageCircle size={18} /> Solicitar orçamento de kit
                             </a>
                         </div>
+                    </div>
+                </section>
+
+                <section id="personalize" className={styles.section}>
+                    <div className="container">
+                        <h2 className={styles.sectionTitle}>Crie com a sua marca</h2>
+                        <Link href="/experiencias/personalize" className={styles.featureCard}>
+                            <div className={styles.featureIcon}><Palette size={34} /></div>
+                            <div className={styles.featureText}>
+                                <h3>Personalize seu Produto</h3>
+                                <p>Visualize seus produtos com sua própria identidade visual antes de solicitar a produção.</p>
+                            </div>
+                            <span className={styles.featureBtn}>Personalizar agora <ArrowRight size={18} /></span>
+                        </Link>
                     </div>
                 </section>
 
