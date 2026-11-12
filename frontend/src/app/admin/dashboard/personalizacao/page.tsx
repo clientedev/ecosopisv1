@@ -38,12 +38,13 @@ export default function AdminPersonalizacaoPage() {
     const [picking, setPicking] = useState(false);
     const [saving, setSaving] = useState(false);
     const [adding, setAdding] = useState(false);
+    const [drawing, setDrawing] = useState(false);
     const [testArt, setTestArt] = useState<HTMLCanvasElement | null>(null);
 
     const boxRef = useRef<HTMLDivElement | null>(null);
     const imgRef = useRef<HTMLImageElement | null>(null);
     const previewRef = useRef<HTMLCanvasElement | null>(null);
-    const drag = useRef<{ kind: "corner"; i: number } | { kind: "move"; start: [number, number]; quad: number[][] } | null>(null);
+    const drag = useRef<{ kind: "corner"; i: number } | { kind: "move"; start: [number, number]; quad: number[][] } | { kind: "draw"; start: [number, number] } | null>(null);
 
     const token = () => (typeof window !== "undefined" ? localStorage.getItem("token") : null);
     const headers = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` });
@@ -52,9 +53,12 @@ export default function AdminPersonalizacaoPage() {
         try {
             const r = await fetch("/api/personalization/products?include_inactive_areas=true");
             if (!r.ok) throw new Error();
-            setProducts(await r.json());
+            const list: Product[] = await r.json();
+            setProducts(list);
+            return list;
         } catch {
             setMsg({ type: "err", text: "Não foi possível carregar os produtos." });
+            return null;
         } finally {
             setLoading(false);
         }
@@ -72,6 +76,16 @@ export default function AdminPersonalizacaoPage() {
             product_id: p.id, image_url: url, name: saved ? `Área ${saved + 1}` : "Área principal",
             is_active: true, quad: (sug ? sug.quad : DEFAULT_QUAD).map((q) => [...q]), curvature: sug ? sug.curvature : 0,
             aspect_ratio: null, cover_label: false, base_color: null,
+        };
+    };
+
+    const presetArea = (p: Product, url: string, kind: "flat" | "round"): Area => {
+        const n = p.areas.filter((a) => a.image_url === url && !a.auto).length;
+        const w = kind === "round" ? 0.2 : 0.26, h = kind === "round" ? 0.3 : 0.26;
+        const x = Math.min(0.95 - w, 0.08 + (n % 3) * 0.3), y = Math.min(0.95 - h, 0.3 + Math.floor(n / 3) * 0.32);
+        return {
+            product_id: p.id, image_url: url, name: `${kind === "round" ? "Frasco" : "Caixa / sacola"} ${n + 1}`, is_active: true,
+            quad: [[x, y], [x + w, y], [x + w, y + h], [x, y + h]], curvature: kind === "round" ? 0.55 : 0, aspect_ratio: null, cover_label: false, base_color: null,
         };
     };
 
@@ -110,7 +124,10 @@ export default function AdminPersonalizacaoPage() {
         const d = drag.current;
         if (!d || !form) return;
         const p = norm(e);
-        if (d.kind === "corner") {
+        if (d.kind === "draw") {
+            const x0 = Math.min(d.start[0], p[0]), x1 = Math.max(d.start[0], p[0]), y0 = Math.min(d.start[1], p[1]), y1 = Math.max(d.start[1], p[1]);
+            if (x1 - x0 > 0.01 && y1 - y0 > 0.01) setForm({ ...form, quad: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] });
+        } else if (d.kind === "corner") {
             const q = form.quad.map((x) => [...x]);
             q[d.i] = p;
             setForm({ ...form, quad: q });
@@ -122,7 +139,12 @@ export default function AdminPersonalizacaoPage() {
             setForm({ ...form, quad: d.quad.map(([x, y]) => [x + dx, y + dy]) });
         }
     };
-    const endDrag = () => { drag.current = null; };
+    const endDrag = () => { if (drag.current?.kind === "draw") setDrawing(false); drag.current = null; };
+    const startDraw = (e: React.PointerEvent) => {
+        if (!drawing || !form) return;
+        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+        drag.current = { kind: "draw", start: norm(e) };
+    };
 
     const pickColor = (e: React.MouseEvent) => {
         if (!picking || !imgRef.current || !form) return;
@@ -143,7 +165,7 @@ export default function AdminPersonalizacaoPage() {
     };
 
     // ── salvar / excluir ────────────────────────────────────────────────────
-    const save = async () => {
+    const save = async (next?: "flat" | "round") => {
         if (!form) return;
         if (!token()) { setMsg({ type: "err", text: "Sua sessão expirou. Saia e entre novamente no admin." }); return; }
         setSaving(true);
@@ -163,9 +185,15 @@ export default function AdminPersonalizacaoPage() {
                 throw new Error(typeof e.detail === "string" ? e.detail : "Dados inválidos para a área.");
             }
             const saved: Area = await r.json();
-            await load();
-            setForm({ ...saved, quad: saved.quad.map((q) => [...q]) });
-            setMsg({ type: "ok", text: "Área salva! Ela já está disponível para os clientes." });
+            const list = await load();
+            const prod = list?.find((p) => p.id === form.product_id);
+            if (next && prod) {
+                setForm(presetArea(prod, form.image_url, next));
+                setMsg({ type: "ok", text: `"${saved.name}" salva! Marque agora o próximo produto desta foto.` });
+            } else {
+                setForm({ ...saved, quad: saved.quad.map((q) => [...q]) });
+                setMsg({ type: "ok", text: "Área salva! Ela já está disponível para os clientes." });
+            }
         } catch (e: any) {
             setMsg({ type: "err", text: e.message || "Erro ao salvar." });
         } finally {
@@ -209,6 +237,58 @@ export default function AdminPersonalizacaoPage() {
         } finally {
             setAdding(false);
         }
+    };
+
+    const uploadPhoto = async (f: File): Promise<string> => {
+        const fd = new FormData();
+        fd.append("file", f);
+        const up = await fetch("/api/images/upload", { method: "POST", headers: { Authorization: `Bearer ${token()}` }, body: fd });
+        if (!up.ok) throw new Error(up.status === 401 || up.status === 403 ? "Sua sessão expirou. Entre novamente no admin." : "Não foi possível enviar a foto.");
+        return (await up.json()).url;
+    };
+    const patchItem = async (body: object, okText: string, selectPhotoUrl?: string) => {
+        if (!product) return;
+        setAdding(true);
+        setMsg(null);
+        try {
+            const r = await fetch(`/api/personalization/items/${product.id}`, { method: "PATCH", headers: headers(), body: JSON.stringify(body) });
+            if (!r.ok) {
+                const e = await r.json().catch(() => ({}));
+                throw new Error(typeof e.detail === "string" ? e.detail : "Não foi possível salvar a alteração.");
+            }
+            const info = await r.json();
+            const list = await load();
+            const p = list?.find((x) => x.id === product.id);
+            if (p) {
+                setSelId(p.id);
+                const url = selectPhotoUrl && p.photos.includes(selectPhotoUrl) ? selectPhotoUrl : p.photos[0];
+                setPhoto(url);
+                const existing = p.areas.find((a) => a.image_url === url && !a.auto);
+                setForm(existing ? { ...existing, quad: existing.quad.map((q) => [...q]) } : newArea(p, url));
+            }
+            setMsg({ type: "ok", text: okText });
+            return info;
+        } catch (e: any) {
+            setMsg({ type: "err", text: e.message || "Erro ao salvar." });
+        } finally {
+            setAdding(false);
+        }
+    };
+    const renameItem = () => {
+        const n = (window.prompt("Novo nome do item:", product?.name || "") || "").trim();
+        if (n && n !== product?.name) patchItem({ name: n }, "Nome atualizado.");
+    };
+    const addPhotoToItem = async (f?: File | null) => {
+        if (!f) return;
+        try { const url = await uploadPhoto(f); await patchItem({ add_photo: url }, "Foto adicionada.", url); } catch (e: any) { setMsg({ type: "err", text: e.message }); }
+    };
+    const replacePhotoOfItem = async (f?: File | null) => {
+        if (!f) return;
+        try { const url = await uploadPhoto(f); await patchItem({ replace_photo: { old_url: photo, new_url: url } }, "Foto trocada (as áreas marcadas foram mantidas).", url); } catch (e: any) { setMsg({ type: "err", text: e.message }); }
+    };
+    const removePhotoOfItem = () => {
+        if (!confirm("Remover esta foto do item? As áreas marcadas nela serão apagadas.")) return;
+        patchItem({ remove_photo: photo }, "Foto removida.");
     };
 
     const removeItem = async () => {
@@ -278,6 +358,14 @@ export default function AdminPersonalizacaoPage() {
                         ) : (
                             <>
                                 <h2>{product.name} {product.simulator_only && <button type="button" className={styles.danger} onClick={removeItem} style={{ marginLeft: 12, fontSize: 13 }}><Trash2 size={14} /> Remover item</button>}</h2>
+                                {product.simulator_only && (
+                                    <div className={styles.itemTools}>
+                                        <button type="button" onClick={renameItem} disabled={adding}>Renomear</button>
+                                        <label>Adicionar foto<input type="file" accept="image/*" hidden disabled={adding} onChange={(e) => { addPhotoToItem(e.target.files?.[0]); e.target.value = ""; }} /></label>
+                                        <label>Trocar esta foto<input type="file" accept="image/*" hidden disabled={adding} onChange={(e) => { replacePhotoOfItem(e.target.files?.[0]); e.target.value = ""; }} /></label>
+                                        {product.photos.length > 1 && <button type="button" onClick={removePhotoOfItem} disabled={adding}>Remover esta foto</button>}
+                                    </div>
+                                )}
                                 {product.photos.length > 1 && (
                                     <div className={styles.photos}>
                                         {product.photos.map((u) => (
@@ -294,12 +382,16 @@ export default function AdminPersonalizacaoPage() {
                                     {areasOnPhoto.map((a) => (
                                         <button key={a.id} type="button" className={a.id === form.id ? styles.tabOn : ""} onClick={() => selectArea(a)}>{a.name}{!a.is_active && " (inativa)"}</button>
                                     ))}
-                                    <button type="button" className={styles.tabAdd} onClick={() => setForm(newArea(product, photo))}><Plus size={14} /> Nova área</button>
+                                    <button type="button" className={styles.tabAdd} onClick={() => setForm(presetArea(product, photo, "round"))}><Plus size={14} /> Frasco (curvo)</button>
+                                    <button type="button" className={styles.tabAdd} onClick={() => setForm(presetArea(product, photo, "flat"))}><Plus size={14} /> Caixa / sacola (plano)</button>
+                                    <button type="button" className={`${styles.tabAdd} ${drawing ? styles.tabOn : ""}`} onClick={() => setDrawing(!drawing)}>✏ {drawing ? "Arraste sobre a foto…" : "Desenhar na foto"}</button>
                                 </div>
 
                                 <div
                                     ref={boxRef}
                                     className={`${styles.photoBox} ${picking ? styles.picking : ""}`}
+                                    style={drawing ? { cursor: "crosshair", touchAction: "none" } : undefined}
+                                    onPointerDown={startDraw}
                                     onPointerMove={onMove}
                                     onPointerUp={endDrag}
                                     onPointerCancel={endDrag}
@@ -307,21 +399,27 @@ export default function AdminPersonalizacaoPage() {
                                 >
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img ref={imgRef} src={photo} alt={product.name} crossOrigin="anonymous" draggable={false} onLoad={() => setForm((f) => (f ? { ...f } : f))} />
-                                    <svg viewBox="0 0 1 1" preserveAspectRatio="none">
+                                    {areasOnPhoto.filter((a) => a.id !== form.id).map((a) => (
+                                        <button key={a.id} type="button" className={styles.otherArea} onClick={(e) => { e.stopPropagation(); selectArea(a); }}
+                                            style={{ left: `${Math.min(...a.quad.map((q) => q[0])) * 100}%`, top: `${Math.min(...a.quad.map((q) => q[1])) * 100}%`, width: `${(Math.max(...a.quad.map((q) => q[0])) - Math.min(...a.quad.map((q) => q[0]))) * 100}%`, height: `${(Math.max(...a.quad.map((q) => q[1])) - Math.min(...a.quad.map((q) => q[1]))) * 100}%` }}>
+                                            <span>{a.name}</span>
+                                        </button>
+                                    ))}
+                                    <svg viewBox="0 0 1 1" preserveAspectRatio="none" style={drawing ? { pointerEvents: "none" } : undefined}>
                                         <polygon points={form.quad.map((q) => q.join(",")).join(" ")} onPointerDown={startMove} vectorEffect="non-scaling-stroke" />
                                     </svg>
                                     {form.quad.map((q, i) => (
-                                        <div key={i} className={styles.handle} style={{ left: `${q[0] * 100}%`, top: `${q[1] * 100}%` }} onPointerDown={startCorner(i)}>
+                                        <div key={i} className={styles.handle} style={{ left: `${q[0] * 100}%`, top: `${q[1] * 100}%`, ...(drawing ? { pointerEvents: "none" as const } : {}) }} onPointerDown={startCorner(i)}>
                                             <span>{["↖", "↗", "↘", "↙"][i]}</span>
                                         </div>
                                     ))}
                                 </div>
                                 {!form.id && autoOnPhoto && !areasOnPhoto.length && <p className={styles.hint} style={{ fontWeight: 600 }}>✔ Este produto já está liberado para os clientes com esta posição sugerida. Só ajuste e salve se quiser deixar mais precisa.</p>}
-                                <p className={styles.hint}>Arraste os 4 cantos para acompanhar a superfície (perspectiva) ou arraste a área inteira para movê-la.</p>
+                                <p className={styles.hint}>Várias coisas na mesma foto (ex.: frasco + sacola + caixa)? Use os botões acima ou "Desenhar na foto", arraste sobre o produto e salve. Cantos = perspectiva; arrastar o interior move a área.</p>
 
                                 <div className={styles.form}>
-                                    <label>Nome da área
-                                        <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} maxLength={80} />
+                                    <label>Nome da área (qual produto é este?)
+                                        <input list="nomes-area" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} maxLength={80} />
                                     </label>
                                     <label>Curvatura da superfície: {Math.round(form.curvature * 100)}%
                                         <input type="range" min={0} max={1} step={0.01} value={form.curvature} onChange={(e) => setForm({ ...form, curvature: +e.target.value })} />
@@ -344,8 +442,10 @@ export default function AdminPersonalizacaoPage() {
                                     <label className={styles.check}><input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /> Personalização ativa para os clientes</label>
                                 </div>
 
+                                <datalist id="nomes-area"><option value="Frasco" /><option value="Sacola" /><option value="Caixa" /><option value="Sabonete" /><option value="Óleo essencial" /><option value="Cartinha" /></datalist>
                                 <div className={styles.buttons}>
-                                    <button type="button" className="btn-primary" onClick={save} disabled={saving} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Save size={16} /> {saving ? "Salvando…" : form.id ? "Salvar alterações" : autoOnPhoto && !areasOnPhoto.length ? "Salvar esta posição" : "Salvar área"}</button>
+                                    <button type="button" className="btn-primary" onClick={() => save()} disabled={saving} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Save size={16} /> {saving ? "Salvando…" : form.id ? "Salvar alterações" : autoOnPhoto && !areasOnPhoto.length ? "Salvar esta posição" : "Salvar área"}</button>
+                                    <button type="button" className={styles.secondary} onClick={() => save("round")} disabled={saving}><Plus size={16} /> Salvar e marcar outro produto</button>
                                     {form.id && <button type="button" className={styles.danger} onClick={remove}><Trash2 size={16} /> Excluir área</button>}
                                 </div>
 

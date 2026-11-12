@@ -207,6 +207,63 @@ def create_item(data: ItemIn, db: Session = Depends(get_db), admin: models.User 
     return {"id": p.id, "name": p.name}
 
 
+class ReplacePhoto(BaseModel):
+    old_url: str
+    new_url: str
+
+
+class ItemPatch(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    description: Optional[str] = Field(default=None, max_length=500)
+    add_photo: Optional[str] = None
+    replace_photo: Optional[ReplacePhoto] = None
+    remove_photo: Optional[str] = None
+
+
+def _sim_item(db: Session, product_id: int) -> models.Product:
+    p = db.query(models.Product).filter(models.Product.id == product_id, models.Product.category == SIM_CATEGORY).first()
+    if not p:
+        raise HTTPException(status_code=404, detail="Item do simulador não encontrado.")
+    return p
+
+
+@router.patch("/items/{product_id}")
+def patch_item(product_id: int, data: ItemPatch, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    """Edita um item do simulador: renomear, adicionar/trocar/remover foto (as áreas acompanham a foto trocada)."""
+    p = _sim_item(db, product_id)
+    photos = _product_photos(p)
+    for u in (data.add_photo, data.replace_photo.new_url if data.replace_photo else None):
+        if u is not None and not u.startswith("/api/images/"):
+            raise HTTPException(status_code=400, detail="Envie a foto pelo painel.")
+    if data.name is not None:
+        p.name = data.name.strip()
+    if data.description is not None:
+        p.description = data.description
+    if data.add_photo and data.add_photo not in photos:
+        photos.append(data.add_photo)
+    if data.replace_photo:
+        r = data.replace_photo
+        if r.old_url not in photos:
+            raise HTTPException(status_code=400, detail="Foto não pertence ao item.")
+        photos = [r.new_url if u == r.old_url else u for u in photos]
+        db.query(models.PersonalizationArea).filter(
+            models.PersonalizationArea.product_id == p.id, models.PersonalizationArea.image_url == r.old_url
+        ).update({"image_url": r.new_url})
+    if data.remove_photo:
+        if data.remove_photo not in photos:
+            raise HTTPException(status_code=400, detail="Foto não pertence ao item.")
+        if len(photos) <= 1:
+            raise HTTPException(status_code=400, detail="O item precisa ter ao menos uma foto. Para apagar tudo, remova o item.")
+        photos = [u for u in photos if u != data.remove_photo]
+        db.query(models.PersonalizationArea).filter(
+            models.PersonalizationArea.product_id == p.id, models.PersonalizationArea.image_url == data.remove_photo
+        ).delete()
+    p.image_url = photos[0]
+    p.images = photos
+    db.commit()
+    return {"id": p.id, "name": p.name, "photos": photos}
+
+
 @router.delete("/items/{product_id}")
 def delete_item(product_id: int, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     p = db.query(models.Product).filter(models.Product.id == product_id, models.Product.category == SIM_CATEGORY).first()
