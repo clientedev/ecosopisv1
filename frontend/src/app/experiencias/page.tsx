@@ -59,7 +59,7 @@ const KITS = [
         name: "Balance Saúde",
         src: "/experiencias/kit-balance-saude.jpg",
         label: "Kit Balance Saúde",
-        text: "Frasco com conta-gotas em sachê de organza, acompanhado de cartinha personalizada.",
+        text: "Frasco de óleo essencial com conta-gotas em sachê de organza, acompanhado de cartinha personalizada.",
     },
 ];
 
@@ -187,9 +187,6 @@ export default function ExperienciasPage() {
                         </ul>
                         <p className={styles.lead}>
                             A personalização está na embalagem: sacolinha kraft com o logo Ecosopis, tag personalizada e cartinha ou panfleto do seu evento ou da sua empresa.
-                        </p>
-                        <p className={styles.leadSmall}>
-                            Exemplos de produtos: sabonete em barra de açafrão, sabonete líquido e óleos essenciais (alecrim, lavanda).
                         </p>
                         <h3 className={styles.subTitle}>Kits que já realizamos</h3>
                         <div className={styles.kitGrid}>
