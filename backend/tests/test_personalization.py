@@ -62,7 +62,9 @@ check("lista 200", r.status_code == 200, r.text[:100])
 names = [p["name"] for p in r.json()]
 check("traz produto com foto", "Óleo Essencial Alecrim" in names)
 check("não traz produto sem foto nem inativo", "Sem foto" not in names and "Inativo" not in names)
-check("produto sem área é 'customizable': false", r.json()[0]["customizable"] is False)
+first = r.json()[0]
+check("sem configuração → área automática sugerida (já personalizável)", first["customizable"] is True and first["configured"] is False and first["areas"][0]["auto"] is True and first["areas"][0]["id"] < 0)
+check("área automática do óleo é curva (frasco)", first["areas"][0]["curvature"] > 0)
 
 print("Permissões")
 check("criar sem login → 401", client.post("/api/personalization/areas", json=body).status_code in (401, 403))
@@ -75,8 +77,8 @@ aid = r.json()["id"]
 check("curvatura e cor salvas", r.json()["curvature"] == 0.4 and r.json()["base_color"] == "#aabbcc")
 r = client.get("/api/personalization/products")
 prod = r.json()[0]
-check("catálogo marca produto como personalizável", prod["customizable"] is True and len(prod["areas"]) == 1)
-check("área persistida com 4 cantos", len(prod["areas"][0]["quad"]) == 4)
+check("catálogo marca produto como personalizável", prod["customizable"] is True and prod["configured"] is True and len([a for a in prod["areas"] if not a.get("auto")]) == 1)
+check("área persistida com 4 cantos", len([a for a in prod["areas"] if not a.get("auto")][0]["quad"]) == 4)
 
 r = client.put(f"/api/personalization/areas/{aid}", json={**body, "name": "Frente", "curvature": 0.9, "aspect_ratio": 2.5}, headers=H_ADMIN)
 check("editar área → 200", r.status_code == 200 and r.json()["name"] == "Frente" and r.json()["aspect_ratio"] == 2.5, r.text[:200])
@@ -105,6 +107,21 @@ check("área inativa some do catálogo público", aid not in [a["id"] for a in a
 check("excluir como cliente → 403", client.delete(f"/api/personalization/areas/{aid}", headers=H_CLIENT).status_code == 403)
 check("excluir área → 200", client.delete(f"/api/personalization/areas/{aid}", headers=H_ADMIN).status_code == 200)
 check("excluir de novo → 404", client.delete(f"/api/personalization/areas/{aid}", headers=H_ADMIN).status_code == 404)
+
+print("Itens só do simulador (sacola)")
+bag = {"name": "Sacola kraft", "image_url": "/api/images/55"}
+check("criar item como cliente → 403", client.post("/api/personalization/items", json=bag, headers=H_CLIENT).status_code == 403)
+check("foto externa → 400", client.post("/api/personalization/items", json={**bag, "image_url": "http://x/y.png"}, headers=H_ADMIN).status_code == 400)
+r = client.post("/api/personalization/items", json=bag, headers=H_ADMIN)
+check("criar sacola → 201", r.status_code == 201, r.text[:150])
+bid = r.json()["id"]
+lst = client.get("/api/personalization/products").json()
+b = [p for p in lst if p["id"] == bid]
+check("sacola aparece no simulador como 'Embalagens', plana", len(b) == 1 and b[0]["category"] == "Embalagens" and b[0]["areas"][0]["curvature"] == 0 and b[0]["simulator_only"])
+check("sacola não aparece na loja", bid not in [p["id"] for p in client.get("/api/products").json()])
+check("excluir item como cliente → 403", client.delete(f"/api/personalization/items/{bid}", headers=H_CLIENT).status_code == 403)
+check("excluir sacola → 200", client.delete(f"/api/personalization/items/{bid}", headers=H_ADMIN).status_code == 200)
+check("produto comum não pode ser excluído por aqui → 404", client.delete(f"/api/personalization/items/{p1.id}", headers=H_ADMIN).status_code == 404)
 
 print(f"\n{OK} ok, {FAIL} falhas")
 sys.exit(1 if FAIL else 0)

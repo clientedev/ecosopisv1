@@ -48,3 +48,7 @@
 .test p { color: #777; font-size: 0.85rem; margin: 0 0 8px; }
 .testCanvas { display: block; max-width: 640px; width: 100%; height: auto; margin-top: 12px; border: 1px solid #ddd; border-radius: 8px; }
 @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .list { position: static; max-height: 260px; } }
+
+.addItem { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0 0 18px; }
+.addBtn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px; background: #2f5d3a; color: #fff; font-weight: 600; cursor: pointer; }
+.addItem small { color: #667; flex: 1 1 260px; }

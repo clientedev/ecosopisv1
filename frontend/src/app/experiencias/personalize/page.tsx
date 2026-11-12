@@ -436,7 +436,7 @@ export default function PersonalizePage() {
                                             <span className={styles.cat}>{p.category || "Produto"}</span>
                                             <strong>{p.name}</strong>
                                             {p.description && <p>{p.description}</p>}
-                                            <span className={styles.opt}><Palette size={14} /> {p.customizable ? `${p.areas.length} área${p.areas.length > 1 ? "s" : ""} para personalizar` : "Aguardando configuração"}</span>
+                                            <span className={styles.opt}><Palette size={14} /> {p.customizable ? "Pronto para personalizar" : "Aguardando configuração"}</span>
                                         </div>
                                     </button>
                                 ))}

@@ -11,6 +11,7 @@ import { areaAspect, defaultTransform, renderComposite } from "@/lib/personaliza
 
 interface Area {
     id?: number;
+    auto?: boolean;
     product_id: number;
     image_url: string;
     name: string;
@@ -21,7 +22,7 @@ interface Area {
     cover_label: boolean;
     base_color: string | null;
 }
-interface Product { id: number; name: string; category: string | null; photos: string[]; areas: Area[]; customizable: boolean }
+interface Product { id: number; name: string; category: string | null; photos: string[]; areas: Area[]; customizable: boolean; configured: boolean; simulator_only: boolean }
 
 const DEFAULT_QUAD = [[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]];
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -36,6 +37,7 @@ export default function AdminPersonalizacaoPage() {
     const [form, setForm] = useState<Area | null>(null);
     const [picking, setPicking] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [adding, setAdding] = useState(false);
     const [testArt, setTestArt] = useState<HTMLCanvasElement | null>(null);
 
     const boxRef = useRef<HTMLDivElement | null>(null);
@@ -60,25 +62,31 @@ export default function AdminPersonalizacaoPage() {
     useEffect(() => { load(); }, [load]);
 
     const product = useMemo(() => products.find((p) => p.id === selId) || null, [products, selId]);
-    const areasOnPhoto = useMemo(() => (product ? product.areas.filter((a) => a.image_url === photo) : []), [product, photo]);
+    const areasOnPhoto = useMemo(() => (product ? product.areas.filter((a) => a.image_url === photo && !a.auto) : []), [product, photo]);
+    const autoOnPhoto = useMemo(() => (product ? product.areas.find((a) => a.image_url === photo && a.auto) || null : null), [product, photo]);
 
-    const newArea = (p: Product, url: string): Area => ({
-        product_id: p.id, image_url: url, name: `Área ${p.areas.filter((a) => a.image_url === url).length + 1}`,
-        is_active: true, quad: DEFAULT_QUAD.map((q) => [...q]), curvature: 0, aspect_ratio: null, cover_label: false, base_color: null,
-    });
+    const newArea = (p: Product, url: string): Area => {
+        const saved = p.areas.filter((a) => a.image_url === url && !a.auto).length;
+        const sug = p.areas.find((a) => a.image_url === url && a.auto);
+        return {
+            product_id: p.id, image_url: url, name: saved ? `Área ${saved + 1}` : "Área principal",
+            is_active: true, quad: (sug ? sug.quad : DEFAULT_QUAD).map((q) => [...q]), curvature: sug ? sug.curvature : 0,
+            aspect_ratio: null, cover_label: false, base_color: null,
+        };
+    };
 
     const selectProduct = (p: Product) => {
         setSelId(p.id);
-        const url = p.photos.find((u) => p.areas.some((a) => a.image_url === u)) || p.photos[0];
+        const url = p.photos.find((u) => p.areas.some((a) => a.image_url === u && !a.auto)) || p.photos[0];
         setPhoto(url);
-        const existing = p.areas.find((a) => a.image_url === url);
+        const existing = p.areas.find((a) => a.image_url === url && !a.auto);
         setForm(existing ? { ...existing, quad: existing.quad.map((q) => [...q]) } : newArea(p, url));
         setMsg(null);
     };
     const selectPhoto = (url: string) => {
         if (!product) return;
         setPhoto(url);
-        const existing = product.areas.find((a) => a.image_url === url);
+        const existing = product.areas.find((a) => a.image_url === url && !a.auto);
         setForm(existing ? { ...existing, quad: existing.quad.map((q) => [...q]) } : newArea(product, url));
     };
     const selectArea = (a: Area) => setForm({ ...a, quad: a.quad.map((q) => [...q]) });
@@ -175,6 +183,44 @@ export default function AdminPersonalizacaoPage() {
         setMsg({ type: "ok", text: "Área excluída." });
     };
 
+    const addItem = async (f?: File | null) => {
+        if (!f) return;
+        const name = (window.prompt("Nome do item (ex.: Sacola kraft Ecosopis):", f.name.replace(/\.[^.]+$/, "")) || "").trim();
+        if (!name) return;
+        setAdding(true);
+        setMsg(null);
+        try {
+            const fd = new FormData();
+            fd.append("file", f);
+            const up = await fetch("/api/images/upload", { method: "POST", headers: { Authorization: `Bearer ${token()}` }, body: fd });
+            if (!up.ok) throw new Error(up.status === 401 || up.status === 403 ? "Sua sessão expirou. Entre novamente no admin." : "Não foi possível enviar a foto.");
+            const { url } = await up.json();
+            const r = await fetch("/api/personalization/items", { method: "POST", headers: headers(), body: JSON.stringify({ name, image_url: url }) });
+            if (!r.ok) throw new Error("Não foi possível cadastrar o item.");
+            const item = await r.json();
+            const r2 = await fetch("/api/personalization/products?include_inactive_areas=true");
+            const list: Product[] = await r2.json();
+            setProducts(list);
+            const created = list.find((p) => p.id === item.id);
+            if (created) selectProduct(created);
+            setMsg({ type: "ok", text: `"${name}" adicionado! Já está disponível no simulador; ajuste a posição abaixo se quiser.` });
+        } catch (e: any) {
+            setMsg({ type: "err", text: e.message || "Erro ao adicionar." });
+        } finally {
+            setAdding(false);
+        }
+    };
+
+    const removeItem = async () => {
+        if (!product?.simulator_only) return;
+        if (!confirm(`Remover "${product.name}" do simulador? Isso apaga as áreas dele.`)) return;
+        const r = await fetch(`/api/personalization/items/${product.id}`, { method: "DELETE", headers: headers() });
+        if (!r.ok) { setMsg({ type: "err", text: "Não foi possível remover." }); return; }
+        setSelId(null); setForm(null);
+        await load();
+        setMsg({ type: "ok", text: "Item removido." });
+    };
+
     // ── teste com uma arte ──────────────────────────────────────────────────
     const onTestFile = async (f?: File | null) => {
         if (!f) return;
@@ -201,9 +247,17 @@ export default function AdminPersonalizacaoPage() {
                     <h1>Personalização de Produtos</h1>
                 </header>
                 <p className={styles.intro}>
-                    Marque, sobre a fotografia original, a área onde o cliente poderá aplicar a arte (rótulo, caixa, sacola…). A configuração fica salva e é reutilizada no simulador <strong>Personalize seu Produto</strong>.
+                    <strong>Todos os produtos já funcionam no simulador</strong>, com uma posição sugerida automaticamente. Use esta tela só para deixar a posição mais precisa (opcional) ou para adicionar itens que não estão na loja, como a sacola.
                 </p>
                 {msg && <div className={msg.type === "ok" ? styles.ok : styles.err} role="status">{msg.text}</div>}
+
+                <div className={styles.addItem}>
+                    <label className={styles.addBtn}>
+                        <Plus size={16} /> {adding ? "Enviando…" : "Adicionar sacola / embalagem"}
+                        <input type="file" accept="image/*" hidden disabled={adding} onChange={(e) => { addItem(e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+                    <small>Envie a foto de um item que não está na loja (ex.: sacola kraft). Ele aparece só no simulador e já fica pronto para uso.</small>
+                </div>
 
                 <div className={styles.layout}>
                     <aside className={styles.list}>
@@ -213,7 +267,7 @@ export default function AdminPersonalizacaoPage() {
                             <button key={p.id} type="button" className={`${styles.item} ${p.id === selId ? styles.itemOn : ""}`} onClick={() => selectProduct(p)}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={p.photos[0]} alt="" />
-                                <span><strong>{p.name}</strong><small>{p.customizable ? `${p.areas.length} área(s) · ${p.areas.some((a) => a.is_active) ? "ativo" : "inativo"}` : "Sem área configurada"}</small></span>
+                                <span><strong>{p.name}</strong><small>{p.simulator_only ? "Item do simulador · " : ""}{p.configured ? `${p.areas.filter((a) => !a.auto).length} área(s) ajustada(s)` : "Já funciona · posição automática"}</small></span>
                             </button>
                         ))}
                     </aside>
@@ -223,14 +277,14 @@ export default function AdminPersonalizacaoPage() {
                             <div className={styles.placeholder}><ImagePlus size={36} /><p>Escolha um produto na lista para marcar a área personalizável.</p></div>
                         ) : (
                             <>
-                                <h2>{product.name}</h2>
+                                <h2>{product.name} {product.simulator_only && <button type="button" className={styles.danger} onClick={removeItem} style={{ marginLeft: 12, fontSize: 13 }}><Trash2 size={14} /> Remover item</button>}</h2>
                                 {product.photos.length > 1 && (
                                     <div className={styles.photos}>
                                         {product.photos.map((u) => (
                                             <button key={u} type="button" className={u === photo ? styles.photoOn : ""} onClick={() => selectPhoto(u)}>
                                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                                 <img src={u} alt="" />
-                                                {product.areas.some((a) => a.image_url === u) && <i>✓</i>}
+                                                {product.areas.some((a) => a.image_url === u && !a.auto) && <i>✓</i>}
                                             </button>
                                         ))}
                                     </div>
@@ -262,6 +316,7 @@ export default function AdminPersonalizacaoPage() {
                                         </div>
                                     ))}
                                 </div>
+                                {!form.id && autoOnPhoto && !areasOnPhoto.length && <p className={styles.hint} style={{ fontWeight: 600 }}>✔ Este produto já está liberado para os clientes com esta posição sugerida. Só ajuste e salve se quiser deixar mais precisa.</p>}
                                 <p className={styles.hint}>Arraste os 4 cantos para acompanhar a superfície (perspectiva) ou arraste a área inteira para movê-la.</p>
 
                                 <div className={styles.form}>
@@ -290,7 +345,7 @@ export default function AdminPersonalizacaoPage() {
                                 </div>
 
                                 <div className={styles.buttons}>
-                                    <button type="button" className="btn-primary" onClick={save} disabled={saving} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Save size={16} /> {saving ? "Salvando…" : form.id ? "Salvar alterações" : "Salvar área"}</button>
+                                    <button type="button" className="btn-primary" onClick={save} disabled={saving} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Save size={16} /> {saving ? "Salvando…" : form.id ? "Salvar alterações" : autoOnPhoto && !areasOnPhoto.length ? "Salvar esta posição" : "Salvar área"}</button>
                                     {form.id && <button type="button" className={styles.danger} onClick={remove}><Trash2 size={16} /> Excluir área</button>}
                                 </div>
 

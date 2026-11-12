@@ -10,6 +10,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.api.endpoints.auth import get_current_admin
@@ -102,37 +103,119 @@ def _product_photos(p: models.Product) -> List[str]:
     return photos
 
 
+SIM_CATEGORY = "Embalagens (simulador)"  # itens só do simulador (ex.: sacola); ficam ocultos da loja
+SIM_LABEL = "Embalagens"
+
+_ROUND_WORDS = ("frasco", "shampoo", "condicionador", "óleo", "oleo", "body splash", "splash", "spray", "hidratante",
+                "creme", "loção", "locao", "perfume", "garrafa", "pote", "gel", "sérum", "serum", "tônico", "tonico", "refil")
+
+
+def _auto_quad_curv(name: str, category: Optional[str]):
+    """Posição inicial sugerida (sem configuração do admin): o cliente ainda ajusta tudo no simulador."""
+    text = f"{name or ''} {category or ''}".lower()
+    if any(w in text for w in ("sacola", "caixa", "kit", "embalagem", "sachê", "sache", "bag")):
+        return [[0.25, 0.30], [0.75, 0.30], [0.75, 0.70], [0.25, 0.70]], 0.0
+    if any(w in text for w in _ROUND_WORDS):
+        return [[0.32, 0.42], [0.68, 0.42], [0.68, 0.72], [0.32, 0.72]], 0.55
+    return [[0.30, 0.35], [0.70, 0.35], [0.70, 0.65], [0.30, 0.65]], 0.0
+
+
+def _auto_area(p: models.Product, photo: str, idx: int) -> dict:
+    quad, curv = _auto_quad_curv(p.name, p.category)
+    return {
+        "id": -(p.id * 100 + idx + 1),  # id negativo = sugestão automática, ainda não salva
+        "product_id": p.id,
+        "image_url": photo,
+        "name": "Área principal",
+        "is_active": True,
+        "quad": quad,
+        "curvature": curv,
+        "aspect_ratio": None,
+        "cover_label": False,
+        "base_color": None,
+        "auto": True,
+    }
+
+
 @router.get("/products")
 def list_personalizable_products(db: Session = Depends(get_db), include_inactive_areas: bool = False):
-    """Catálogo real (produtos ativos) com fotografias, categoria, descrição e áreas configuradas."""
+    """Catálogo real (fotos dos produtos). Toda foto já é personalizável: sem configuração do admin usa-se
+    uma área padrão sugerida; o admin pode ajustar (ou desativar) por foto."""
     products = (
         db.query(models.Product)
-        .filter(models.Product.is_active == True)  # noqa: E712
+        .filter(or_(models.Product.is_active == True, models.Product.category == SIM_CATEGORY))  # noqa: E712
         .order_by(models.Product.order.asc(), models.Product.id.asc())
         .all()
     )
-    areas = db.query(models.PersonalizationArea).all()
-    by_product = {}
-    for a in areas:
-        if a.is_active or include_inactive_areas:
-            by_product.setdefault(a.product_id, []).append(_area_out(a))
+    saved = {}
+    for a in db.query(models.PersonalizationArea).order_by(models.PersonalizationArea.id.asc()).all():
+        saved.setdefault(a.product_id, []).append(a)
     out = []
     for p in products:
         photos = _product_photos(p)
         if not photos:
             continue
-        pa = [a for a in by_product.get(p.id, []) if a["image_url"] in photos]
+        mine = [a for a in saved.get(p.id, []) if a.image_url in photos]
+        areas, shown = [], []
+        for i, photo in enumerate(photos):
+            on_photo = [a for a in mine if a.image_url == photo]
+            if on_photo:
+                act = [_area_out(a) for a in on_photo if a.is_active or include_inactive_areas]
+            else:
+                act = [_auto_area(p, photo, i)]
+            if act:
+                areas += act
+                shown.append(photo)
         out.append({
             "id": p.id,
             "name": p.name,
             "slug": p.slug,
-            "category": p.category,
+            "category": SIM_LABEL if p.category == SIM_CATEGORY else p.category,
             "description": p.description,
-            "photos": photos,
-            "areas": pa,
-            "customizable": len(pa) > 0,
+            "photos": shown if shown else (photos if include_inactive_areas else []),
+            "areas": areas,
+            "configured": len(mine) > 0,
+            "simulator_only": p.category == SIM_CATEGORY,
+            "customizable": len(shown) > 0,
         })
     return out
+
+
+class ItemIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    image_url: str = Field(min_length=1, max_length=2048)
+    description: Optional[str] = Field(default=None, max_length=500)
+
+
+@router.post("/items", status_code=201)
+def create_item(data: ItemIn, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    """Cadastra um item só do simulador (ex.: sacola, caixa) a partir de uma foto já enviada. Não aparece na loja."""
+    if not data.image_url.startswith("/api/images/"):
+        raise HTTPException(status_code=400, detail="Envie a foto pelo painel.")
+    base = re.sub(r"[^a-z0-9]+", "-", data.name.lower()).strip("-") or "item"
+    slug, n = f"sim-{base}", 1
+    while db.query(models.Product).filter(models.Product.slug == slug).first():
+        n += 1
+        slug = f"sim-{base}-{n}"
+    p = models.Product(
+        name=data.name.strip(), slug=slug, description=data.description, category=SIM_CATEGORY,
+        image_url=data.image_url, images=[data.image_url], price=0, stock=0, is_active=False, buy_on_site=False,
+    )
+    db.add(p)
+    db.commit()
+    db.refresh(p)
+    return {"id": p.id, "name": p.name}
+
+
+@router.delete("/items/{product_id}")
+def delete_item(product_id: int, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
+    p = db.query(models.Product).filter(models.Product.id == product_id, models.Product.category == SIM_CATEGORY).first()
+    if not p:
+        raise HTTPException(status_code=404, detail="Item do simulador não encontrado.")
+    db.query(models.PersonalizationArea).filter(models.PersonalizationArea.product_id == p.id).delete()
+    db.delete(p)
+    db.commit()
+    return {"ok": True}
 
 
 @router.get("/areas")
