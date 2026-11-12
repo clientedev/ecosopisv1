@@ -261,6 +261,7 @@ export default function Header() {
                         <Link href="/produtos">PRODUTOS</Link>
                         <Link href="/atacado" className={styles.highlightNavLink}>QUERO REVENDER</Link>
                         <Link href="/novidades">NOVIDADES</Link>
+                        <Link href="/experiencias">EXPERIÊNCIAS</Link>
                         <Link href="/quizz">QUIZZ</Link>
                         <Link href="/lia" className={styles.liaLink}>
                             <Sparkles size={16} />
@@ -298,6 +299,9 @@ export default function Header() {
                                 </Link>
                                 <Link href="/novidades" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
                                     NOVIDADES
+                                </Link>
+                                <Link href="/experiencias" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                    EXPERIÊNCIAS
                                 </Link>
                                 <Link href="/quizz" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
                                     QUIZZ
