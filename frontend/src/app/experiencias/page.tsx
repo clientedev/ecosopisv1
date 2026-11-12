@@ -4,16 +4,36 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
-import { useToast } from "@/components/Toast/Toast";
 import { Sparkles, Droplets, Bath, Gift, MessageCircle, ChevronDown, Package, MapPin, Layers, ClipboardList, Wand2 } from "lucide-react";
 import styles from "./page.module.css";
 
 const WHATSAPP_NUMBER = "5511951559212";
 
+const buildWhatsAppUrl = (message: string) =>
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+
 const WORKSHOPS = [
-    { value: "Body Splash", icon: Droplets, title: "Body Splash", text: "Uma variedade de aromas para você explorar, combinar e criar uma fragrância exclusiva! Aqui, a criatividade é livre. Cada pessoa cria um Body Splash único, que transmite sua personalidade, desperta sensações e memórias." },
-    { value: "Balm labial", icon: Sparkles, title: "Balm labial", text: "Cada participante cria o seu próprio balm labial, do começo ao fim." },
-    { value: "Espuma para Banho", icon: Bath, title: "Espuma para Banho", text: "Cada participante cria a sua espuma de banho para levar para casa." },
+    {
+        value: "Body Splash",
+        icon: Droplets,
+        title: "Body Splash",
+        quote: "“Crie uma fragrância que tenha a sua essência!”",
+        text: "Uma variedade de aromas para explorar, combinar e criar uma fragrância exclusiva. Aqui, a criatividade é livre! Cada pessoa cria um Body Splash único, que transmite sua personalidade e desperta sensações e memórias.",
+    },
+    {
+        value: "Balm Labial",
+        icon: Sparkles,
+        title: "Balm Labial",
+        quote: "“Crie seu próprio cuidado!”",
+        text: "Uma experiência criativa em que você participa da produção do seu próprio balm labial. Conheça os ingredientes, acompanhe cada etapa e personalize seu produto para levar consigo uma criação feita por você!",
+    },
+    {
+        value: "Espuma para Banho",
+        icon: Bath,
+        title: "Espuma para Banho",
+        quote: "“Transforme o banho em um momento especial!”",
+        text: "Uma experiência divertida e sensorial para criar sua própria espuma para banho. Explore as possibilidades, participe de cada etapa da produção e leve para casa um produto feito por você!",
+    },
 ];
 
 const STEPS = [
@@ -44,18 +64,27 @@ const KITS = [
 ];
 
 const FAQ = [
-    { q: "Vocês vão até o local?", a: "Sim. A Ecosopis vai até a sua empresa, escola ou evento e leva todo o material necessário." },
-    { q: "Precisa de alguma estrutura?", a: "Conversamos sobre o espaço no pedido de orçamento e, se necessário, orientamos o que preparar. Em geral, uma mesa para os participantes já ajuda bastante." },
-    { q: "Como é feito o orçamento?", a: "Você preenche o formulário, a mensagem é enviada para o nosso WhatsApp e montamos uma proposta de acordo com o seu evento." },
-    { q: "O kit personalizado muda o produto?", a: "Não. A personalização é na embalagem: sacolinha kraft com o logo Ecosopis, tag personalizada e cartinha ou panfleto do seu evento ou empresa." },
+    {
+        q: "Precisa de alguma estrutura para realizar a oficina?",
+        a: [
+            "Sim! A Ecosopis leva todos os materiais e utensílios necessários para a realização da oficina escolhida, incluindo matérias-primas, embalagens e itens de apoio para a produção.",
+            "A estrutura do evento fica por conta do contratante, que deverá disponibilizar mesas, cadeiras, água e, caso deseje, café da manhã, petiscos ou outros itens de recepção aos participantes.",
+        ],
+    },
+    {
+        q: "Como é feito o orçamento?",
+        a: [
+            "O orçamento é personalizado de acordo com a quantidade de participantes, oficina escolhida, combinações de oficinas, data e local do evento.",
+            "Após o primeiro contato pelo WhatsApp, conversamos sobre a proposta e as necessidades do evento. Em seguida, enviaremos um orçamento completo com valores, condições de pagamento e demais informações.",
+        ],
+    },
+    {
+        q: "O kit personalizado muda o produto?",
+        a: [
+            "Os kits são montados de acordo com a proposta de cada evento. A personalização pode incluir embalagens, tags, cartões e outros elementos visuais com a identidade da empresa ou ocasião. Os produtos são escolhidos conforme cada projeto.",
+        ],
+    },
 ];
-
-type FormState = {
-    nome: string; empresa: string; whatsapp: string; tipo: "" | "Oficina" | "Kit personalizado";
-    oficina: string; pessoas: string; data: string; mensagem: string;
-};
-
-const EMPTY: FormState = { nome: "", empresa: "", whatsapp: "", tipo: "", oficina: "Ainda não sei", pessoas: "", data: "", mensagem: "" };
 
 function KitImage({ name, src }: { name: string; src: string }) {
     const [failed, setFailed] = useState(false);
@@ -72,55 +101,21 @@ function KitImage({ name, src }: { name: string; src: string }) {
 }
 
 export default function ExperienciasPage() {
-    const { showToast } = useToast();
-    const [form, setForm] = useState<FormState>(EMPTY);
-    const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
     const [openFaq, setOpenFaq] = useState<number | null>(0);
 
     const scrollTo = (id: string) => {
         document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
-    const chooseType = (tipo: "Oficina" | "Kit personalizado") => {
-        setForm((f) => ({ ...f, tipo }));
-        setErrors((e) => ({ ...e, tipo: undefined }));
-        scrollTo("orcamento");
-    };
-
-    const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        setForm((f) => ({ ...f, [k]: e.target.value }));
-        setErrors((er) => ({ ...er, [k]: undefined }));
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const er: Partial<Record<keyof FormState, string>> = {};
-        if (!form.nome.trim()) er.nome = "Informe o seu nome.";
-        if (form.whatsapp.replace(/\D/g, "").length < 10) er.whatsapp = "Informe um WhatsApp válido com DDD.";
-        if (!form.tipo) er.tipo = "Escolha o tipo de experiência.";
-        setErrors(er);
-        if (Object.keys(er).length) {
-            showToast("Confira os campos destacados.", "error");
-            return;
-        }
-
-        const lines = [
-            "Olá! Gostaria de solicitar um orçamento de experiência Ecosopis. 🌿",
-            "",
-            `*Nome:* ${form.nome.trim()}`,
-            form.empresa.trim() && `*Empresa/Evento:* ${form.empresa.trim()}`,
-            `*WhatsApp:* ${form.whatsapp.trim()}`,
-            `*Tipo:* ${form.tipo}`,
-            form.tipo === "Oficina" && `*Oficina de interesse:* ${form.oficina}`,
-            form.pessoas.trim() && `*Nº aproximado de pessoas:* ${form.pessoas.trim()}`,
-            form.data && `*Data prevista:* ${form.data.split("-").reverse().join("/")}`,
-            form.mensagem.trim() && `*Mensagem:* ${form.mensagem.trim()}`,
-        ].filter(Boolean);
-
-        const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(lines.join("\n"))}`;
-        window.open(url, "_blank", "noopener,noreferrer");
-        showToast("Abrindo o WhatsApp com o seu pedido de orçamento!", "success");
-    };
+    const whatsappWorkshopUrl = buildWhatsAppUrl(
+        "Olá! Gostaria de solicitar um orçamento de oficina da Ecosopis para o meu evento. 🌿\n\n*Tipo:* Oficina\n*Oficina de interesse:* \n*Nº aproximado de pessoas:* \n*Data prevista:* \n*Local do evento:* "
+    );
+    const whatsappKitUrl = buildWhatsAppUrl(
+        "Olá! Gostaria de solicitar um orçamento de kit personalizado da Ecosopis para o meu evento. 🌿\n\n*Tipo:* Kit personalizado\n*Quantidade aproximada:* \n*Data prevista:* \n*Empresa/Evento:* "
+    );
+    const whatsappGeneralUrl = buildWhatsAppUrl(
+        "Olá! Gostaria de solicitar um orçamento de experiência Ecosopis para o meu evento. 🌿\n\n*Tipo (Oficina ou Kit personalizado):* \n*Nº aproximado de pessoas:* \n*Data prevista:* \n*Local/Empresa:* "
+    );
 
     return (
         <main>
@@ -144,10 +139,11 @@ export default function ExperienciasPage() {
                             A Ecosopis vai até o local do cliente (empresa, escola, evento, festa) levando todo o material, e cada participante cria o seu próprio produto.
                         </p>
                         <div className={styles.cards}>
-                            {WORKSHOPS.map(({ icon: Icon, title, text }) => (
+                            {WORKSHOPS.map(({ icon: Icon, title, quote, text }) => (
                                 <article key={title} className={styles.card}>
                                     <div className={styles.cardIcon}><Icon size={28} /></div>
                                     <h3>{title}</h3>
+                                    <p className={styles.cardQuote}>{quote}</p>
                                     <p>{text}</p>
                                 </article>
                             ))}
@@ -170,7 +166,9 @@ export default function ExperienciasPage() {
                             ))}
                         </ol>
                         <div className={styles.center}>
-                            <button type="button" className={styles.btnPrimary} onClick={() => chooseType("Oficina")}>Solicitar orçamento de oficina</button>
+                            <a href={whatsappWorkshopUrl} target="_blank" rel="noopener noreferrer" className={styles.btnPrimary}>
+                                <MessageCircle size={18} /> Solicitar orçamento de oficina
+                            </a>
                         </div>
                     </div>
                 </section>
@@ -207,7 +205,9 @@ export default function ExperienciasPage() {
                         </div>
                         <p className={styles.note}>Cada proposta é montada de acordo com o seu evento ou a sua empresa.</p>
                         <div className={styles.center}>
-                            <button type="button" className={styles.btnPrimary} onClick={() => chooseType("Kit personalizado")}>Solicitar orçamento de kit</button>
+                            <a href={whatsappKitUrl} target="_blank" rel="noopener noreferrer" className={styles.btnPrimary}>
+                                <MessageCircle size={18} /> Solicitar orçamento de kit
+                            </a>
                         </div>
                     </div>
                 </section>
@@ -215,58 +215,12 @@ export default function ExperienciasPage() {
                 <section id="orcamento" className={styles.section}>
                     <div className="container">
                         <h2 className={styles.sectionTitle}>Solicite seu orçamento</h2>
-                        <p className={styles.lead}>Preencha os dados e enviaremos o seu pedido pelo WhatsApp.</p>
-                        <form className={styles.form} onSubmit={handleSubmit} noValidate>
-                            <div className={styles.field}>
-                                <label htmlFor="exp-nome">Nome *</label>
-                                <input id="exp-nome" value={form.nome} onChange={set("nome")} autoComplete="name" aria-invalid={!!errors.nome} />
-                                {errors.nome && <span className={styles.error}>{errors.nome}</span>}
-                            </div>
-                            <div className={styles.field}>
-                                <label htmlFor="exp-empresa">Empresa/Evento</label>
-                                <input id="exp-empresa" value={form.empresa} onChange={set("empresa")} autoComplete="organization" />
-                            </div>
-                            <div className={styles.field}>
-                                <label htmlFor="exp-whats">WhatsApp *</label>
-                                <input id="exp-whats" type="tel" inputMode="tel" placeholder="(11) 90000-0000" value={form.whatsapp} onChange={set("whatsapp")} autoComplete="tel" aria-invalid={!!errors.whatsapp} />
-                                {errors.whatsapp && <span className={styles.error}>{errors.whatsapp}</span>}
-                            </div>
-                            <div className={styles.field}>
-                                <label htmlFor="exp-tipo">Tipo *</label>
-                                <select id="exp-tipo" value={form.tipo} onChange={set("tipo")} aria-invalid={!!errors.tipo}>
-                                    <option value="">Selecione</option>
-                                    <option value="Oficina">Oficina</option>
-                                    <option value="Kit personalizado">Kit personalizado</option>
-                                </select>
-                                {errors.tipo && <span className={styles.error}>{errors.tipo}</span>}
-                            </div>
-                            {form.tipo === "Oficina" && (
-                                <div className={styles.field}>
-                                    <label htmlFor="exp-oficina">Oficina de interesse</label>
-                                    <select id="exp-oficina" value={form.oficina} onChange={set("oficina")}>
-                                        <option>Body Splash</option>
-                                        <option>Balm labial</option>
-                                        <option>Espuma para Banho</option>
-                                        <option>Ainda não sei</option>
-                                    </select>
-                                </div>
-                            )}
-                            <div className={styles.field}>
-                                <label htmlFor="exp-pessoas">Nº aproximado de pessoas</label>
-                                <input id="exp-pessoas" type="number" inputMode="numeric" min={1} value={form.pessoas} onChange={set("pessoas")} />
-                            </div>
-                            <div className={styles.field}>
-                                <label htmlFor="exp-data">Data prevista</label>
-                                <input id="exp-data" type="date" value={form.data} onChange={set("data")} />
-                            </div>
-                            <div className={`${styles.field} ${styles.full}`}>
-                                <label htmlFor="exp-msg">Mensagem</label>
-                                <textarea id="exp-msg" rows={4} value={form.mensagem} onChange={set("mensagem")} />
-                            </div>
-                            <div className={`${styles.full} ${styles.center}`}>
-                                <button type="submit" className={styles.btnPrimary}><MessageCircle size={18} /> Enviar pelo WhatsApp</button>
-                            </div>
-                        </form>
+                        <p className={styles.lead}>Fale diretamente com a nossa equipe pelo WhatsApp com a mensagem já preenchida para agilizar o seu atendimento.</p>
+                        <div className={`${styles.center} ${styles.whatsappCtaWrap}`}>
+                            <a href={whatsappGeneralUrl} target="_blank" rel="noopener noreferrer" className={styles.btnPrimary}>
+                                <MessageCircle size={18} /> Solicitar orçamento pelo WhatsApp
+                            </a>
+                        </div>
                     </div>
                 </section>
 
@@ -280,7 +234,13 @@ export default function ExperienciasPage() {
                                         <span>{item.q}</span>
                                         <ChevronDown size={20} className={openFaq === i ? styles.chevOpen : ""} />
                                     </button>
-                                    {openFaq === i && <p className={styles.faqA}>{item.a}</p>}
+                                    {openFaq === i && (
+                                        <div className={styles.faqA}>
+                                            {item.a.map((paragraph, idx) => (
+                                                <p key={idx}>{paragraph}</p>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>

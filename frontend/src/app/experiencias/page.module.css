@@ -57,7 +57,7 @@
 .btnLight:hover { background: var(--neutral-gray-100); }
 .btnOutline { background: transparent; color: #fff; border-color: #fff; }
 .btnOutline:hover { background: rgba(255, 255, 255, 0.15); }
-.btnPrimary { background: var(--primary-green); color: #fff; }
+.btnPrimary { background: var(--primary-green); color: #fff; text-decoration: none; }
 .btnPrimary:hover { background: var(--primary-green-dark); }
 
 .section { padding: 80px 0; }
@@ -140,6 +140,7 @@
 
 .card:hover { transform: translateY(-3px); }
 .card h3 { font-family: var(--font-header); color: #2d5a27; margin: 12px 0 8px; font-size: 1.25rem; }
+.cardQuote { color: #2d5a27 !important; font-weight: 600; font-style: italic; margin: 0 0 10px; }
 .card p { color: var(--text-secondary); }
 
 .cardIcon {
@@ -330,7 +331,11 @@
 
 .faqQ svg { flex-shrink: 0; transition: var(--transition); }
 .chevOpen { transform: rotate(180deg); }
+.whatsappCtaWrap { margin-top: 28px; }
+
 .faqA { padding: 0 20px 18px; color: var(--text-secondary); margin: 0; }
+.faqA p { margin: 0; }
+.faqA p + p { margin-top: 10px; }
 
 .where {
     display: flex;
