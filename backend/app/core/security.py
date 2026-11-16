@@ -15,7 +15,14 @@ load_dotenv()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-SECRET_KEY = os.getenv("SECRET_KEY", "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    # Sem chave definida não existe mais um valor padrão conhecido (que estava no repositório).
+    # Em produção a variável SECRET_KEY está definida; localmente usa uma chave aleatória por processo.
+    import secrets as _secrets
+    import logging as _logging
+    SECRET_KEY = _secrets.token_hex(32)
+    _logging.getLogger(__name__).warning("SECRET_KEY não definida: usando chave aleatória temporária (tokens não sobrevivem a reinícios).")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES") or 52560000) # 100 years
 

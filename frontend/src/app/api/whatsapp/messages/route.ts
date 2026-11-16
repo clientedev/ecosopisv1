@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { guardAdmin } from '@/lib/whatsapp/adminAuth';
 import { getWhatsAppMessageLogs } from '@/lib/whatsapp/templates';
 import {
   getQueueStatus,
@@ -11,6 +12,8 @@ import {
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  const denied = await guardAdmin(req);
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get('limit') || '50', 10);
@@ -33,6 +36,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const denied = await guardAdmin(req);
+  if (denied) return denied;
   try {
     const body = await req.json().catch(() => ({}));
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { guardAdmin } from '@/lib/whatsapp/adminAuth';
 import { sendWhatsAppMessage } from '@/lib/whatsapp/whatsappService';
 
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,8 @@ interface RecipientInput {
 }
 
 export async function POST(req: Request) {
+  const denied = await guardAdmin(req);
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { 

@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
+import { guardAdmin } from '@/lib/whatsapp/adminAuth';
 import { sendWhatsAppMessage } from '@/lib/whatsapp/whatsappService';
 import { getDbPool } from '@/lib/whatsapp/db';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  const denied = await guardAdmin(req);
+  if (denied) return denied;
   try {
     const body = await req.json();
     const logId = body.logId ? parseInt(body.logId, 10) : undefined;

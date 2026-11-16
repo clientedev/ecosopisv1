@@ -223,7 +223,7 @@ export default function AdminWhatsAppPage() {
 
     let eventSource: EventSource | null = null;
     try {
-      eventSource = new EventSource('/api/whatsapp/events');
+      eventSource = new EventSource(`/api/whatsapp/events?token=${encodeURIComponent(localStorage.getItem('token') || '')}`);
 
       eventSource.addEventListener('status', (e: MessageEvent) => {
         try {
@@ -926,7 +926,8 @@ export default function AdminWhatsAppPage() {
     if (!confirm('Deseja realmente excluir este carrinho abandonado?')) return;
     try {
       const res = await fetch(`/api/whatsapp/abandoned-carts?user_id=${userId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAuthHeaders()
       });
       if (res.ok) {
         setAlert({ type: 'success', text: 'Carrinho abandonado excluído com sucesso!' });

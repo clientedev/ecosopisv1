@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import { guardAdmin } from '@/lib/whatsapp/adminAuth';
 import { getDbPool } from '@/lib/whatsapp/db';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  const denied = await guardAdmin(req);
+  if (denied) return denied;
   try {
     const pool = getDbPool();
 

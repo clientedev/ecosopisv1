@@ -14,7 +14,9 @@ router = APIRouter()
 def get_settings(db: Session = Depends(get_db)):
     try:
         settings = db.query(SystemSetting).all()
-        return {s.key: s.value for s in settings}
+        # Rota pública (tema/branding): nunca devolve chaves que pareçam credenciais.
+        blocked = ("secret", "token", "password", "senha", "api_key", "apikey", "private")
+        return {s.key: s.value for s in settings if not any(b in (s.key or "").lower() for b in blocked)}
     except Exception as e:
         logger.error(f"Error fetching system settings: {e}")
         return {}

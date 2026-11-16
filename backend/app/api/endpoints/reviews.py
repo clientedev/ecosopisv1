@@ -146,7 +146,7 @@ def create_review(data: ReviewCreate, db: Session = Depends(get_db)):
     return {"message": "Review submitted for approval", "id": review.id}
 
 @router.post("/clone-shopee")
-def clone_shopee_reviews(data: ShopeeCloneRequest, db: Session = Depends(get_db)):
+def clone_shopee_reviews(data: ShopeeCloneRequest, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     """
     Clona avaliações do produto a partir do link da Shopee cadastrado no produto
     (ou informado), extraindo ou sintetizando as melhores avaliações 5 estrelas
@@ -262,7 +262,8 @@ def clone_shopee_reviews(data: ShopeeCloneRequest, db: Session = Depends(get_db)
 @router.post("/import-batch")
 def import_reviews_batch(
     data: ReviewBatchImport, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
 ):
     """
     Endpoint para importar avaliações reais de clientes em lote

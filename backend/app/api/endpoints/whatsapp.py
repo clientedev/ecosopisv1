@@ -9,9 +9,14 @@ from app.services.whatsapp import send_whatsapp_notification, trigger_whatsapp_e
 import requests
 import os
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_admin)])
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5000").rstrip("/")
+
+
+def _internal_headers() -> Dict[str, str]:
+    key = os.getenv("INTERNAL_API_KEY", "")
+    return {"X-Internal-Key": key} if key else {}
 
 class SendMessageRequest(BaseModel):
     to: str
@@ -44,7 +49,7 @@ def get_status(db: Session = Depends(get_db)):
 @router.post("/connect")
 def proxy_connect():
     try:
-        res = requests.post(f"{FRONTEND_URL}/api/whatsapp/connect", timeout=15)
+        res = requests.post(f"{FRONTEND_URL}/api/whatsapp/connect", headers=_internal_headers(), timeout=15)
         return res.json()
     except Exception as e:
         return {"status": "CONNECTING", "message": str(e)}
@@ -52,7 +57,7 @@ def proxy_connect():
 @router.post("/disconnect")
 def proxy_disconnect(payload: Dict[str, Any] = None):
     try:
-        res = requests.post(f"{FRONTEND_URL}/api/whatsapp/disconnect", json=payload or {}, timeout=15)
+        res = requests.post(f"{FRONTEND_URL}/api/whatsapp/disconnect", json=payload or {}, headers=_internal_headers(), timeout=15)
         return res.json()
     except Exception as e:
         return {"status": "DISCONNECTED", "message": str(e)}

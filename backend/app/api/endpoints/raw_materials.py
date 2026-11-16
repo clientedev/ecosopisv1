@@ -9,7 +9,7 @@ from app.api.endpoints.auth import get_current_admin
 router = APIRouter()
 
 @router.get("", response_model=List[schemas.RawMaterialResponse])
-def list_raw_materials(db: Session = Depends(get_db)):
+def list_raw_materials(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     return db.query(models.RawMaterial).order_by(models.RawMaterial.name).all()
 
 @router.post("", response_model=schemas.RawMaterialResponse)

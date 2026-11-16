@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
+import { guardAdmin } from '@/lib/whatsapp/adminAuth';
 import { getDbPool } from '@/lib/whatsapp/db';
 import { BufferJSON } from '@whiskeysockets/baileys';
 import { connectWhatsApp } from '@/lib/whatsapp/whatsappService';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardAdmin(req);
+  if (denied) return denied;
   try {
     const pool = getDbPool();
     if (!pool) {
@@ -67,7 +70,9 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(req: Request) {
+  const denied = await guardAdmin(req);
+  if (denied) return denied;
   try {
     // Tenta forçar reconexão usando as credenciais do banco
     const result = await connectWhatsApp('default', false);

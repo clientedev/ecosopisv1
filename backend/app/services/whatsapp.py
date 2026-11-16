@@ -11,6 +11,12 @@ logger = logging.getLogger(__name__)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5000").rstrip("/")
 JULIA_WHATSAPP_NUMBER = os.getenv("JULIA_WHATSAPP_NUMBER", "11951559212")
 
+def _internal_headers() -> dict:
+    """Chave interna que autoriza o backend a pedir envios ao serviço de WhatsApp do frontend."""
+    key = os.getenv("INTERNAL_API_KEY", "")
+    return {"X-Internal-Key": key} if key else {}
+
+
 def get_whatsapp_endpoints() -> List[str]:
     """Retorna lista priorizada de endpoints para comunicação com a API do WhatsApp."""
     endpoints = []
@@ -71,7 +77,7 @@ def send_whatsapp_notification(
     endpoints = get_whatsapp_endpoints()
     for endpoint in endpoints:
         try:
-            res = requests.post(endpoint, json=payload, timeout=8)
+            res = requests.post(endpoint, json=payload, headers=_internal_headers(), timeout=8)
             if res.status_code == 200:
                 logger.info(f"[WhatsApp] Mensagem ({trigger_type}) enviada com sucesso para {clean_phone} via {endpoint}!")
                 return True

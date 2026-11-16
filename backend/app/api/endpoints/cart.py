@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from app.core.database import get_db
-from app.api.endpoints.auth import get_current_user
+from app.api.endpoints.auth import get_current_user, get_current_admin
 from app.models import models
 from app.core import emails
 from sqlalchemy.sql import func
@@ -26,6 +26,7 @@ async def sync_cart(
 @router.post("/abandoned-check")
 async def check_abandoned_carts(
     db: Session = Depends(get_db),
+    current_admin=Depends(get_current_admin),
     # In a real app, this would be a cron job or restricted to admins
 ):
     """

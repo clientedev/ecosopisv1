@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import { guardAdmin } from '@/lib/whatsapp/adminAuth';
 import { getWhatsAppTemplates, updateWhatsAppTemplate } from '@/lib/whatsapp/templates';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardAdmin(req);
+  if (denied) return denied;
   try {
     const templates = await getWhatsAppTemplates();
     return NextResponse.json({ templates });
@@ -16,6 +19,8 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  const denied = await guardAdmin(req);
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { trigger_type, message_template, is_enabled, delay_minutes } = body;

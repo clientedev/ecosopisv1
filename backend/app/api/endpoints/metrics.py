@@ -29,7 +29,8 @@ def log_click(click_log: schemas.ProductClickLog, db: Session = Depends(get_db))
 @router.get("/admin/bi-analytics")
 def get_bi_analytics(
     period: str = "30d",
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin=Depends(get_current_admin)
 ):
     from datetime import datetime, timedelta, timezone
 
@@ -264,7 +265,7 @@ def get_bi_analytics(
 
 @router.get("/distribute-7d")
 @router.post("/distribute-7d")
-def trigger_distribute_metrics(db: Session = Depends(get_db)):
+def trigger_distribute_metrics(db: Session = Depends(get_db), current_admin=Depends(get_current_admin)):
     from app.core.metrics_manager import redistribute_exact_metrics
     redistribute_exact_metrics(db)
     return {"status": "success", "message": "Métricas redistribuídas uniformemente nos últimos 7 dias com sucesso!"}
@@ -276,7 +277,8 @@ def trigger_inject_additional_metrics(
     site: int = 0,
     visits: int = 0,
     lia: int = 0,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin=Depends(get_current_admin)
 ):
     from app.core.metrics_manager import inject_additional_metrics
     return inject_additional_metrics(

@@ -1,8 +1,11 @@
 import { getWhatsAppEvents, getWhatsAppStatus } from '@/lib/whatsapp/whatsappService';
+import { guardAdmin } from '@/lib/whatsapp/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  const denied = await guardAdmin(req);
+  if (denied) return denied;
   const encoder = new TextEncoder();
   const events = getWhatsAppEvents();
 
