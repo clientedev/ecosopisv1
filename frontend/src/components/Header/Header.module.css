@@ -350,7 +350,7 @@
     }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
     .headerContent {
         padding: 8px 16px;
     }
@@ -1060,5 +1060,53 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* ===== Header desktop 100% fluido (qualquer zoom/resolução > 1200px) =====
+   Fonte, espaçamento e logo escalam com a largura da janela, então o menu
+   nunca invade o carrinho/conta. Abaixo de 1200px vira menu hambúrguer. */
+@media (min-width: 1201px) {
+    .headerContent {
+        gap: clamp(8px, 1vw, 20px);
+        padding-left: clamp(1rem, 2vw, 2rem);
+        padding-right: clamp(1rem, 2vw, 2rem);
+    }
+    .logoImage {
+        width: clamp(150px, 14vw, 260px);
+    }
+    .desktopNav {
+        gap: clamp(10px, 1.3vw, 28px);
+        font-size: clamp(0.7rem, 0.78vw, 0.88rem);
+        letter-spacing: clamp(0.2px, 0.05vw, 0.8px);
+        margin-left: clamp(0.5rem, 1.5vw, 2rem);
+        flex: 1 1 auto;
+        justify-content: flex-start;
+    }
+    .actions {
+        gap: clamp(10px, 1.2vw, 24px);
+        margin-right: 0;
+        flex-shrink: 0;
+    }
+}
+
+/* Celulares pequenos: nome do usuário some para não empurrar o menu para fora da tela */
+@media (max-width: 420px) {
+    .userName,
+    .chevron {
+        display: none;
+    }
+    .userButton {
+        padding: 4px;
+    }
+}
+
+@media (max-width: 340px) {
+    .actions {
+        gap: 4px;
+    }
+    .headerContent {
+        padding-left: 10px;
+        padding-right: 10px;
     }
 }
