@@ -61,6 +61,7 @@ export default function RootLayout({
         <html lang="pt-BR" suppressHydrationWarning>
             <head>
                 <link rel="preconnect" href="https://connect.facebook.net" />
+                <meta name="facebook-domain-verification" content="0k30xcqp2xgy2uoa4c33xri66t49cv" />
                 {/* Runs before first paint: apply the last known seasonal theme so the
                     entry splash already shows in the right colors. */}
                 <script
