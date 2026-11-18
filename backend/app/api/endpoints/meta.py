@@ -41,6 +41,8 @@ class TrackIn(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     external_id: Optional[str] = None
+    fbp: Optional[str] = Field(None, max_length=200)
+    fbc: Optional[str] = Field(None, max_length=400)
 
 
 def _send_capi_async(event: Dict[str, Any], meta_event_id: int) -> None:
@@ -68,7 +70,12 @@ def track_event(body: TrackIn, request: Request, db: Session = Depends(get_db)):
     if body.event_name == "Purchase":
         return {"status": "ignored"}
 
-    ctx = meta_capi.get_request_context()
+    ctx = dict(meta_capi.get_request_context() or {})
+    # fallback: cookies enviados no corpo quando o proxy não repassa o header Cookie
+    if not ctx.get("fbp") and body.fbp and body.fbp.startswith("fb."):
+        ctx["fbp"] = body.fbp
+    if not ctx.get("fbc") and body.fbc and body.fbc.startswith("fb."):
+        ctx["fbc"] = body.fbc
     attr = ctx.get("attr") or {}
     cd = body.custom_data or {}
     value = None

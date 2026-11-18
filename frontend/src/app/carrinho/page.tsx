@@ -42,7 +42,7 @@ const BRAZILIAN_STATES = [
 ];
 
 import { useAuth } from "@/context/AuthContext";
-import { trackInitiateCheckout } from "@/lib/metaPixel";
+import { trackInitiateCheckout, setMetaIdentity } from "@/lib/metaPixel";
 import { useLoading } from "@/context/LoadingContext";
 
 export default function CarrinhoPage() {
@@ -273,6 +273,12 @@ export default function CarrinhoPage() {
     const cashbackDiscount = useCashback ? Math.min(availableCashback, subtotal - discount) : 0;
     
     const finalTotal = Math.max(0, subtotal + shippingPrice - discount - cashbackDiscount);
+
+    // Meta: e-mail digitado pelo visitante (sem login) melhora a correspondência dos eventos
+    useEffect(() => {
+        const em = (customerEmail || "").trim();
+        if (!user && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) setMetaIdentity({ email: em, phone: customerPhone || undefined });
+    }, [customerEmail, customerPhone, user]);
 
     // Meta: início de checkout quando o cliente sai do carrinho para endereço/pagamento
     useEffect(() => {

@@ -119,7 +119,8 @@ export function initMetaPixel() {
     (window.fbq as any).disablePushState = true;
     const am: Record<string, string> = {};
     if (identity.email) am.em = identity.email.trim().toLowerCase();
-    if (identity.external_id) am.external_id = identity.external_id;
+    // external_id estável (cliente logado ou visitante anônimo) melhora a correspondência de eventos
+    am.external_id = identity.external_id || visitorId();
     window.fbq!("init", META_PIXEL_ID, am);
 }
 
@@ -134,7 +135,9 @@ function sendToServer(eventName: string, eventId: string, customData?: CustomDat
             custom_data: customData || null,
             email: identity.email || null,
             phone: identity.phone || null,
-            external_id: identity.external_id || null,
+            external_id: identity.external_id || visitorId(),
+            fbp: readCookie("_fbp"),
+            fbc: readCookie("_fbc"),
         });
         fetch("/api/meta/track", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
     } catch {
