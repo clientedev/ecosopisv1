@@ -162,7 +162,7 @@ export default function MetaAdsDashboard({ showHeader = true }: { showHeader?: b
             {showHeader && (
                 <div className={biStyles.biHeader}>
                     <div className={biStyles.biHeaderInfo}>
-                        <h1><Megaphone size={28} /> Meta Ads — Facebook &amp; Instagram</h1>
+                        <h1><Megaphone size={28} color="#60a5fa" /> Meta Ads — Facebook &amp; Instagram</h1>
                         <p>Visitas, funil e vendas que vieram da Meta, medidos pelo próprio site (Pixel + API de Conversões)</p>
                     </div>
                     <div className={biStyles.biControls}>
