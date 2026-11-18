@@ -390,7 +390,8 @@ def catalog_feed(db: Session = Depends(get_db)):
     site = meta_capi.SITE_URL.rstrip("/")
     items = []
     for p in products:
-        if getattr(p, "is_wholesale", False) or getattr(p, "buy_on_site", True) is False:
+        # is_wholesale indica que o produto TAMBÉM é vendido no atacado — continua à venda no varejo
+        if getattr(p, "buy_on_site", True) is False:
             continue
         price = float(p.price or 0)
         if price <= 0 or not p.slug:
