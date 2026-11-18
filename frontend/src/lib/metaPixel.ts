@@ -114,6 +114,9 @@ export function initMetaPixel() {
         s.parentNode.insertBefore(t, s);
     })(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
     /* eslint-enable */
+    // O PageView de navegação interna é disparado por nós (com eventID p/ deduplicar com a CAPI);
+    // desliga o PageView automático do pixel em mudanças de rota (pushState).
+    (window.fbq as any).disablePushState = true;
     const am: Record<string, string> = {};
     if (identity.email) am.em = identity.email.trim().toLowerCase();
     if (identity.external_id) am.external_id = identity.external_id;
