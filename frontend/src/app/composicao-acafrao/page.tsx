@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
-    title: "Composição – Sabonete de Açafrão e Dolomita | ECOSOPIS",
+    title: { absolute: "Composição – Sabonete de Açafrão e Dolomita | ECOSOPIS" },
     description: "Lista de ingredientes conforme RDC nº 752/2022 e RDC nº 907/2024 (ANVISA).",
     robots: { index: false, follow: false },
 };

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Experiências | ECOSOPIS",
+    title: "Experiências: Oficinas e Kits de Cosméticos Naturais",
+    alternates: { canonical: "/experiencias" },
     description:
         "Oficinas de cosméticos naturais no local do seu evento e kits personalizados para empresas e eventos. Solicite o seu orçamento com a Ecosopis.",
 };

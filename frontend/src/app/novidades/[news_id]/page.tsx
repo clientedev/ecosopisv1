@@ -31,7 +31,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : `${baseUrl}/static/attached_assets/generated_images/natural_soap_bars_photography_lifestyle.png`;
 
   return {
-    title: `${post.title} | Diário ECOSOPIS`,
+    title: { absolute: `${post.title} | Diário ECOSOPIS` },
+    alternates: { canonical: `/novidades/${params.news_id}` },
     description: post.content.slice(0, 160) + '...',
     openGraph: {
       title: post.title,

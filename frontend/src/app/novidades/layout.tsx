@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Diário ECOSOPIS – Novidades e Dicas",
+  title: { absolute: "Diário ECOSOPIS – Novidades e Dicas de Cuidados Naturais" },
+  alternates: { canonical: "/novidades" },
   description:
     "Histórias, bastidores e novidades da nossa jornada com você. Dicas de cuidados naturais, lançamentos e atualizações da ECOSOPIS.",
   openGraph: {
