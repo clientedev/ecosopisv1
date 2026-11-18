@@ -87,7 +87,16 @@ def _apply_startup_migrations():
         ("payment_summary",          "TEXT"),
         ("guest_access_token",       "VARCHAR"),
         ("pending_link_user_id",     "INTEGER"),
-        ("account_link_token",       "VARCHAR")
+        ("account_link_token",       "VARCHAR"),
+        ("utm_source",               "VARCHAR"),
+        ("utm_medium",               "VARCHAR"),
+        ("utm_campaign",             "VARCHAR"),
+        ("utm_content",              "VARCHAR"),
+        ("meta_fbp",                 "VARCHAR"),
+        ("meta_fbc",                 "VARCHAR"),
+        ("meta_client_ip",           "VARCHAR"),
+        ("meta_user_agent",          "TEXT"),
+        ("meta_capi_sent_at",        "TIMESTAMP WITH TIME ZONE")
     ]
     
     ADDRESS_COLS = [
@@ -644,6 +653,17 @@ async def https_middleware(request: Request, call_next):
     if forwarded_host:
         request.scope["server"] = (forwarded_host, None)
 
+    # Meta CAPI: guarda cookies (_fbp/_fbc/eco_attr), IP e user-agent da requisição
+    try:
+        from app.services.meta_capi import capture_request_context
+        capture_request_context(
+            {k.lower(): v for k, v in request.headers.items()},
+            dict(request.cookies),
+            request.client.host if request.client else None,
+        )
+    except Exception:
+        pass
+
     response = await call_next(request)
     return response
 
@@ -680,7 +700,7 @@ from app.api.endpoints import (
     auth, products, coupons, carousel, orders, settings, reviews, 
     images, news, metrics, chat, scratchcard, admin_scratchcard, 
     shipping, addresses, cart, payment, crm, cashback, raw_materials,
-    world_cup, popup, whatsapp
+    world_cup, popup, whatsapp, meta
 )
 from app.routes import webhook_me
 
@@ -730,6 +750,8 @@ app.include_router(popup.router, prefix="/popup", tags=["popup"])
 app.include_router(popup.router, prefix="/api/popup", tags=["popup_api"])
 app.include_router(whatsapp.router, prefix="/whatsapp", tags=["whatsapp"])
 app.include_router(whatsapp.router, prefix="/api/whatsapp", tags=["whatsapp_api"])
+app.include_router(meta.router, prefix="/meta", tags=["meta"])
+app.include_router(meta.router, prefix="/api/meta", tags=["meta_api"])
 app.include_router(webhook_me.router)
 app.include_router(webhook_me.router, prefix="/api")
 

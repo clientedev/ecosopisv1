@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useToast } from '@/components/Toast/Toast';
 import { useAuth } from './AuthContext';
+import { trackAddToCart } from '@/lib/metaPixel';
 
 interface CartItem {
     id: number;
@@ -109,6 +110,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     const addToCart = useCallback((product: any, quantityToAdd: number = 1) => {
         const qty = Math.max(1, quantityToAdd);
+        trackAddToCart(product, qty);
         setCart((prev) => {
             const existingItem = prev.find((item) => item.id === product.id && !item.isWholesale);
             if (existingItem) {

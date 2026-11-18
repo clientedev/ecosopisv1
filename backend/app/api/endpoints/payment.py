@@ -831,6 +831,13 @@ def _get_or_create_order(
             current_user.cart_json = None
             current_user.cart_updated_at = None
 
+    # Atribuição Meta (UTM, _fbp/_fbc, IP, user-agent) para CAPI e métricas do CRM
+    try:
+        from app.services.meta_capi import apply_attribution_to_order
+        apply_attribution_to_order(order)
+    except Exception as meta_err:
+        logger.debug(f"[Meta] atribuição não aplicada ao pedido: {meta_err}")
+
     db.flush()
     _sync_cashback_reservation(order, current_user, float(data.cashback_amount or 0.0), db)
 
@@ -1218,6 +1225,14 @@ def _schedule_post_payment_tasks(order_id: int) -> None:
 
 def _run_post_payment_tasks(order: models.Order, db: Session) -> None:
     user = db.query(models.User).filter(models.User.id == order.user_id).first() if order.user_id else None
+
+    # ── META: evento de compra via API de Conversões ────────────────────────
+    try:
+        from app.services.meta_capi import send_purchase_for_order
+        meta_res = send_purchase_for_order(order, db)
+        logger.info(f"[Meta CAPI] Purchase pedido {order.id}: {meta_res.get('status')} {meta_res.get('error') or ''}")
+    except Exception as meta_err:
+        logger.error(f"[Meta CAPI] erro ao enviar Purchase do pedido {order.id}: {meta_err}")
 
     # ── LOGISTICS: MELHOR ENVIO ──────────────────────────────────────────────
     # Envia automaticamente o pedido para o carrinho do Melhor Envio (sem finalizar compra).

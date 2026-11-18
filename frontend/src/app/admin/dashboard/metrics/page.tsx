@@ -4,6 +4,7 @@ import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
 import AdminLayout from "@/components/AdminLayout/AdminLayout";
 import styles from "../dashboard.module.css";
 import biStyles from "./metrics.module.css";
+import MetaAdsDashboard from "@/components/MetaAdsDashboard/MetaAdsDashboard";
 import {
     BarChart3, MousePointer2, Users, ShoppingBag, Bot, Download,
     TrendingUp, Layers, ArrowUpRight, PieChart as PieIcon,
@@ -128,7 +129,8 @@ export default function AdminMetricsPage() {
                             { id: "shopee", label: "Saídas Shopee", icon: <MousePointer2 size={18} /> },
                             { id: "site_clicks", label: "Cliques Comprar (Site)", icon: <ShoppingBag size={18} /> },
                             { id: "visits", label: "Visitas no Site", icon: <Users size={18} /> },
-                            { id: "lia", label: "Interações LIA", icon: <Bot size={18} /> }
+                            { id: "lia", label: "Interações LIA", icon: <Bot size={18} /> },
+                            { id: "meta", label: "Meta Ads (Face/Insta)", icon: <TrendingUp size={18} /> }
                         ].map(tab => (
                             <button
                                 key={tab.id}
@@ -140,8 +142,10 @@ export default function AdminMetricsPage() {
                         ))}
                     </div>
 
+                    {activeTab === "meta" && <MetaAdsDashboard showHeader={false} />}
+
                     {/* KPI Cards Row */}
-                    <div className={biStyles.kpiGrid}>
+                    {activeTab !== "meta" && <div className={biStyles.kpiGrid}>
                         <div className={biStyles.kpiCard}>
                             <div className={biStyles.kpiHeader}>
                                 <span className={biStyles.kpiTitle}>Cliques Comprar (Site)</span>
@@ -201,7 +205,7 @@ export default function AdminMetricsPage() {
                                 Mensagens enviadas à LIA
                             </span>
                         </div>
-                    </div>
+                    </div>}
 
                     {/* TAB CONTENT: OVERVIEW */}
                     {activeTab === "overview" && (

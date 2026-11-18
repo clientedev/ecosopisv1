@@ -10,6 +10,7 @@ import { QrCode, Plus, Minus, ShoppingBag, Leaf, ChevronDown, Sparkles, CreditCa
 import { useToast } from "@/components/Toast/Toast";
 import { useCart } from "@/context/CartContext";
 import { getStaticProductData } from "@/lib/productData";
+import { trackViewContent } from "@/lib/metaPixel";
 
 import ProductStoryCircles from "@/components/ProductStory/ProductStoryCircles";
 import ProductStoryModal from "@/components/ProductStory/ProductStoryModal";
@@ -131,6 +132,7 @@ export default function ProductDetailPage() {
                     setProduct(data);
                     setActiveImage(data.image_url || (data.images && data.images[0]) || "");
                     logVisit(`/produtos/${params.slug}`);
+                    trackViewContent(data);
                     fetchApprovedReviews(data.id);
                 }
             } catch (error) {

@@ -5,6 +5,7 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import Link from "next/link";
 import BrandLoader from "@/components/BrandLoader/BrandLoader";
+import { trackPurchase } from "@/lib/metaPixel";
 
 const STATUS_STEPS = [
     { key: "pending",   label: "Pedido Criado",       icon: "🛍️" },
@@ -149,6 +150,12 @@ function OrderContent() {
     useEffect(() => {
         fetchOrder();
     }, [fetchOrder]);
+
+    useEffect(() => {
+        if (order && ["paid", "processando_envio", "PROCESSANDO_ENVIO", "shipped", "delivered"].includes(order.status)) {
+            trackPurchase({ id: order.id, total: Number(order.total || 0), items: order.items });
+        }
+    }, [order?.id, order?.status]);
 
     useEffect(() => {
         if (!order) return;

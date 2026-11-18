@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { trackInitiateCheckout } from "@/lib/metaPixel";
 import Script from "next/script";
 import { QrCode, CreditCard, Copy, Check, Loader2, AlertCircle, Lock, Layers, RefreshCw } from "lucide-react";
 import styles from "./CheckoutTransparente.module.css";
@@ -149,6 +150,18 @@ export default function CheckoutTransparente({
             } catch (e) {}
         }
     };
+
+    // Meta: início de checkout (deduplicado por carrinho em lib/metaPixel)
+    useEffect(() => {
+        const its = Array.isArray(orderData?.items) ? orderData.items : [];
+        if (its.length) {
+            trackInitiateCheckout(
+                its.map((i: any) => ({ id: i.product_id ?? i.id, quantity: Number(i.quantity || 1), price: Number(i.price || 0) })),
+                Number(orderData.total || 0)
+            );
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Update default 50/50 split when total changes before split init
     useEffect(() => {

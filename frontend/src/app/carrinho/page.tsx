@@ -42,6 +42,7 @@ const BRAZILIAN_STATES = [
 ];
 
 import { useAuth } from "@/context/AuthContext";
+import { trackInitiateCheckout } from "@/lib/metaPixel";
 import { useLoading } from "@/context/LoadingContext";
 
 export default function CarrinhoPage() {
@@ -272,6 +273,14 @@ export default function CarrinhoPage() {
     const cashbackDiscount = useCashback ? Math.min(availableCashback, subtotal - discount) : 0;
     
     const finalTotal = Math.max(0, subtotal + shippingPrice - discount - cashbackDiscount);
+
+    // Meta: início de checkout quando o cliente sai do carrinho para endereço/pagamento
+    useEffect(() => {
+        if ((step === "address" || step === "payment") && cart.length > 0) {
+            trackInitiateCheckout(cart.map((i: any) => ({ id: i.id, quantity: i.quantity, price: i.price })), subtotal);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [step, cart.length]);
     const isWholesaleEligible = isWholesaleUnlocked;
     const wholesaleCount = cart.filter(i => i.isWholesale).reduce((acc, i) => acc + i.quantity, 0);
 

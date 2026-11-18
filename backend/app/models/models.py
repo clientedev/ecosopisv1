@@ -284,6 +284,17 @@ class Order(Base):
     pending_link_user_id = Column(Integer, nullable=True)
     account_link_token = Column(String, nullable=True)
 
+    # Meta (Facebook/Instagram) attribution + Conversions API
+    utm_source = Column(String, nullable=True)
+    utm_medium = Column(String, nullable=True)
+    utm_campaign = Column(String, nullable=True)
+    utm_content = Column(String, nullable=True)
+    meta_fbp = Column(String, nullable=True)
+    meta_fbc = Column(String, nullable=True)
+    meta_client_ip = Column(String, nullable=True)
+    meta_user_agent = Column(Text, nullable=True)
+    meta_capi_sent_at = Column(DateTime(timezone=True), nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="orders")
@@ -479,6 +490,27 @@ class SiteVisit(Base):
     id = Column(Integer, primary_key=True, index=True)
     path = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class MetaEvent(Base):
+    """Funil de eventos do Meta Pixel / API de Conversões registrado no próprio site."""
+    __tablename__ = "meta_events"
+    id = Column(Integer, primary_key=True, index=True)
+    event_name = Column(String, index=True)          # PageView, ViewContent, AddToCart, InitiateCheckout, Purchase
+    event_id = Column(String, index=True)            # usado para deduplicar pixel x CAPI
+    source = Column(String, default="browser")       # browser | server
+    path = Column(String, nullable=True)
+    is_meta_traffic = Column(Boolean, default=False, index=True)
+    utm_source = Column(String, nullable=True)
+    utm_medium = Column(String, nullable=True)
+    utm_campaign = Column(String, nullable=True)
+    utm_content = Column(String, nullable=True)
+    value = Column(Float, nullable=True)
+    order_id = Column(Integer, nullable=True, index=True)
+    product_id = Column(Integer, nullable=True)
+    visitor_id = Column(String, nullable=True, index=True)  # _fbp ou id anônimo
+    capi_status = Column(String, nullable=True)      # sent | error | skipped
+    capi_error = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 class ProductClick(Base):
     __tablename__ = "product_clicks"

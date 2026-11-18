@@ -84,6 +84,7 @@ const CATEGORIES: Category[] = [
             { label: "Usuários", path: "/admin/dashboard/usuarios", icon: <Users size={18} /> },
             { label: "Permissões Blog", path: "/admin/dashboard/blog-permissions", icon: <ShieldCheck size={18} /> },
             { label: "Métricas", path: "/admin/dashboard/metrics", icon: <BarChart3 size={18} /> },
+            { label: "Meta Ads (Face/Insta)", path: "/admin/dashboard/meta", icon: <Megaphone size={18} /> },
             { label: "CRM de Vendas", path: "/admin/dashboard/crm", icon: <TrendingUp size={18} /> },
         ]
     }

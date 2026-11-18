@@ -13,6 +13,7 @@ import WorldCupAnimation from "@/components/WorldCupAnimation/WorldCupAnimation"
 import AnniversaryAnimation from "@/components/AnniversaryAnimation/AnniversaryAnimation";
 import OutubroRosaAnimation from "@/components/OutubroRosaAnimation/OutubroRosaAnimation";
 import BlackFridayAnimation from "@/components/BlackFridayAnimation/BlackFridayAnimation";
+import MetaPixel from "@/components/MetaPixel/MetaPixel";
 
 const raleway = Raleway({
     subsets: ["latin"],
@@ -59,6 +60,7 @@ export default function RootLayout({
     return (
         <html lang="pt-BR" suppressHydrationWarning>
             <head>
+                <link rel="preconnect" href="https://connect.facebook.net" />
                 {/* Runs before first paint: apply the last known seasonal theme so the
                     entry splash already shows in the right colors. */}
                 <script
@@ -75,6 +77,7 @@ export default function RootLayout({
                                 <Suspense fallback={<BrandLoader />}>
                                     <LoadingProvider>
                                         <DynamicBranding />
+                                        <MetaPixel />
                                         <HeartAnimation />
                                         <WorldCupAnimation />
                                         <AnniversaryAnimation />

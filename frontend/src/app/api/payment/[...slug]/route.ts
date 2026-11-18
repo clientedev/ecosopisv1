@@ -20,6 +20,22 @@ async function proxyPaymentRequest(req: NextRequest, { params }: { params: { slu
     const contentType = req.headers.get('content-type');
     if (contentType) headers['Content-Type'] = contentType;
 
+    // Meta (Pixel/CAPI): repassa cookies de atribuição (_fbp, _fbc, eco_attr), IP e user-agent do visitante
+    const cookie = req.headers.get('cookie');
+    if (cookie) {
+      const keep = cookie
+        .split(';')
+        .map((c) => c.trim())
+        .filter((c) => /^(_fbp|_fbc|eco_attr|eco_vid)=/.test(c))
+        .join('; ');
+      if (keep) headers['Cookie'] = keep;
+    }
+    const fwd = req.headers.get('x-forwarded-for') || '';
+    const clientIp = req.headers.get('x-eco-client-ip') || (fwd.split(',')[0] || '').trim() || req.headers.get('x-real-ip') || '';
+    if (clientIp) headers['X-Eco-Client-Ip'] = clientIp;
+    const ua = req.headers.get('x-eco-client-ua') || req.headers.get('user-agent');
+    if (ua) headers['X-Eco-Client-Ua'] = ua;
+
     let body: any = undefined;
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       try {
