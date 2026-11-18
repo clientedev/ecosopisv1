@@ -351,3 +351,81 @@ def meta_dashboard(period: str = "30d", db: Session = Depends(get_db), admin=Dep
         } for o in recent],
         "ads": ads,
     }
+
+
+# ── Feed de produtos para o Catálogo da Meta ──────────────────────────────────
+# URL pública para "Fonte de dados > Feed programado" no Gerenciador de Comércio:
+#   https://www.ecosopis.com.br/api/meta/catalog.xml
+# Os IDs são os mesmos do site, então batem com os content_ids do Pixel/CAPI.
+from fastapi.responses import Response as _Response
+from xml.sax.saxutils import escape as _xml_escape
+import re as _re
+
+
+def _abs_url(u: Optional[str]) -> Optional[str]:
+    if not u:
+        return None
+    u = str(u).strip()
+    if u.startswith("//"):
+        return "https:" + u
+    if u.startswith("http://") or u.startswith("https://"):
+        return u
+    return meta_capi.SITE_URL.rstrip("/") + "/" + u.lstrip("/")
+
+
+def _plain(text: Optional[str], limit: int = 4900) -> str:
+    t = _re.sub(r"<[^>]+>", " ", text or "")
+    t = _re.sub(r"\s+", " ", t).strip()
+    return t[:limit]
+
+
+@router.get("/catalog.xml")
+def catalog_feed(db: Session = Depends(get_db)):
+    products = (
+        db.query(models.Product)
+        .filter(models.Product.is_active == True)  # noqa: E712
+        .order_by(models.Product.order.asc(), models.Product.id.asc())
+        .all()
+    )
+    site = meta_capi.SITE_URL.rstrip("/")
+    items = []
+    for p in products:
+        if getattr(p, "is_wholesale", False) or getattr(p, "buy_on_site", True) is False:
+            continue
+        price = float(p.price or 0)
+        if price <= 0 or not p.slug:
+            continue
+        image = _abs_url(p.image_url) or next((_abs_url(x) for x in (p.images or []) if x), None)
+        if not image:
+            continue
+        extra_imgs = [_abs_url(x) for x in (p.images or []) if x and _abs_url(x) != image][:9]
+        desc = _plain(p.description) or _plain(p.benefits) or p.name
+        fields = {
+            "g:id": str(p.id),
+            "g:title": p.name[:150],
+            "g:description": desc,
+            "g:link": f"{site}/produtos/{p.slug}",
+            "g:image_link": image,
+            "g:availability": "in stock" if (p.stock or 0) > 0 else "out of stock",
+            "g:condition": "new",
+            "g:price": f"{price:.2f} BRL",
+            "g:brand": "Ecosopis",
+        }
+        if p.is_on_sale and p.sale_price and 0 < float(p.sale_price) < price:
+            fields["g:sale_price"] = f"{float(p.sale_price):.2f} BRL"
+        if p.category:
+            fields["g:product_type"] = p.category
+        if (p.stock or 0) > 0:
+            fields["g:quantity_to_sell_on_facebook"] = str(int(p.stock))
+        xml = "".join(f"<{k}>{_xml_escape(str(v))}</{k}>" for k, v in fields.items())
+        xml += "".join(f"<g:additional_image_link>{_xml_escape(u)}</g:additional_image_link>" for u in extra_imgs)
+        items.append(f"<item>{xml}</item>")
+
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<rss xmlns:g="http://base.google.com/ns/1.0" version="2.0"><channel>'
+        f"<title>Ecosopis</title><link>{site}</link><description>Catálogo Ecosopis</description>"
+        + "".join(items)
+        + "</channel></rss>"
+    )
+    return _Response(content=body, media_type="application/xml", headers={"Cache-Control": "public, max-age=900"})
