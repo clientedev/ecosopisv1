@@ -526,19 +526,38 @@ def sync_all_active_shipping(
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     from app.services.melhorenvio_service import sync_melhor_envio_status
-    orders = db.query(models.Order).filter(
-        models.Order.status.in_(["paid", "processando_envio", "shipped", "erro_envio"]),
-        models.Order.shipment_id.isnot(None)
-    ).all()
+    from app.core.database import SessionLocal
+    from concurrent.futures import ThreadPoolExecutor
 
-    results = []
-    for o in orders:
+    order_ids = [
+        row[0] for row in db.query(models.Order.id).filter(
+            models.Order.status.in_(["paid", "processando_envio", "shipped", "erro_envio"]),
+            models.Order.shipment_id.isnot(None)
+        ).all()
+    ]
+
+    def _sync_one(oid: int):
+        # Sessão própria por thread (Session do SQLAlchemy não é thread-safe).
+        # Em paralelo para não estourar o timeout do proxy (~30s) quando há muitos pedidos.
+        sess = SessionLocal()
         try:
-            res = sync_melhor_envio_status(o, db)
-            results.append(res)
+            o = sess.query(models.Order).filter(models.Order.id == oid).first()
+            if not o:
+                return {"pedido_id": oid, "erro": "pedido não encontrado"}
+            return sync_melhor_envio_status(o, sess)
         except Exception as e:
-            logger.error(f"Erro ao sincronizar pedido #{o.id}: {e}")
-            results.append({"pedido_id": o.id, "erro": str(e)})
+            logger.error(f"Erro ao sincronizar pedido #{oid}: {e}")
+            try:
+                sess.rollback()
+            except Exception:
+                pass
+            return {"pedido_id": oid, "erro": str(e)}
+        finally:
+            sess.close()
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(pool.map(_sync_one, order_ids))
+    orders = order_ids
 
     return {"total": len(orders), "synced": len(results), "details": results}
 
