@@ -1110,3 +1110,20 @@
         padding-right: 10px;
     }
 }
+
+/* Usuário logado: nome nunca alarga o header (corta com reticências e some em janelas médias) */
+.userName {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+@media (min-width: 901px) and (max-width: 1500px) {
+    .userName,
+    .chevron {
+        display: none;
+    }
+    .userButton {
+        padding: 4px;
+    }
+}
