@@ -20,7 +20,7 @@ export default function Envio() {
         {
             icon: "🎁",
             name: "Frete Grátis",
-            description: "Para compras acima de R$ 150",
+            description: "Sul e Sudeste acima de R$ 148,90; demais regiões acima de R$ 248,90",
             time: "5–8 dias úteis",
             price: "Grátis"
         }

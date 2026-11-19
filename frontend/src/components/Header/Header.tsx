@@ -497,7 +497,7 @@ export default function Header() {
                             const sulSudesteStates = ['SP', 'RJ', 'MG', 'ES', 'PR', 'SC', 'RS'];
                             const userState = user?.addresses?.[0]?.state?.toUpperCase();
                             const isSulSudeste = !userState || sulSudesteStates.includes(userState);
-                            const threshold = isSulSudeste ? 148.90 : 250.00;
+                            const threshold = isSulSudeste ? 148.90 : 248.90;
                             const regionName = isSulSudeste ? "(Sul/Sudeste)" : "(Demais Regiões)";
                             
                             return (
