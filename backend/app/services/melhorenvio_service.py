@@ -481,6 +481,49 @@ def remover_do_carrinho_melhor_envio(shipment_id: str) -> bool:
 # 2. Criar envio no carrinho
 # ---------------------------------------------------------------------------
 
+_PACOTE_PADRAO_ANTIGO = (16.0, 12.0, 20.0, 0.3)
+
+
+def resolver_embalagem(pedido, package_dimensions: Optional[dict] = None) -> dict:
+    """
+    Define embalagem/peso do envio SEM edição manual:
+      1. Valores explícitos (API) ou customizações antigas gravadas no pedido, se forem diferentes do padrão antigo;
+      2. Caso contrário, estima pelos produtos do pedido (tipo, quantidade, kits de atacado).
+    Retorna {"width","height","length","weight","box"}.
+    """
+    from app.core.package_estimator import estimate_package
+
+    def _num(v):
+        try:
+            f = float(v)
+            return f if f > 0 else None
+        except (TypeError, ValueError):
+            return None
+
+    cand = {
+        "width": _num((package_dimensions or {}).get("width")),
+        "height": _num((package_dimensions or {}).get("height")),
+        "length": _num((package_dimensions or {}).get("length")),
+        "weight": _num((package_dimensions or {}).get("weight")),
+    }
+    explicit = all(cand.values()) and (cand["width"], cand["height"], cand["length"], cand["weight"]) != _PACOTE_PADRAO_ANTIGO
+    if not explicit:
+        order = getattr(pedido, "_order", None)
+        saved = {
+            "width": _num(getattr(order, "package_width", None)),
+            "height": _num(getattr(order, "package_height", None)),
+            "length": _num(getattr(order, "package_length", None)),
+            "weight": _num(getattr(order, "package_weight", None)),
+        }
+        if all(saved.values()) and (saved["width"], saved["height"], saved["length"], saved["weight"]) != _PACOTE_PADRAO_ANTIGO:
+            cand, explicit = saved, True
+    if explicit:
+        return {**cand, "box": "manual"}
+
+    items = [{"name": i["name"], "quantity": i["quantity"]} for i in pedido.items_list]
+    return estimate_package(items)
+
+
 def criar_envio(
     pedido,
     service_id: int,
@@ -548,32 +591,12 @@ def criar_envio(
         })
         total_weight += (item["weight"] * item["quantity"])
 
-    # Garante peso mínimo de 0.1kg e máximo razoável
-    total_weight = max(total_weight, 0.1)
-    
-    # Determina dimensões básicas com base no peso (estimativa padrão)
-    width, height, length = 16, 12, 20
-    if total_weight > 2: # Caixa maior para atacado
-        width, height, length = 25, 15, 30
-    if total_weight > 10:
-        width, height, length = 40, 30, 40
+    # Embalagem e peso estimados automaticamente pelos produtos (ou valores explícitos, se houver)
+    pacote = resolver_embalagem(pedido, package_dimensions)
+    width, height, length = pacote["width"], pacote["height"], pacote["length"]
+    total_weight = pacote["weight"]
 
-    # Dimensões e peso customizados pelo administrador (payload ou pedido)
-    custom_w = (package_dimensions or {}).get("width") or getattr(pedido, "package_width", None)
-    custom_h = (package_dimensions or {}).get("height") or getattr(pedido, "package_height", None)
-    custom_l = (package_dimensions or {}).get("length") or getattr(pedido, "package_length", None)
-    custom_weight = (package_dimensions or {}).get("weight") or getattr(pedido, "package_weight", None)
-
-    if custom_w and float(custom_w) > 0:
-        width = float(custom_w)
-    if custom_h and float(custom_h) > 0:
-        height = float(custom_h)
-    if custom_l and float(custom_l) > 0:
-        length = float(custom_l)
-    if custom_weight and float(custom_weight) > 0:
-        total_weight = float(custom_weight)
-
-    logger.info(f"[ME] Embalagem final: {length}x{width}x{height}cm, peso: {total_weight}kg para pedido #{pedido.id}")
+    logger.info(f"[ME] Embalagem final ({pacote.get('box')}): {length}x{width}x{height}cm, peso: {total_weight}kg para pedido #{pedido.id}")
 
     payload = {
         "service": service_id,
@@ -1022,7 +1045,7 @@ def processar_envio(
                     pedido.valor,
                     pedido.produto_nome,
                     shipping_method=shipping_method,
-                    package_dimensions=package_dimensions
+                    package_dimensions=resolver_embalagem(pedido, package_dimensions)
                 )
             resultado["service_id"] = service_id
 

@@ -346,6 +346,13 @@ def generate_label(
 
         # Se forçar recriação ou alterar pacote/transportadora para pedido ainda não entregue
         if (payload.force_recreate or has_package_override) and order.status != "delivered":
+            # Evita item duplicado no carrinho do Melhor Envio (só remove se ainda não foi pago)
+            if order.shipment_id:
+                try:
+                    from app.services.melhorenvio_service import remover_do_carrinho_melhor_envio
+                    remover_do_carrinho_melhor_envio(order.shipment_id)
+                except Exception as exc:
+                    logger.warning(f"[ME] Não foi possível limpar o carrinho antes de recriar: {exc}")
             order.shipment_id = None
             order.etiqueta_url = None
             order.correios_label_url = None
@@ -371,19 +378,25 @@ def generate_label(
 
     pedido = Pedido.from_order(order)
     
-    # 1. Se ainda não possui envio criado no Melhor Envio, envia apenas para o carrinho
+    # 1. Se ainda não possui envio criado no Melhor Envio, envia apenas para o carrinho.
+    #    Embalagem/peso são estimados automaticamente pelos produtos e, em frete grátis,
+    #    a transportadora é SEMPRE a opção mais barata (sem compra automática).
     if not order.shipment_id:
-        package_dims = {
-            "width": getattr(order, "package_width", None) or 16.0,
-            "height": getattr(order, "package_height", None) or 12.0,
-            "length": getattr(order, "package_length", None) or 20.0,
-            "weight": getattr(order, "package_weight", None) or 0.3,
-        }
+        explicit_dims = None
+        if payload and all(
+            getattr(payload, f) for f in ("package_width", "package_height", "package_length", "package_weight")
+        ):
+            explicit_dims = {
+                "width": payload.package_width,
+                "height": payload.package_height,
+                "length": payload.package_length,
+                "weight": payload.package_weight,
+            }
         resultado = me_service.processar_envio(
             pedido,
             db,
-            service_id_override=getattr(order, "shipping_service_id", None),
-            package_dimensions=package_dims,
+            service_id_override=(payload.shipping_service_id if payload else None),
+            package_dimensions=explicit_dims,
             force_create=True
         )
         if resultado.get("erro"):
@@ -585,17 +598,15 @@ def quote_order_shipping(
     pedido = Pedido.from_order(order)
     dest_cep = pedido.cep_cliente
 
-    width = (payload.package_width if payload and payload.package_width else getattr(order, "package_width", None)) or 16.0
-    height = (payload.package_height if payload and payload.package_height else getattr(order, "package_height", None)) or 12.0
-    length = (payload.package_length if payload and payload.package_length else getattr(order, "package_length", None)) or 20.0
-    
-    # Se package_weight não foi informado ou é o default 0.3 sem personalização, usa o peso estimado aproximado
-    if payload and payload.package_weight and float(payload.package_weight) > 0:
-        weight = float(payload.package_weight)
-    elif getattr(order, "package_weight", None) and float(order.package_weight) > 0 and float(order.package_weight) != 0.3:
-        weight = float(order.package_weight)
-    else:
-        weight = pedido.estimated_weight
+    from app.services.melhorenvio_service import resolver_embalagem
+    explicit = None
+    if payload and all(getattr(payload, f) for f in ("package_width", "package_height", "package_length", "package_weight")):
+        explicit = {
+            "width": payload.package_width, "height": payload.package_height,
+            "length": payload.package_length, "weight": payload.package_weight,
+        }
+    pacote = resolver_embalagem(pedido, explicit)
+    width, height, length, weight = pacote["width"], pacote["height"], pacote["length"], pacote["weight"]
 
     insurance_val = max(float(pedido.valor or order.total or 10.0), 0.01)
 

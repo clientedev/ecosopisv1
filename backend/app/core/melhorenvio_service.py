@@ -154,10 +154,7 @@ class MelhorEnvioService:
 
             return unit_w * qty_mult
 
-        total_quantity = sum(item.get("quantity", 1) for item in items)
         total_price = sum(item.get("price", 0) * item.get("quantity", 1) for item in items)
-        calculated_weight = sum(_get_item_weight(item) * item.get("quantity", 1) for item in items)
-        total_weight = round(max(calculated_weight, 0.10), 2)
 
         # Se for um item único com dimensões explícitas passadas (ex: pacote único)
         if len(items) == 1 and items[0].get("width") and items[0].get("height") and items[0].get("length") and items[0].get("weight") and not items[0].get("name"):
@@ -167,16 +164,11 @@ class MelhorEnvioService:
             total_weight = float(items[0]["weight"])
             insurance_value = max(float(items[0].get("price") or total_price), 1.0)
         else:
-            if total_quantity <= 2:
-                width, height, length = 16, 12, 20
-            elif total_quantity <= 5:
-                width, height, length = 20, 20, 20
-            else:
-                width, height, length = 30, 25, 25
-
-            width = max(width, 16)
-            height = max(height, 12)
-            length = max(length, 20)
+            # Embalagem estimada pelos produtos (mesma lógica usada na emissão da etiqueta)
+            from app.core.package_estimator import estimate_package
+            pkg = estimate_package(items)
+            width, height, length = pkg["width"], pkg["height"], pkg["length"]
+            total_weight = pkg["weight"]
             insurance_value = max(total_price, 1.0)
 
         payload = {
