@@ -613,6 +613,12 @@ async def startup_event():
             db.close()
             
         logger.info("Startup completed successfully.")
+        # Atualiza pedidos (Enviado/Entregue) sozinho depois que a etiqueta é comprada no Melhor Envio
+        try:
+            from app.services.me_auto_sync import iniciar as _iniciar_me_auto_sync
+            _iniciar_me_auto_sync()
+        except Exception as sync_err:
+            logger.error(f"Falha ao iniciar sincronização automática do Melhor Envio: {sync_err}")
     except Exception as e:
         logger.error(f"Startup Failure: {e}", exc_info=True)
 
