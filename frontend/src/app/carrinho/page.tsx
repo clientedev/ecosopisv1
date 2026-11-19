@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
@@ -365,14 +365,23 @@ export default function CarrinhoPage() {
         }
     }, [token, step, isMobile, mobileStep]);
 
-    // Auto-select cheapest option when free shipping is earned
+    // Quando o frete grátis é conquistado (valor da compra OU cupom de frete grátis),
+    // seleciona automaticamente a opção MAIS BARATA. Roda uma vez por combinação
+    // (grátis conquistado + opção mais barata), então o cliente ainda pode escolher outra manualmente.
+    const lastAutoFreeShippingKey = useRef<string>("");
     useEffect(() => {
-        if (appliesFreeShipping && cheapestOption) {
-            if (!selectedShipping || (selectedShipping.id !== cheapestOption.id && shippingPrice > 0)) {
-                setSelectedShipping(cheapestOption);
-            }
+        const freeEarned = appliesFreeShipping || appliedCoupon?.type === "free_shipping";
+        if (!freeEarned || !cheapestOption) {
+            lastAutoFreeShippingKey.current = "";
+            return;
         }
-    }, [appliesFreeShipping, cheapestOption, selectedShipping, shippingPrice]);
+        const key = `${cep}|${cheapestOption.id}|${cheapestOption.price}`;
+        if (lastAutoFreeShippingKey.current === key) return;
+        lastAutoFreeShippingKey.current = key;
+        if (!selectedShipping || selectedShipping.id !== cheapestOption.id) {
+            setSelectedShipping(cheapestOption);
+        }
+    }, [appliesFreeShipping, appliedCoupon, cheapestOption, selectedShipping, cep]);
 
     // Calculate shipping whenever valid CEP and cart changes
     const [shippingError, setShippingError] = useState<string | null>(null);

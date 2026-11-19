@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header/Header";
@@ -300,6 +300,23 @@ export default function FinalizarCompraWhatsAppPage() {
     if (!shippingOptions || shippingOptions.length === 0) return null;
     return [...shippingOptions].sort((a, b) => Number(a.price || 0) - Number(b.price || 0))[0];
   }, [shippingOptions]);
+
+  // Frete grátis conquistado (valor da compra ou cupom): seleciona automaticamente a opção mais barata.
+  // Roda uma vez por combinação, então o cliente ainda pode escolher outra manualmente.
+  const lastAutoFreeShippingKey = useRef<string>("");
+  useEffect(() => {
+    const freeEarned = appliesFreeShipping || appliedCoupon?.type === "free_shipping";
+    if (!freeEarned || !cheapestOption) {
+      lastAutoFreeShippingKey.current = "";
+      return;
+    }
+    const key = `${cep}|${cheapestOption.id}|${cheapestOption.price}`;
+    if (lastAutoFreeShippingKey.current === key) return;
+    lastAutoFreeShippingKey.current = key;
+    if (!selectedShipping || selectedShipping.id !== cheapestOption.id) {
+      setSelectedShipping(cheapestOption);
+    }
+  }, [appliesFreeShipping, appliedCoupon, cheapestOption, selectedShipping, cep]);
 
   // Cálculo de Frete automático ao ter CEP válido e itens (formato exato do /api/shipping/calculate)
   const calculateShippingForCep = useCallback(
