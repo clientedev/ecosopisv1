@@ -256,10 +256,11 @@ export default function CarrinhoPage() {
             return [...shippingOptions].sort((a, b) => {
                 if (a.id === cheapestOption.id) return -1;
                 if (b.id === cheapestOption.id) return 1;
-                return (a.price || 0) - (b.price || 0);
+                return Number(a.price || 0) - Number(b.price || 0);
             });
         }
-        return shippingOptions;
+        // Sem frete grátis o cliente escolhe a transportadora, sempre listada da mais barata para a mais cara
+        return [...shippingOptions].sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
     }, [shippingOptions, appliesFreeShipping, appliedCoupon, cheapestOption]);
 
     const isSelectedShippingFree = (selectedShipping && cheapestOption && selectedShipping.id === cheapestOption.id && appliesFreeShipping) || (appliedCoupon?.type === "free_shipping");

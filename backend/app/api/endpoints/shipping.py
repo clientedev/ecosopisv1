@@ -118,6 +118,11 @@ def calculate_shipping(request: ShippingRequest, db: Session = Depends(get_db)):
             },
         ]
         logger.info(f"Fallback regional de frete aplicado para CEP {clean_cep}: {options}")
+    # Sempre da opção mais barata para a mais cara
+    try:
+        options = sorted(options, key=lambda o: float(o.get("price") or 0))
+    except Exception:
+        pass
     return options
 
 @router.get("/test-connection")

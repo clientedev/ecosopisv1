@@ -1575,7 +1575,7 @@ export default function FinalizarCompraWhatsAppPage() {
                   </div>
                 ) : (
                   <div className={styles.shippingList}>
-                    {shippingOptions.map((opt, idx) => {
+                    {[...shippingOptions].sort((a, b) => Number(a.price || 0) - Number(b.price || 0)).map((opt, idx) => {
                       const isSelected =
                         selectedShipping &&
                         (selectedShipping.id === opt.id || selectedShipping.name === opt.name);
