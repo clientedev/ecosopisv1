@@ -14,7 +14,7 @@ import AnniversaryAnimation from "@/components/AnniversaryAnimation/AnniversaryA
 import OutubroRosaAnimation from "@/components/OutubroRosaAnimation/OutubroRosaAnimation";
 import BlackFridayAnimation from "@/components/BlackFridayAnimation/BlackFridayAnimation";
 import MetaPixel from "@/components/MetaPixel/MetaPixel";
-import { SITE_URL, SITE_NAME, DEFAULT_TITLE, DEFAULT_DESCRIPTION, DEFAULT_OG_IMAGE, INSTAGRAM_URL, jsonLd } from "@/lib/seo";
+import { SITE_URL, SITE_NAME, SITE_ALTERNATE_NAMES, DEFAULT_TITLE, DEFAULT_DESCRIPTION, DEFAULT_OG_IMAGE, INSTAGRAM_URL, jsonLd } from "@/lib/seo";
 
 const raleway = Raleway({
     subsets: ["latin"],
@@ -37,7 +37,7 @@ const cinzel = Cinzel({
 
 export const metadata: Metadata = {
     metadataBase: new URL(SITE_URL),
-    title: { default: DEFAULT_TITLE, template: "%s | ECOSOPIS" },
+    title: { default: DEFAULT_TITLE, template: "%s | Ecosopis" },
     description: DEFAULT_DESCRIPTION,
     applicationName: SITE_NAME,
     keywords: [
@@ -67,8 +67,11 @@ const ORG_JSON_LD = {
             "@type": "Organization",
             "@id": `${SITE_URL}/#organization`,
             name: SITE_NAME,
+            alternateName: SITE_ALTERNATE_NAMES,
+            description: DEFAULT_DESCRIPTION,
             url: SITE_URL,
-            logo: `${SITE_URL}/logo_final.png`,
+            logo: { "@type": "ImageObject", url: `${SITE_URL}/icon.png`, width: 512, height: 512 },
+            image: `${SITE_URL}/logo_final.png`,
             email: "contato@ecosopis.com.br",
             sameAs: [INSTAGRAM_URL],
             contactPoint: [{ "@type": "ContactPoint", contactType: "customer service", email: "contato@ecosopis.com.br", areaServed: "BR", availableLanguage: "Portuguese" }],
@@ -78,6 +81,8 @@ const ORG_JSON_LD = {
             "@id": `${SITE_URL}/#website`,
             url: SITE_URL,
             name: SITE_NAME,
+            alternateName: SITE_ALTERNATE_NAMES,
+            description: DEFAULT_DESCRIPTION,
             inLanguage: "pt-BR",
             publisher: { "@id": `${SITE_URL}/#organization` },
             potentialAction: {
