@@ -2,8 +2,9 @@
 import { getStaticProductData } from "@/lib/productData";
 
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.ecosopis.com.br").replace(/\/$/, "");
-export const SITE_NAME = "ECOSOPIS";
-export const DEFAULT_TITLE = "ECOSOPIS | Cosméticos Naturais, Veganos e Artesanais";
+export const SITE_NAME = "Ecosopis";
+export const SITE_ALTERNATE_NAMES = ["ECOSOPIS", "Ecosopis Cosméticos Naturais"];
+export const DEFAULT_TITLE = "Ecosopis | Cosméticos Naturais, Veganos e Artesanais";
 export const DEFAULT_DESCRIPTION =
     "Cosméticos naturais, veganos e artesanais: sabonetes naturais, óleos essenciais 100% puros, óleos vegetais, manteigas, cremes e tônicos capilares. Compre online com entrega para todo o Brasil.";
 export const DEFAULT_OG_IMAGE = "/logo_final.png";
