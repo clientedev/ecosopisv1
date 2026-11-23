@@ -75,7 +75,16 @@ def calculate_shipping(request: ShippingRequest, db: Session = Depends(get_db)):
         except Exception:
             pass
     if not options:
-        # Fallback regional resiliente para garantir que o cliente nunca seja impedido de comprar
+        err = (error or "").lower()
+        # Erros "do cliente": CEP inexistente / sem cobertura. Nunca inventar preço.
+        if (error or "").startswith(("CEP de destino inválido", "Dados inválidos", "Nenhuma")):
+            logger.warning(f"Frete indisponível para CEP {request.dest_cep}: {error}")
+            msg = ("CEP não encontrado ou inválido. Confira o CEP digitado."
+                   if "inválid" in err else
+                   "Nenhuma transportadora atende este CEP no momento. Confira o CEP ou fale conosco.")
+            raise HTTPException(status_code=422, detail=msg)
+        # Falha temporária do Melhor Envio (timeout/conexão/5xx/token): tabela estimada.
+        logger.error(f"Melhor Envio indisponível ({error}); usando tabela estimada.")
         clean_cep = "".join(filter(str.isdigit, request.dest_cep or ""))
         prefix = int(clean_cep[:2]) if len(clean_cep) >= 2 and clean_cep[:2].isdigit() else 1
         is_sp = 1 <= prefix <= 19

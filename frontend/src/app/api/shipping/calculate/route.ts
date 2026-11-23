@@ -2,50 +2,6 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-function getFallbackOptions(destCep: string) {
-  const prefix = parseInt(destCep.substring(0, 2) || '1', 10);
-  const isSP = prefix >= 1 && prefix <= 19;
-  const isSouthSoutheast = (prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99);
-
-  return [
-    {
-      id: 31,
-      company: 'Loggi',
-      name: 'Express',
-      price: isSP ? 9.85 : isSouthSoutheast ? 15.9 : 24.9,
-      delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6,
-    },
-    {
-      id: 34,
-      company: 'Loggi',
-      name: 'Loggi Ponto',
-      price: isSP ? 10.47 : isSouthSoutheast ? 16.5 : 25.5,
-      delivery_time: isSP ? 3 : isSouthSoutheast ? 5 : 7,
-    },
-    {
-      id: 33,
-      company: 'JeT',
-      name: 'Standard',
-      price: isSP ? 14.9 : isSouthSoutheast ? 19.9 : 28.9,
-      delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6,
-    },
-    {
-      id: 1,
-      company: 'Correios',
-      name: 'PAC',
-      price: isSP ? 16.9 : isSouthSoutheast ? 22.9 : 31.9,
-      delivery_time: isSP ? 4 : isSouthSoutheast ? 6 : 9,
-    },
-    {
-      id: 2,
-      company: 'Correios',
-      name: 'SEDEX',
-      price: isSP ? 21.9 : isSouthSoutheast ? 32.9 : 48.9,
-      delivery_time: isSP ? 2 : isSouthSoutheast ? 3 : 5,
-    },
-  ];
-}
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -59,7 +15,7 @@ export async function POST(req: Request) {
     const normalizedItems = Array.isArray(body?.items) && body.items.length > 0
       ? body.items.map((item: any, idx: number) => ({
           id: String(item?.id || idx + 1),
-          name: item?.name || `Produto ${idx + 1}`,
+          name: item?.name || '',
           width: Number(item?.width) || 16,
           height: Number(item?.height) || 12,
           length: Number(item?.length) || 20,
@@ -124,16 +80,24 @@ export async function POST(req: Request) {
           if (Array.isArray(data) && data.length > 0) {
             return NextResponse.json(data);
           }
+        } else if (backendRes.status === 422 || backendRes.status === 400) {
+          const j = await backendRes.json().catch(() => ({}));
+          return NextResponse.json(
+            { error: typeof j?.detail === 'string' ? j.detail : 'CEP inválido ou sem cobertura.' },
+            { status: 422 }
+          );
         }
       } catch (backendErr) {
         // Tenta proxima base ou segue para o fallback
       }
     }
 
-    // Fallback completo com todas as transportadoras (Loggi, J&T, Correios)
-    return NextResponse.json(getFallbackOptions(destCep));
+    return NextResponse.json(
+      { error: 'Não foi possível calcular o frete agora. Tente novamente em instantes.' },
+      { status: 503 }
+    );
   } catch (err: any) {
     console.error('[Shipping Route Error]:', err);
-    return NextResponse.json(getFallbackOptions('01001000'), { status: 200 });
+    return NextResponse.json({ error: 'Erro ao calcular o frete.' }, { status: 500 });
   }
 }

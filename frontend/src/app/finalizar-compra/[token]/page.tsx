@@ -161,6 +161,7 @@ export default function FinalizarCompraWhatsAppPage() {
 
   // Frete
   const [shippingOptions, setShippingOptions] = useState<any[]>([]);
+  const [shippingError, setShippingError] = useState<string | null>(null);
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
   const [loadingShipping, setLoadingShipping] = useState(false);
 
@@ -325,6 +326,7 @@ export default function FinalizarCompraWhatsAppPage() {
       if (cleanCep.length !== 8 || items.length === 0) return;
 
       setLoadingShipping(true);
+      setShippingError(null);
       try {
         const reqBody = {
           dest_cep: cleanCep,
@@ -361,56 +363,21 @@ export default function FinalizarCompraWhatsAppPage() {
         });
 
         let list: any[] = [];
+        let apiError: string | null = null;
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data)) {
             list = data;
           }
+        } else {
+          try { const j = await res.json(); apiError = j?.error || j?.detail || null; } catch { }
         }
 
-        // Fallback regional caso o Melhor Envio retorne vazio/503
         if (list.length === 0) {
-          const prefix = parseInt(cleanCep.substring(0, 2) || "1", 10);
-          const isSP = prefix >= 1 && prefix <= 19;
-          const isSouthSoutheast =
-            (prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99);
-          list = [
-            {
-              id: 31,
-              company: "Loggi",
-              name: "Express",
-              price: isSP ? 9.85 : isSouthSoutheast ? 15.9 : 24.9,
-              delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6,
-            },
-            {
-              id: 34,
-              company: "Loggi",
-              name: "Loggi Ponto",
-              price: isSP ? 10.47 : isSouthSoutheast ? 16.5 : 25.5,
-              delivery_time: isSP ? 3 : isSouthSoutheast ? 5 : 7,
-            },
-            {
-              id: 33,
-              company: "JeT",
-              name: "Standard",
-              price: isSP ? 14.9 : isSouthSoutheast ? 19.9 : 28.9,
-              delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6,
-            },
-            {
-              id: 1,
-              company: "Correios",
-              name: "PAC",
-              price: isSP ? 16.9 : isSouthSoutheast ? 22.9 : 31.9,
-              delivery_time: isSP ? 4 : isSouthSoutheast ? 6 : 9,
-            },
-            {
-              id: 2,
-              company: "Correios",
-              name: "SEDEX",
-              price: isSP ? 21.9 : isSouthSoutheast ? 32.9 : 48.9,
-              delivery_time: isSP ? 2 : isSouthSoutheast ? 3 : 5,
-            },
-          ];
+          setShippingOptions([]);
+          setSelectedShipping(null);
+          setShippingError(apiError || "Não foi possível calcular o frete para este CEP.");
+          return;
         }
 
         const sorted = [...list].sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
@@ -429,27 +396,9 @@ export default function FinalizarCompraWhatsAppPage() {
         }
       } catch (err) {
         console.error("Erro ao calcular frete:", err);
-        const prefix = parseInt(cleanCep.substring(0, 2) || "1", 10);
-        const isSP = prefix >= 1 && prefix <= 19;
-        const isSouthSoutheast = (prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99);
-        const fallbackList = [
-          {
-            id: 1,
-            company: "Correios",
-            name: "PAC",
-            price: isSP ? 16.9 : isSouthSoutheast ? 22.9 : 31.9,
-            delivery_time: isSP ? 4 : isSouthSoutheast ? 6 : 9,
-          },
-          {
-            id: 2,
-            company: "Correios",
-            name: "SEDEX",
-            price: isSP ? 21.9 : isSouthSoutheast ? 32.9 : 48.9,
-            delivery_time: isSP ? 2 : isSouthSoutheast ? 3 : 5,
-          },
-        ];
-        setShippingOptions(fallbackList);
-        setSelectedShipping(fallbackList[0]);
+        setShippingOptions([]);
+        setSelectedShipping(null);
+        setShippingError("Não foi possível calcular o frete agora. Tente novamente.");
       } finally {
         setLoadingShipping(false);
       }
@@ -1571,7 +1520,7 @@ export default function FinalizarCompraWhatsAppPage() {
                       borderRadius: "12px",
                     }}
                   >
-                    Informe um CEP válido de 8 dígitos acima para calcular as opções de entrega.
+                    {shippingError ? `⚠️ ${shippingError}` : "Informe um CEP válido de 8 dígitos acima para calcular as opções de entrega."}
                   </div>
                 ) : (
                   <div className={styles.shippingList}>

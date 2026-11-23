@@ -424,24 +424,21 @@ export default function CarrinhoPage() {
                         body: JSON.stringify(reqBody)
                     });
                     let list: any[] = [];
+                    let apiError: string | null = null;
                     if (res.ok) {
                         const data = await res.json();
                         if (Array.isArray(data)) {
                             list = data;
                         }
+                    } else {
+                        try { const j = await res.json(); apiError = j?.error || j?.detail || null; } catch {}
                     }
 
                     if (list.length === 0) {
-                        const prefix = parseInt(cleanCep.substring(0, 2) || "1", 10);
-                        const isSP = prefix >= 1 && prefix <= 19;
-                        const isSouthSoutheast = (prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99);
-                        list = [
-                            { id: 31, company: "Loggi", name: "Express", price: isSP ? 9.85 : isSouthSoutheast ? 15.9 : 24.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6 },
-                            { id: 34, company: "Loggi", name: "Loggi Ponto", price: isSP ? 10.47 : isSouthSoutheast ? 16.5 : 25.5, delivery_time: isSP ? 3 : isSouthSoutheast ? 5 : 7 },
-                            { id: 33, company: "JeT", name: "Standard", price: isSP ? 14.9 : isSouthSoutheast ? 19.9 : 28.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6 },
-                            { id: 1, company: "Correios", name: "PAC", price: isSP ? 16.9 : isSouthSoutheast ? 22.9 : 31.9, delivery_time: isSP ? 4 : isSouthSoutheast ? 6 : 9 },
-                            { id: 2, company: "Correios", name: "SEDEX", price: isSP ? 21.9 : isSouthSoutheast ? 32.9 : 48.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 3 : 5 },
-                        ];
+                        setShippingOptions([]);
+                        setSelectedShipping(null);
+                        setShippingError(apiError || "Não foi possível calcular o frete para este CEP.");
+                        return;
                     }
 
                     const sorted = [...list].sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
@@ -457,24 +454,9 @@ export default function CarrinhoPage() {
                     setShippingError(null);
                 } catch (error) {
                     console.error("Shipping calc error:", error);
-                    const prefix = parseInt(cleanCep.substring(0, 2) || "1", 10);
-                    const isSP = prefix >= 1 && prefix <= 19;
-                    const isSouthSoutheast = (prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99);
-                    const fallbackList = [
-                        { id: 31, company: "Loggi", name: "Express", price: isSP ? 9.85 : isSouthSoutheast ? 15.9 : 24.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6 },
-                        { id: 34, company: "Loggi", name: "Loggi Ponto", price: isSP ? 10.47 : isSouthSoutheast ? 16.5 : 25.5, delivery_time: isSP ? 3 : isSouthSoutheast ? 5 : 7 },
-                        { id: 33, company: "JeT", name: "Standard", price: isSP ? 14.9 : isSouthSoutheast ? 19.9 : 28.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6 },
-                        { id: 1, company: "Correios", name: "PAC", price: isSP ? 16.9 : isSouthSoutheast ? 22.9 : 31.9, delivery_time: isSP ? 4 : isSouthSoutheast ? 6 : 9 },
-                        { id: 2, company: "Correios", name: "SEDEX", price: isSP ? 21.9 : isSouthSoutheast ? 32.9 : 48.9, delivery_time: isSP ? 2 : isSouthSoutheast ? 3 : 5 },
-                    ];
-                    setShippingOptions(fallbackList);
-                    setSelectedShipping((prev: any) => {
-                        if (prev && fallbackList.find((o: any) => o.id === prev.id)) {
-                            return fallbackList.find((o: any) => o.id === prev.id);
-                        }
-                        return fallbackList[0];
-                    });
-                    setShippingError(null);
+                    setShippingOptions([]);
+                    setSelectedShipping(null);
+                    setShippingError("Não foi possível calcular o frete agora. Tente novamente.");
                 } finally {
                     setLoadingShipping(false);
                 }

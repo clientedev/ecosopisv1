@@ -742,48 +742,9 @@ async function calculateShippingForWhatsApp(
     } catch {}
   }
 
-  // Fallback regional caso a API externa demore ou esteja indisponível no momento
+  // Sem cotação real (CEP inválido/sem cobertura ou serviço fora do ar): nunca inventa preço
   if (rawOptions.length === 0) {
-    const prefix = parseInt(cleanCep.substring(0, 2) || '1', 10);
-    const isSP = prefix >= 1 && prefix <= 19;
-    const isSouthSoutheast = (prefix >= 1 && prefix <= 39) || (prefix >= 80 && prefix <= 99);
-    rawOptions = [
-      {
-        id: 31,
-        company: 'Loggi',
-        name: 'Express',
-        price: isSP ? 9.85 : isSouthSoutheast ? 15.9 : 24.9,
-        delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6,
-      },
-      {
-        id: 34,
-        company: 'Loggi',
-        name: 'Loggi Ponto',
-        price: isSP ? 10.47 : isSouthSoutheast ? 16.5 : 25.5,
-        delivery_time: isSP ? 3 : isSouthSoutheast ? 5 : 7,
-      },
-      {
-        id: 33,
-        company: 'JeT',
-        name: 'Standard',
-        price: isSP ? 14.9 : isSouthSoutheast ? 19.9 : 28.9,
-        delivery_time: isSP ? 2 : isSouthSoutheast ? 4 : 6,
-      },
-      {
-        id: 1,
-        company: 'Correios',
-        name: 'PAC',
-        price: isSP ? 16.9 : isSouthSoutheast ? 22.9 : 31.9,
-        delivery_time: isSP ? 4 : isSouthSoutheast ? 6 : 9,
-      },
-      {
-        id: 2,
-        company: 'Correios',
-        name: 'SEDEX',
-        price: isSP ? 21.9 : isSouthSoutheast ? 32.9 : 48.9,
-        delivery_time: isSP ? 2 : isSouthSoutheast ? 3 : 5,
-      },
-    ];
+    throw new Error('CEP_SEM_FRETE');
   }
 
   // Ordena do mais econômico para o mais caro
@@ -1834,10 +1795,23 @@ export async function handleIncomingWhatsAppCommerceMessage(
     }
 
     session.customer.cep = cepDigits;
-    const [lookedUp, shippingCalc] = await Promise.all([
-      lookupCep(cepDigits),
-      calculateShippingForWhatsApp(cepDigits, session.cart),
-    ]);
+    let lookedUp: Awaited<ReturnType<typeof lookupCep>>;
+    let shippingCalc: Awaited<ReturnType<typeof calculateShippingForWhatsApp>>;
+    try {
+      [lookedUp, shippingCalc] = await Promise.all([
+        lookupCep(cepDigits),
+        calculateShippingForWhatsApp(cepDigits, session.cart),
+      ]);
+    } catch {
+      session.customer.cep = undefined as any;
+      enqueueSafeCommerceReply(
+        sock,
+        remoteJid,
+        `⚠️ Não consegui calcular o frete para esse CEP. Confira se o *CEP está correto* e envie novamente (ex: *01310-100*):`,
+        session.customer.name
+      );
+      return true;
+    }
 
     const bestShipping = shippingCalc.selected;
     session.customer.shippingMethod = `${bestShipping.company} - ${bestShipping.name}`;
