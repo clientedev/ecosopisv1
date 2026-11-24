@@ -1076,19 +1076,22 @@ return (
                                     Aproveite os melhores preços nos nossos produtos selecionados
                                 </p>
                             </div>
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: promoProducts.length === 1
-                                    ? 'repeat(1, minmax(220px, 280px))'
-                                    : 'repeat(auto-fit, minmax(220px, 280px))',
-                                gap: '24px',
-                                maxWidth: '1100px',
-                                margin: '0 auto',
-                                justifyContent: 'center'
-                              }}>
-                                {promoProducts.map((p: any) => (
-                                    <ProductCard key={p.id} product={p} showMarketplace={false} />
-                                ))}
+                            {/* Letreiro vertical: cards sobem devagar e em loop; pausa ao passar o mouse/tocar */}
+                            <div className={styles.promoMarquee} aria-label="Produtos em promoção">
+                                <div
+                                    className={styles.promoTrack}
+                                    style={{ animationDuration: `${Math.max(promoProducts.length * 7, 20)}s` }}
+                                >
+                                    {[0, 1].map((copy) => (
+                                        <div key={copy} className={styles.promoList} aria-hidden={copy === 1 ? true : undefined}>
+                                            {promoProducts.map((p: any) => (
+                                                <div key={`${copy}-${p.id}`} className={styles.promoItem}>
+                                                    <ProductCard product={p} showMarketplace={false} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </section>
