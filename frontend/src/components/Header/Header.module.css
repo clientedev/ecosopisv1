@@ -1118,12 +1118,24 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-@media (min-width: 901px) and (max-width: 1500px) {
+@media (min-width: 901px) and (max-width: 1760px) {
     .userName,
     .chevron {
         display: none;
     }
     .userButton {
         padding: 4px;
+    }
+}
+
+/* Header sempre ocupa a largura toda: o container global tem largura máxima e o menu
+   invadia carrinho/conta em telas largas ou com zoom reduzido. */
+@media (min-width: 1201px) {
+    .header .headerContent {
+        max-width: none;
+        width: 100%;
+    }
+    .header .desktopNav {
+        gap: clamp(10px, 1.1vw, 22px);
     }
 }
