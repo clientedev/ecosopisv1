@@ -1,3 +1,5 @@
+import time
+from typing import List, Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -12,8 +14,34 @@ router = APIRouter()
 
 HUMAN_SUPPORT_CTA = "Deseja atendimento humano? Fale com a nossa equipe pelo WhatsApp."
 
+class ChatTurn(BaseModel):
+    role: str
+    content: str
+
 class ChatRequest(BaseModel):
     message: str
+    history: List[ChatTurn] = []
+
+
+# ── Motor próprio da Lia (sem chave de API) ──────────────────────────────────
+from app.core.lia_engine import LiaEngine, load_catalog
+
+_ENGINE_CACHE = {"ts": 0.0, "engine": None}
+_ENGINE_TTL = 60  # segundos: preços/promoções/estoque sempre recentes
+
+
+def _quote_shipping(cep: str, items: list):
+    from app.core.melhorenvio_service import MelhorEnvioService
+    return MelhorEnvioService.calculate_shipping(cep, items, timeout=8, attempts=1)
+
+
+def get_engine(db: Session) -> LiaEngine:
+    now = time.time()
+    eng = _ENGINE_CACHE["engine"]
+    if eng is None or now - _ENGINE_CACHE["ts"] > _ENGINE_TTL:
+        eng = LiaEngine(load_catalog(db), quote_fn=_quote_shipping)
+        _ENGINE_CACHE.update(ts=now, engine=eng)
+    return eng
 
 # Base de conhecimento especializada de cosmetologia e fitoterapia Ecosopis
 PRODUCT_KNOWLEDGE = {
@@ -166,7 +194,8 @@ def get_product_context(db: Session) -> str:
     )
 
     for p in products:
-        price_str = f"R$ {p.price:.2f}".replace(".", ",")
+        eff = p.sale_price if (p.is_on_sale and p.sale_price) else p.price
+        price_str = f"R$ {eff:.2f}".replace(".", ",")
         desc = p.description or ""
         slug = p.slug or ""
         extra = PRODUCT_KNOWLEDGE.get(slug, {})
@@ -444,7 +473,7 @@ def generate_fallback_response(user_msg: str, db: Session) -> str:
     # 9. Frete, Entrega e Prazos
     if any(w in clean_msg for w in ["frete", "entrega", "prazo", "enviar", "envio", "rastreio"]):
         return (
-            "Trabalhamos com envio seguro para todo o Brasil via Melhor Envio (Correios e Jadlog)! 📦\n\n"
+            "Trabalhamos com envio seguro para todo o Brasil via Melhor Envio (Correios, Loggi e J&T)! 📦\n\n"
             "✨ **Frete Grátis:**\n"
             "- Sul e Sudeste: compras a partir de **R$ 148,90**\n"
             "- Demais regiões: compras a partir de **R$ 248,90**\n\n"
@@ -509,9 +538,33 @@ def generate_fallback_response(user_msg: str, db: Session) -> str:
 @router.post("")
 def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
     bot_reply = None
+    request.message = (request.message or "").strip()[:800]
+    history = [{"role": h.role, "content": (h.content or "")[:1200]} for h in (request.history or [])[-8:]]
     topic = detect_topic(request.message)
+    engine_result = None
+    extra = {}
 
     try:
+        # 0. Motor próprio da Lia: responde sozinho (catálogo vivo, memória da conversa, frete por CEP...)
+        try:
+            engine_result = get_engine(db).answer(request.message, history)
+            if engine_result.topic and engine_result.topic != "Dúvidas Gerais":
+                topic = engine_result.topic
+            elif engine_result.intent == "shipping":
+                topic = "Frete & Envio"
+            if engine_result.confidence >= 0.5:
+                bot_reply = engine_result.reply
+                print(f"Lia engine intent={engine_result.intent} conf={engine_result.confidence:.2f}")
+        except Exception as engine_err:
+            print(f"Lia engine error: {engine_err}")
+
+        # Só consulta IA externa se o motor não tiver segurança E houver chave configurada (opcional)
+        if not bot_reply and history:
+            convo = "\n".join(f"{'Cliente' if h['role'] == 'user' else 'Lia'}: {h['content']}" for h in history)
+            llm_user_message = f"Histórico da conversa:\n{convo}\n\nPergunta atual do cliente: {request.message}"
+        else:
+            llm_user_message = request.message
+
         groq_key = os.getenv("GROQ_API_KEY")
         gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         openai_key = os.getenv("OPENAI_API_KEY")
@@ -519,40 +572,40 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
         zai_key = os.getenv("ZAI_API_KEY") or os.getenv("Z_API_KEY") or os.getenv("ZHIPU_API_KEY")
         use_ollama = os.getenv("USE_OLLAMA", "").lower() in ["true", "1", "yes"] or os.getenv("OLLAMA_HOST")
 
-        system_prompt = get_product_context(db)
+        system_prompt = get_product_context(db) if (not bot_reply and (groq_key or gemini_key or openai_key or xai_key or zai_key or use_ollama)) else ""
 
         # 1. Groq (Prioritário - velocidade ultrarrápida e modelos de ponta como Qwen 27B / Llama 3.3)
         if not bot_reply and groq_key and not groq_key.startswith("xai-") and not groq_key.startswith("zai-"):
             try:
-                bot_reply = call_groq_chat(groq_key, system_prompt, request.message)
+                bot_reply = call_groq_chat(groq_key, system_prompt, llm_user_message)
             except Exception as groq_err:
                 print(f"Groq API Error: {groq_err}")
 
         # 2. Google Gemini (se disponível no ambiente)
         if not bot_reply and gemini_key:
             try:
-                bot_reply = call_gemini_chat(gemini_key, system_prompt, request.message)
+                bot_reply = call_gemini_chat(gemini_key, system_prompt, llm_user_message)
             except Exception as gemini_err:
                 print(f"Gemini API Error: {gemini_err}")
 
         # 3. OpenAI (se disponível no ambiente)
         if not bot_reply and openai_key:
             try:
-                bot_reply = call_openai_chat(openai_key, system_prompt, request.message)
+                bot_reply = call_openai_chat(openai_key, system_prompt, llm_user_message)
             except Exception as openai_err:
                 print(f"OpenAI API Error: {openai_err}")
 
         # 4. xAI Grok (se disponível)
         if not bot_reply and (xai_key or (groq_key and groq_key.startswith("xai-"))):
             try:
-                bot_reply = call_xai_chat(xai_key or groq_key, system_prompt, request.message)
+                bot_reply = call_xai_chat(xai_key or groq_key, system_prompt, llm_user_message)
             except Exception as xai_err:
                 print(f"xAI API Error: {xai_err}")
 
         # 5. Z.AI (se disponível)
         if not bot_reply and (zai_key or (groq_key and groq_key.startswith("zai-"))):
             try:
-                bot_reply = call_zai_chat(zai_key or groq_key, system_prompt, request.message)
+                bot_reply = call_zai_chat(zai_key or groq_key, system_prompt, llm_user_message)
             except Exception as zai_err:
                 print(f"Z.AI API Error: {zai_err}")
 
@@ -566,7 +619,7 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
                     model=model_name,
                     messages=[
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": request.message}
+                        {"role": "user", "content": llm_user_message}
                     ],
                     max_tokens=500,
                     temperature=0.6,
@@ -578,8 +631,11 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
 
         # 7. Fallback Inteligente Local (100% Garantido com conhecimento de catálogo e fitoterapia)
         if not bot_reply:
-            print("Using Intelligent Local Catalog Fallback for Lia.")
-            bot_reply = generate_fallback_response(request.message, db)
+            if engine_result is not None:
+                bot_reply = engine_result.reply
+            else:
+                print("Using Intelligent Local Catalog Fallback for Lia.")
+                bot_reply = generate_fallback_response(request.message, db)
 
         # Sanitização e Regra de Ouro: NUNCA exibe o número de telefone no texto da Lia; apenas convite clean para atendimento humano
         if bot_reply:
@@ -610,7 +666,11 @@ def chat_with_ai(request: ChatRequest, db: Session = Depends(get_db)):
             db.rollback()
             print(f"Failed to log LIA interaction: {log_err}")
 
-        return {"response": bot_reply}
+        payload = {"response": bot_reply}
+        if engine_result is not None and engine_result.reply[:60] in (bot_reply or ""):
+            payload["products"] = engine_result.product_ids
+            payload["suggestions"] = engine_result.suggestions
+        return payload
 
     except Exception as e:
         print(f"Chat AI Critical Error: {e}")

@@ -14,6 +14,18 @@ const SUGGESTIONS = [
     { label: "💬 Atendimento Humano", isWhatsApp: true },
 ];
 
+interface Msg {
+    role: string;
+    content: string;
+    productIds?: number[];
+    suggestions?: string[];
+}
+
+const effectivePrice = (p: any): number =>
+    p?.is_on_sale && p?.sale_price && p.sale_price > 0 ? Number(p.sale_price) : Number(p?.price || 0);
+
+const formatBRL = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
+
 interface ChatIAProps {
     isOpen?: boolean;
     onToggle?: () => void;
@@ -108,7 +120,7 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
     const pathname = usePathname();
     const isHomePage = pathname === "/";
 
-    const [messages, setMessages] = useState([
+    const [messages, setMessages] = useState<Msg[]>([
         {
             role: "assistant",
             content: "Olá! Eu sou a Lia 🌿 Sua consultora de beleza natural da Ecosopis. Pode me contar qual é o seu maior desafio com a pele agora?\n\n💬 Deseja atendimento humano? Fale com a nossa equipe pelo WhatsApp."
@@ -142,15 +154,21 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
         setIsLoading(true);
 
         try {
+            const history = messages.slice(-8).map(m => ({ role: m.role, content: m.content }));
             const res = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: text })
+                body: JSON.stringify({ message: text, history })
             });
 
             if (res.ok) {
                 const data = await res.json();
-                setMessages(prev => [...prev, { role: "assistant", content: data.response }]);
+                setMessages(prev => [...prev, {
+                    role: "assistant",
+                    content: data.response,
+                    productIds: Array.isArray(data.products) ? data.products : undefined,
+                    suggestions: Array.isArray(data.suggestions) ? data.suggestions : undefined,
+                }]);
             } else {
                 throw new Error("Failed to get response");
             }
@@ -256,9 +274,12 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
 
                     <div className={styles.chatMessages} ref={scrollRef}>
                         {messages.map((msg, idx) => {
-                            const mentionedProducts = msg.role === 'assistant'
-                                ? getMentionedProducts(msg.content, products)
-                                : [];
+                            const mentionedProducts = msg.role !== 'assistant'
+                                ? []
+                                : msg.productIds
+                                    ? msg.productIds.map(id => products.find(p => p.id === id)).filter(Boolean)
+                                    : getMentionedProducts(msg.content, products);
+                            const isLastAssistant = msg.role === 'assistant' && idx === messages.length - 1 && !isLoading;
                             const hasWhatsAppMention = msg.role === 'assistant' && (
                                 msg.content.toLowerCase().includes("whatsapp") ||
                                 msg.content.toLowerCase().includes("atendimento humano")
@@ -293,6 +314,16 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                                         </div>
                                     )}
 
+                                    {isLastAssistant && msg.suggestions && msg.suggestions.length > 0 && (
+                                        <div className={styles.quickReplies}>
+                                            {msg.suggestions.slice(0, 4).map((sug, i) => (
+                                                <button key={i} type="button" className={styles.quickReplyBtn} onClick={() => sendMessage(sug)}>
+                                                    {sug}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {mentionedProducts.length > 0 && (
                                         <div className={styles.productCards}>
                                             {mentionedProducts.map(p => (
@@ -300,7 +331,7 @@ export default function ChatIA({ isOpen: controlledOpen, onToggle }: ChatIAProps
                                                     <img src={p.image_url || "/placeholder.jpg"} alt={p.name} className={styles.productCardImg} />
                                                     <div className={styles.productCardInfo}>
                                                         <span className={styles.productCardName}>{p.name}</span>
-                                                        <span className={styles.productCardPrice}>R$ {p.price.toFixed(2).replace('.', ',')}</span>
+                                                        <span className={styles.productCardPrice}>{formatBRL(effectivePrice(p))}</span>
                                                     </div>
                                                     <button
                                                         className={styles.productCardBtn}

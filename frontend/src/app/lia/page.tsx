@@ -14,6 +14,29 @@ const SUGGESTIONS = [
     { icon: <MessageCircle size={18} />, text: "Dicas para uma rotina de skincare vegana." }
 ];
 
+interface Msg {
+    role: string;
+    content: string;
+    productIds?: number[];
+    suggestions?: string[];
+}
+
+const effectivePrice = (p: any): number =>
+    p?.is_on_sale && p?.sale_price && p.sale_price > 0 ? Number(p.sale_price) : Number(p?.price || 0);
+
+const formatBRL = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
+
+function renderRich(text: string) {
+    if (!text) return null;
+    return text.split("\n").map((line, i) => (
+        <span key={i} style={{ display: "block", minHeight: line ? "auto" : "8px" }}>
+            {line.split(/(\*\*[^*]+\*\*)/g).map((part, j) =>
+                part.startsWith("**") && part.endsWith("**") ? <strong key={j}>{part.slice(2, -2)}</strong> : part
+            )}
+        </span>
+    ));
+}
+
 const getMentionedProducts = (content: string, products: any[]) => {
     if (!content || !products) return [];
     
@@ -83,7 +106,7 @@ const getMentionedProducts = (content: string, products: any[]) => {
 export default function LiaPage() {
     const { addToCart } = useCart();
     const [products, setProducts] = useState<any[]>([]);
-    const [messages, setMessages] = useState([
+    const [messages, setMessages] = useState<Msg[]>([
         { role: "assistant", content: "Olá! Eu sou a Lia, sua consultora de inteligência artificial da ECOSOPIS. Estou aqui para ajudar você a descobrir o melhor da beleza natural e científica. Como posso te ajudar hoje?" }
     ]);
     const [input, setInput] = useState("");
@@ -116,12 +139,20 @@ export default function LiaPage() {
             const res = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: messageToSend })
+                body: JSON.stringify({
+                    message: messageToSend,
+                    history: messages.slice(-8).map(m => ({ role: m.role, content: m.content })),
+                })
             });
 
             if (res.ok) {
                 const data = await res.json();
-                setMessages(prev => [...prev, { role: "assistant", content: data.response }]);
+                setMessages(prev => [...prev, {
+                    role: "assistant",
+                    content: data.response,
+                    productIds: Array.isArray(data.products) ? data.products : undefined,
+                    suggestions: Array.isArray(data.suggestions) ? data.suggestions : undefined,
+                }]);
             } else {
                 throw new Error("Failed to get response");
             }
@@ -185,9 +216,12 @@ export default function LiaPage() {
                         <div className={styles.chatWrapper}>
                             <div className={styles.chatMessages} ref={scrollRef}>
                                 {messages.map((msg, idx) => {
-                                    const mentionedProducts = msg.role === 'assistant' 
-                                        ? getMentionedProducts(msg.content, products)
-                                        : [];
+                                    const mentionedProducts = msg.role !== 'assistant'
+                                        ? []
+                                        : msg.productIds
+                                            ? msg.productIds.map(id => products.find(p => p.id === id)).filter(Boolean)
+                                            : getMentionedProducts(msg.content, products);
+                                    const isLastAssistant = msg.role === 'assistant' && idx === messages.length - 1 && !isLoading;
 
                                     return (
                                         <div
@@ -195,8 +229,18 @@ export default function LiaPage() {
                                             className={`${styles.message} ${msg.role === 'user' ? styles.userMessage : styles.assistantMessage}`}
                                         >
                                             <div className={styles.messageContent}>
-                                                {msg.content}
-                                                
+                                                {renderRich(msg.content)}
+
+                                                {isLastAssistant && msg.suggestions && msg.suggestions.length > 0 && (
+                                                    <div className={styles.quickReplies}>
+                                                        {msg.suggestions.slice(0, 4).map((sug, i) => (
+                                                            <button key={i} type="button" className={styles.quickReplyBtn} onClick={() => sendMessage(sug)}>
+                                                                {sug}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+
                                                 {mentionedProducts.length > 0 && (
                                                     <div className={styles.productSuggestionsContainer}>
                                                         {mentionedProducts.map(p => (
@@ -211,7 +255,7 @@ export default function LiaPage() {
                                                                 <div className={styles.suggestionInfo}>
                                                                     <span className={styles.suggestionName}>{p.name}</span>
                                                                     <span className={styles.suggestionPrice}>
-                                                                        R$ {p.price.toFixed(2).replace('.', ',')}
+                                                                        {formatBRL(effectivePrice(p))}
                                                                     </span>
                                                                 </div>
                                                                 <button 

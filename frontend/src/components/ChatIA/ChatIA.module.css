@@ -623,3 +623,29 @@
         word-break: break-word;
         display: block;
     }
+
+/* Respostas rápidas da Lia */
+.quickReplies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.quickReplyBtn {
+  border: 1px solid rgba(45, 90, 39, 0.35);
+  background: #ffffff;
+  color: #2d5a27;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.quickReplyBtn:hover {
+  background: #2d5a27;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
