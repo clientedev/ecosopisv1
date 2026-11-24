@@ -2763,44 +2763,46 @@
   }
 }
 
-/* ===== Promoções: letreiro vertical ===== */
+/* ===== Promoções: letreiro horizontal ===== */
 .promoMarquee {
     position: relative;
-    height: min(640px, 80vh);
-    max-width: 320px;
-    margin: 0 auto;
+    width: 100%;
     overflow: hidden;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 8%, #000 92%, transparent 100%);
-    mask-image: linear-gradient(to bottom, transparent 0, #000 8%, #000 92%, transparent 100%);
+    padding: 8px 0;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%);
 }
 .promoTrack {
     display: flex;
-    flex-direction: column;
-    animation: promoScrollUp linear infinite;
+    flex-direction: row;
+    width: max-content;
+    animation: promoScrollLeft linear infinite;
     will-change: transform;
 }
 .promoList {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 24px;
-    padding-bottom: 24px;
+    padding-right: 24px;
 }
 .promoItem {
-    width: 100%;
-    max-width: 280px;
-    margin: 0 auto;
+    flex: 0 0 auto;
+    width: 260px;
 }
 .promoMarquee:hover .promoTrack,
 .promoMarquee:focus-within .promoTrack,
 .promoMarquee:active .promoTrack {
     animation-play-state: paused;
 }
-@keyframes promoScrollUp {
-    from { transform: translateY(0); }
-    to { transform: translateY(-50%); }
+@keyframes promoScrollLeft {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+@media (max-width: 600px) {
+    .promoItem { width: 220px; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .promoMarquee { overflow-y: auto; -webkit-mask-image: none; mask-image: none; }
+    .promoMarquee { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
     .promoTrack { animation: none; }
     .promoList + .promoList { display: none; }
 }

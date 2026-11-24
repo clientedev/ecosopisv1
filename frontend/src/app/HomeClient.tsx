@@ -1076,11 +1076,11 @@ return (
                                     Aproveite os melhores preços nos nossos produtos selecionados
                                 </p>
                             </div>
-                            {/* Letreiro vertical: cards sobem devagar e em loop; pausa ao passar o mouse/tocar */}
+                            {/* Letreiro horizontal: cards deslizam devagar e em loop; pausa ao passar o mouse/tocar */}
                             <div className={styles.promoMarquee} aria-label="Produtos em promoção">
                                 <div
                                     className={styles.promoTrack}
-                                    style={{ animationDuration: `${Math.max(promoProducts.length * 7, 20)}s` }}
+                                    style={{ animationDuration: `${Math.max(promoProducts.length * 10, 40)}s` }}
                                 >
                                     {[0, 1].map((copy) => (
                                         <div key={copy} className={styles.promoList} aria-hidden={copy === 1 ? true : undefined}>
