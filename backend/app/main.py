@@ -21,6 +21,10 @@ load_dotenv()
 # Initialize logger
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+# httpx registra a URL completa de cada requisição — inclusive o access_token da Meta.
+# Mantém só avisos/erros para não expor tokens nos logs do servidor.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 # Configure Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")

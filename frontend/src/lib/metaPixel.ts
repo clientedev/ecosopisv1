@@ -21,12 +21,66 @@ declare global {
     }
 }
 
-let identity: { email?: string; phone?: string; external_id?: string } = {};
+type Identity = { email?: string; phone?: string; external_id?: string; name?: string; zip?: string; city?: string; state?: string };
+let identity: Identity = {};
+let lastAmKey = "";
 
-export function setMetaIdentity(user: { email?: string; phone?: string; id?: number | string } | null) {
-    identity = user
-        ? { email: user.email || undefined, phone: user.phone || undefined, external_id: user.id ? String(user.id) : user.email }
+type IdentityInput = { email?: string; phone?: string; id?: number | string; name?: string; zip?: string; city?: string; state?: string };
+
+export function setMetaIdentity(user: IdentityInput | null, opts: { merge?: boolean } = {}) {
+    const next: Identity = user
+        ? {
+              email: user.email || undefined,
+              phone: user.phone || undefined,
+              external_id: user.id ? String(user.id) : user.email || undefined,
+              name: user.name || undefined,
+              zip: user.zip ? String(user.zip).replace(/\D/g, "") || undefined : undefined,
+              city: user.city || undefined,
+              state: user.state || undefined,
+          }
         : {};
+    if (opts.merge) {
+        Object.entries(next).forEach(([k, v]) => {
+            if (v) (identity as any)[k] = v;
+        });
+    } else {
+        identity = next;
+    }
+    refreshAdvancedMatching();
+}
+
+// Correspondência avançada do pixel no navegador (a Meta aceita um novo "init" com os dados atualizados)
+function advancedMatching(): Record<string, string> {
+    const am: Record<string, string> = {};
+    if (identity.email) am.em = identity.email.trim().toLowerCase();
+    if (identity.phone) {
+        const d = identity.phone.replace(/\D/g, "");
+        if (d.length >= 10) am.ph = d.startsWith("55") ? d : `55${d}`;
+    }
+    if (identity.name) {
+        const parts = identity.name.trim().toLowerCase().split(/\s+/);
+        if (parts[0]) am.fn = parts[0];
+        if (parts.length > 1) am.ln = parts[parts.length - 1];
+    }
+    if (identity.zip) am.zp = identity.zip.slice(0, 5);
+    if (identity.city) am.ct = identity.city.trim().toLowerCase();
+    if (identity.state) am.st = identity.state.trim().toLowerCase();
+    am.country = "br";
+    am.external_id = identity.external_id || visitorId();
+    return am;
+}
+
+function refreshAdvancedMatching() {
+    if (typeof window === "undefined" || !window.fbq) return;
+    const am = advancedMatching();
+    const key = JSON.stringify(am);
+    if (key === lastAmKey) return;
+    lastAmKey = key;
+    try {
+        window.fbq("init", META_PIXEL_ID, am);
+    } catch {
+        /* ignore */
+    }
 }
 
 function newEventId(prefix: string) {
@@ -77,7 +131,9 @@ export function captureAttribution() {
             if (!utm.utm_source) utm.utm_source = "meta";
             if (!utm.utm_medium) utm.utm_medium = "paid_or_social";
             // _fbc no formato oficial (o pixel também cria, isto garante quando o pixel é bloqueado)
-            if (!readCookie("_fbc")) writeCookie("_fbc", `fb.1.${Date.now()}.${fbclid}`, 90);
+            // cada novo clique em anúncio atualiza o _fbc (a Meta atribui ao clique mais recente)
+            const cur = readCookie("_fbc");
+            if (!cur || !cur.endsWith(`.${fbclid}`)) writeCookie("_fbc", `fb.1.${Date.now()}.${fbclid}`, 90);
         }
         if (!utm.utm_source && document.referrer) {
             const ref = document.referrer.toLowerCase();
@@ -117,10 +173,9 @@ export function initMetaPixel() {
     // O PageView de navegação interna é disparado por nós (com eventID p/ deduplicar com a CAPI);
     // desliga o PageView automático do pixel em mudanças de rota (pushState).
     (window.fbq as any).disablePushState = true;
-    const am: Record<string, string> = {};
-    if (identity.email) am.em = identity.email.trim().toLowerCase();
-    // external_id estável (cliente logado ou visitante anônimo) melhora a correspondência de eventos
-    am.external_id = identity.external_id || visitorId();
+    // external_id estável (cliente logado ou visitante anônimo) + dados conhecidos melhoram a correspondência
+    const am = advancedMatching();
+    lastAmKey = JSON.stringify(am);
     window.fbq!("init", META_PIXEL_ID, am);
 }
 
@@ -136,6 +191,10 @@ function sendToServer(eventName: string, eventId: string, customData?: CustomDat
             email: identity.email || null,
             phone: identity.phone || null,
             external_id: identity.external_id || visitorId(),
+            full_name: identity.name || null,
+            zip: identity.zip || null,
+            city: identity.city || null,
+            state: identity.state || null,
             fbp: readCookie("_fbp"),
             fbc: readCookie("_fbc"),
         });

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import ProductDetailClient from "./ProductDetailClient";
 import {
     absUrl,
@@ -9,13 +9,25 @@ import {
     jsonLd,
     plainText,
     productImagePath,
+    resolveProductSlug,
     SITE_NAME,
     SITE_URL,
 } from "@/lib/seo";
 
 export const revalidate = 300;
 
-type Props = { params: { slug: string } };
+type Props = { params: { slug: string }; searchParams?: Record<string, string | string[] | undefined> };
+
+// Mantém UTMs / fbclid ao redirecionar (atribuição das campanhas)
+function withQuery(path: string, sp?: Props["searchParams"]): string {
+    const q = new URLSearchParams();
+    Object.entries(sp || {}).forEach(([k, v]) => {
+        if (typeof v === "string") q.set(k, v);
+        else if (Array.isArray(v) && v[0]) q.set(k, v[0]);
+    });
+    const qs = q.toString();
+    return qs ? `${path}?${qs}` : path;
+}
 
 function productDescription(p: any): string {
     const base = plainText(p.description, 400) || plainText(p.benefits, 400);
@@ -71,10 +83,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
 }
 
-export default async function ProdutoPage({ params }: Props) {
+export default async function ProdutoPage({ params, searchParams }: Props) {
     const p = await getProduct(params.slug);
     if (p === null) return <ProductDetailClient />; // backend indisponível: página carrega no navegador
-    if (!p) notFound();
+    if (!p) {
+        // Slug antigo/alternativo (catálogo da Meta, Google, links velhos): leva ao produto certo
+        const match = await resolveProductSlug(params.slug);
+        if (match) permanentRedirect(withQuery(`/produtos/${match}`, searchParams));
+        // Sem correspondência: em vez de página em branco, leva ao catálogo
+        if (searchParams && Object.keys(searchParams).length) redirect(withQuery("/produtos", searchParams));
+        notFound();
+    }
     if (p.is_active === false) return <ProductDetailClient initialProduct={p} />;
 
     const reviews = normalizeReviews(await getApprovedReviews(p.id)).filter((r) => r.product_id === p.id);

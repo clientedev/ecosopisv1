@@ -41,6 +41,10 @@ class TrackIn(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     external_id: Optional[str] = None
+    full_name: Optional[str] = Field(None, max_length=200)
+    zip: Optional[str] = Field(None, max_length=20)
+    city: Optional[str] = Field(None, max_length=100)
+    state: Optional[str] = Field(None, max_length=50)
     fbp: Optional[str] = Field(None, max_length=200)
     fbc: Optional[str] = Field(None, max_length=400)
 
@@ -111,6 +115,7 @@ def track_event(body: TrackIn, request: Request, db: Session = Depends(get_db)):
 
     ud = meta_capi.build_user_data(
         email=body.email, phone=body.phone, external_id=body.external_id or body.email,
+        full_name=body.full_name, city=body.city, state=body.state, zip_code=body.zip,
         fbp=ctx.get("fbp"), fbc=ctx.get("fbc"), ip=ctx.get("ip"), ua=ctx.get("ua"),
     )
     allowed_cd = {k: cd.get(k) for k in ("currency", "value", "content_ids", "content_type", "contents", "content_name", "num_items") if cd.get(k) is not None}

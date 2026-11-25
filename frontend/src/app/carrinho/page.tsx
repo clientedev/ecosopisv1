@@ -278,8 +278,21 @@ export default function CarrinhoPage() {
     // Meta: e-mail digitado pelo visitante (sem login) melhora a correspondência dos eventos
     useEffect(() => {
         const em = (customerEmail || "").trim();
-        if (!user && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) setMetaIdentity({ email: em, phone: customerPhone || undefined });
-    }, [customerEmail, customerPhone, user]);
+        const validEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em);
+        const zip = (cep || "").replace(/\D/g, "");
+        // nome, CEP e cidade do checkout entram na correspondência (soma aos dados do cliente logado)
+        setMetaIdentity(
+            {
+                email: !user && validEmail ? em : undefined,
+                phone: !user ? customerPhone || undefined : undefined,
+                name: customerName || undefined,
+                zip: zip.length === 8 ? zip : undefined,
+                city: address?.city || undefined,
+                state: address?.state || undefined,
+            },
+            { merge: true }
+        );
+    }, [customerEmail, customerPhone, customerName, cep, address?.city, address?.state, user]);
 
     // Meta: início de checkout quando o cliente sai do carrinho para endereço/pagamento
     useEffect(() => {

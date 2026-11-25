@@ -110,6 +110,42 @@ export async function getProducts(): Promise<any[]> {
     return Array.isArray(list) ? list.map(normalizeProduct) : [];
 }
 
+// Palavras que não ajudam a identificar o produto ao comparar slugs
+const SLUG_STOPWORDS = new Set(["de", "da", "do", "das", "dos", "e", "com", "para", "100", "puro", "pura", "natural", "oe"]);
+
+function slugTokens(text: string): string[] {
+    return String(text || "")
+        .normalize("NFKD")
+        .replace(/[̀-ͯ]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .split(" ")
+        .filter((t) => t && !SLUG_STOPWORDS.has(t));
+}
+
+/**
+ * Encontra o produto certo para um slug que não existe (links antigos, catálogo da Meta,
+ * Google ou digitação), comparando as palavras do slug com o nome/slug de cada produto.
+ * Só devolve quando a correspondência é inequívoca.
+ */
+export async function resolveProductSlug(slug: string): Promise<string | null> {
+    const wanted = slugTokens(slug);
+    if (!wanted.length) return null;
+    const products = await getProducts();
+    const scored = products
+        .filter((p) => p?.slug && p.is_active !== false)
+        .map((p) => {
+            const have = new Set([...slugTokens(p.name), ...slugTokens(p.slug)]);
+            const hits = wanted.filter((t) => have.has(t)).length;
+            return { slug: String(p.slug), hits, score: hits / wanted.length, size: have.size };
+        })
+        .filter((s) => s.score >= 0.75)
+        .sort((a, b) => b.score - a.score || a.size - b.size);
+    if (!scored.length) return null;
+    if (scored.length > 1 && scored[1].score === scored[0].score && scored[1].size === scored[0].size) return null;
+    return scored[0].slug !== slug ? scored[0].slug : null;
+}
+
 export async function getApprovedReviews(productId: number): Promise<any[]> {
     const list = await backendJson(`/api/reviews/approved?product_id=${productId}`, 900);
     return Array.isArray(list) ? list : [];
