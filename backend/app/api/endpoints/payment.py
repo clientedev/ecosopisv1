@@ -290,7 +290,12 @@ def _validate_and_calculate_order(data: CreateCheckoutIn, current_user: models.U
 
     # 4. Coupon verification
     discount_amount = 0.0
-    if data.coupon_code and not has_wholesale_items:
+    from app.core.promo_schedule import coupons_blocked as _bf_coupons_blocked
+    if data.coupon_code and _bf_coupons_blocked():
+        # Black Friday: cupons não acumulam com o preço promocional
+        data.coupon_code = None
+        discount_amount = 0.0
+    elif data.coupon_code and not has_wholesale_items:
         code_clean = data.coupon_code.strip().upper()
         if code_clean == "PRIMEIRACOMPRA":
             if _is_first_purchase(db, current_user, data):

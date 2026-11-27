@@ -108,6 +108,48 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [cart, token, isInitialized]);
 
+    // 4. Mantém os preços do carrinho iguais aos da loja (ex.: Black Friday começando ou terminando
+    //    com produtos já no carrinho). O servidor sempre cobra o preço atual; isto só alinha a tela.
+    useEffect(() => {
+        if (!isInitialized) return;
+        let alive = true;
+        const refreshPrices = async () => {
+            try {
+                const res = await fetch('/api/products', { cache: 'no-store' });
+                if (!res.ok) return;
+                const list = await res.json();
+                if (!alive || !Array.isArray(list)) return;
+                const byId = new Map<number, any>(list.map((p: any) => [Number(p.id), p]));
+                setCart((prev) => {
+                    let changed = false;
+                    const next = prev.map((item) => {
+                        const p = byId.get(Number(item.id));
+                        if (!p) return item;
+                        const full = Number(p.price || 0);
+                        const onSale = !!(p.is_on_sale && p.sale_price && Number(p.sale_price) > 0 && Number(p.sale_price) < full);
+                        // atacado parte sempre do preço cheio (45% aplicado no carrinho); varejo usa o promocional
+                        const newPrice = item.isWholesale ? full : (onSale ? Number(p.sale_price) : full);
+                        if (!(newPrice > 0) || Math.abs(newPrice - Number(item.price)) < 0.005) return item;
+                        changed = true;
+                        return {
+                            ...item,
+                            price: newPrice,
+                            is_on_sale: onSale,
+                            sale_price: onSale ? Number(p.sale_price) : null,
+                            original_price: full,
+                        };
+                    });
+                    return changed ? next : prev;
+                });
+            } catch { /* sem rede: mantém o carrinho como está */ }
+        };
+        refreshPrices();
+        const id = setInterval(refreshPrices, 120_000);
+        const onVisible = () => { if (document.visibilityState === 'visible') refreshPrices(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => { alive = false; clearInterval(id); document.removeEventListener('visibilitychange', onVisible); };
+    }, [isInitialized]);
+
     const addToCart = useCallback((product: any, quantityToAdd: number = 1) => {
         const qty = Math.max(1, quantityToAdd);
         trackAddToCart(product, qty);

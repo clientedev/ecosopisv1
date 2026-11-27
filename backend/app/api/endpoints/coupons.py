@@ -44,8 +44,19 @@ def delete_coupon(coupon_id: int, db: Session = Depends(get_db), admin: models.U
     db.commit()
     return None
 
+@router.get("/policy")
+def coupon_policy():
+    """Informa à loja se cupons estão bloqueados agora (ex.: Black Friday)."""
+    from app.core.promo_schedule import coupons_blocked, COUPON_BLOCK_MESSAGE
+    blocked = coupons_blocked()
+    return {"coupons_blocked": blocked, "message": COUPON_BLOCK_MESSAGE if blocked else None}
+
+
 @router.get("/validate/{code}", response_model=schemas.CouponResponse)
 def validate_coupon(code: str, db: Session = Depends(get_db)):
+    from app.core.promo_schedule import coupons_blocked, COUPON_BLOCK_MESSAGE
+    if coupons_blocked():
+        raise HTTPException(status_code=400, detail=COUPON_BLOCK_MESSAGE)
     if code.upper() == "PRIMEIRACOMPRA":
         return schemas.CouponResponse(
             id=0,

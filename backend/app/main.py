@@ -555,6 +555,13 @@ async def startup_event():
         _ensure_extra_tables()
         # Create tables from models
         Base.metadata.create_all(bind=engine)
+
+        # Black Friday 2026: aplica/desfaz os preços sozinho no horário programado
+        try:
+            from app.core.promo_schedule import start_scheduler
+            start_scheduler()
+        except Exception as promo_err:
+            logger.error(f"Failed to start promo scheduler: {promo_err}")
         
         # Seed World Cup Matches
         from datetime import datetime, timezone, timedelta

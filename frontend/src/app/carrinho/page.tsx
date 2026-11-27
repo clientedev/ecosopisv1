@@ -329,8 +329,35 @@ export default function CarrinhoPage() {
         return () => window.removeEventListener("roulette_discount_applied", loadRouletteCoupon);
     }, []);
 
+    // ── Black Friday: cupons não acumulam com o preço promocional ──
+    const [couponBlock, setCouponBlock] = useState<string | null>(null);
+    useEffect(() => {
+        let alive = true;
+        const loadPolicy = async () => {
+            try {
+                const res = await fetch("/api/coupons/policy", { cache: "no-store" });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (alive) setCouponBlock(data?.coupons_blocked ? (data.message || "Cupons não são acumulativos com a promoção.") : null);
+            } catch { /* mantém o estado atual */ }
+        };
+        loadPolicy();
+        const id = setInterval(loadPolicy, 60_000);
+        return () => { alive = false; clearInterval(id); };
+    }, []);
+
+    useEffect(() => {
+        if (couponBlock && appliedCoupon) {
+            setAppliedCoupon(null);
+            setCouponError(couponBlock);
+        }
+    }, [couponBlock, appliedCoupon]);
+
     // ── Wholesale restrictions & first-purchase coupon ──
     useEffect(() => {
+        if (couponBlock) {
+            return;
+        }
         if (isWholesaleEligible) {
             if (appliedCoupon) {
                 setAppliedCoupon(null);
@@ -348,7 +375,7 @@ export default function CarrinhoPage() {
             }
             setFirstPurchaseChecked(true);
         }
-    }, [user, appliedCoupon, firstPurchaseChecked, isWholesaleEligible]);
+    }, [user, appliedCoupon, firstPurchaseChecked, isWholesaleEligible, couponBlock]);
 
     // Fetch Cashback balance and config
     useEffect(() => {
@@ -575,6 +602,12 @@ export default function CarrinhoPage() {
     const handleApplyCoupon = async () => {
         if (!couponCode) return;
         setCouponError("");
+
+        if (couponBlock) {
+            setCouponError(couponBlock);
+            setAppliedCoupon(null);
+            return;
+        }
         
         if (isWholesaleEligible) {
             setCouponError("Os cupons de desconto não são acumulativos com a promoção de atacado.");
