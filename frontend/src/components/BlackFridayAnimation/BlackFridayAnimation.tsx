@@ -13,16 +13,16 @@ import { useTheme } from "@/context/ThemeContext";
 
 const CONFETTI_COLORS = ["#111111", "#c8102e", "#e8233f", "#ff8a3d", "#ffc14d", "#ffffff"];
 
-// Black Friday 2026: 27/11/2026 (horário de Brasília)
-const BF_START = new Date("2026-11-27T00:00:00-03:00").getTime();
-const BF_END = new Date("2026-11-28T00:00:00-03:00").getTime();
+// Black Friday 2026, 2ª rodada: 28/11 a 29/11/2026 (horário de Brasília)
+const BF_START = new Date("2026-11-28T00:00:00-03:00").getTime();
+const BF_END = new Date("2026-11-30T00:00:00-03:00").getTime();
 
 function countdownLabel(now: number): string {
     if (now >= BF_END) return "Ofertas por tempo limitado";
     if (now >= BF_START) {
         const h = Math.floor((BF_END - now) / 3_600_000);
         const m = Math.floor(((BF_END - now) % 3_600_000) / 60_000);
-        return `É hoje · termina em ${h}h ${String(m).padStart(2, "0")}min`;
+        return `Termina em ${h}h ${String(m).padStart(2, "0")}min`;
     }
     const diff = BF_START - now;
     const d = Math.floor(diff / 86_400_000);

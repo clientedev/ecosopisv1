@@ -1,7 +1,7 @@
 """
 Promoções programadas (Black Friday 2026).
 
-Sexta, 27/11/2026, de 00:00 a 23:59 (horário de Brasília):
+Sábado 28/11 00:00 até domingo 29/11 23:59 (horário de Brasília) [2ª rodada; a 1ª foi em 27/11]:
   - 25% OFF em toda a loja, calculado sobre o preço cheio (substitui o desconto
     atual, não soma com ele);
   - exceto o Tônico Facial, que fica por R$ 7,99;
@@ -9,7 +9,7 @@ Sexta, 27/11/2026, de 00:00 a 23:59 (horário de Brasília):
   - atacado continua com a regra própria (45% sobre o preço cheio, a partir de
     10 itens) e não recebe a Black Friday por cima.
 
-À 00:00 do sábado, 28/11, os preços voltam exatamente ao que eram antes
+À 00:00 de segunda, 30/11, os preços voltam exatamente ao que eram antes
 (guardados num snapshot em system_settings). Um produto que o admin tenha
 alterado durante a promoção não é sobrescrito na volta.
 
@@ -35,14 +35,15 @@ logger = logging.getLogger("promo_schedule")
 
 BRT = timezone(timedelta(hours=-3))
 
-BF_START = datetime(2026, 11, 27, 0, 0, 0, tzinfo=BRT)
-BF_END = datetime(2026, 11, 28, 0, 0, 0, tzinfo=BRT)
+# 2ª rodada: sábado 28/11 00:00 até domingo 29/11 23:59:59 (Brasília). A 1ª rodada foi só em 27/11.
+BF_START = datetime(2026, 11, 28, 0, 0, 0, tzinfo=BRT)
+BF_END = datetime(2026, 11, 30, 0, 0, 0, tzinfo=BRT)
 BF_STORE_DISCOUNT = 0.25      # 25% OFF em toda a loja
 BF_TONICO_PRICE = 7.99        # Tônico Facial por R$ 7,99
 
-STATE_KEY = "promo_bf2026_state"        # "pending" | "applied" | "restored"
-SNAPSHOT_KEY = "promo_bf2026_snapshot"  # preços anteriores + preços aplicados
-ADVISORY_LOCK_ID = 2026112701
+STATE_KEY = "promo_bf2026_r2_state"     # "pending" | "applied" | "restored"
+SNAPSHOT_KEY = "promo_bf2026_r2_snapshot"  # preços anteriores + preços aplicados
+ADVISORY_LOCK_ID = 2026112801
 
 COUPON_BLOCK_MESSAGE = (
     "Cupons não são acumulativos com a Black Friday: os produtos já estão com o "
